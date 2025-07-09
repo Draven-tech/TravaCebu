@@ -31,7 +31,8 @@
                 "output": "./svg"
               }
             ],
-            "styles": ["src/global.scss", "src/theme/variables.scss"],
+            "styles": ["src/global.scss", "src/theme/variables.scss", "node_modules/leaflet/dist/leaflet.css",
+  "node_modules/leaflet-draw/dist/leaflet.draw.css"],
             "scripts": []
           },
           "configurations": {
@@ -111,7 +112,8 @@
                 "output": "./svg"
               }
             ],
-            "styles": ["src/global.scss", "src/theme/variables.scss"],
+            "styles": ["src/global.scss", "src/theme/variables.scss", "node_modules/leaflet/dist/leaflet.css",
+  "node_modules/leaflet-draw/dist/leaflet.draw.css"],
             "scripts": []
           },
           "configurations": {
@@ -136,7 +138,8 @@
   "cli": {
     "schematicCollections": [
       "@ionic/angular-toolkit"
-    ]
+    ],
+    "analytics": false
   },
   "schematics": {
     "@ionic/angular-toolkit:component": {

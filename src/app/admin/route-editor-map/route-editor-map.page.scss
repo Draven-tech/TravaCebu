@@ -1,0 +1,18 @@
+#route-editor-map {
+  height: 100%;
+  width: 100%;
+  z-index: 0;
+}
+
+.metadata-form {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1000;
+  width: calc(100% - 32px);
+  max-width: 400px;
+}
+
+ion-fab {
+  margin-bottom: 60px; /* Adjust based on your footer height */
+}

@@ -1,6 +1,11 @@
 <ion-header>
   <ion-toolbar color="primary">
     <ion-title>Admin Dashboard</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="logout()">
+        <ion-icon name="log-out"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -11,22 +16,21 @@
         <ion-card (click)="navigateTo('route-editor')" button>
           <ion-card-header>
             <ion-icon name="map" size="large"></ion-icon>
-            <ion-card-title>Route Editor</ion-card-title>
+            <ion-card-title>Create Route</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            Draw and edit jeepney routes
+            Draw new jeepney routes
           </ion-card-content>
         </ion-card>
       </ion-col>
-
       <ion-col size="12" size-md="6">
         <ion-card (click)="navigateTo('route-list')" button>
           <ion-card-header>
             <ion-icon name="list" size="large"></ion-icon>
-            <ion-card-title>Route List</ion-card-title>
+            <ion-card-title>Manage Routes</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            Manage all jeepney routes
+            View and edit existing routes
           </ion-card-content>
         </ion-card>
       </ion-col>

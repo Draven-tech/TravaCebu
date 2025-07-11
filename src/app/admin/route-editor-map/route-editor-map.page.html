@@ -1,54 +1,54 @@
 <ion-header>
   <ion-toolbar color="primary">
     <ion-title>Jeepney Route Editor</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/admin/dashboard"></ion-back-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
+  <!-- Prominent Route Code Input -->
+  <ion-item lines="full" class="route-code-input">
+    <ion-label position="floating" color="primary">Route Code</ion-label>
+    <ion-input 
+      [(ngModel)]="routeCode" 
+      placeholder="e.g. 12C, 01A, 23B"
+      clearInput
+      required>
+    </ion-input>
+  </ion-item>
+
+  <!-- Map Container -->
   <div id="route-editor-map"></div>
 
-  <!-- Control Panel -->
+  <!-- Route Color Picker -->
+  <ion-item lines="none">
+    <ion-label color="primary">Route Color</ion-label>
+    <ion-input 
+      type="color" 
+      [(ngModel)]="routeColor" 
+      (ionChange)="updateRouteLine()"
+      value="#FF5722"
+      class="color-picker">
+    </ion-input>
+  </ion-item>
+
+  <!-- Action Buttons -->
   <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button>
-      <ion-icon name="settings"></ion-icon>
+    <ion-fab-button color="primary">
+      <ion-icon name="options"></ion-icon>
     </ion-fab-button>
     <ion-fab-list side="top">
-      <ion-fab-button (click)="clearRoute()" color="danger">
+      <ion-fab-button color="danger" (click)="clearRoute()">
         <ion-icon name="trash"></ion-icon>
       </ion-fab-button>
-      <ion-fab-button (click)="removeLastPin()" color="warning">
+      <ion-fab-button color="warning" (click)="removeLastPin()">
         <ion-icon name="remove"></ion-icon>
       </ion-fab-button>
-      <ion-fab-button (click)="saveRoute()" color="success">
+      <ion-fab-button color="success" (click)="saveRoute()">
         <ion-icon name="save"></ion-icon>
       </ion-fab-button>
     </ion-fab-list>
   </ion-fab>
-
-  <!-- Route Metadata Form -->
-  <ion-card class="metadata-form">
-    <ion-card-header>
-      <ion-card-title>Route Details</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-item>
-        <ion-label position="stacked">Route Code</ion-label>
-        <ion-input [(ngModel)]="routeCode" placeholder="12C"></ion-input>
-      </ion-item>
-      
-      <ion-item>
-        <ion-label position="stacked">Route Name</ion-label>
-        <ion-input [(ngModel)]="routeName" placeholder="Ayala-Colon"></ion-input>
-      </ion-item>
-      
-      <ion-item>
-        <ion-label position="stacked">Route Color</ion-label>
-        <ion-input 
-          type="color" 
-          [(ngModel)]="routeColor" 
-          (ionChange)="updateRouteLine()">
-        </ion-input>
-      </ion-item>
-    </ion-card-content>
-  </ion-card>
 </ion-content>

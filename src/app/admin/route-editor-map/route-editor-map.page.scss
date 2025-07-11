@@ -1,18 +1,44 @@
+/* Map Container */
 #route-editor-map {
-  height: 100%;
   width: 100%;
-  z-index: 0;
+  height: 65vh;
+  margin: 10px 0;
+  border: 2px solid var(--ion-color-primary);
+  border-radius: 8px;
 }
 
-.metadata-form {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 1000;
-  width: calc(100% - 32px);
-  max-width: 400px;
+/* Route Code Input */
+.route-code-input {
+  margin: 10px;
+  border: 2px solid var(--ion-color-primary);
+  border-radius: 8px;
+  --highlight-color-focused: var(--ion-color-primary);
+  
+  ion-label {
+    font-weight: bold;
+  }
+  
+  ion-input {
+    font-size: 1.1em;
+  }
 }
 
-ion-fab {
-  margin-bottom: 60px; /* Adjust based on your footer height */
+/* Color Picker */
+.color-picker {
+  width: 60px;
+  height: 40px;
+}
+
+/* Action Buttons */
+ion-fab-button {
+  --box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Marker Popups */
+.leaflet-popup-content {
+  font-size: 14px;
+  
+  strong {
+    color: var(--ion-color-primary);
+  }
 }

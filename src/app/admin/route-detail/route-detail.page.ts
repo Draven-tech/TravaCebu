@@ -3,6 +3,7 @@ import { ModalController } from '@ionic/angular';
 import { DatePipe } from '@angular/common';
 
 @Component({
+  standalone: false,
   selector: 'app-route-detail',
   templateUrl: './route-detail.page.html',
   styleUrls: ['./route-detail.page.scss'],

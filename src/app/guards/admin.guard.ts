@@ -8,7 +8,6 @@ import { AlertController } from '@ionic/angular';
   providedIn: 'root'
 })
 export class AdminGuard implements CanActivate {
-
   constructor(
     private authService: AuthService,
     private router: Router,
@@ -19,24 +18,20 @@ export class AdminGuard implements CanActivate {
     next: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
   ): Promise<boolean | UrlTree> {
+    // Skip guard check for login page
+    if (state.url.includes('/login')) {
+      return true;
+    }
+  
     const isAdmin = await this.authService.isAdmin();
     
     if (isAdmin) {
       return true;
     } else {
-      await this.showAccessDeniedAlert();
+      // Redirect to login with return URL
       return this.router.createUrlTree(['/admin/login'], {
         queryParams: { returnUrl: state.url }
       });
     }
-  }
-
-  private async showAccessDeniedAlert() {
-    const alert = await this.alertCtrl.create({
-      header: 'Access Denied',
-      message: 'You need admin privileges to access this area',
-      buttons: ['OK']
-    });
-    await alert.present();
   }
 }

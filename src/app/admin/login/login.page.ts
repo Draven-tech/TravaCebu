@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AlertController, LoadingController } from '@ionic/angular';
+import { LoadingController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -11,61 +11,40 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./login.page.scss'],
 })
 export class LoginPage {
-  private authService = inject(AuthService);
-  private fb = inject(FormBuilder);
-  private alertController = inject(AlertController);
-  private router = inject(Router);
-  private loadingController = inject(LoadingController);
-
-  credentials = this.fb.group({
-    email: ['admin@trava.com', [Validators.required, Validators.email]],
-    password: ['admin123', [Validators.required, Validators.minLength(6)]]
+  form = this.fb.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]]
   });
+  alertCtrl: any;
 
-  ngOnInit() {
-    this.initializeForm();
-  }
-
-  private initializeForm() {
-    this.credentials = this.fb.group({
-      email: ['admin@trava.com', [Validators.required, Validators.email]],
-      password: ['admin123', [Validators.required, Validators.minLength(6)]],
-    });
-  }
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router,
+    private loadingCtrl: LoadingController
+  ) {}
 
   async login() {
-    const loading = await this.loadingController.create();
+    if (this.form.invalid) return;
+    
+    const loading = await this.loadingCtrl.create();
     await loading.present();
-
+    
     try {
-      const credentials = {
-        email: this.credentials.value.email ?? '',
-        password: this.credentials.value.password ?? ''
-      };
-
-      await this.authService.adminLogin(credentials);
+      const email = this.form.get('email')?.value ?? '';
+      const password = this.form.get('password')?.value ?? '';
+      
+      await this.authService.adminLogin(email, password);
       await loading.dismiss();
-      this.router.navigateByUrl('/admin/dashboard', { replaceUrl: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
       await loading.dismiss();
-      await this.showErrorAlert('Login Failed', error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      const alert = await this.alertCtrl.create({
+        header: 'Error',
+        message: errorMessage,
+        buttons: ['OK']
+      });
+      await alert.present();
     }
-  }
-
-  private async showErrorAlert(header: string, message: string) {
-    const alert = await this.alertController.create({
-      header,
-      message,
-      buttons: ['OK'],
-    });
-    await alert.present();
-  }
-
-  get email() {
-    return this.credentials.get('email');
-  }
-
-  get password() {
-    return this.credentials.get('password');
   }
 }

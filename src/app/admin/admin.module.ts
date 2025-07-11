@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
@@ -13,32 +13,23 @@ import { RouteEditorMapPage } from './route-editor-map/route-editor-map.page';
 import { RouteListPage } from './route-list/route-list.page';
 import { RouteDetailPage } from './route-detail/route-detail.page';
 
-
-// Services
-import { AuthService } from '../services/auth.service';
-
-// Firebase
-import { AngularFireModule } from '@angular/fire/compat';
-import { AngularFirestoreModule } from '@angular/fire/compat/firestore';
-import { AngularFireAuthModule } from '@angular/fire/compat/auth';
-import { environment } from '../../environments/environment';
-
-// Other Modules
-import { LeafletModule } from '@asymmetrik/ngx-leaflet';
-
 @NgModule({
-  declarations: [],
+  declarations: [
+    LoginPage,
+    DashboardPage,
+    RouteEditorMapPage,
+    RouteListPage,
+    RouteDetailPage
+  ],
   imports: [
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    IonicModule.forRoot(),
-    AdminRoutingModule,
-    AngularFireModule.initializeApp(environment.firebase),
-    AngularFirestoreModule,
-    AngularFireAuthModule,
-    LeafletModule
+    IonicModule.forRoot(), // This imports all Ionic components
+    AdminRoutingModule
   ],
-  providers: [AuthService]
+  providers: [
+    DatePipe // Add DatePipe to providers
+  ]
 })
-export class AdminModule { }
+export class AdminModule {}

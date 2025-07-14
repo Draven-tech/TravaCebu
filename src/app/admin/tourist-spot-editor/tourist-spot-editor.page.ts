@@ -18,7 +18,7 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
   // Default coordinates (Cebu)
   defaultLat = 10.3157;
   defaultLng = 123.8854;
-  defaultZoom = 15;
+  defaultZoom = 14;
   
   // Spot properties
   spotName: string = '';

@@ -1,6 +1,6 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>Route Details</ion-title>
+    <ion-title>Spot Details</ion-title>
     <ion-buttons slot="end">
       <ion-button (click)="close()">
         <ion-icon name="close" slot="icon-only"></ion-icon>
@@ -10,38 +10,35 @@
 </ion-header>
 
 <ion-content>
-  <div *ngIf="route" class="route-details">
-    <div id="route-detail-map" style="height: 300px;"></div>
+  <div *ngIf="spot" class="spot-details">
+    <div id="spot-detail-map" style="height: 250px;"></div>
 
     <ion-list lines="none">
       <ion-item>
         <ion-label>
-          <h1>{{ route.code }}</h1>
-          <p>Stops: {{ route.stops.length }}</p>
+          <h1>{{ spot.name }}</h1>
+          <p>{{ spot.category | titlecase }}</p>
         </ion-label>
-        <ion-badge slot="end" [style.background]="route.color || '#3366ff'">
-          {{ route.snapToRoads ? 'Follows Roads' : 'Direct Path' }}
-        </ion-badge>
       </ion-item>
 
       <ion-item>
-        <ion-label>
-          <h2>Created</h2>
-          <p>{{ datePipe.transform(route.createdAt, 'medium') }}</p>
+        <ion-label class="ion-text-wrap">
+          <h2>Description</h2>
+          <p>{{ spot.description || 'No description provided' }}</p>
         </ion-label>
       </ion-item>
 
       <ion-item>
         <ion-label>
-          <h2>Last Updated</h2>
-          <p>{{ datePipe.transform(route.updatedAt, 'medium') }}</p>
+          <h2>Coordinates</h2>
+          <p>{{ spot.location.lat.toFixed(5) }}, {{ spot.location.lng.toFixed(5) }}</p>
         </ion-label>
       </ion-item>
     </ion-list>
   </div>
 
   <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button color="primary" (click)="editRoute()">
+    <ion-fab-button color="primary" (click)="editSpot()">
       <ion-icon name="create"></ion-icon>
     </ion-fab-button>
   </ion-fab>

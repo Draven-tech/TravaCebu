@@ -1,0 +1,55 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>{{ isEditing ? 'Edit Tourist Spot' : 'Add Tourist Spot' }}</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/admin/tourist-spots"></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div id="tourist-spot-map" style="height: 300px;"></div>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Spot Details</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Name <ion-text color="danger">*</ion-text></ion-label>
+        <ion-input [(ngModel)]="spotName" placeholder="e.g. Magellan's Cross"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Description</ion-label>
+        <ion-textarea [(ngModel)]="spotDescription" rows="3" placeholder="Enter description..."></ion-textarea>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Category</ion-label>
+        <ion-select [(ngModel)]="spotCategory" interface="popover">
+          <ion-select-option value="attraction">Attraction</ion-select-option>
+          <ion-select-option value="mall">Mall</ion-select-option>
+          <ion-select-option value="beach">Beach</ion-select-option>
+          <ion-select-option value="landmark">Landmark</ion-select-option>
+          <ion-select-option value="museum">Museum</ion-select-option>
+          <ion-select-option value="park">Park</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button>
+      <ion-icon name="menu"></ion-icon>
+    </ion-fab-button>
+    <ion-fab-list side="top">
+      <ion-fab-button color="danger" (click)="clearSpot()">
+        <ion-icon name="trash"></ion-icon>
+      </ion-fab-button>
+      <ion-fab-button color="success" (click)="saveSpot()">
+        <ion-icon name="save"></ion-icon>
+      </ion-fab-button>
+    </ion-fab-list>
+  </ion-fab>
+</ion-content>

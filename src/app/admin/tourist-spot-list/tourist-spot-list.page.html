@@ -1,37 +1,37 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>Jeepney Routes</ion-title>
+    <ion-title>Tourist Spots</ion-title>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/admin/dashboard"></ion-back-button>
     </ion-buttons>
     <ion-buttons slot="end">
-      <ion-button (click)="refreshRoutes()">
+      <ion-button (click)="refreshSpots()">
         <ion-icon name="refresh" slot="icon-only"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 
   <ion-toolbar>
-    <ion-searchbar [(ngModel)]="searchQuery" placeholder="Search routes..."></ion-searchbar>
+    <ion-searchbar [(ngModel)]="searchQuery" placeholder="Search spots..."></ion-searchbar>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
   <ion-list>
-    <ion-item-sliding *ngFor="let route of filterRoutes()">
-      <ion-item (click)="openRouteDetail(route)">
+    <ion-item-sliding *ngFor="let spot of filterSpots()">
+      <ion-item (click)="openSpotDetail(spot)">
         <ion-label>
-          <h2>{{ route.code }}</h2>
-          <p>{{ datePipe.transform(route.createdAt, 'mediumDate') }}</p>
+          <h2>{{ spot.name }}</h2>
+          <p>{{ spot.category | titlecase }}</p>
+          <p>{{ datePipe.transform(spot.createdAt, 'mediumDate') }}</p>
         </ion-label>
-        <ion-badge [style.background]="route.color || '#3366ff'">&nbsp;</ion-badge>
       </ion-item>
 
       <ion-item-options side="end">
-        <ion-item-option color="primary" (click)="editRoute(route); $event.stopPropagation()">
+        <ion-item-option color="primary" (click)="editSpot(spot)">
           <ion-icon name="create" slot="icon-only"></ion-icon>
         </ion-item-option>
-        <ion-item-option color="danger" (click)="deleteRoute(route.id); $event.stopPropagation()">
+        <ion-item-option color="danger" (click)="deleteSpot(spot.id)">
           <ion-icon name="trash" slot="icon-only"></ion-icon>
         </ion-item-option>
       </ion-item-options>

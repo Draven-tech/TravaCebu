@@ -3,12 +3,14 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Router } from '@angular/router';
 import { AlertController } from '@ionic/angular';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   constructor(
+    private http: HttpClient,
     private afAuth: AngularFireAuth,
     private router: Router,
     private alertCtrl: AlertController,

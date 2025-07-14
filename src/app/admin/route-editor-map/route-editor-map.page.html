@@ -8,36 +8,42 @@
 </ion-header>
 
 <ion-content>
-  <!-- Prominent Route Code Input -->
-  <ion-item lines="full" class="route-code-input">
-    <ion-label position="floating" color="primary">Route Code</ion-label>
-    <ion-input 
-      [(ngModel)]="routeCode" 
-      placeholder="e.g. 12C, 01A, 23B"
-      clearInput
-      required>
-    </ion-input>
-  </ion-item>
-
-  <!-- Map Container -->
   <div id="route-editor-map"></div>
 
-  <!-- Route Color Picker -->
-  <ion-item lines="none">
-    <ion-label color="primary">Route Color</ion-label>
-    <ion-input 
-      type="color" 
-      [(ngModel)]="routeColor" 
-      (ionChange)="updateRouteLine()"
-      value="#FF5722"
-      class="color-picker">
-    </ion-input>
-  </ion-item>
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Route Details</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Route Code <ion-text color="danger">*</ion-text></ion-label>
+        <ion-input [(ngModel)]="routeCode" placeholder="e.g. 12C, 01A"></ion-input>
+      </ion-item>
 
-  <!-- Action Buttons -->
+      <ion-item>
+        <ion-label position="stacked">Route Color</ion-label>
+        <ion-input 
+          type="color" 
+          [(ngModel)]="routeColor" 
+          (ionChange)="updateRouteLine()">
+        </ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>Follow Roads</ion-label>
+        <ion-toggle 
+          [(ngModel)]="snapToRoads" 
+          (ionChange)="toggleSnapToRoads()"
+          [disabled]="isCalculatingRoute">
+        </ion-toggle>
+        <ion-spinner *ngIf="isCalculatingRoute" slot="end"></ion-spinner>
+      </ion-item>
+    </ion-card-content>
+  </ion-card>
+
   <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button color="primary">
-      <ion-icon name="options"></ion-icon>
+    <ion-fab-button>
+      <ion-icon name="menu"></ion-icon>
     </ion-fab-button>
     <ion-fab-list side="top">
       <ion-fab-button color="danger" (click)="clearRoute()">

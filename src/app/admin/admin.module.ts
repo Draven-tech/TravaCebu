@@ -12,6 +12,7 @@ import { DashboardPage } from './dashboard/dashboard.page';
 import { RouteEditorMapPage } from './route-editor-map/route-editor-map.page';
 import { RouteListPage } from './route-list/route-list.page';
 import { RouteDetailPage } from './route-detail/route-detail.page';
+import { HttpClientModule } from '@angular/common/http';
 
 @NgModule({
   declarations: [
@@ -26,7 +27,8 @@ import { RouteDetailPage } from './route-detail/route-detail.page';
     FormsModule,
     ReactiveFormsModule,
     IonicModule.forRoot(), // This imports all Ionic components
-    AdminRoutingModule
+    AdminRoutingModule,
+    HttpClientModule
   ],
   providers: [
     DatePipe // Add DatePipe to providers

@@ -35,7 +35,23 @@ const routes: Routes = [
     path: 'route-editor/:id',
     component: RouteEditorMapPage,
     canActivate: [AdminGuard]
+  },
+  {
+    path: 'tourist-spot-editor',
+    loadChildren: () => import('./tourist-spot-editor/tourist-spot-editor.module').then(m => m.TouristSpotEditorPageModule),
+    canActivate: [AdminGuard] 
+  },
+  {
+    path: 'tourist-spot-list',
+    loadChildren: () => import('./tourist-spot-list/tourist-spot-list.module').then(m => m.TouristSpotListPageModule),
+    canActivate: [AdminGuard]
+  },
+  {
+    path: 'tourist-spot-detail',
+    loadChildren: () => import('./tourist-spot-detail/tourist-spot-detail.module').then(m => m.TouristSpotDetailPageModule),
+    canActivate: [AdminGuard]
   }
+
 ];
 
 @NgModule({

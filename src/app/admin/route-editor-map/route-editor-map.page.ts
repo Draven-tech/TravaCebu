@@ -20,7 +20,7 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
   // Cebu coordinates
   defaultLat = 10.3157;
   defaultLng = 123.8854;
-  defaultZoom = 13;
+  defaultZoom = 15;
   
   // Route properties
   routeCode: string = '';

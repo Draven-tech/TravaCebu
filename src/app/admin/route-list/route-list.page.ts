@@ -13,6 +13,7 @@ import { DatePipe } from '@angular/common';
 export class RouteListPage implements OnInit {
   routes: any[] = [];
   isLoading = true;
+  searchQuery = '';
 
   constructor(
     private firestore: AngularFirestore,
@@ -21,10 +22,6 @@ export class RouteListPage implements OnInit {
     private navCtrl: NavController,
     public datePipe: DatePipe
   ) {}
-
-  formatDate(date: any): string | null {
-    return this.datePipe.transform(date, 'mediumDate');
-  }
 
   ngOnInit() {
     this.loadRoutes();
@@ -42,6 +39,7 @@ export class RouteListPage implements OnInit {
         error: (err) => {
           console.error('Error loading routes:', err);
           this.isLoading = false;
+          this.showAlert('Error', 'Failed to load routes');
         }
       });
   }
@@ -50,12 +48,11 @@ export class RouteListPage implements OnInit {
     this.loadRoutes();
   }
 
-  async openRouteDetail(routeData: any) {
+  async openRouteDetail(route: any) {
     const modal = await this.modalCtrl.create({
       component: RouteDetailPage,
-      componentProps: {
-        route: routeData
-      }
+      componentProps: { route },
+      cssClass: 'route-detail-modal'
     });
     await modal.present();
   }
@@ -81,15 +78,14 @@ export class RouteListPage implements OnInit {
         },
         {
           text: 'Delete',
-          handler: () => {
-            this.firestore.collection('jeepney_routes').doc(id).delete()
-              .then(() => {
-                this.showAlert('Success', 'Route deleted successfully');
-              })
-              .catch(err => {
-                this.showAlert('Error', 'Failed to delete route');
-                console.error(err);
-              });
+          handler: async () => {
+            try {
+              await this.firestore.collection('jeepney_routes').doc(id).delete();
+              this.showAlert('Success', 'Route deleted successfully');
+            } catch (err) {
+              console.error(err);
+              this.showAlert('Error', 'Failed to delete route');
+            }
           }
         }
       ]
@@ -104,5 +100,14 @@ export class RouteListPage implements OnInit {
       buttons: ['OK']
     });
     await alert.present();
+  }
+
+  filterRoutes() {
+    if (!this.searchQuery) {
+      return this.routes;
+    }
+    return this.routes.filter(route => 
+      route.code.toLowerCase().includes(this.searchQuery.toLowerCase())
+    );
   }
 }

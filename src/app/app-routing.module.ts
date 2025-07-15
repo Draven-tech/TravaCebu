@@ -19,9 +19,14 @@ const routes: Routes = [
   {
     path: 'login',
     loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
-  },  {
+  },
+  {
     path: 'user-dashboard',
     loadChildren: () => import('./user-dashboard/user-dashboard.module').then( m => m.UserDashboardPageModule)
+  },
+  {
+    path: 'bucket-list',
+    loadChildren: () => import('./bucket-list/bucket-list.module').then( m => m.BucketListPageModule)
   }
 
 

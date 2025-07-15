@@ -1,0 +1,121 @@
+.bg-car {
+  position: absolute;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: auto;
+  z-index: 0;
+  opacity: 1;
+  pointer-events: none;
+}
+
+ion-content {
+  --background: #FFD144;
+  position: relative;
+  overflow: hidden;
+}
+
+.content-layer {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 360px;
+  padding: 20px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-weight: 900; 
+  font-size: 26px;
+  color: #ffffff;
+  text-align: left;
+  line-height: 1.2;
+}
+
+
+.custom-form {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  z-index: 2;
+  position: relative;
+}
+
+.form-group {
+  margin-top: 20px;
+  position: relative;
+}
+
+.floating-label {
+  display: block;
+  position: relative;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  padding: 14px 12px 6px;
+  height: 50px;
+  transition: all 0.2s ease;
+}
+
+.floating-label span {
+  position: absolute;
+  top: 14px;
+  left: 12px;
+  color: gray;
+  font-size: 14px;
+  pointer-events: none;
+  transition: 0.2s ease;
+}
+
+.floating-label input {
+  border: none;
+  outline: none;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  font-size: 16px;
+  color: #000;
+}
+
+.floating-label.filled span,
+.floating-label input:focus + span {
+  top: 4px;
+  left: 12px;
+  font-size: 12px;
+  color: #888;
+}
+
+
+
+.forgot-password {
+  font-size: 12px;
+  text-align: right;
+  margin-top: 10px;
+  color: #000000;
+}
+
+.btn-login {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  border: none;
+  border-radius: 25px;
+  background: #000;
+  color: #fff;
+  font-weight: bold;
+  margin-top: 300px;
+}
+
+.signup-text {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: #000;
+
+  a {
+    color: #ffffff;
+    font-weight: bold;
+    text-decoration: none;
+  }
+}

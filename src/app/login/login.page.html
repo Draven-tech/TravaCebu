@@ -1,25 +1,31 @@
-<ion-header>
-  <ion-toolbar color="primary">
-    <ion-title>User Login</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content>
 
-<ion-content class="ion-padding">
-  <form (submit)="loginUser()">
-    <ion-item>
-      <ion-label position="floating">Email</ion-label>
-      <ion-input type="email" [(ngModel)]="email" name="email" required></ion-input>
-    </ion-item>
+  <img src="assets/img/car.png" class="bg-car" />
 
-    <ion-item>
-      <ion-label position="floating">Password</ion-label>
-      <ion-input type="password" [(ngModel)]="password" name="password" required></ion-input>
-    </ion-item>
+  <div class="content-layer">
+    <h1 (click)="tapHeader()">LOGIN TO<br />TRAVACEBU</h1>
 
-    <ion-button expand="block" type="submit" class="ion-margin-top">Login</ion-button>
+    <form (submit)="loginUser()" class="custom-form">
+      <div class="form-group">
+        <label class="floating-label" [class.filled]="email">
+          <span>Username or Email</span>
+          <input type="email" [(ngModel)]="email" name="email" required />
+        </label>
+      </div>
 
-    <ion-button expand="block" fill="clear" routerLink="/register">
-      Don't have an account? Register here
-    </ion-button>
-  </form>
+      <div class="form-group">
+        <label class="floating-label" [class.filled]="password">
+          <span>Password</span>
+          <input type="password" [(ngModel)]="password" name="password" required />
+        </label>
+      </div>
+
+      <div class="forgot-password">Forgot Password?</div>
+      <button type="submit" class="btn-login">LOGIN</button>
+
+      <div class="signup-text">
+        Don’t have an account? <a routerLink="/register">Sign up</a>
+      </div>
+    </form>
+  </div>
 </ion-content>

@@ -1,0 +1,22 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>User Dashboard</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="logout()">
+        <ion-icon name="log-out-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div *ngIf="userData">
+    <h2>Welcome, {{ userData.fullName }}</h2>
+    <p>Email: {{ userData.email }}</p>
+  </div>
+
+  <div *ngIf="!userData">
+    <ion-spinner></ion-spinner>
+    <p>Loading user data...</p>
+  </div>
+</ion-content>

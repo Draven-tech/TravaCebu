@@ -4,17 +4,27 @@ import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 const routes: Routes = [
   {
     path: '',
-    redirectTo: 'admin/login',  // Changed from 'admin' to 'admin/login'
+    redirectTo: 'login',  // Changed from 'admin' to 'admin/login'
     pathMatch: 'full'
   },
   {
     path: 'admin',
     loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule)
   },
+
   {
-    path: '**',
-    redirectTo: 'admin/login'  // Changed from 'admin' to 'admin/login'
+    path: 'register',
+    loadChildren: () => import('./register/register.module').then( m => m.RegisterPageModule)
+  },
+  {
+    path: 'login',
+    loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
+  },  {
+    path: 'user-dashboard',
+    loadChildren: () => import('./user-dashboard/user-dashboard.module').then( m => m.UserDashboardPageModule)
   }
+
+
 ];
 
 @NgModule({

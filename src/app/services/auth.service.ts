@@ -5,6 +5,8 @@ import { AlertController } from '@ionic/angular';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { HttpClient } from '@angular/common/http';
 
+
+
 @Injectable({
   providedIn: 'root'
 })
@@ -51,4 +53,46 @@ export class AuthService {
     await this.afAuth.signOut();
     this.router.navigate(['/admin/login']);
   }
+
+////////////////////////////////////////////////////login/////////////////////////////////////////////////////////////////
+
+  async loginUser(email: string, password: string) {
+    try {
+      const userCredential = await this.afAuth.signInWithEmailAndPassword(email, password);
+      const userDoc = await this.firestore.collection('users').doc(userCredential.user?.uid).get().toPromise();
+
+      if (!userDoc?.exists) {
+        await this.afAuth.signOut();
+        throw new Error('User profile not found.');
+      }
+
+      // You can store user info locally if needed
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getCurrentUid(): Promise<string | null> {
+    const user = await this.afAuth.currentUser;
+    return user?.uid ?? null;
+  }
+
+  async logoutUser() {
+    await this.afAuth.signOut();
+    this.router.navigate(['/login']); 
+  }
+
+  async isUser(): Promise<boolean> {
+  const user = await this.afAuth.currentUser;
+  if (!user?.uid) return false;
+
+  const userDoc = await this.firestore.collection('users')
+    .doc(user.uid).get().toPromise();
+
+  return userDoc?.exists || false;
+}
+
+
+
 }

@@ -21,8 +21,9 @@
     <ion-item-sliding *ngFor="let route of filterRoutes()">
       <ion-item (click)="openRouteDetail(route)">
         <ion-label>
-          <h2>{{ route.code }}</h2>
-          <p>{{ datePipe.transform(route.createdAt, 'mediumDate') }}</p>
+          <h2>{{ route.code || 'No code' }}</h2>
+          <p>{{ datePipe.transform(route.createdAt, 'mediumDate') || 'No date' }}</p>
+          <pre style="font-size:10px; color:gray;">{{ route | json }}</pre>
         </ion-label>
         <ion-badge [style.background]="route.color || '#3366ff'">&nbsp;</ion-badge>
       </ion-item>

@@ -21,9 +21,10 @@
     <ion-item-sliding *ngFor="let spot of filterSpots()">
       <ion-item (click)="openSpotDetail(spot)">
         <ion-label>
-          <h2>{{ spot.name }}</h2>
-          <p>{{ spot.category | titlecase }}</p>
-          <p>{{ datePipe.transform(spot.createdAt, 'mediumDate') }}</p>
+          <h2>{{ spot.name || 'No name' }}</h2>
+          <p>{{ spot.category ? (spot.category | titlecase) : 'No category' }}</p>
+          <p>{{ datePipe.transform(spot.createdAt, 'mediumDate') || 'No date' }}</p>
+          <pre style="font-size:10px; color:gray;">{{ spot | json }}</pre>
         </ion-label>
       </ion-item>
 

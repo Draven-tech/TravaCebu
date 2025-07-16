@@ -1,7 +1,10 @@
 <ion-header>
-  <ion-toolbar color="primary">
-    <ion-title>Admin Dashboard</ion-title>
+  <ion-toolbar color="primary" class="modern-toolbar">
+    <ion-title>TravaCebu Admin</ion-title>
     <ion-buttons slot="end">
+      <ion-avatar class="admin-avatar" slot="end">
+        <img src="assets/img/car.png" alt="Admin Avatar" />
+      </ion-avatar>
       <ion-button (click)="logout()">
         <ion-icon name="log-out"></ion-icon>
       </ion-button>
@@ -9,7 +12,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
+<ion-content class="modern-dashboard-bg ion-padding">
   <ion-grid>
     <ion-row>
       <ion-col size="12">
@@ -21,7 +24,7 @@
 
     <ion-row>
       <ion-col size="12" size-md="6">
-        <ion-card (click)="navigateTo('route-editor')" button>
+        <ion-card class="modern-nav-card" (click)="navigateTo('route-editor')" button>
           <ion-card-header>
             <ion-icon name="map" size="large"></ion-icon>
             <ion-card-title>Create Route</ion-card-title>
@@ -32,7 +35,7 @@
         </ion-card>
       </ion-col>
       <ion-col size="12" size-md="6">
-        <ion-card (click)="navigateTo('route-list')" button>
+        <ion-card class="modern-nav-card" (click)="navigateTo('route-list')" button>
           <ion-card-header>
             <ion-icon name="list" size="large"></ion-icon>
             <ion-card-title>Manage Routes</ion-card-title>
@@ -54,7 +57,7 @@
 
     <ion-row>
       <ion-col size="12" size-md="6">
-        <ion-card (click)="navigateTo('tourist-spot-editor')" button>
+        <ion-card class="modern-nav-card" (click)="navigateTo('tourist-spot-editor')" button>
           <ion-card-header>
             <ion-icon name="location" size="large"></ion-icon>
             <ion-card-title>Add Tourist Spot</ion-card-title>
@@ -65,7 +68,7 @@
         </ion-card>
       </ion-col>
       <ion-col size="12" size-md="6">
-        <ion-card (click)="navigateTo('tourist-spot-list')" button>
+        <ion-card class="modern-nav-card" (click)="navigateTo('tourist-spot-list')" button>
           <ion-card-header>
             <ion-icon name="globe" size="large"></ion-icon>
             <ion-card-title>Manage Spots</ion-card-title>

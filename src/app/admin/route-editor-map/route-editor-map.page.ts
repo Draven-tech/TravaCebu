@@ -27,6 +27,8 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
   routeColor: string = '#FF5722';
   snapToRoads: boolean = true;
   isCalculatingRoute: boolean = false;
+  selectedTile: string = 'esri';
+  private tileLayer?: L.TileLayer;
 
   // Custom marker icon
   private customIcon = L.icon({
@@ -46,12 +48,41 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
     private http: HttpClient
   ) {}
 
+  private destroyMap() {
+    if (this.map) {
+      this.map.remove();
+      this.map = undefined as any;
+    }
+    this.markers = [];
+    this.routeLine = undefined;
+    this.tileLayer = undefined;
+  }
+
   ngOnInit() {
-    this.initMap();
+    // Check for edit mode
+    const nav = window.history.state;
+    setTimeout(() => {
+      this.destroyMap();
+      if (nav && nav.routeToEdit) {
+        const route = nav.routeToEdit;
+        this.routeCode = route.code || '';
+        this.routeColor = route.color || '#FF5722';
+        this.snapToRoads = route.snapToRoads !== undefined ? route.snapToRoads : true;
+        this.initMap();
+        if (route.points && Array.isArray(route.points)) {
+          route.points.forEach((pt: any) => {
+            this.addPin(L.latLng(pt.lat, pt.lng));
+          });
+          this.updateRouteLine();
+        }
+      } else {
+        this.initMap();
+      }
+    }, 0);
   }
 
   ngOnDestroy() {
-    if (this.map) this.map.remove();
+    this.destroyMap();
   }
 
   private initMap() {
@@ -60,18 +91,33 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
       zoom: this.defaultZoom,
       preferCanvas: true
     });
-
-    // Esri Satellite with Labels
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Satellite Imagery © Esri',
-      maxZoom: 19
-    }).addTo(this.map);
-
-    // Click handler for adding pins
+    this.addTileLayer();
     this.map.on('click', (e: L.LeafletMouseEvent) => {
       this.addPin(e.latlng);
       this.updateRouteLine();
     });
+  }
+
+  private addTileLayer() {
+    if (this.tileLayer) {
+      this.map.removeLayer(this.tileLayer);
+    }
+    if (this.selectedTile === 'esri') {
+      this.tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Satellite Imagery © Esri',
+        maxZoom: 19
+      });
+    } else {
+      this.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      });
+    }
+    this.tileLayer.addTo(this.map);
+  }
+
+  onTileChange() {
+    this.addTileLayer();
   }
 
   private addPin(latlng: L.LatLng) {
@@ -151,7 +197,7 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
     if (this.markers.length < 2) {
       const alert = await this.alertCtrl.create({
         header: 'Incomplete Route',
-        message: 'You need at least 2 stops to create a jeepney route',
+        message: 'You need at least 2 points to create a jeepney route',
         buttons: ['OK']
       });
       return await alert.present();
@@ -161,7 +207,7 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
       const routeData = {
         code: this.routeCode.toUpperCase().trim(),
         color: this.routeColor,
-        stops: this.markers.map(marker => {
+        points: this.markers.map(marker => {
           const latlng = marker.getLatLng();
           return { lat: latlng.lat, lng: latlng.lng };
         }),

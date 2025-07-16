@@ -33,7 +33,12 @@ export class RouteListPage implements OnInit {
       .valueChanges({ idField: 'id' })
       .subscribe({
         next: (routes) => {
-          this.routes = routes;
+          // Convert Firestore Timestamps to JS Dates
+          this.routes = routes.map((route: any) => ({
+            ...route,
+            createdAt: route.createdAt && route.createdAt.toDate ? route.createdAt.toDate() : route.createdAt,
+            updatedAt: route.updatedAt && route.updatedAt.toDate ? route.updatedAt.toDate() : route.updatedAt
+          }));
           this.isLoading = false;
         },
         error: (err) => {

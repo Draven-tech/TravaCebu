@@ -38,6 +38,9 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     popupAnchor: [1, -34]
   });
 
+  selectedTile: string = 'esri';
+  private tileLayer?: L.TileLayer;
+
   constructor(
     private firestore: AngularFirestore,
     private alertCtrl: AlertController,
@@ -45,13 +48,41 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     private navCtrl: NavController
   ) {}
 
+  private destroyMap() {
+    if (this.map) {
+      this.map.remove();
+      this.map = undefined as any;
+    }
+    this.marker = undefined;
+    this.tileLayer = undefined;
+  }
+
   ngOnInit() {
-    this.initMap();
-    this.checkForEdit();
+    // Check for edit mode
+    const nav = window.history.state;
+    setTimeout(() => {
+      this.destroyMap();
+      if (nav && nav.spot) {
+        const spot = nav.spot;
+        this.isEditing = true;
+        this.spotId = spot.id;
+        this.spotName = spot.name;
+        this.spotDescription = spot.description;
+        this.spotCategory = spot.category;
+        this.spot = spot; // Fix: set the whole spot object for createdAt
+        this.initMap();
+        if (spot.location) {
+          this.addPin(L.latLng(spot.location.lat, spot.location.lng));
+          this.map.setView([spot.location.lat, spot.location.lng], this.defaultZoom);
+        }
+      } else {
+        this.initMap();
+      }
+    }, 0);
   }
 
   ngOnDestroy() {
-    if (this.map) this.map.remove();
+    this.destroyMap();
   }
 
   private checkForEdit() {
@@ -77,17 +108,32 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
       zoom: this.defaultZoom,
       preferCanvas: true
     });
-
-    // Esri Satellite with Labels
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Satellite Imagery © Esri',
-      maxZoom: 19
-    }).addTo(this.map);
-
-    // Click handler for adding pin
+    this.addTileLayer();
     this.map.on('click', (e: L.LeafletMouseEvent) => {
       this.addPin(e.latlng);
     });
+  }
+
+  private addTileLayer() {
+    if (this.tileLayer) {
+      this.map.removeLayer(this.tileLayer);
+    }
+    if (this.selectedTile === 'esri') {
+      this.tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Satellite Imagery © Esri',
+        maxZoom: 19
+      });
+    } else {
+      this.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      });
+    }
+    this.tileLayer.addTo(this.map);
+  }
+
+  onTileChange() {
+    this.addTileLayer();
   }
 
   private addPin(latlng: L.LatLng) {

@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { BucketService } from '../services/bucket-list.service';
+import { NavController } from '@ionic/angular';
+import { AngularFireAuth } from '@angular/fire/compat/auth';
 
 @Component({
   selector: 'app-bucket-list',
@@ -10,7 +12,10 @@ import { BucketService } from '../services/bucket-list.service';
 export class BucketListPage implements OnInit {
   spots: any[] = [];
 
-  constructor(private bucketService: BucketService) {}
+  constructor(private bucketService: BucketService,
+    private navCtrl: NavController,
+    private afAuth: AngularFireAuth
+  ) { }
 
   ngOnInit() {
     this.spots = this.bucketService.getBucket();
@@ -24,5 +29,14 @@ export class BucketListPage implements OnInit {
   clear() {
     this.bucketService.clearBucket();
     this.spots = [];
+  }
+  async goToHome() {
+    const user = await this.afAuth.currentUser;
+    if (user) {
+      this.navCtrl.navigateForward(`/user-dashboard/${user.uid}`);
+
+    } else {
+      this.navCtrl.navigateRoot('/login');
+    }
   }
 }

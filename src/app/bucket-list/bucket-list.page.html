@@ -1,8 +1,5 @@
 <ion-header>
   <ion-toolbar color="warning">
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/user-dashboard" text="Back"></ion-back-button>
-    </ion-buttons>
     <ion-title>My Bucket List</ion-title>
   </ion-toolbar>
 </ion-header>
@@ -17,6 +14,37 @@
       <ion-button fill="clear" color="danger" size="small" (click)="remove(spot.id)">Remove</ion-button>
     </ion-card-content>
   </ion-card>
-
   <ion-button expand="block" color="medium" (click)="clear()">Clear All</ion-button>
 </ion-content>
+
+<ion-footer>
+  <ion-toolbar color="warning">
+    <ion-grid>
+      <ion-row class="ion-justify-content-around ion-align-items-center">
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" (click)="goToHome()">
+            <ion-icon name="home-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/bucket-list">
+            <ion-icon name="basket-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/map">
+            <ion-icon name="map-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/account">
+            <ion-icon name="person-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ion-toolbar>
+</ion-footer>

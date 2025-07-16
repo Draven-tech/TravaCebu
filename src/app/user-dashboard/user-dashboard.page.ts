@@ -17,6 +17,10 @@ export class UserDashboardPage implements OnInit {
   userData: any = null;
   spots: any[] = [];
   isLoading = true;
+  tags = ['All', 'Attraction', 'Mall', 'Beach', 'Landmark', 'Museum', 'Park'];
+  selectedTag = 'All';
+  originalSpots: any[] = [];
+
 
   constructor(
     private route: ActivatedRoute,
@@ -24,7 +28,7 @@ export class UserDashboardPage implements OnInit {
     private authService: AuthService,
     private afAuth: AngularFireAuth,
     private bucketService: BucketService
-  ) {}
+  ) { }
 
   async ngOnInit() {
     // 1. Get Firebase Auth UID
@@ -59,26 +63,44 @@ export class UserDashboardPage implements OnInit {
     this.loadSpots();
   }
 
-  loadSpots() {
-    this.isLoading = true;
-    this.firestore
-      .collection('tourist_spots', (ref) => ref.orderBy('createdAt', 'desc'))
-      .valueChanges({ idField: 'id' })
-      .subscribe({
-        next: (data) => {
-          this.spots = data;
-          this.isLoading = false;
-        },
-        error: (err) => {
-          console.error('Error loading tourist spots:', err);
-          this.isLoading = false;
-        },
-      });
-  }
-addToTrip(spot: any) {
-  this.bucketService.addToBucket(spot);
+ loadSpots() {
+  this.isLoading = true;
+  this.firestore
+    .collection('tourist_spots', (ref) => ref.orderBy('createdAt', 'desc'))
+    .valueChanges({ idField: 'id' })
+    .subscribe({
+      next: (data) => {
+        this.originalSpots = data;
+        this.applyFilter(); // filter based on current tag
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error loading tourist spots:', err);
+        this.isLoading = false;
+      },
+    });
 }
+
+selectTag(tag: string): void {
+  this.selectedTag = tag;
+  this.applyFilter();
+}
+
+applyFilter(): void {
+  if (this.selectedTag === 'All') {
+    this.spots = this.originalSpots;
+  } else {
+    this.spots = this.originalSpots.filter(
+      spot => spot.category?.toLowerCase() === this.selectedTag.toLowerCase()
+    );
+  }
+}
+  addToTrip(spot: any) {
+    this.bucketService.addToBucket(spot);
+  }
   async logout() {
     await this.authService.logoutUser();
   }
+
 }
+

@@ -5,44 +5,69 @@
   color: #fff;
 }
 
-.category-row {
+.category-scroll {
   display: flex;
-  flex-wrap: nowrap;
   overflow-x: auto;
-  padding-bottom: 0.5rem;
+  gap: 8px;
+  padding: 0.5rem 0;
+
+  ion-chip {
+    flex-shrink: 0;
+  }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
+
+
 
 ion-chip {
   margin-right: 0.5rem;
   font-weight: bold;
-  color: #fff;
+  color: #000000;
+  background-color: #fac31c;
 }
 
 .tourist-card {
-  background-color: #ffe082; 
-  border-radius: 15px;
+  background-color: #ffc107; // yellow background
+  border-radius: 12px;
   text-align: center;
+  overflow: hidden;
 
   img {
     width: 100%;
-    height: 120px;
+    height: 140px;
     object-fit: cover;
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
   }
 
-  .spot-name {
-    font-size: 1rem;
+  ion-card-title {
     font-weight: bold;
     color: #000;
+    font-size: 1rem;
   }
 
-  ion-card-content {
-    padding: 4px 8px;
-  }
-
-  ion-button {
+  .bucket-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px;
     font-size: 0.75rem;
+    font-weight: 500;
+    color: #000;
+
+    ion-icon {
+      font-size: 16px;
+      color: #000;
+    }
+
+    span {
+      font-size: 0.75rem;
+      color: #000;
+    }
   }
 }
 
@@ -51,5 +76,28 @@ ion-chip {
   ion-card-title {
     color: #fff;
     font-weight: bold;
+  }
+}
+.tab-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  ion-button {
+    flex-direction: column;
+    text-align: center;
+    --padding-start: 0;
+    --padding-end: 0;
+    --color: black;
+  }
+
+  ion-icon {
+    font-size: 22px;
+    margin-bottom: 2px;
+  }
+
+  ion-label {
+    font-size: 0.7rem;
+    margin-top: 0;
   }
 }

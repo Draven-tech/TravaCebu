@@ -6,7 +6,7 @@
       </ion-avatar>
     </ion-buttons>
     <ion-title>
-      <div style="font-size: small;">Welcome!!!</div>
+      <div style="font-size: small;">Welcome!</div>
       <strong>{{ userData?.fullName || 'John Doe' }}</strong>
     </ion-title>
     <ion-buttons slot="end">
@@ -21,14 +21,10 @@
 
   <!-- Section Title -->
   <h2 class="title">Plan Your Trip</h2>
-  <ion-button routerLink="/bucket-list" color="dark" fill="outline">
-    View My Trip
-  </ion-button>
-
 
   <!-- Categories -->
-  <div class="category-row">
-    <ion-chip color="warning" *ngFor="let tag of ['Nature', 'Malls', 'Beaches', 'Religious']">
+  <div class="category-scroll">
+    <ion-chip *ngFor="let tag of tags" [color]="selectedTag === tag ? 'dark' : 'warning'" (click)="selectTag(tag)">
       <ion-label>{{ tag }}</ion-label>
     </ion-chip>
   </div>
@@ -39,15 +35,19 @@
       <ion-col size="6" *ngFor="let spot of spots">
         <ion-card class="tourist-card">
           <img [src]="spot.img || 'assets/placeholder.jpg'" />
+
           <ion-card-header>
-            <ion-card-title class="spot-name">{{ spot.name }}</ion-card-title>
+            <ion-card-title>{{ spot.name }}</ion-card-title>
           </ion-card-header>
-          <ion-card-content>
+
+          <ion-card-content class="bucket-action">
             <ion-button fill="clear" color="" size="small" (click)="addToTrip(spot)">
-              <ion-icon slot="icon-only" name="heart"></ion-icon>
+              <ion-icon name="heart-outline"></ion-icon>
+              <span>ADD TO BUCKET LIST</span>
             </ion-button>
           </ion-card-content>
         </ion-card>
+
       </ion-col>
     </ion-row>
   </ion-grid>
@@ -63,3 +63,36 @@
     </ion-card-content>
   </ion-card>
 </ion-content>
+
+<ion-footer>
+  <ion-toolbar color="warning">
+    <ion-grid>
+      <ion-row class="ion-justify-content-around ion-align-items-center">
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/user-dashboard">
+            <ion-icon name="home-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/bucket-list">
+            <ion-icon name="basket-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/map">
+            <ion-icon name="map-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/account">
+            <ion-icon name="person-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ion-toolbar>
+</ion-footer>

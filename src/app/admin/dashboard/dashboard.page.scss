@@ -1,12 +1,70 @@
+ion-content {
+  --background: #FFD144;
+  background: #FFD144;
+  animation: fadeIn 0.8s ease-out;
+}
+
+ion-grid {
+  padding: 16px;
+}
+
 ion-card {
-  cursor: pointer;
-  transition: transform 0.2s;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  margin: 16px 0;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: slideUp 0.6s ease-out;
 
   &:active {
     transform: scale(0.98);
   }
 
-  ion-icon {
-    color: var(--ion-color-primary);
+  ion-card-header {
+    padding: 24px 16px;
+    text-align: center;
+
+    ion-icon {
+      font-size: 2.5rem;
+      color: #2D3748;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+
+    ion-card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #2D3748;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
   }
+
+  ion-card-content {
+    color: #2D3748;
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 0 16px 16px;
+  }
+}
+
+ion-title {
+  font-weight: 700;
+  color: #2D3748;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.title {
+  color: red;
 }

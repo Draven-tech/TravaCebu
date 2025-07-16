@@ -1,0 +1,24 @@
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/user-dashboard"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Tourist Spot Details</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content *ngIf="spotData">
+  <img [src]="spotData.img || 'assets/placeholder.jpg'" style="width: 100%; height: 200px; object-fit: cover;" />
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>{{ spotData.name }}</ion-card-title>
+      <ion-card-subtitle>{{ spotData.category }}</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <p>{{ spotData.description }}</p>
+      <p><strong>Latitude:</strong> {{ spotData.location?.lat }}</p>
+      <p><strong>Longitude:</strong> {{ spotData.location?.lng }}</p>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

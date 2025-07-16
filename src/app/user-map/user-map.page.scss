@@ -1,0 +1,27 @@
+#map {
+  height: 100vh;
+  width: 100%;
+}
+.tab-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  ion-button {
+    flex-direction: column;
+    text-align: center;
+    --padding-start: 0;
+    --padding-end: 0;
+    --color: black;
+  }
+
+  ion-icon {
+    font-size: 22px;
+    margin-bottom: 2px;
+  }
+
+  ion-label {
+    font-size: 0.7rem;
+    margin-top: 0;
+  }
+}

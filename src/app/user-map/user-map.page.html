@@ -1,20 +1,11 @@
 <ion-header>
   <ion-toolbar color="warning">
-    <ion-title>My Bucket List</ion-title>
+    <ion-title>Map</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <ion-card *ngFor="let spot of spots">
-    <img [src]="spot.img" />
-    <ion-card-header>
-      <ion-card-title>{{ spot.name }}</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-button fill="clear" color="danger" size="small" (click)="remove(spot.id)">Remove</ion-button>
-    </ion-card-content>
-  </ion-card>
-  <ion-button expand="block" color="medium" (click)="clear()">Clear All</ion-button>
+<ion-content>
+  <div id="map"></div>
 </ion-content>
 
 <ion-footer>

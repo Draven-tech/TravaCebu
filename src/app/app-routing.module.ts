@@ -31,7 +31,16 @@ const routes: Routes = [
   {
     path: 'bucket-list',
     loadChildren: () => import('./bucket-list/bucket-list.module').then(m => m.BucketListPageModule)
+  },
+  {
+    path: 'user-map',
+    loadChildren: () => import('./user-map/user-map.module').then( m => m.UserMapPageModule)
+  },
+  {
+    path: 'tourist-spot-detail/:id',
+    loadChildren: () => import('./tourist-spot-detail/tourist-spot-detail.module').then( m => m.TouristSpotDetailPageModule)
   }
+
 ];
 
 @NgModule({

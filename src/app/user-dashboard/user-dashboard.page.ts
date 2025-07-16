@@ -4,6 +4,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AuthService } from '../services/auth.service';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { BucketService } from '../services/bucket-list.service';
+import { NavController } from '@ionic/angular';
 
 
 @Component({
@@ -27,7 +28,8 @@ export class UserDashboardPage implements OnInit {
     private firestore: AngularFirestore,
     private authService: AuthService,
     private afAuth: AngularFireAuth,
-    private bucketService: BucketService
+    private bucketService: BucketService,
+    private navCtrl: NavController
   ) { }
 
   async ngOnInit() {
@@ -63,38 +65,40 @@ export class UserDashboardPage implements OnInit {
     this.loadSpots();
   }
 
- loadSpots() {
-  this.isLoading = true;
-  this.firestore
-    .collection('tourist_spots', (ref) => ref.orderBy('createdAt', 'desc'))
-    .valueChanges({ idField: 'id' })
-    .subscribe({
-      next: (data) => {
-        this.originalSpots = data;
-        this.applyFilter(); // filter based on current tag
-        this.isLoading = false;
-      },
-      error: (err) => {
-        console.error('Error loading tourist spots:', err);
-        this.isLoading = false;
-      },
-    });
-}
-
-selectTag(tag: string): void {
-  this.selectedTag = tag;
-  this.applyFilter();
-}
-
-applyFilter(): void {
-  if (this.selectedTag === 'All') {
-    this.spots = this.originalSpots;
-  } else {
-    this.spots = this.originalSpots.filter(
-      spot => spot.category?.toLowerCase() === this.selectedTag.toLowerCase()
-    );
+  loadSpots() {
+    this.isLoading = true;
+    this.firestore
+      .collection('tourist_spots', (ref) => ref.orderBy('createdAt', 'desc'))
+      .valueChanges({ idField: 'id' })
+      .subscribe({
+        next: (data) => {
+          this.originalSpots = data;
+          this.applyFilter(); // filter based on current tag
+          this.isLoading = false;
+        },
+        error: (err) => {
+          console.error('Error loading tourist spots:', err);
+          this.isLoading = false;
+        },
+      });
   }
-}
+
+  selectTag(tag: string): void {
+    this.selectedTag = tag;
+    this.applyFilter();
+  }
+  openSpotDetail(spotId: string) {
+    this.navCtrl.navigateForward(`/tourist-spot-detail/${spotId}`);
+  }
+  applyFilter(): void {
+    if (this.selectedTag === 'All') {
+      this.spots = this.originalSpots;
+    } else {
+      this.spots = this.originalSpots.filter(
+        spot => spot.category?.toLowerCase() === this.selectedTag.toLowerCase()
+      );
+    }
+  }
   addToTrip(spot: any) {
     this.bucketService.addToBucket(spot);
   }

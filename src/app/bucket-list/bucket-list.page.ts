@@ -12,7 +12,8 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 export class BucketListPage implements OnInit {
   spots: any[] = [];
 
-  constructor(private bucketService: BucketService,
+  constructor(
+    private bucketService: BucketService,
     private navCtrl: NavController,
     private afAuth: AngularFireAuth
   ) { }

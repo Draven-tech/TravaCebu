@@ -33,7 +33,12 @@ export class TouristSpotListPage implements OnInit {
       .valueChanges({ idField: 'id' })
       .subscribe({
         next: (spots) => {
-          this.spots = spots;
+          // Convert Firestore Timestamps to JS Dates
+          this.spots = spots.map((spot: any) => ({
+            ...spot,
+            createdAt: spot.createdAt && spot.createdAt.toDate ? spot.createdAt.toDate() : spot.createdAt,
+            updatedAt: spot.updatedAt && spot.updatedAt.toDate ? spot.updatedAt.toDate() : spot.updatedAt
+          }));
           this.isLoading = false;
         },
         error: (err) => {

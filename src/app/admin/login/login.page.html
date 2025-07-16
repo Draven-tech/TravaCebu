@@ -1,28 +1,31 @@
 <ion-header>
-  <ion-toolbar color="primary">
-    <ion-title>Admin Login</ion-title>
+  <ion-toolbar color="primary" class="modern-toolbar">
+    <ion-buttons slot="start">
+      <ion-button routerLink="/welcome">
+        <ion-icon name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>TravaCebu Admin Login</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <div class="login-container">
+<ion-content class="modern-login-bg ion-padding">
+  <div class="modern-login-container">
     <img src="assets/img/car.png" alt="Travacebu Logo" class="logo" />
-    
+    <h2 class="login-title">Welcome Back!</h2>
     <form [formGroup]="form" (ngSubmit)="login()">
       <ion-item>
         <ion-label position="floating">Email</ion-label>
         <ion-input type="email" formControlName="email"></ion-input>
       </ion-item>
-      
       <ion-item>
         <ion-label position="floating">Password</ion-label>
         <ion-input type="password" formControlName="password"></ion-input>
       </ion-item>
-      
       <ion-button 
         type="submit" 
         expand="block" 
-        class="ion-margin-top"
+        class="modern-login-btn ion-margin-top"
         [disabled]="form.invalid">
         Login
       </ion-button>

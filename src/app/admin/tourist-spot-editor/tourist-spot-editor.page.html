@@ -8,6 +8,13 @@
 </ion-header>
 
 <ion-content>
+  <ion-item>
+    <ion-label>Map Tiles</ion-label>
+    <ion-select [(ngModel)]="selectedTile" (ionChange)="onTileChange()">
+      <ion-select-option value="esri">Esri Satellite</ion-select-option>
+      <ion-select-option value="osm">OpenStreetMap</ion-select-option>
+    </ion-select>
+  </ion-item>
   <div id="tourist-spot-map"></div>
 
   <ion-card>

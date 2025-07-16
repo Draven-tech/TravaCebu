@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { BucketService } from '../services/bucket-list.service';
 import { NavController } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
+import { AlertController } from '@ionic/angular';
 
 @Component({
   selector: 'app-bucket-list',
@@ -15,7 +16,8 @@ export class BucketListPage implements OnInit {
   constructor(
     private bucketService: BucketService,
     private navCtrl: NavController,
-    private afAuth: AngularFireAuth
+    private afAuth: AngularFireAuth,
+    private alertCtrl: AlertController
   ) { }
 
   ngOnInit() {
@@ -39,5 +41,41 @@ export class BucketListPage implements OnInit {
     } else {
       this.navCtrl.navigateRoot('/login');
     }
+  }
+
+  async promptItineraryDays() {
+    const alert = await this.alertCtrl.create({
+      header: 'Generate Itinerary',
+      message: 'How many days will you stay?',
+      inputs: [
+        {
+          name: 'days',
+          type: 'number',
+          min: 1,
+          placeholder: 'Enter number of days'
+        }
+      ],
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Generate',
+          handler: (data) => {
+            const days = parseInt(data.days, 10);
+            if (days > 0) {
+              this.generateItinerary(days);
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  generateItinerary(days: number) {
+    // TODO: Implement itinerary generation logic
+    console.log('Generating itinerary for', days, 'days');
   }
 }

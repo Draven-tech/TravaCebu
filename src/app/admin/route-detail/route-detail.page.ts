@@ -1,7 +1,8 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { ModalController, NavController } from '@ionic/angular';
+import { ModalController, NavController, AlertController } from '@ionic/angular';
 import * as L from 'leaflet';
 import { DatePipe } from '@angular/common';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
 
 @Component({
   standalone: false,
@@ -18,18 +19,28 @@ export class RouteDetailPage implements OnInit {
   constructor(
     private modalCtrl: ModalController,
     private navCtrl: NavController,
-    public datePipe: DatePipe
+    public datePipe: DatePipe,
+    private firestore: AngularFirestore,
+    private alertCtrl: AlertController
   ) {}
 
   ngOnInit() {
-    setTimeout(() => this.initMap(), 100); // Small delay to ensure DOM is ready
+    setTimeout(() => {
+      this.destroyMap();
+      if (this.route && this.route.points && this.route.points.length > 0) {
+        this.initMap();
+      }
+    }, 100);
   }
 
   private initMap() {
-    if (!this.route?.stops || this.route.stops.length === 0) return;
+    if (!this.route?.points || this.route.points.length === 0) {
+      // Optionally, show a message or fallback here
+      return;
+    }
 
     // Calculate center point
-    const center = this.calculateCenter(this.route.stops);
+    const center = this.calculateCenter(this.route.points);
     
     this.map = L.map('route-detail-map', {
       center: [center.lat, center.lng],
@@ -43,8 +54,8 @@ export class RouteDetailPage implements OnInit {
     }).addTo(this.map);
 
     // Add markers
-    this.route.stops.forEach((stop: any) => {
-      const marker = L.marker([stop.lat, stop.lng], {
+    this.route.points.forEach((pt: any) => {
+      const marker = L.marker([pt.lat, pt.lng], {
         icon: L.icon({
           iconUrl: 'assets/leaflet/marker-icon.png',
           shadowUrl: 'assets/leaflet/marker-shadow.png',
@@ -59,7 +70,7 @@ export class RouteDetailPage implements OnInit {
     });
 
     // Add route line
-    const points = this.route.stops.map((stop: any) => [stop.lat, stop.lng]);
+    const points = this.route.points.map((pt: any) => [pt.lat, pt.lng]);
     this.routeLine = L.polyline(points, {
       color: this.route.color || '#3366ff',
       weight: 6,
@@ -73,21 +84,34 @@ export class RouteDetailPage implements OnInit {
     });
   }
 
-  private calculateCenter(stops: any[]) {
-    if (stops.length === 0) return { lat: 0, lng: 0 };
+  private calculateCenter(points: any[]) {
+    if (points.length === 0) return { lat: 0, lng: 0 };
     
     let latSum = 0;
     let lngSum = 0;
     
-    stops.forEach(stop => {
-      latSum += stop.lat;
-      lngSum += stop.lng;
+    points.forEach(pt => {
+      latSum += pt.lat;
+      lngSum += pt.lng;
     });
     
     return {
-      lat: latSum / stops.length,
-      lng: lngSum / stops.length
+      lat: latSum / points.length,
+      lng: lngSum / points.length
     };
+  }
+
+  private destroyMap() {
+    if (this.map) {
+      this.map.remove();
+      this.map = undefined as any;
+    }
+    this.markers = [];
+    this.routeLine = undefined;
+  }
+
+  ngOnDestroy() {
+    this.destroyMap();
   }
 
   close() {
@@ -99,5 +123,29 @@ export class RouteDetailPage implements OnInit {
     this.navCtrl.navigateForward(['/admin/route-editor'], {
       state: { routeToEdit: this.route }
     });
+  }
+
+  async confirmDeleteRoute() {
+    const alert = await this.alertCtrl.create({
+      header: 'Delete Route',
+      message: 'THIS ACTION IS IRREVERSIBLE!\n\nAre you absolutely sure you want to permanently delete this route? This cannot be undone.',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Delete Forever',
+          role: 'destructive',
+          handler: async () => {
+            if (this.route && this.route.id) {
+              await this.firestore.collection('jeepney_routes').doc(this.route.id).delete();
+              this.close();
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 }

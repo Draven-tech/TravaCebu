@@ -5,23 +5,27 @@
 </ion-header>
 
 <ion-content class="ion-padding">
-  <form [formGroup]="form" (ngSubmit)="login()">
-    <ion-item>
-      <ion-label position="floating">Email</ion-label>
-      <ion-input type="email" formControlName="email"></ion-input>
-    </ion-item>
+  <div class="login-container">
+    <img src="assets/img/car.png" alt="Travacebu Logo" class="logo" />
     
-    <ion-item>
-      <ion-label position="floating">Password</ion-label>
-      <ion-input type="password" formControlName="password"></ion-input>
-    </ion-item>
-    
-    <ion-button 
-      type="submit" 
-      expand="block" 
-      class="ion-margin-top"
-      [disabled]="form.invalid">
-      Login
-    </ion-button>
-  </form>
+    <form [formGroup]="form" (ngSubmit)="login()">
+      <ion-item>
+        <ion-label position="floating">Email</ion-label>
+        <ion-input type="email" formControlName="email"></ion-input>
+      </ion-item>
+      
+      <ion-item>
+        <ion-label position="floating">Password</ion-label>
+        <ion-input type="password" formControlName="password"></ion-input>
+      </ion-item>
+      
+      <ion-button 
+        type="submit" 
+        expand="block" 
+        class="ion-margin-top"
+        [disabled]="form.invalid">
+        Login
+      </ion-button>
+    </form>
+  </div>
 </ion-content>

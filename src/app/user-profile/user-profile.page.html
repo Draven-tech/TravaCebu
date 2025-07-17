@@ -37,9 +37,8 @@
     <ion-grid>
       <ion-row class="ion-justify-content-around ion-align-items-center">
         <ion-col size="3" class="tab-btn">
-          <ion-button fill="clear" routerLink="/user-dashboard">
+          <ion-button fill="clear" (click)="goToHome()">
             <ion-icon name="home-outline"></ion-icon>
-            <ion-label></ion-label>
           </ion-button>
         </ion-col>
         <ion-col size="3" class="tab-btn">
@@ -64,4 +63,3 @@
     </ion-grid>
   </ion-toolbar>
 </ion-footer>
-

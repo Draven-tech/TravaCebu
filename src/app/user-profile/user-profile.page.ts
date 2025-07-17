@@ -27,6 +27,8 @@ export class UserProfilePage implements OnInit {
     }
   }
 
+
+  
   async logout() {
     await this.authService.logoutUser();
   }

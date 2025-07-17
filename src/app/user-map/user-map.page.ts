@@ -1,9 +1,10 @@
-import { Component, AfterViewInit, OnDestroy } from '@angular/core';
-import { NavController, ToastController } from '@ionic/angular';
+import { Component, AfterViewInit, OnDestroy, NgZone } from '@angular/core';
+import { NavController, ToastController, ModalController } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { BucketService } from '../services/bucket-list.service';
 import * as L from 'leaflet';
+import { TouristSpotSheetComponent } from './tourist-spot-sheet.component';
 
 @Component({
   selector: 'app-user-map',
@@ -16,8 +17,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   private markers: L.Marker[] = [];
   searchQuery: string = '';
   touristSpots: any[] = [];
-  static toastCtrl: ToastController;
-  static cmpRef: UserMapPage;
   public bucketService: BucketService;
 
   constructor(
@@ -25,19 +24,27 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private afAuth: AngularFireAuth,
     private firestore: AngularFirestore,
     bucketService: BucketService,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private ngZone: NgZone,
+    private modalCtrl: ModalController
   ) {
     this.bucketService = bucketService;
-    UserMapPage.toastCtrl = toastCtrl;
-    UserMapPage.cmpRef = this;
   }
 
   ngAfterViewInit(): void {
-    if (!this.map) {
+    setTimeout(() => {
+      this.initMap();
       setTimeout(() => {
-        this.initMap();
-      }, 100);
-    }
+        if (this.map) this.map.invalidateSize();
+      }, 500);
+    }, 200);
+  }
+
+  // Add Ionic lifecycle hook to ensure map resizes when page is entered
+  ionViewDidEnter() {
+    setTimeout(() => {
+      if (this.map) this.map.invalidateSize();
+    }, 300);
   }
 
   ngOnDestroy(): void {
@@ -53,7 +60,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.map = L.map('map', {
       center: [10.3157, 123.8854],
       zoom: 12,
-      preferCanvas: true,
       zoomControl: true,
       attributionControl: true,
       dragging: true,
@@ -69,7 +75,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.loadTouristSpots();
     setTimeout(() => {
       this.map.invalidateSize();
-    }, 200);
+    }, 300);
   }
 
   private async loadTouristSpots(): Promise<void> {
@@ -107,21 +113,37 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           popupAnchor: [1, -34]
         })
       }).addTo(this.map);
-      marker.bindPopup(`
-        <div style="text-align:center;min-width:200px;">
-          <strong style='font-size:1.1em;'>${spot.name}</strong><br>
-          <span style='font-size:0.95em;color:#e74c3c;'>${spot.category ? spot.category : ''}</span><br>
-          <span style='font-size:0.9em;'>${spot.description ? spot.description : ''}</span><br>
-          <span style='font-size:0.85em;color:#888;'>${spot.location.lat.toFixed(5)}, ${spot.location.lng.toFixed(5)}</span><br>
-          <button onclick='window.addToBucketSpot("${spot.id}")' style='margin-top:8px;background:#e74c3c;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-weight:700;cursor:pointer;'>Add to Bucket List</button>
-        </div>
-      `);
+      marker.on('click', () => {
+        this.ngZone.run(() => {
+          this.openSpotSheet(spot);
+        });
+      });
       this.markers.push(marker);
     });
     if (filtered.length > 0) {
       const group = L.featureGroup(this.markers);
       this.map.fitBounds(group.getBounds(), { padding: [50, 50] });
     }
+  }
+
+  async openSpotSheet(spot: any) {
+    const modal = await this.modalCtrl.create({
+      component: TouristSpotSheetComponent,
+      componentProps: { spot },
+      backdropDismiss: true
+    });
+    modal.onDidDismiss().then(result => {
+      if (result.data && result.data.addToBucket) {
+        this.bucketService.addToBucket(result.data.spot);
+        this.toastCtrl.create({
+          message: 'Added to bucket list!',
+          duration: 2000,
+          color: 'success',
+          position: 'top',
+        }).then(toast => toast.present());
+      }
+    });
+    await modal.present();
   }
 
   async goToHome() {
@@ -133,24 +155,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
   }
 
-  ngDoCheck() {
-    this.showTouristSpots();
-  }
-
-  static async showToast(msg: string) {
-    const toast = await UserMapPage.toastCtrl.create({
-      message: msg,
-      duration: 2000,
-      color: 'success',
-      position: 'top',
-    });
-    toast.present();
+  goBack() {
+    this.navCtrl.back();
   }
 }
-
-(window as any).addToBucketSpot = async (spotId: string) => {
-  const cmp = UserMapPage.cmpRef;
-  const spot = cmp.touristSpots.find((s: any) => s.id === spotId);
-  if (spot) cmp.bucketService.addToBucket(spot);
-  await UserMapPage.showToast('Added to bucket list!');
-};

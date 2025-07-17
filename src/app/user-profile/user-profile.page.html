@@ -1,0 +1,67 @@
+<ion-content class="ion-padding user-profile-content">
+
+  <div class="profile-box">
+    <ion-avatar class="avatar">
+      <img src="assets/avatar.png" />
+    </ion-avatar>
+
+    <h2 class="full-name">{{ userData?.fullName || 'John Doe' }}</h2>
+    <p class="username"><span>&#64;</span>{{ userData?.username || 'username' }}</p>
+
+    <ion-list lines="none">
+      <ion-item>
+        <ion-label>
+          <strong>Email</strong><br />
+          {{ userData?.email || 'sample@email.com' }}
+        </ion-label>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>
+          <strong>Joined</strong><br />
+          {{ userData?.createdAt?.toDate() | date:'longDate' }}
+        </ion-label>
+      </ion-item>
+    </ion-list>
+
+    <ion-button expand="block" color="warning" (click)="logout()">
+      Logout
+    </ion-button>
+  </div>
+
+</ion-content>
+
+
+<ion-footer>
+  <ion-toolbar color="warning">
+    <ion-grid>
+      <ion-row class="ion-justify-content-around ion-align-items-center">
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/user-dashboard">
+            <ion-icon name="home-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/bucket-list">
+            <ion-icon name="basket-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/user-map">
+            <ion-icon name="map-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/user-profile">
+            <ion-icon name="person-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ion-toolbar>
+</ion-footer>
+

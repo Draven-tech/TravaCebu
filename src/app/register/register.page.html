@@ -1,30 +1,53 @@
-<ion-header>
-  <ion-toolbar color="primary">
-    <ion-title>User Registration</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content>
+  <div class="content-layer">
+    <h1>SIGN TO<br />TRAVACEBU</h1>
 
-<ion-content class="ion-padding">
-  <form (submit)="register()">
-    <ion-item>
-      <ion-label position="floating">Email</ion-label>
-      <ion-input type="email" [(ngModel)]="email" name="email" required></ion-input>
-    </ion-item>
+    <form (submit)="register()" class="custom-form">
+      <div class="form-group">
+        <label class="floating-label" [class.filled]="fullName">
+          <span>Enter your name</span>
+          <input type="text" [(ngModel)]="fullName" name="fullName" required />
+        </label>
+      </div>
 
-    <ion-item>
-      <ion-label position="floating">Password</ion-label>
-      <ion-input type="password" [(ngModel)]="password" name="password" required></ion-input>
-    </ion-item>
+      <div class="form-group">
+        <label class="floating-label" [class.filled]="username">
+          <span>Enter your username</span>
+          <input type="text" [(ngModel)]="username" name="username" required />
+        </label>
+      </div>
 
-    <ion-item>
-      <ion-label position="floating">Full Name</ion-label>
-      <ion-input type="text" [(ngModel)]="fullName" name="fullName" required></ion-input>
-    </ion-item>
+      <div class="form-group">
+        <label class="floating-label" [class.filled]="email">
+          <span>Email</span>
+          <input type="email" [(ngModel)]="email" name="email" required />
+        </label>
+      </div>
 
-    <ion-button expand="block" type="submit" class="ion-margin-top">Register</ion-button>
+      <div class="form-group">
+        <label class="floating-label" [class.filled]="password">
+          <span>Enter your password</span>
+          <input type="password" [(ngModel)]="password" name="password" required />
+        </label>
+      </div>
 
-    <ion-button expand="block" fill="clear" routerLink="/login">
-      Already have an account? Login
-    </ion-button>
-  </form>
+      <div class="form-group">
+        <label class="floating-label" [class.filled]="confirmPassword">
+          <span>Re-enter your password</span>
+          <input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" required />
+        </label>
+      </div>
+
+      <div class="checkbox-wrapper">
+        <ion-checkbox [(ngModel)]="agreed" name="agreed" required></ion-checkbox>
+        <span>I agree with the terms of service and privacy policy</span>
+      </div>
+
+      <button type="submit" class="btn-login">CREATE ACCOUNT</button>
+
+      <div class="signup-text">
+        Already have an account? <a routerLink="/login">Login</a>
+      </div>
+    </form>
+  </div>
 </ion-content>

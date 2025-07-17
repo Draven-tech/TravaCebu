@@ -1,13 +1,10 @@
-<ion-header>
-  <ion-toolbar color="primary">
-    <ion-title>{{ isEditing ? 'Edit Tourist Spot' : 'Add Tourist Spot' }}</ion-title>
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/admin/tourist-spots"></ion-back-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content>
+  <div class="admin-topbar">
+    <ion-button fill="clear" routerLink="/admin/tourist-spot-list">
+      <ion-icon name="arrow-back"></ion-icon>
+    </ion-button>
+    <div class="admin-title">{{ isEditing ? 'Edit Tourist Spot' : 'Add Tourist Spot' }}</div>
+  </div>
   <ion-item>
     <ion-label>Map Tiles</ion-label>
     <ion-select [(ngModel)]="selectedTile" (ionChange)="onTileChange()">

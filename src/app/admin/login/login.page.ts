@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LoadingController } from '@ionic/angular';
+import { LoadingController, AlertController, ToastController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -15,13 +15,14 @@ export class LoginPage {
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]]
   });
-  alertCtrl: any;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
-    private loadingCtrl: LoadingController
+    private loadingCtrl: LoadingController,
+    private alertCtrl: AlertController,
+    private toastCtrl: ToastController
   ) {}
 
   async login() {
@@ -38,13 +39,51 @@ export class LoginPage {
       await loading.dismiss();
     } catch (error: unknown) {
       await loading.dismiss();
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      console.error('Admin login error:', error);
+      
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (error.message.includes('Access restricted')) {
+          errorMessage = 'Access denied. Admin privileges required.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      await this.showError(errorMessage);
+    }
+  }
+
+  private async showError(message: string) {
+    try {
+      // Try to show alert first
       const alert = await this.alertCtrl.create({
-        header: 'Error',
-        message: errorMessage,
+        header: 'Login Error',
+        message: message,
         buttons: ['OK']
       });
       await alert.present();
+    } catch (alertError) {
+      console.error('Error showing alert:', alertError);
+      
+      // Fallback to toast if alert fails
+      try {
+        const toast = await this.toastCtrl.create({
+          message: message,
+          duration: 4000,
+          position: 'top',
+          color: 'danger'
+        });
+        await toast.present();
+      } catch (toastError) {
+        console.error('Error showing toast:', toastError);
+        // Final fallback: just log the error
+        console.error('Admin login error:', message);
+        alert(message); // Browser alert as last resort
+      }
     }
   }
 }

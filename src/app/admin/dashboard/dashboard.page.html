@@ -1,18 +1,15 @@
-<ion-header>
-  <ion-toolbar color="primary" class="modern-toolbar">
-    <ion-title>TravaCebu Admin</ion-title>
-    <ion-buttons slot="end">
-      <ion-avatar class="admin-avatar" slot="end">
+<ion-content class="modern-dashboard-bg ion-padding">
+  <div class="admin-topbar">
+    <div class="admin-title">TravaCebu Admin Menu</div>
+    <div class="admin-actions">
+      <ion-avatar class="admin-avatar">
         <img src="assets/img/car.png" alt="Admin Avatar" />
       </ion-avatar>
-      <ion-button (click)="logout()">
+      <ion-button fill="clear" (click)="logout()">
         <ion-icon name="log-out"></ion-icon>
       </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
-
-<ion-content class="modern-dashboard-bg ion-padding">
+    </div>
+  </div>
   <ion-grid>
     <ion-row>
       <ion-col size="12">

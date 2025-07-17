@@ -3,6 +3,7 @@ import { ModalController, NavController, AlertController } from '@ionic/angular'
 import * as L from 'leaflet';
 import { DatePipe } from '@angular/common';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   standalone: false,
@@ -15,13 +16,15 @@ export class RouteDetailPage implements OnInit {
   private map!: L.Map;
   private markers: L.Marker[] = [];
   private routeLine?: L.Polyline;
+  private routingServiceUrl = 'https://router.project-osrm.org/route/v1/driving/';
 
   constructor(
     private modalCtrl: ModalController,
     private navCtrl: NavController,
     public datePipe: DatePipe,
     private firestore: AngularFirestore,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private http: HttpClient
   ) {}
 
   ngOnInit() {
@@ -33,9 +36,8 @@ export class RouteDetailPage implements OnInit {
     }, 100);
   }
 
-  private initMap() {
+  private async initMap() {
     if (!this.route?.points || this.route.points.length === 0) {
-      // Optionally, show a message or fallback here
       return;
     }
 
@@ -69,19 +71,61 @@ export class RouteDetailPage implements OnInit {
       this.markers.push(marker);
     });
 
-    // Add route line
-    const points = this.route.points.map((pt: any) => [pt.lat, pt.lng]);
-    this.routeLine = L.polyline(points, {
-      color: this.route.color || '#3366ff',
-      weight: 6,
-      opacity: 0.9,
-      lineJoin: 'round'
-    }).addTo(this.map);
+    // Add route line with road snapping
+    await this.addRouteLine();
 
     // Fit bounds to show entire route
-    this.map.fitBounds(this.routeLine.getBounds(), {
-      padding: [50, 50]
-    });
+    if (this.routeLine) {
+      this.map.fitBounds(this.routeLine.getBounds(), {
+        padding: [50, 50]
+      });
+    }
+  }
+
+  private async addRouteLine() {
+    if (this.route.points.length < 2) return;
+
+    try {
+      const points = this.route.points.map((pt: any) => L.latLng(pt.lat, pt.lng));
+      const routePath = this.route.snapToRoads !== false 
+        ? await this.getRoutePath(points) 
+        : points;
+
+      this.routeLine = L.polyline(routePath, {
+        color: this.route.color || '#3366ff',
+        weight: 6,
+        opacity: 0.9,
+        lineJoin: 'round'
+      }).addTo(this.map);
+    } catch (error) {
+      console.error('Error creating route line:', error);
+      // Fallback to straight line
+      const points = this.route.points.map((pt: any) => [pt.lat, pt.lng]);
+      this.routeLine = L.polyline(points, {
+        color: this.route.color || '#3366ff',
+        weight: 6,
+        opacity: 0.9,
+        lineJoin: 'round'
+      }).addTo(this.map);
+    }
+  }
+
+  private async getRoutePath(points: L.LatLng[]): Promise<L.LatLng[]> {
+    const coordinates = points.map(p => `${p.lng},${p.lat}`).join(';');
+    const url = `${this.routingServiceUrl}${coordinates}?overview=full&geometries=geojson`;
+    
+    try {
+      const response: any = await this.http.get(url).toPromise();
+      if (response.code === 'Ok' && response.routes.length > 0) {
+        return response.routes[0].geometry.coordinates.map((coord: [number, number]) => 
+          L.latLng(coord[1], coord[0])
+        );
+      }
+      return points; // Fallback to straight line
+    } catch (error) {
+      console.error('Routing error:', error);
+      return points; // Fallback to straight line
+    }
   }
 
   private calculateCenter(points: any[]) {

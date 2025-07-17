@@ -1,7 +1,16 @@
-#map {
-  height: 100vh;
-  width: 100%;
+ion-content {
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
 }
+
+#map {
+  height: calc(100vh - 120px); // Account for header and footer
+  width: 100%;
+  z-index: 1;
+}
+
 .tab-btn {
   display: flex;
   justify-content: center;

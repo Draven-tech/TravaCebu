@@ -1,11 +1,8 @@
 import { Injectable } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Router } from '@angular/router';
-import { AlertController } from '@ionic/angular';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { HttpClient } from '@angular/common/http';
-
-
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +12,6 @@ export class AuthService {
     private http: HttpClient,
     private afAuth: AngularFireAuth,
     private router: Router,
-    private alertCtrl: AlertController,
     private firestore: AngularFirestore
   ) {}
 
@@ -92,7 +88,4 @@ export class AuthService {
 
   return userDoc?.exists || false;
 }
-
-
-
 }

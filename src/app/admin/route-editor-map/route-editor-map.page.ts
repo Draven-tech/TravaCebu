@@ -29,6 +29,10 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
   isCalculatingRoute: boolean = false;
   selectedTile: string = 'esri';
   private tileLayer?: L.TileLayer;
+  
+  // Edit mode tracking
+  private isEditMode: boolean = false;
+  private editingRouteId: string = '';
 
   // Custom marker icon
   private customIcon = L.icon({
@@ -65,6 +69,8 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
       this.destroyMap();
       if (nav && nav.routeToEdit) {
         const route = nav.routeToEdit;
+        this.isEditMode = true;
+        this.editingRouteId = route.id;
         this.routeCode = route.code || '';
         this.routeColor = route.color || '#FF5722';
         this.snapToRoads = route.snapToRoads !== undefined ? route.snapToRoads : true;
@@ -76,6 +82,8 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
           this.updateRouteLine();
         }
       } else {
+        this.isEditMode = false;
+        this.editingRouteId = '';
         this.initMap();
       }
     }, 0);
@@ -204,7 +212,7 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
     }
 
     try {
-      const routeData = {
+      const routeData: any = {
         code: this.routeCode.toUpperCase().trim(),
         color: this.routeColor,
         points: this.markers.map(marker => {
@@ -212,18 +220,31 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
           return { lat: latlng.lat, lng: latlng.lng };
         }),
         snapToRoads: this.snapToRoads,
-        createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      await this.firestore.collection('jeepney_routes').add(routeData);
-
-      const alert = await this.alertCtrl.create({
-        header: 'Success',
-        message: `Jeepney Route ${this.routeCode} saved!`,
-        buttons: ['OK']
-      });
-      await alert.present();
+      if (this.isEditMode && this.editingRouteId) {
+        // Update existing route
+        await this.firestore.collection('jeepney_routes').doc(this.editingRouteId).update(routeData);
+        
+        const alert = await this.alertCtrl.create({
+          header: 'Success',
+          message: `Jeepney Route ${this.routeCode} updated successfully!`,
+          buttons: ['OK']
+        });
+        await alert.present();
+      } else {
+        // Create new route
+        routeData.createdAt = new Date();
+        await this.firestore.collection('jeepney_routes').add(routeData);
+        
+        const alert = await this.alertCtrl.create({
+          header: 'Success',
+          message: `Jeepney Route ${this.routeCode} saved!`,
+          buttons: ['OK']
+        });
+        await alert.present();
+      }
 
       this.clearRoute();
     } catch (error) {
@@ -246,6 +267,8 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
     }
     
     this.routeCode = '';
+    this.isEditMode = false;
+    this.editingRouteId = '';
     this.map.setView([this.defaultLat, this.defaultLng], this.defaultZoom);
   }
 

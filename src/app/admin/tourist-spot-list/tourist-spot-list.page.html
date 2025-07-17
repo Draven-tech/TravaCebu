@@ -1,22 +1,16 @@
-<ion-header>
-  <ion-toolbar color="primary">
-    <ion-title>Tourist Spots</ion-title>
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/admin/dashboard"></ion-back-button>
-    </ion-buttons>
-    <ion-buttons slot="end">
-      <ion-button (click)="refreshSpots()">
-        <ion-icon name="refresh" slot="icon-only"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-
-  <ion-toolbar>
-    <ion-searchbar [(ngModel)]="searchQuery" placeholder="Search spots..."></ion-searchbar>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content>
+  <div class="admin-topbar">
+    <ion-button fill="clear" routerLink="/admin/dashboard">
+      <ion-icon name="arrow-back"></ion-icon>
+    </ion-button>
+    <div class="admin-title">Tourist Spots</div>
+    <ion-button fill="clear" (click)="refreshSpots()">
+      <ion-icon name="refresh"></ion-icon>
+    </ion-button>
+  </div>
+  <div class="admin-toolbar-search">
+    <ion-searchbar [(ngModel)]="searchQuery" placeholder="Search spots..."></ion-searchbar>
+  </div>
   <ion-list>
     <ion-item-sliding *ngFor="let spot of filterSpots()">
       <ion-item (click)="openSpotDetail(spot)">

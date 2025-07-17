@@ -1,13 +1,10 @@
-<ion-header>
-  <ion-toolbar color="primary">
-    <ion-title>Jeepney Route Editor</ion-title>
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/admin/dashboard"></ion-back-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content>
+  <div class="admin-topbar">
+    <ion-button fill="clear" routerLink="/admin/dashboard">
+      <ion-icon name="arrow-back"></ion-icon>
+    </ion-button>
+    <div class="admin-title">Jeepney Route Editor</div>
+  </div>
   <ion-item>
     <ion-label>Map Tiles</ion-label>
     <ion-select [(ngModel)]="selectedTile" (ionChange)="onTileChange()">

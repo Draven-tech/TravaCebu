@@ -1,5 +1,10 @@
 <ion-header>
   <ion-toolbar color="warning">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
     <ion-title>Map</ion-title>
   </ion-toolbar>
   <ion-toolbar>
@@ -23,19 +28,16 @@
         <ion-col size="3" class="tab-btn">
           <ion-button fill="clear" routerLink="/bucket-list">
             <ion-icon name="basket-outline"></ion-icon>
-            <ion-label></ion-label>
           </ion-button>
         </ion-col>
         <ion-col size="3" class="tab-btn">
           <ion-button fill="clear" routerLink="/user-map">
             <ion-icon name="map-outline"></ion-icon>
-            <ion-label></ion-label>
           </ion-button>
         </ion-col>
         <ion-col size="3" class="tab-btn">
           <ion-button fill="clear" routerLink="/user-dashboard">
             <ion-icon name="person-outline"></ion-icon>
-            <ion-label></ion-label>
           </ion-button>
         </ion-col>
       </ion-row>

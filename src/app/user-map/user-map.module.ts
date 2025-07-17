@@ -7,14 +7,17 @@ import { IonicModule } from '@ionic/angular';
 import { UserMapPageRoutingModule } from './user-map-routing.module';
 
 import { UserMapPage } from './user-map.page';
+import { TouristSpotSheetComponent } from './tourist-spot-sheet.component';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    FormsModule,
-    IonicModule,
-    UserMapPageRoutingModule
+  declarations: [
+    UserMapPage
   ],
-  declarations: [UserMapPage]
+  imports: [
+    TouristSpotSheetComponent,
+    IonicModule,
+    FormsModule,
+    UserMapPageRoutingModule
+  ]
 })
 export class UserMapPageModule {}

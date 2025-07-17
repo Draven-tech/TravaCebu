@@ -29,6 +29,17 @@
   border-radius: 18px 18px 0 0;
   margin-bottom: 12px;
 }
+.back-btn {
+  background: none;
+  border: none;
+  font-size: 1.7em;
+  color: #888;
+  cursor: pointer;
+  line-height: 1;
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+}
 .sheet-title-row {
   display: flex;
   align-items: center;

@@ -33,6 +33,7 @@ export class BucketListPage implements OnInit {
     this.bucketService.clearBucket();
     this.spots = [];
   }
+  
   async goToHome() {
     const user = await this.afAuth.currentUser;
     if (user) {

@@ -7,12 +7,15 @@ import { AlertController, NavController } from '@ionic/angular';
   selector: 'app-register',
   templateUrl: './register.page.html',
   styleUrls: ['./register.page.scss'],
-  standalone: false,
+  standalone: false, 
 })
 export class RegisterPage {
   email: string = '';
   password: string = '';
+  confirmPassword: string = '';
   fullName: string = '';
+  username: string = '';
+  agreed: boolean = false;
 
   constructor(
     private afAuth: AngularFireAuth,
@@ -21,49 +24,50 @@ export class RegisterPage {
     private navCtrl: NavController
   ) {}
 
-async register() {
-  try {
-    const userCredential = await this.afAuth.createUserWithEmailAndPassword(this.email, this.password);
-    const uid = userCredential.user?.uid;
+  async register() {
+    if (!this.agreed) {
+      this.showAlert('Agreement Required', 'Please accept the terms of service and privacy policy.');
+      return;
+    }
 
-    // Separate Firestore write in its own try-catch
+    if (this.password !== this.confirmPassword) {
+      this.showAlert('Password Mismatch', 'Passwords do not match.');
+      return;
+    }
+
     try {
-      await this.firestore.collection('users').doc(uid).set({
-        email: this.email,
-        fullName: this.fullName,
-        createdAt: new Date()
-      });
+      const userCredential = await this.afAuth.createUserWithEmailAndPassword(this.email, this.password);
+      const uid = userCredential.user?.uid;
 
-      // ✅ Registration successful
-      const alert = await this.alertCtrl.create({
-        header: 'Success',
-        message: 'Registration successful!',
-        buttons: ['OK']
-      });
-      await alert.present();
+      try {
+        await this.firestore.collection('users').doc(uid).set({
+          fullName: this.fullName,
+          username: this.username,
+          email: this.email,
+          createdAt: new Date()
+        });
 
-      this.navCtrl.navigateRoot('/user-login'); // Or wherever you want
-    } catch (firestoreError) {
-      console.error('Firestore write error:', firestoreError);
+        this.showAlert('Success', 'Registration successful!');
+        this.navCtrl.navigateRoot('/user-login');
+      } catch (firestoreError) {
+        this.showAlert('Firestore Error', 'Account was created but user profile failed to save.');
+        console.error('Firestore error:', firestoreError);
+      }
 
-      const alert = await this.alertCtrl.create({
-        header: 'Firestore Error',
-        message: 'Account was created but user profile failed to save.',
-        buttons: ['OK']
-      });
-      await alert.present();
+    } catch (authError: any) {
+      let message = 'Something went wrong.';
+      if (authError.code === 'auth/email-already-in-use') {
+        message = 'Email is already registered. Please login instead.';
+      }
+
+      this.showAlert('Registration Error', message);
+      console.error('Auth error:', authError);
     }
+  }
 
-  } catch (authError: any) {
-    console.error('Auth error:', authError);
-
-    let message = 'Something went wrong.';
-    if (authError.code === 'auth/email-already-in-use') {
-      message = 'Email is already registered. Please login instead.';
-    }
-
+  private async showAlert(header: string, message: string) {
     const alert = await this.alertCtrl.create({
-      header: 'Registration Error',
+      header,
       message,
       buttons: ['OK']
     });
@@ -71,4 +75,3 @@ async register() {
   }
 }
 
-}

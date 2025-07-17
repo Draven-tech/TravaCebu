@@ -19,13 +19,16 @@
           <input type="password" [(ngModel)]="password" name="password" required />
         </label>
       </div>
-
-      <div class="forgot-password">Forgot Password?</div>
-      <button type="submit" class="btn-login">LOGIN</button>
-
-      <div class="signup-text">
-        Don’t have an account? <a routerLink="/register">Sign up</a>
-      </div>
     </form>
+
+        <div class="btn-container">
+          <button type="button" class="btn-road" (click)="loginUser()">
+            <span class="btn-label">LOGIN</span>
+          </button>
+
+          <div class="signup-text">
+            Don’t have an account? <a routerLink="/register">Sign up</a>
+          </div>
+        </div>
   </div>
 </ion-content>

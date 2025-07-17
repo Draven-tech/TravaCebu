@@ -1,0 +1,94 @@
+.user-profile-content {
+  --background: #fff8e1;
+
+  .profile-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 40px;
+
+    .avatar {
+      width: 100px;
+      height: 100px;
+      border: 3px solid #FFD144;
+      margin-bottom: 12px;
+    }
+
+    .full-name {
+      font-size: 1.4em;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .username {
+      font-size: 0.9em;
+      color: #666;
+      margin-bottom: 16px;
+    }
+
+    ion-item {
+      --background: transparent;
+      padding-left: 0;
+    }
+
+    ion-button {
+      margin-top: 20px;
+      --background: #FFD144;
+      --color: #000;
+    }
+  }
+
+  .profile-card {
+  background-color: #FFD144;
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: #000;
+
+  ion-avatar {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 1rem;
+    border: 3px solid white;
+    background-color: white;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+  }
+
+  .user-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+  }
+
+  .user-username {
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 1rem;
+  }
+
+  ion-item {
+    --background: transparent;
+    --color: #000;
+    font-size: 0.85rem;
+  }
+
+  ion-button {
+    margin-top: 1rem;
+    --background: #000;
+    --color: #FFD144;
+    font-weight: bold;
+  }
+}
+
+}

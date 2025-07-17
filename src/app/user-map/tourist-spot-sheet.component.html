@@ -4,10 +4,10 @@
       <button class="back-btn" (click)="back()">
         <ion-icon name="arrow-back"></ion-icon>
       </button>
-      <h2 class="sheet-title">{{ spot?.name }}</h2>
       <button class="close-btn" (click)="close()">&times;</button>
     </div>
     <img *ngIf="spot?.imageUrl" [src]="spot.imageUrl" alt="Spot image" class="sheet-image" />
+    <div class="sheet-name">{{ spot?.name }}</div>
     <div class="sheet-category">{{ spot?.category }}</div>
   </div>
   <div class="sheet-body">

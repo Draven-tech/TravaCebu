@@ -1,7 +1,8 @@
 import { Component, AfterViewInit, OnDestroy } from '@angular/core';
-import { NavController } from '@ionic/angular';
+import { NavController, ToastController } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { BucketService } from '../services/bucket-list.service';
 import * as L from 'leaflet';
 
 @Component({
@@ -13,19 +14,30 @@ import * as L from 'leaflet';
 export class UserMapPage implements AfterViewInit, OnDestroy {
   private map!: L.Map;
   private markers: L.Marker[] = [];
-  private routeLines: L.Polyline[] = [];
+  searchQuery: string = '';
+  touristSpots: any[] = [];
+  static toastCtrl: ToastController;
+  static cmpRef: UserMapPage;
+  public bucketService: BucketService;
 
   constructor(
     private navCtrl: NavController,
     private afAuth: AngularFireAuth,
-    private firestore: AngularFirestore
-  ) { }
+    private firestore: AngularFirestore,
+    bucketService: BucketService,
+    private toastCtrl: ToastController
+  ) {
+    this.bucketService = bucketService;
+    UserMapPage.toastCtrl = toastCtrl;
+    UserMapPage.cmpRef = this;
+  }
 
   ngAfterViewInit(): void {
-    // Delay initialization to ensure DOM is ready
-    setTimeout(() => {
-      this.initMap();
-    }, 100);
+    if (!this.map) {
+      setTimeout(() => {
+        this.initMap();
+      }, 100);
+    }
   }
 
   ngOnDestroy(): void {
@@ -35,51 +47,56 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   private initMap(): void {
-    // Destroy existing map if it exists
     if (this.map) {
       this.map.remove();
     }
-
     this.map = L.map('map', {
-      center: [10.3157, 123.8854], // Centered at Cebu
+      center: [10.3157, 123.8854],
       zoom: 12,
-      preferCanvas: true
+      preferCanvas: true,
+      zoomControl: true,
+      attributionControl: true,
+      dragging: true,
+      scrollWheelZoom: true,
+      doubleClickZoom: true,
+      boxZoom: true,
+      keyboard: true
     });
-
-    // Add tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 18,
     }).addTo(this.map);
-
-    // Load routes after map is ready
-    this.loadRoutes();
-
-    // Trigger resize after a short delay to ensure proper rendering
+    this.loadTouristSpots();
     setTimeout(() => {
       this.map.invalidateSize();
     }, 200);
   }
 
-  private async loadRoutes(): Promise<void> {
+  private async loadTouristSpots(): Promise<void> {
     try {
-      const routesSnapshot = await this.firestore.collection('jeepney_routes').get().toPromise();
-      
-      routesSnapshot?.forEach((doc) => {
-        const route = doc.data() as any;
-        if (route.points && route.points.length >= 2) {
-          this.addRouteToMap(route);
-        }
+      const spotsSnapshot = await this.firestore.collection('tourist_spots').get().toPromise();
+      this.touristSpots = [];
+      this.markers.forEach(m => this.map.removeLayer(m));
+      this.markers = [];
+      spotsSnapshot?.forEach((doc) => {
+        const spot = { id: doc.id, ...(doc.data() as any) };
+        this.touristSpots.push(spot);
       });
+      this.showTouristSpots();
     } catch (error) {
-      console.error('Error loading routes:', error);
+      console.error('Error loading tourist spots:', error);
     }
   }
 
-  private addRouteToMap(route: any): void {
-    // Add markers for route points
-    route.points.forEach((point: any) => {
-      const marker = L.marker([point.lat, point.lng], {
+  private showTouristSpots(): void {
+    this.markers.forEach(m => this.map.removeLayer(m));
+    this.markers = [];
+    const filtered = this.touristSpots.filter(spot =>
+      !this.searchQuery || spot.name?.toLowerCase().includes(this.searchQuery.toLowerCase())
+    );
+    filtered.forEach((spot: any) => {
+      if (!spot.location) return;
+      const marker = L.marker([spot.location.lat, spot.location.lng], {
         icon: L.icon({
           iconUrl: 'assets/leaflet/marker-icon.png',
           shadowUrl: 'assets/leaflet/marker-shadow.png',
@@ -90,28 +107,20 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           popupAnchor: [1, -34]
         })
       }).addTo(this.map);
-
       marker.bindPopup(`
-        <div style="text-align: center;">
-          <strong>Route ${route.code}</strong><br>
-          Jeepney Stop
+        <div style="text-align:center;min-width:200px;">
+          <strong style='font-size:1.1em;'>${spot.name}</strong><br>
+          <span style='font-size:0.95em;color:#e74c3c;'>${spot.category ? spot.category : ''}</span><br>
+          <span style='font-size:0.9em;'>${spot.description ? spot.description : ''}</span><br>
+          <span style='font-size:0.85em;color:#888;'>${spot.location.lat.toFixed(5)}, ${spot.location.lng.toFixed(5)}</span><br>
+          <button onclick='window.addToBucketSpot("${spot.id}")' style='margin-top:8px;background:#e74c3c;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-weight:700;cursor:pointer;'>Add to Bucket List</button>
         </div>
       `);
-
       this.markers.push(marker);
     });
-
-    // Add route line
-    if (route.points.length >= 2) {
-      const points = route.points.map((point: any) => [point.lat, point.lng]);
-      const routeLine = L.polyline(points, {
-        color: route.color || '#3366ff',
-        weight: 4,
-        opacity: 0.8,
-        lineJoin: 'round'
-      }).addTo(this.map);
-
-      this.routeLines.push(routeLine);
+    if (filtered.length > 0) {
+      const group = L.featureGroup(this.markers);
+      this.map.fitBounds(group.getBounds(), { padding: [50, 50] });
     }
   }
 
@@ -123,4 +132,25 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.navCtrl.navigateRoot('/login');
     }
   }
+
+  ngDoCheck() {
+    this.showTouristSpots();
+  }
+
+  static async showToast(msg: string) {
+    const toast = await UserMapPage.toastCtrl.create({
+      message: msg,
+      duration: 2000,
+      color: 'success',
+      position: 'top',
+    });
+    toast.present();
+  }
 }
+
+(window as any).addToBucketSpot = async (spotId: string) => {
+  const cmp = UserMapPage.cmpRef;
+  const spot = cmp.touristSpots.find((s: any) => s.id === spotId);
+  if (spot) cmp.bucketService.addToBucket(spot);
+  await UserMapPage.showToast('Added to bucket list!');
+};

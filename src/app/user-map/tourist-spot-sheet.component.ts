@@ -18,6 +18,10 @@ export class TouristSpotSheetComponent {
     this.modalCtrl.dismiss();
   }
 
+  back() {
+    this.close();
+  }
+
   addToBucket() {
     this.modalCtrl.dismiss({ addToBucket: true, spot: this.spot });
   }

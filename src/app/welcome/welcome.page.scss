@@ -1,89 +1,107 @@
-/* welcome.page.scss */
 ion-content {
   --background: #FFD144;
-  background: #FFD144;
+  position: relative;
+  overflow: hidden;
 }
 
-.welcome-container {
+.container {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
   padding: 20px;
-  text-align: center;
-  background: transparent;
+  z-index: 2;
+  position: relative;
+  padding-bottom: 90px;
 }
 
-.welcome-header {
-  margin-top: 40px;
-  margin-bottom: 60px;
-  animation: fadeIn 0.8s ease-out;
+.bg-car {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: auto;
+  z-index: 0;
+  opacity: 1;
+  pointer-events: none;
 }
 
-.logo {
-  max-width: 200px;
-  margin-bottom: 30px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+.content-layer {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  text-align: left;
 }
 
 h1 {
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin-bottom: 15px;
-  color: #2D3748;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  letter-spacing: -0.5px;
+  font-weight: 900;
+  font-size: 26px;
+  color: #000000;
   line-height: 1.2;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  margin-bottom: 10px;
 }
 
 p {
-  font-size: 1.1rem;
-  color: #4A5568;
-  margin-bottom: 40px;
-  line-height: 1.6;
-  max-width: 80%;
-  margin-left: auto;
-  margin-right: auto;
-  font-weight: 500;
+  font-size: 14px;
+  color: #000;
+  margin-bottom: 30px;
 }
 
-.welcome-buttons {
-  margin-bottom: 40px;
-  animation: slideUp 0.6s ease-out 0.3s both;
-
-  ion-button {
-    margin-bottom: 15px;
-    height: 50px;
-    font-weight: 700;
-    --background: #2D3748;
-    --color: #FFFFFF;
-    --border-radius: 12px;
-    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --ripple-color: #FFFFFF;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  ion-button:hover {
-    transform: translateY(-2px);
-    --box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-  }
-
-  ion-button[fill="outline"] {
-    --background: transparent;
-    --color: #2D3748;
-    --border-color: #2D3748;
-    --border-width: 2px;
-  }
+.custom-form {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+
+
+.btn-road {
+  position: relative;
+  width: 100%;
+  padding: 16px 24px;
+  background-color: #111720;
+  border: none;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  margin-top: 20px;
+  overflow: hidden;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 3);
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+.btn-road::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-image: repeating-linear-gradient(
+    to right,
+    #FFD144,
+    #FFD144 10px,
+    transparent 10px,
+    transparent 20px
+  );
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.btn-label {
+  position: relative;
+  z-index: 2;
+    padding: 0 12px;
+  background-color: #111720;
+}
+
+.btn-road:hover {
+  background-color: #111720;
+  transform: scale(1.02);
+  transition: 0.3s ease;
 }

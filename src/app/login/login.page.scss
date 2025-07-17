@@ -21,7 +21,7 @@ ion-content {
   z-index: 2;
   width: 100%;
   max-width: 360px;
-  padding: 20px;
+  padding: 5vw;
   margin: 0 auto;
 }
 
@@ -119,3 +119,60 @@ h1 {
     text-decoration: none;
   }
 }
+
+.btn-container {
+  margin-top: 30vh; // push it far down like your welcome page
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.btn-road {
+  position: relative;
+  width: 100%;
+  padding: 16px 24px;
+  background-color: #111720;
+  border: none;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  overflow: hidden;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.btn-road::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-image: repeating-linear-gradient(
+    to right,
+    #FFD144,
+    #FFD144 10px,
+    transparent 10px,
+    transparent 20px
+  );
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.btn-label {
+  position: relative;
+  z-index: 2;
+  padding: 0 12px;
+  background-color: #111720;
+}
+
+.btn-road:hover {
+  transform: scale(1.02);
+  transition: 0.3s ease;
+}
+

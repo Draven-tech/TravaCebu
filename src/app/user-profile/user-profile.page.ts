@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AuthService } from '../services/auth.service';
+import { NavController } from '@ionic/angular';
 
 @Component({
   selector: 'app-user-profile',
@@ -15,7 +16,8 @@ export class UserProfilePage implements OnInit {
   constructor(
     private afAuth: AngularFireAuth,
     private firestore: AngularFirestore,
-    private authService: AuthService
+    private authService: AuthService,
+    private navCtrl: NavController,
   ) {}
 
   async ngOnInit() {
@@ -26,7 +28,15 @@ export class UserProfilePage implements OnInit {
       });
     }
   }
+ async goToHome() {
+    const user = await this.afAuth.currentUser;
+    if (user) {
+      this.navCtrl.navigateForward(`/user-dashboard/${user.uid}`);
 
+    } else {
+      this.navCtrl.navigateRoot('/login');
+    }
+  }
   async logout() {
     await this.authService.logoutUser();
   }

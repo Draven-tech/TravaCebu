@@ -39,12 +39,12 @@ const routes: Routes = [
   {
     path: 'tourist-spot-detail/:id',
     loadChildren: () => import('./tourist-spot-detail/tourist-spot-detail.module').then( m => m.TouristSpotDetailPageModule)
-  },  {
+  },
+  {
     path: 'user-profile',
     loadChildren: () => import('./user-profile/user-profile.module').then( m => m.UserProfilePageModule)
-  }
-
-
+  },
+  
 ];
 
 @NgModule({

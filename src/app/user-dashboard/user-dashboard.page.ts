@@ -6,7 +6,6 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { BucketService } from '../services/bucket-list.service';
 import { NavController } from '@ionic/angular';
 
-
 @Component({
   selector: 'app-user-dashboard',
   templateUrl: './user-dashboard.page.html',
@@ -22,7 +21,6 @@ export class UserDashboardPage implements OnInit {
   selectedTag = 'All';
   originalSpots: any[] = [];
 
-
   constructor(
     private route: ActivatedRoute,
     private firestore: AngularFirestore,
@@ -33,36 +31,22 @@ export class UserDashboardPage implements OnInit {
   ) { }
 
   async ngOnInit() {
-    // 1. Get Firebase Auth UID
+    // Get Firebase Auth UID
     const currentUser = await this.afAuth.currentUser;
-    console.log('✅ Logged-in Firebase UID:', currentUser?.uid);
-
-    // 2. Get UID from route (optional)
     this.userId = this.route.snapshot.paramMap.get('uid') ?? currentUser?.uid ?? null;
-    console.log('✅ UID from route or auth:', this.userId);
-
     if (!this.userId) {
-      console.warn('❌ No userId found.');
       return;
     }
-
-    // 3. Load user profile data
-    this.firestore
-      .collection('users')
-      .doc(this.userId)
-      .valueChanges()
-      .subscribe(
-        (data) => {
-          console.log('✅ Firestore user data:', data);
-          this.userData = data;
-        },
-        (error) => {
-          console.error('❌ Firestore user load error:', error);
-        }
-      );
-
-    // 4. Load tourist spots
-    this.loadSpots();
+    // Load user profile data
+    this.firestore.collection('users').doc(this.userId).valueChanges().subscribe(data => {
+      this.userData = data;
+    });
+    // Load tourist spots
+    this.firestore.collection('tourist_spots').valueChanges({ idField: 'id' }).subscribe(spots => {
+      this.spots = spots;
+      this.originalSpots = spots;
+      this.isLoading = false;
+    });
   }
 
   loadSpots() {
@@ -105,6 +89,5 @@ export class UserDashboardPage implements OnInit {
   async logout() {
     await this.authService.logoutUser();
   }
-
 }
 

@@ -202,8 +202,7 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
       if (this.isEditing && this.spotId) {
         await this.firestore.collection('tourist_spots').doc(this.spotId).update(spotData);
       } else {
-        const docRef = await this.firestore.collection('tourist_spots').add(spotData);
-        console.log('Document written with ID: ', docRef.id); // Add this line
+        await this.firestore.collection('tourist_spots').add(spotData);
       }
 
       const alert = await this.alertCtrl.create({

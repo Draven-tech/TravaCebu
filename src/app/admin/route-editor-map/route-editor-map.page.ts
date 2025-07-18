@@ -4,6 +4,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController } from '@ionic/angular';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Component({
   standalone: false,
@@ -45,6 +46,9 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
     popupAnchor: [1, -34]
   });
 
+  osrmStatus: 'checking' | 'online' | 'offline' = 'checking';
+  snappingService: 'osrm' | 'ors' = 'osrm';
+
   constructor(
     private firestore: AngularFirestore,
     private alertCtrl: AlertController,
@@ -63,6 +67,7 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.checkOsrmStatus();
     // Check for edit mode
     const nav = window.history.state;
     setTimeout(() => {
@@ -87,6 +92,13 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
         this.initMap();
       }
     }, 0);
+  }
+
+  checkOsrmStatus() {
+    const testUrl = 'https://router.project-osrm.org/route/v1/driving/123.885,10.315;123.891,10.314?overview=false';
+    this.http.get(testUrl).toPromise()
+      .then(() => this.osrmStatus = 'online')
+      .catch(() => this.osrmStatus = 'offline');
   }
 
   ngOnDestroy() {
@@ -147,21 +159,40 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
   }
 
   private async getRoutePath(points: L.LatLng[]): Promise<L.LatLng[]> {
-    const coordinates = points.map(p => `${p.lng},${p.lat}`).join(';');
-    const url = `${this.routingServiceUrl}${coordinates}?overview=full&geometries=geojson`;
-    
-    try {
-      const response: any = await this.http.get(url).toPromise();
-      if (response.code === 'Ok' && response.routes.length > 0) {
-        return response.routes[0].geometry.coordinates.map((coord: [number, number]) => 
-          L.latLng(coord[1], coord[0])
-        );
+    if (this.snappingService === 'osrm') {
+      const coordinates = points.map(p => `${p.lng},${p.lat}`).join(';');
+      const url = `${this.routingServiceUrl}${coordinates}?overview=full&geometries=geojson`;
+      try {
+        const response: any = await this.http.get(url).toPromise();
+        if (response.code === 'Ok' && response.routes.length > 0) {
+          return response.routes[0].geometry.coordinates.map((coord: [number, number]) =>
+            L.latLng(coord[1], coord[0])
+          );
+        }
+        return points; // Fallback to straight line
+      } catch (error) {
+        console.error('OSRM routing error:', error);
+        return points; // Fallback to straight line
       }
-      return points; // Fallback to straight line
-    } catch (error) {
-      console.error('Routing error:', error);
-      return points; // Fallback to straight line
+    } else if (this.snappingService === 'ors') {
+      const url = 'https://api.openrouteservice.org/v2/directions/driving-car/geojson';
+      const coords = points.map(p => [p.lng, p.lat]);
+      const body = { coordinates: coords };
+      const headers = {
+        'Authorization': environment.openRouteServiceApiKey,
+        'Content-Type': 'application/json'
+      };
+      try {
+        const response: any = await this.http.post(url, body, { headers }).toPromise();
+        return response.features[0].geometry.coordinates.map(
+          (coord: [number, number]) => L.latLng(coord[1], coord[0])
+        );
+      } catch (error) {
+        console.error('ORS routing error:', error);
+        return points;
+      }
     }
+    return points;
   }
 
   async updateRouteLine() {

@@ -77,4 +77,26 @@
       </ion-col>
     </ion-row>
   </ion-grid>
+
+  <ion-card class="api-usage-card">
+    <ion-card-header>
+      <ion-card-title>API Usage Tracker</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-spinner *ngIf="loadingApiUsage"></ion-spinner>
+      <ion-list *ngIf="!loadingApiUsage && apiUsageSummary.length">
+        <ion-item lines="full" *ngFor="let user of apiUsageSummary">
+          <ion-label>
+            <h2>User: {{ user.userId }}</h2>
+            <div *ngFor="let api of getApiKeys(user)">
+              <strong>{{ api }}:</strong> {{ user[api] }} calls
+            </div>
+          </ion-label>
+        </ion-item>
+      </ion-list>
+      <div *ngIf="!loadingApiUsage && !apiUsageSummary.length" class="ion-text-center ion-padding">
+        No API usage data found.
+      </div>
+    </ion-card-content>
+  </ion-card>
 </ion-content>  

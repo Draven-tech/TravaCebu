@@ -5,6 +5,8 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { BucketService } from '../services/bucket-list.service';
 import * as L from 'leaflet';
 import { TouristSpotSheetComponent } from './tourist-spot-sheet.component';
+import { DirectionsService } from '../services/directions.service';
+import { ApiTrackerService } from '../services/api-tracker.service';
 
 @Component({
   selector: 'app-user-map',
@@ -18,6 +20,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   searchQuery: string = '';
   touristSpots: any[] = [];
   public bucketService: BucketService;
+  private routeLine?: L.Polyline;
 
   constructor(
     private navCtrl: NavController,
@@ -26,7 +29,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     bucketService: BucketService,
     private toastCtrl: ToastController,
     private ngZone: NgZone,
-    private modalCtrl: ModalController
+    private modalCtrl: ModalController,
+    private directionsService: DirectionsService,
+    private apiTracker: ApiTrackerService
   ) {
     this.bucketService = bucketService;
   }
@@ -80,15 +85,12 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   private async loadTouristSpots(): Promise<void> {
     try {
-      const spotsSnapshot = await this.firestore.collection('tourist_spots').get().toPromise();
-      this.touristSpots = [];
-      this.markers.forEach(m => this.map.removeLayer(m));
-      this.markers = [];
-      spotsSnapshot?.forEach((doc) => {
-        const spot = { id: doc.id, ...(doc.data() as any) };
-        this.touristSpots.push(spot);
+      this.firestore.collection('tourist_spots').valueChanges({ idField: 'id' }).subscribe(spots => {
+        this.touristSpots = spots;
+        this.markers.forEach(m => this.map.removeLayer(m));
+        this.markers = [];
+        this.showTouristSpots();
       });
-      this.showTouristSpots();
     } catch (error) {
       console.error('Error loading tourist spots:', error);
     }
@@ -157,5 +159,75 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   goBack() {
     this.navCtrl.back();
+  }
+
+  // Fetch and display a transit route from current location to a tourist spot
+  async showRouteToSpot(spot: any) {
+    // Example: Use a fixed origin for demo, replace with user's location if available
+    const origin = 'Cebu City, Cebu';
+    const destination = `${spot.location.lat},${spot.location.lng}`;
+    // Check limiter
+    const canCall = await this.apiTracker.canCallApiToday('directions', 100);
+    if (!canCall) {
+      this.toastCtrl.create({
+        message: 'You have reached your daily limit for route requests. Please try again tomorrow.',
+        duration: 3000,
+        color: 'danger'
+      }).then(toast => toast.present());
+      return;
+    }
+    // Log the API call
+    this.apiTracker.logApiCall('directions', 'route', { origin, destination });
+    // Fetch route
+    this.directionsService.getTransitRoute(origin, destination).subscribe((result: any) => {
+      if (result.status === 'OK' && result.routes.length > 0) {
+        const polyline = result.routes[0].overview_polyline.points;
+        const latlngs = this.decodePolyline(polyline);
+        // Remove existing route if any
+        if (this.routeLine) this.map.removeLayer(this.routeLine);
+        this.routeLine = L.polyline(latlngs, { color: 'blue', weight: 5 }).addTo(this.map);
+        this.map.fitBounds(this.routeLine.getBounds(), { padding: [50, 50] });
+      } else {
+        this.toastCtrl.create({
+          message: 'No route found.',
+          duration: 2000,
+          color: 'warning'
+        }).then(toast => toast.present());
+      }
+    }, error => {
+      this.toastCtrl.create({
+        message: 'Error fetching route.',
+        duration: 2000,
+        color: 'danger'
+      }).then(toast => toast.present());
+    });
+  }
+
+  // Polyline decoder (Google encoded polyline algorithm)
+  decodePolyline(encoded: string): L.LatLng[] {
+    let points: L.LatLng[] = [];
+    let index = 0, len = encoded.length;
+    let lat = 0, lng = 0;
+    while (index < len) {
+      let b, shift = 0, result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+      points.push(L.latLng(lat / 1e5, lng / 1e5));
+    }
+    return points;
   }
 }

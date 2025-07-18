@@ -17,7 +17,7 @@ export class UserProfilePage implements OnInit {
     private afAuth: AngularFireAuth,
     private firestore: AngularFirestore,
     private authService: AuthService,
-    private navCtrl: NavController,
+    private navCtrl: NavController
   ) {}
 
   async ngOnInit() {
@@ -28,16 +28,12 @@ export class UserProfilePage implements OnInit {
       });
     }
   }
- async goToHome() {
-    const user = await this.afAuth.currentUser;
-    if (user) {
-      this.navCtrl.navigateForward(`/user-dashboard/${user.uid}`);
 
-    } else {
-      this.navCtrl.navigateRoot('/login');
-    }
-  }
   async logout() {
     await this.authService.logoutUser();
+  }
+
+  goToHome() {
+    this.navCtrl.navigateForward('/user-dashboard');
   }
 }

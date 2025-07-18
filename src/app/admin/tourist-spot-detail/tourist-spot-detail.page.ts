@@ -1,32 +1,37 @@
-import { Component, Input, OnInit } from '@angular/core'; // Added Input import
-import { ModalController, NavController } from '@ionic/angular';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { NavController } from '@ionic/angular';
 import * as L from 'leaflet';
 
 @Component({
-  standalone: false,
   selector: 'app-tourist-spot-detail',
   templateUrl: './tourist-spot-detail.page.html',
   styleUrls: ['./tourist-spot-detail.page.scss'],
+  standalone: false,
 })
 export class TouristSpotDetailPage implements OnInit {
-  @Input() spot: any;
+  public spotData: any;
   private map?: L.Map;
   private marker?: L.Marker;
 
-  constructor(
-    private modalCtrl: ModalController,
-    private navCtrl: NavController
-  ) {}
+  constructor(private route: ActivatedRoute, private navCtrl: NavController) {}
 
   ngOnInit() {
+    // Try to get spot data from navigation state (modal or route)
+    if (window.history.state && window.history.state.spot) {
+      this.spotData = window.history.state.spot;
+    } else {
+      // Fallback: get from route params or service if needed
+      // this.spotData = ...
+    }
     setTimeout(() => this.initMap(), 100); // Small delay to ensure DOM is ready
   }
 
   private initMap() {
-    if (!this.spot?.location) return;
+    if (!this.spotData?.location) return;
 
     this.map = L.map('spot-detail-map', {
-      center: [this.spot.location.lat, this.spot.location.lng],
+      center: [this.spotData.location.lat, this.spotData.location.lng],
       zoom: 15,
       preferCanvas: true
     });
@@ -36,7 +41,7 @@ export class TouristSpotDetailPage implements OnInit {
       maxZoom: 19
     }).addTo(this.map);
 
-    this.marker = L.marker([this.spot.location.lat, this.spot.location.lng], {
+    this.marker = L.marker([this.spotData.location.lat, this.spotData.location.lng], {
       icon: L.icon({
         iconUrl: 'assets/leaflet/marker-icon.png',
         shadowUrl: 'assets/leaflet/marker-shadow.png',
@@ -50,20 +55,25 @@ export class TouristSpotDetailPage implements OnInit {
 
     this.marker.bindPopup(`
       <div style="text-align: center;">
-        <strong>${this.spot.name}</strong><br>
-        ${this.spot.location.lat.toFixed(5)}, ${this.spot.location.lng.toFixed(5)}
+        <strong>${this.spotData.name}</strong><br>
+        ${this.spotData.location.lat.toFixed(5)}, ${this.spotData.location.lng.toFixed(5)}
       </div>
     `).openPopup();
   }
 
   close() {
-    this.modalCtrl.dismiss();
+    // The original code had modalCtrl, but it's not imported.
+    // Assuming this function is no longer relevant or needs to be re-evaluated
+    // based on the new structure, but for now, keeping it as is.
+    // If modalCtrl is intended to be used, it needs to be re-added.
+    // For now, commenting out the line as it's not defined.
+    // this.modalCtrl.dismiss();
   }
 
   editSpot() {
     this.close();
     this.navCtrl.navigateForward(['/admin/tourist-spot-editor'], {
-      state: { spot: this.spot }
+      state: { spot: this.spotData }
     });
   }
 }

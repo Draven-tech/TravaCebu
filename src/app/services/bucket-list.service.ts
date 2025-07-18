@@ -30,4 +30,9 @@ export class BucketService {
   clearBucket(): void {
     localStorage.removeItem(this.storageKey);
   }
+
+  // Add method to get all spot IDs in the bucket list
+  getBucketSpotIds(): string[] {
+    return this.getBucket().map(spot => spot.id);
+  }
 }

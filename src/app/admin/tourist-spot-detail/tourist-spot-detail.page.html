@@ -1,51 +1,24 @@
 <ion-header>
-  <ion-toolbar color="primary">
-    <ion-title>Spot Details</ion-title>
-    <ion-buttons slot="end">
-      <ion-button (click)="close()">
-        <ion-icon name="close" slot="icon-only"></ion-icon>
-      </ion-button>
+  <ion-toolbar color="warning">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/user-dashboard"></ion-back-button>
     </ion-buttons>
+    <ion-title>Tourist Spot Details</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
-  <div *ngIf="spot" class="spot-details">
-    <div id="spot-detail-map" style="height: 250px;"></div>
+<ion-content *ngIf="spotData">
+  <img *ngIf="spotData?.img" [src]="spotData.img" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;" />
 
-    <ion-list lines="none">
-      <ion-item>
-        <ion-label>
-          <h1>{{ spot.name }}</h1>
-          <p>{{ spot.category | titlecase }}</p>
-        </ion-label>
-      </ion-item>
-
-      <ion-item>
-        <ion-label class="ion-text-wrap">
-          <h2>Description</h2>
-          <p>{{ spot.description || 'No description provided' }}</p>
-        </ion-label>
-      </ion-item>
-
-      <ion-item>
-        <ion-label>
-          <h2>Coordinates</h2>
-          <p>{{ spot.location.lat.toFixed(5) }}, {{ spot.location.lng.toFixed(5) }}</p>
-        </ion-label>
-      </ion-item>
-    </ion-list>
-  </div>
-
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button color="primary" (click)="editSpot()">
-      <ion-icon name="create"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>{{ spotData.name }}</ion-card-title>
+      <ion-card-subtitle>{{ spotData.category }}</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <p>{{ spotData.description }}</p>
+      <p><strong>Latitude:</strong> {{ spotData.location?.lat }}</p>
+      <p><strong>Longitude:</strong> {{ spotData.location?.lng }}</p>
+    </ion-card-content>
+  </ion-card>
 </ion-content>
-
-<ion-footer>
-  <ion-toolbar>
-    <ion-button expand="block" (click)="close()">Close</ion-button>
-  </ion-toolbar>
-</ion-footer>

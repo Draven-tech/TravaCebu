@@ -14,6 +14,7 @@
   <ion-list>
     <ion-item-sliding *ngFor="let spot of filterSpots()">
       <ion-item (click)="openSpotDetail(spot)">
+        <img *ngIf="spot.img" [src]="spot.img" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" />
         <ion-label>
           <h2>{{ spot.name || 'No name' }}</h2>
           <p>{{ spot.category ? (spot.category | titlecase) : 'No category' }}</p>

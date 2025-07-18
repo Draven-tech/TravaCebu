@@ -24,7 +24,10 @@ export class TouristSpotListPage implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.loadSpots();
+    this.firestore.collection('tourist_spots').valueChanges({ idField: 'id' }).subscribe(spots => {
+      this.spots = spots;
+      this.isLoading = false;
+    });
   }
 
   loadSpots() {

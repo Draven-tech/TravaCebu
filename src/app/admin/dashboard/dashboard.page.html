@@ -80,22 +80,44 @@
 
   <ion-card class="api-usage-card">
     <ion-card-header>
+      <ion-icon name="refresh" class="refresh-icon"></ion-icon>
       <ion-card-title>API Usage Tracker</ion-card-title>
     </ion-card-header>
     <ion-card-content>
       <ion-spinner *ngIf="loadingApiUsage"></ion-spinner>
-      <ion-list *ngIf="!loadingApiUsage && apiUsageSummary.length">
-        <ion-item lines="full" *ngFor="let user of apiUsageSummary">
-          <ion-label>
-            <h2>User: {{ user.userId }}</h2>
-            <div *ngFor="let api of getApiKeys(user)">
-              <strong>{{ api }}:</strong> {{ user[api] }} calls
+      
+      <div *ngIf="!loadingApiUsage && apiUsageStats">
+        <div class="usage-summary">
+          <div class="summary-item">
+            <ion-icon name="analytics" color="primary"></ion-icon>
+            <div>
+              <strong>Total Calls:</strong> {{ apiUsageStats.total }} <span class="separator">•</span> <strong>Today:</strong> {{ apiUsageStats.today }}
             </div>
-          </ion-label>
-        </ion-item>
-      </ion-list>
-      <div *ngIf="!loadingApiUsage && !apiUsageSummary.length" class="ion-text-center ion-padding">
-        No API usage data found.
+          </div>
+        </div>
+
+        <div *ngIf="getApiKeys().length > 0" class="api-breakdown">
+          <h4>By API Type:</h4>
+          <ion-list>
+            <ion-item *ngFor="let api of getApiKeys()">
+              <ion-label>
+                <h3>{{ api | titlecase }}</h3>
+                <p>Total: {{ getApiUsage(api).total }} | Today: {{ getApiUsage(api).today }}</p>
+              </ion-label>
+            </ion-item>
+          </ion-list>
+        </div>
+
+        <div *ngIf="getApiKeys().length === 0" class="ion-text-center ion-padding">
+          <ion-icon name="information-circle" color="medium" size="large"></ion-icon>
+          <p>No API usage data found.</p>
+          <p><small>API calls will appear here once you start using the app.</small></p>
+        </div>
+      </div>
+
+      <div *ngIf="!loadingApiUsage && !apiUsageStats" class="ion-text-center ion-padding">
+        <ion-icon name="warning" color="danger" size="large"></ion-icon>
+        <p>Failed to load API usage data.</p>
       </div>
     </ion-card-content>
   </ion-card>

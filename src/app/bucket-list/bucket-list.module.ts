@@ -6,6 +6,7 @@ import { BucketListPageRoutingModule } from './bucket-list-routing.module';
 import { BucketListPage } from './bucket-list.page';
 import { ItineraryModalComponent } from './itinerary-modal.component';
 import { ItineraryEditorComponent } from './itinerary-editor.component';
+import { ItineraryMapComponent } from './itinerary-map.component';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 
 @NgModule({
@@ -19,7 +20,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
   declarations: [
     BucketListPage,
     ItineraryModalComponent,
-    ItineraryEditorComponent
+    ItineraryEditorComponent,
+    ItineraryMapComponent
   ]
 })
 export class BucketListPageModule {}

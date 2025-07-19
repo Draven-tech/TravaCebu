@@ -159,6 +159,13 @@ ion-title {
   border: 2px solid #fff;
 }
 
+.title {
+  color: #2D3748 !important;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+}
+
 .modern-nav-card {
   background: #fff;
   border-radius: 20px;
@@ -170,7 +177,7 @@ ion-title {
   position: relative;
   overflow: hidden;
   color: #2D3748;
-  
+
   &:hover {
     transform: translateY(-4px) scale(1.03);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
@@ -179,7 +186,7 @@ ion-title {
   &:active {
     transform: scale(0.98);
   }
-  
+
   ion-card-header {
     padding: 32px 16px 12px 16px;
     text-align: center;
@@ -187,14 +194,14 @@ ion-title {
     border-top-left-radius: 20px;
     border-top-right-radius: 20px;
     border-bottom: 1.5px solid #e74c3c;
-    
+
     ion-icon {
       font-size: 2.8rem;
       color: #e74c3c;
       margin-bottom: 10px;
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08));
     }
-    
+
     ion-card-title {
       font-size: 1.3rem;
       font-weight: 900;
@@ -226,4 +233,124 @@ ion-button[fill="clear"] {
   --background-activated: rgba(255,255,255,0.15);
   border-radius: 50%;
   transition: all 0.3s ease;
+}
+
+/* API Usage Tracker Styles - ONLY THIS SECTION WAS CHANGED */
+.api-usage-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  margin: 20px 0;
+  overflow: hidden;
+
+  ion-card-header {
+    background: linear-gradient(135deg, #FFD144 0%, #FFA726 100%);
+    padding: 20px;
+    text-align: center;
+    position: relative;
+
+    .refresh-icon {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.2rem;
+      color: #fff;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: translateY(-50%) rotate(180deg);
+      }
+    }
+
+    ion-card-title {
+      color: #2D3748 !important;
+      font-weight: 700;
+      font-size: 1.3rem;
+      margin: 0;
+      text-shadow: none !important;
+    }
+  }
+
+  ion-card-content {
+    padding: 20px;
+  }
+}
+
+.usage-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+
+  .summary-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+
+    ion-icon {
+      font-size: 1.4rem;
+      min-width: 24px;
+    }
+    
+    div {
+      font-size: 1rem;
+      color: #2D3748;
+      
+      strong {
+        font-weight: 600;
+        color: #2D3748;
+      }
+
+      .separator {
+        color: #CBD5E0;
+        font-weight: 400;
+        margin: 0 8px;
+        font-size: 1.2rem;
+      }
+    }
+  }
+}
+
+.api-breakdown {
+  margin-top: 20px;
+
+  h4 {
+    color: #2D3748;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    font-size: 1.1rem;
+  }
+  
+  ion-list {
+    background: transparent;
+    padding: 0;
+  }
+  
+  ion-item {
+    --background: #2D3748;
+    --border-radius: 8px;
+    margin-bottom: 8px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    
+    ion-label {
+      h3 {
+        color: #fff;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+        font-size: 1.1rem;
+      }
+
+      p {
+        color: #E2E8F0;
+        font-size: 0.9rem;
+        margin: 0;
+      }
+    }
+  }
 }

@@ -1,8 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
-import { AngularFirestore } from '@angular/fire/compat/firestore';
-import { map } from 'rxjs/operators';
+import { ApiTrackerService } from '../../services/api-tracker.service';
 
 @Component({
   standalone: false,
@@ -11,50 +9,57 @@ import { map } from 'rxjs/operators';
   styleUrls: ['./dashboard.page.scss'],
 })
 export class DashboardPage implements OnInit {
-  apiUsageSummary: any[] = [];
-  loadingApiUsage = true;
+  apiUsageStats: any = null;
+  loadingApiUsage = false;
 
   constructor(
     private router: Router,
-    private authService: AuthService,
-    private firestore: AngularFirestore
+    private apiTracker: ApiTrackerService
   ) {}
 
   ngOnInit() {
-    this.fetchApiUsage();
+    this.loadApiUsageStats();
   }
 
-  fetchApiUsage() {
-    this.loadingApiUsage = true;
-    this.firestore.collectionGroup('calls').valueChanges({ idField: 'id' })
-      .subscribe((calls: any[]) => {
-        const summary: { [user: string]: { [api: string]: number } } = {};
-        calls.forEach(call => {
-          const userId = call.userId || 'unknown';
-          if (!summary[userId]) summary[userId] = {};
-          if (!summary[userId][call.api]) summary[userId][call.api] = 0;
-          summary[userId][call.api]++;
-        });
-        // Convert to array for display
-        this.apiUsageSummary = Object.entries(summary).map(([userId, apis]) => ({
-          userId,
-          ...apis
-        }));
-        this.loadingApiUsage = false;
-      }, () => {
-        this.loadingApiUsage = false;
-      });
+  async loadApiUsageStats() {
+    try {
+      this.loadingApiUsage = true;
+      this.apiUsageStats = await this.apiTracker.getApiUsageStats();
+    } catch (error) {
+      console.error('Error loading API usage stats:', error);
+      this.apiUsageStats = { total: 0, today: 0, byApi: {} };
+    } finally {
+      this.loadingApiUsage = false;
+    }
   }
 
   navigateTo(route: string) {
-    this.router.navigate(['/admin', route]);
+    switch (route) {
+      case 'route-editor':
+        this.router.navigate(['/admin/route-editor-map']);
+        break;
+      case 'route-list':
+        this.router.navigate(['/admin/route-list']);
+        break;
+      case 'tourist-spot-editor':
+        this.router.navigate(['/admin/tourist-spot-editor']);
+        break;
+      case 'tourist-spot-list':
+        this.router.navigate(['/admin/tourist-spot-list']);
+        break;
+    }
   }
 
   logout() {
-    this.authService.logout();
+    // Add logout logic here
+    this.router.navigate(['/login']);
   }
 
-  getApiKeys(user: any): string[] {
-    return Object.keys(user).filter(key => key !== 'userId');
+  getApiKeys(): string[] {
+    return Object.keys(this.apiUsageStats?.byApi || {});
+  }
+
+  getApiUsage(api: string): any {
+    return this.apiUsageStats?.byApi[api] || { total: 0, today: 0 };
   }
 }

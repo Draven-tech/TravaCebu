@@ -3,6 +3,7 @@ import { BucketService } from '../services/bucket-list.service';
 import { NavController } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AlertController, ModalController } from '@ionic/angular';
+import { ItineraryModalComponent } from './itinerary-modal.component';
 
 @Component({
   selector: 'app-bucket-list',
@@ -159,73 +160,14 @@ export class BucketListPage implements OnInit {
   }
 
   private async showItinerary() {
-    let message = '<div style="text-align: left;">';
-    
-    this.itinerary.forEach(day => {
-      message += `<h3 style="color: #e74c3c; margin: 16px 0 8px 0;">Day ${day.day}</h3>`;
-      day.spots.forEach((spot: any, index: number) => {
-        message += `
-          <div style="margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #e74c3c;">
-            <strong>${index + 1}. ${spot.name}</strong><br>
-            <small style="color: #6c757d;">⏰ ${spot.timeSlot} | ⏱️ ${spot.estimatedDuration}</small><br>
-            <small style="color: #6c757d;">📍 ${spot.category}</small>
-          </div>
-        `;
-      });
+    const modal = await this.modalCtrl.create({
+      component: ItineraryModalComponent,
+      componentProps: {
+        itinerary: this.itinerary
+      },
+      cssClass: 'itinerary-modal'
     });
-
-    message += '</div>';
-
-    const alert = await this.alertCtrl.create({
-      header: 'Your Itinerary',
-      message: message,
-      cssClass: 'itinerary-alert',
-      buttons: [
-        {
-          text: 'Save to Notes',
-          handler: () => {
-            this.saveItineraryToNotes();
-          }
-        },
-        {
-          text: 'Close',
-          role: 'cancel'
-        }
-      ]
-    });
-    await alert.present();
-  }
-
-  private saveItineraryToNotes() {
-    let notes = '=== MY CEBU ITINERARY ===\n\n';
-    
-    this.itinerary.forEach(day => {
-      notes += `DAY ${day.day}\n`;
-      notes += '='.repeat(20) + '\n';
-      
-      day.spots.forEach((spot: any, index: number) => {
-        notes += `${index + 1}. ${spot.name}\n`;
-        notes += `   Time: ${spot.timeSlot}\n`;
-        notes += `   Duration: ${spot.estimatedDuration}\n`;
-        notes += `   Category: ${spot.category}\n`;
-        if (spot.description) {
-          notes += `   Notes: ${spot.description}\n`;
-        }
-        notes += '\n';
-      });
-      notes += '\n';
-    });
-
-    // Copy to clipboard (if supported)
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(notes).then(() => {
-        this.showAlert('Saved!', 'Itinerary copied to clipboard. You can paste it in your notes app.');
-      }).catch(() => {
-        this.showAlert('Itinerary Generated', 'Please manually copy the itinerary from the previous dialog.');
-      });
-    } else {
-      this.showAlert('Itinerary Generated', 'Please manually copy the itinerary from the previous dialog.');
-    }
+    await modal.present();
   }
 
   private async showAlert(header: string, message: string) {

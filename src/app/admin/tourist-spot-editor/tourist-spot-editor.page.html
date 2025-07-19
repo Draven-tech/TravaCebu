@@ -1,10 +1,18 @@
 <ion-content>
   <div class="admin-topbar">
-    <ion-button fill="clear" routerLink="/admin/tourist-spot-list">
+    <ion-button fill="clear" [routerLink]="isEditing ? '/admin/tourist-spot-list' : '/admin/dashboard'">
       <ion-icon name="arrow-back"></ion-icon>
     </ion-button>
     <div class="admin-title">{{ isEditing ? 'Edit Tourist Spot' : 'Add Tourist Spot' }}</div>
   </div>
+  
+  <div class="osrm-status-indicator" style="margin: 8px 0 0 16px; display: flex; align-items: center;">
+    <ion-icon name="location" color="primary"></ion-icon>
+    <span style="margin-left: 8px; font-weight: 500;">
+      Set the location by clicking on the map
+    </span>
+  </div>
+  
   <ion-item>
     <ion-label>Map Tiles</ion-label>
     <ion-select [(ngModel)]="selectedTile" (ionChange)="onTileChange()">
@@ -12,16 +20,17 @@
       <ion-select-option value="osm">OpenStreetMap</ion-select-option>
     </ion-select>
   </ion-item>
-  <div id="tourist-spot-map"></div>
+  
+  <div id="tourist-spot-editor-map"></div>
 
   <ion-card>
     <ion-card-header>
-      <ion-card-title>Spot Details</ion-card-title>
+      <ion-card-title>Tourist Spot Details</ion-card-title>
     </ion-card-header>
     <ion-card-content>
       <ion-item>
         <ion-label position="stacked">Name <ion-text color="danger">*</ion-text></ion-label>
-        <ion-input [(ngModel)]="spotName" placeholder="e.g. Magellan's Cross"></ion-input>
+        <ion-input [(ngModel)]="spotName" placeholder="Enter spot name..."></ion-input>
       </ion-item>
 
       <ion-item>
@@ -34,12 +43,34 @@
         <ion-select [(ngModel)]="spotCategory" interface="popover">
           <ion-select-option value="attraction">Attraction</ion-select-option>
           <ion-select-option value="mall">Mall</ion-select-option>
+          <ion-select-option value="restaurant">Restaurant</ion-select-option>
+          <ion-select-option value="hotel">Hotel</ion-select-option>
           <ion-select-option value="beach">Beach</ion-select-option>
-          <ion-select-option value="landmark">Landmark</ion-select-option>
+          <ion-select-option value="church">Church</ion-select-option>
           <ion-select-option value="museum">Museum</ion-select-option>
           <ion-select-option value="park">Park</ion-select-option>
+          <ion-select-option value="other">Other</ion-select-option>
         </ion-select>
       </ion-item>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Image</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Upload Image</ion-label>
+        <input type="file" (change)="onImageSelected($event)" accept="image/*" />
+      </ion-item>
+      <div *ngIf="imageUrl" style="margin-top: 10px; text-align: center;">
+        <img [src]="imageUrl" style="max-width: 100%; max-height: 200px; border-radius: 8px;" />
+      </div>
+      <div *ngIf="isUploading" style="text-align:center; margin: 10px 0;">
+        <ion-spinner name="crescent"></ion-spinner>
+        <div>Uploading image...</div>
+      </div>
     </ion-card-content>
   </ion-card>
 
@@ -50,6 +81,9 @@
     <ion-fab-list side="top">
       <ion-fab-button color="danger" (click)="clearSpot()">
         <ion-icon name="trash"></ion-icon>
+      </ion-fab-button>
+      <ion-fab-button color="warning" (click)="removePin()">
+        <ion-icon name="remove"></ion-icon>
       </ion-fab-button>
       <ion-fab-button color="success" (click)="saveSpot()">
         <ion-icon name="save"></ion-icon>

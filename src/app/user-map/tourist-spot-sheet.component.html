@@ -6,7 +6,7 @@
       </button>
       <button class="close-btn" (click)="close()">&times;</button>
     </div>
-    <img *ngIf="spot?.imageUrl" [src]="spot.imageUrl" alt="Spot image" class="sheet-image" />
+    <img *ngIf="spot?.img" [src]="spot.img" alt="Spot image" class="sheet-image" />
     <div class="sheet-name">{{ spot?.name }}</div>
     <div class="sheet-category">{{ spot?.category }}</div>
   </div>

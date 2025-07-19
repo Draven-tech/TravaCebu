@@ -116,55 +116,13 @@ ion-button[fill="clear"] {
   to { opacity: 1; transform: translateY(0); }
 }
 
-// Itinerary alert styling
-::ng-deep .itinerary-alert {
-  .alert-wrapper {
-    max-width: 90vw;
-    max-height: 80vh;
-    overflow-y: auto;
-  }
+// Itinerary modal styling
+::ng-deep .itinerary-modal {
+  --height: 80vh;
+  --width: 90vw;
+  --border-radius: 16px;
   
-  .alert-message {
-    max-height: 60vh;
-    overflow-y: auto;
-    padding: 16px;
-    
-    h3 {
-      color: #e74c3c;
-      margin: 16px 0 8px 0;
-      font-size: 1.1rem;
-      font-weight: 700;
-    }
-    
-    div {
-      margin: 8px 0;
-      padding: 12px;
-      background: #f8f9fa;
-      border-radius: 8px;
-      border-left: 4px solid #e74c3c;
-      
-      strong {
-        color: #2D3748;
-        font-size: 1rem;
-      }
-      
-      small {
-        color: #6c757d;
-        font-size: 0.85rem;
-        line-height: 1.4;
-      }
-    }
-  }
-  
-  .alert-button-group {
-    padding: 16px;
-    
-    .alert-button {
-      --background: #e74c3c;
-      --color: white;
-      font-weight: 600;
-      border-radius: 8px;
-      margin: 4px;
-    }
+  .modal-wrapper {
+    border-radius: 16px;
   }
 }

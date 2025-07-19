@@ -15,9 +15,145 @@
     </ion-card-content>
   </ion-card>
   <ion-button expand="block" color="medium" (click)="clear()">Clear All</ion-button>
-  <ion-button expand="block" color="primary" (click)="promptItineraryDays()" class="generate-itinerary-btn">
+  <ion-button expand="block" color="primary" (click)="openItinerarySetup()" class="generate-itinerary-btn">
     Generate Itinerary
   </ion-button>
+
+  <!-- Beautiful Itinerary Setup Modal -->
+  <ion-modal [isOpen]="showSetupModal" (didDismiss)="showSetupModal = false" class="setup-modal">
+    <ng-template>
+      <div class="setup-container">
+        <!-- Header -->
+        <div class="setup-header">
+          <div class="header-content">
+            <ion-icon name="calendar-outline" class="header-icon"></ion-icon>
+            <h1 class="setup-title">Plan Your Adventure</h1>
+            <p class="setup-subtitle">Customize your perfect itinerary</p>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="setup-content">
+          <!-- Days Selection -->
+          <div class="setup-section">
+            <div class="section-header">
+              <ion-icon name="calendar" class="section-icon"></ion-icon>
+              <h3>How many days?</h3>
+            </div>
+            <div class="days-selector">
+              <ion-button 
+                fill="outline" 
+                [color]="setup.days === 1 ? 'primary' : 'medium'"
+                (click)="setup.days = 1"
+                class="day-btn">
+                1 Day
+              </ion-button>
+              <ion-button 
+                fill="outline" 
+                [color]="setup.days === 2 ? 'primary' : 'medium'"
+                (click)="setup.days = 2"
+                class="day-btn">
+                2 Days
+              </ion-button>
+              <ion-button 
+                fill="outline" 
+                [color]="setup.days === 3 ? 'primary' : 'medium'"
+                (click)="setup.days = 3"
+                class="day-btn">
+                3 Days
+              </ion-button>
+              <ion-button 
+                fill="outline" 
+                [color]="setup.days > 3 ? 'primary' : 'medium'"
+                (click)="showCustomDays = true"
+                class="day-btn">
+                Custom
+              </ion-button>
+            </div>
+            <ion-item *ngIf="showCustomDays" class="custom-days-input">
+              <ion-label position="stacked">Number of Days (1-14)</ion-label>
+              <ion-input 
+                type="number" 
+                min="1" 
+                max="14" 
+                [(ngModel)]="setup.days"
+                placeholder="Enter custom number of days"
+                class="custom-number-input">
+              </ion-input>
+            </ion-item>
+          </div>
+
+          <!-- Time Selection -->
+          <div class="setup-section">
+            <div class="section-header">
+              <ion-icon name="time" class="section-icon"></ion-icon>
+              <h3>What time do you want to start?</h3>
+            </div>
+            <div class="time-selector">
+              <ion-item class="time-input">
+                <ion-label position="stacked">Start Time</ion-label>
+                <ion-datetime 
+                  presentation="time" 
+                  [(ngModel)]="setup.startTime"
+                  class="custom-datetime">
+                </ion-datetime>
+              </ion-item>
+            </div>
+          </div>
+
+          <div class="setup-section">
+            <div class="section-header">
+              <ion-icon name="moon" class="section-icon"></ion-icon>
+              <h3>What time do you want to end?</h3>
+            </div>
+            <div class="time-selector">
+              <ion-item class="time-input">
+                <ion-label position="stacked">End Time</ion-label>
+                <ion-datetime 
+                  presentation="time" 
+                  [(ngModel)]="setup.endTime"
+                  class="custom-datetime">
+                </ion-datetime>
+              </ion-item>
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="setup-summary">
+            <div class="summary-card">
+              <ion-icon name="information-circle" class="summary-icon"></ion-icon>
+              <div class="summary-content">
+                <h4>Your Plan</h4>
+                <p>{{ setup.days }} day{{ setup.days > 1 ? 's' : '' }} • {{ getTimeDisplay(setup.startTime) }} - {{ getTimeDisplay(setup.endTime) }}</p>
+                <p class="spots-count">{{ spots.length }} tourist spot{{ spots.length > 1 ? 's' : '' }} to explore</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="setup-actions">
+          <ion-button 
+            expand="block" 
+            color="primary" 
+            size="large"
+            (click)="confirmItinerarySetup()"
+            class="generate-btn">
+            <ion-icon name="rocket" slot="start"></ion-icon>
+            Generate My Itinerary
+          </ion-button>
+          <ion-button 
+            expand="block" 
+            fill="clear" 
+            color="medium"
+            (click)="showSetupModal = false"
+            class="cancel-btn">
+            Cancel
+          </ion-button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
 </ion-content>
 
 <ion-footer>

@@ -1,31 +1,38 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import * as L from 'leaflet';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, NavController } from '@ionic/angular';
-import { ActivatedRoute } from '@angular/router';
+import * as L from 'leaflet';
+import { StorageService } from '../../services/storage.service';
 
 @Component({
-  standalone: false,
   selector: 'app-tourist-spot-editor',
   templateUrl: './tourist-spot-editor.page.html',
   styleUrls: ['./tourist-spot-editor.page.scss'],
+  standalone: false,
 })
 export class TouristSpotEditorPage implements OnInit, OnDestroy {
   private map!: L.Map;
   private marker?: L.Marker;
-  spot: any;
+  private tileLayer?: L.TileLayer;
   
-  // Default coordinates (Cebu)
+  // Cebu coordinates
   defaultLat = 10.3157;
   defaultLng = 123.8854;
-  defaultZoom = 14;
+  defaultZoom = 15;
   
-  // Spot properties
+  // Tourist spot properties
   spotName: string = '';
   spotDescription: string = '';
   spotCategory: string = 'attraction';
-  isEditing = false;
-  spotId?: string;
+  imageFile?: File;
+  imageUrl: string = '';
+  isUploading: boolean = false;
+  uploadProgress: number = 0;
+  selectedTile: string = 'esri';
+  
+  // Edit mode tracking
+  isEditing: boolean = false;
+  editingSpotId: string = '';
 
   // Custom marker icon
   private customIcon = L.icon({
@@ -38,14 +45,11 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     popupAnchor: [1, -34]
   });
 
-  selectedTile: string = 'esri';
-  private tileLayer?: L.TileLayer;
-
   constructor(
     private firestore: AngularFirestore,
     private alertCtrl: AlertController,
-    private activatedRoute: ActivatedRoute,
-    private navCtrl: NavController
+    private navCtrl: NavController,
+    private storageService: StorageService
   ) {}
 
   private destroyMap() {
@@ -62,20 +66,21 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     const nav = window.history.state;
     setTimeout(() => {
       this.destroyMap();
-      if (nav && nav.spot) {
-        const spot = nav.spot;
+      if (nav && nav.spotToEdit) {
+        const spot = nav.spotToEdit;
         this.isEditing = true;
-        this.spotId = spot.id;
-        this.spotName = spot.name;
-        this.spotDescription = spot.description;
-        this.spotCategory = spot.category;
-        this.spot = spot; // Fix: set the whole spot object for createdAt
+        this.editingSpotId = spot.id;
+        this.spotName = spot.name || '';
+        this.spotDescription = spot.description || '';
+        this.spotCategory = spot.category || 'attraction';
+        this.imageUrl = spot.img || '';
         this.initMap();
         if (spot.location) {
           this.addPin(L.latLng(spot.location.lat, spot.location.lng));
-          this.map.setView([spot.location.lat, spot.location.lng], this.defaultZoom);
         }
       } else {
+        this.isEditing = false;
+        this.editingSpotId = '';
         this.initMap();
       }
     }, 0);
@@ -85,25 +90,8 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     this.destroyMap();
   }
 
-  private checkForEdit() {
-    const state = this.activatedRoute.snapshot.paramMap.get('state');
-    if (state) {
-      const spot = JSON.parse(state);
-      this.isEditing = true;
-      this.spotId = spot.id;
-      this.spotName = spot.name;
-      this.spotDescription = spot.description;
-      this.spotCategory = spot.category;
-      
-      if (spot.location) {
-        this.addPin(L.latLng(spot.location.lat, spot.location.lng));
-        this.map.setView([spot.location.lat, spot.location.lng], this.defaultZoom);
-      }
-    }
-  }
-
   private initMap() {
-    this.map = L.map('tourist-spot-map', {
+    this.map = L.map('tourist-spot-editor-map', {
       center: [this.defaultLat, this.defaultLng],
       zoom: this.defaultZoom,
       preferCanvas: true
@@ -140,7 +128,7 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     if (this.marker) {
       this.map.removeLayer(this.marker);
     }
-
+    
     this.marker = L.marker(latlng, {
       draggable: true,
       icon: this.customIcon,
@@ -149,97 +137,118 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
 
     this.marker.bindPopup(`
       <div style="text-align: center;">
-        <strong>Tourist Spot</strong><br>
+        <strong>Tourist Spot Location</strong><br>
         ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}
       </div>
     `);
+  }
 
-    this.marker.on('dragend', () => {
-      const newPos = this.marker?.getLatLng();
-      if (newPos) {
-        this.marker?.setPopupContent(`
-          <div style="text-align: center;">
-            <strong>Tourist Spot</strong><br>
-            ${newPos.lat.toFixed(5)}, ${newPos.lng.toFixed(5)}
-          </div>
-        `);
-      }
-    });
+  onImageSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.imageFile = file;
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.imageUrl = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  private async uploadImage(): Promise<string> {
+    if (!this.imageFile) {
+      return this.imageUrl || '';
+    }
+    
+    this.isUploading = true;
+    this.uploadProgress = 0;
+    const filePath = `tourist_spots/${Date.now()}_${this.imageFile.name}`;
+    
+    try {
+      const url = await this.storageService.uploadFile(filePath, this.imageFile);
+      return url;
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      throw error;
+    } finally {
+      this.isUploading = false;
+      this.uploadProgress = 100;
+    }
   }
 
   async saveSpot() {
-    if (!this.spotName || this.spotName.trim().length === 0) {
-      const alert = await this.alertCtrl.create({
-        header: 'Missing Spot Name',
-        message: 'Please enter a name for the tourist spot',
-        buttons: ['OK']
-      });
-      return await alert.present();
+    if (!this.spotName.trim()) {
+      this.showAlert('Error', 'Please enter a spot name');
+      return;
     }
 
     if (!this.marker) {
-      const alert = await this.alertCtrl.create({
-        header: 'Missing Location',
-        message: 'Please select a location on the map',
-        buttons: ['OK']
-      });
-      return await alert.present();
+      this.showAlert('Error', 'Please set a location on the map');
+      return;
     }
 
+    const latlng = this.marker.getLatLng();
+    
     try {
-      const latlng = this.marker.getLatLng();
-      const spotData = {
+      const imageUrl = await this.uploadImage();
+      
+      const spotData: any = {
         name: this.spotName.trim(),
         description: this.spotDescription.trim(),
         category: this.spotCategory,
-        location: { lat: latlng.lat, lng: latlng.lng },
-        createdAt: this.isEditing ? this.spot.createdAt : new Date(),
+        img: imageUrl,
+        location: {
+          lat: latlng.lat,
+          lng: latlng.lng
+        },
         updatedAt: new Date()
       };
-  
-      console.log('Attempting to save:', spotData); // Add this line
-  
-      if (this.isEditing && this.spotId) {
-        await this.firestore.collection('tourist_spots').doc(this.spotId).update(spotData);
+
+      // Only add createdAt for new spots, not when editing
+      if (!this.isEditing) {
+        spotData.createdAt = new Date();
+      }
+
+      if (this.isEditing && this.editingSpotId) {
+        await this.firestore.collection('tourist_spots').doc(this.editingSpotId).update(spotData);
       } else {
         await this.firestore.collection('tourist_spots').add(spotData);
       }
 
-      const alert = await this.alertCtrl.create({
-        header: 'Success',
-        message: `Tourist Spot ${this.spotName} saved!`,
-        buttons: ['OK']
-      });
-      await alert.present();
-
-    } catch (error: unknown) { // Explicitly type as unknown
-      let errorMessage = 'Failed to save spot. Please try again.';
-      
-      if (error instanceof Error) {
-        console.error('Firestore error details:', error.message, error.stack);
-        errorMessage = `Failed to save spot: ${error.message}`;
-      } else {
-        console.error('Unknown error:', error);
-      }
-      
-      const alert = await this.alertCtrl.create({
-        header: 'Error',
-        message: errorMessage,
-        buttons: ['OK']
-      });
-      await alert.present();
+      this.showAlert('Success', `Tourist spot ${this.isEditing ? 'updated' : 'created'} successfully`);
+      this.navCtrl.navigateBack(this.isEditing ? '/admin/tourist-spot-list' : '/admin/dashboard');
+    } catch (error) {
+      console.error('Error saving spot:', error);
+      this.showAlert('Error', 'Failed to save tourist spot');
     }
   }
 
   clearSpot() {
+    this.spotName = '';
+    this.spotDescription = '';
+    this.spotCategory = 'attraction';
+    this.imageFile = undefined;
+    this.imageUrl = '';
     if (this.marker) {
       this.map.removeLayer(this.marker);
       this.marker = undefined;
     }
-    
-    this.spotName = '';
-    this.spotDescription = '';
-    this.spotCategory = 'attraction';
-    this.map.setView([this.defaultLat, this.defaultLng], this.defaultZoom);
+  }
+
+  removePin() {
+    if (this.marker) {
+      this.map.removeLayer(this.marker);
+      this.marker = undefined;
+    }
+  }
+
+  private async showAlert(header: string, message: string) {
+    const alert = await this.alertCtrl.create({
+      header,
+      message,
+      buttons: ['OK']
+    });
+    await alert.present();
   }
 }

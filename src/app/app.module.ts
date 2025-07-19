@@ -12,6 +12,15 @@ import { AngularFireAuthModule } from '@angular/fire/compat/auth';
 import { AngularFirestoreModule } from '@angular/fire/compat/firestore';
 import { environment } from '../environments/environment';
 import { HttpClientModule } from '@angular/common/http'; 
+import { initializeApp } from 'firebase/app';
+
+// Initialize Firebase for storage service
+try {
+  initializeApp(environment.firebase);
+  console.log('Firebase initialized successfully');
+} catch (error) {
+  console.error('Error initializing Firebase:', error);
+}
 
 @NgModule({
   declarations: [AppComponent],

@@ -13,14 +13,15 @@
   </div>
   <ion-list>
     <ion-item-sliding *ngFor="let spot of filterSpots()">
-      <ion-item (click)="openSpotDetail(spot)">
-        <img *ngIf="spot.img" [src]="spot.img" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" />
-        <ion-label>
-          <h2>{{ spot.name || 'No name' }}</h2>
-          <p>{{ spot.category ? (spot.category | titlecase) : 'No category' }}</p>
-          <p>{{ datePipe.transform(spot.createdAt, 'mediumDate') || 'No date' }}</p>
-          <pre style="font-size:10px; color:gray;">{{ spot | json }}</pre>
-        </ion-label>
+      <ion-item (click)="openSpotDetail(spot)" class="spot-item">
+        <div class="spot-content">
+          <img *ngIf="spot.img" [src]="spot.img" class="spot-image" />
+          <div class="spot-details">
+            <h2>{{ spot.name || 'No name' }}</h2>
+            <p class="category">{{ spot.category ? (spot.category | titlecase) : 'No category' }}</p>
+            <p class="date">{{ datePipe.transform(spot.createdAt, 'mediumDate') || 'No date' }}</p>
+          </div>
+        </div>
       </ion-item>
 
       <ion-item-options side="end">

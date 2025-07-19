@@ -1,24 +1,65 @@
 <ion-header>
   <ion-toolbar color="warning">
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/user-dashboard"></ion-back-button>
-    </ion-buttons>
     <ion-title>Tourist Spot Details</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()">
+        <ion-icon name="close" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content *ngIf="spotData">
-  <img *ngIf="spotData?.img" [src]="spotData.img" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;" />
+<ion-content>
+  <div *ngIf="spot" class="spot-details">
+    <img *ngIf="spot?.img" [src]="spot.img" style="width: 100%; height: 200px; object-fit: cover;" />
+    <div id="spot-detail-map" style="height: 300px;"></div>
 
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>{{ spotData.name }}</ion-card-title>
-      <ion-card-subtitle>{{ spotData.category }}</ion-card-subtitle>
-    </ion-card-header>
-    <ion-card-content>
-      <p>{{ spotData.description }}</p>
-      <p><strong>Latitude:</strong> {{ spotData.location?.lat }}</p>
-      <p><strong>Longitude:</strong> {{ spotData.location?.lng }}</p>
-    </ion-card-content>
-  </ion-card>
+    <ion-list lines="none">
+      <ion-item>
+        <ion-label>
+          <h1>{{ spot.name || 'No name' }}</h1>
+          <p>{{ spot.description || 'No description' }}</p>
+        </ion-label>
+        <ion-badge slot="end" color="warning">
+          {{ spot.category || 'No category' }}
+        </ion-badge>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>
+          <h2>Location</h2>
+          <p>{{ spot.location?.lat?.toFixed(5) }}, {{ spot.location?.lng?.toFixed(5) }}</p>
+        </ion-label>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>
+          <h2>Created</h2>
+          <p>{{ datePipe.transform(spot.createdAt, 'medium') || 'No date' }}</p>
+        </ion-label>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>
+          <h2>Last Updated</h2>
+          <p>{{ datePipe.transform(spot.updatedAt, 'medium') || 'No date' }}</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button color="warning" (click)="editSpot()">
+      <ion-icon name="create"></ion-icon>
+    </ion-fab-button>
+    <ion-fab-button color="danger" (click)="confirmDeleteSpot()">
+      <ion-icon name="trash"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-button expand="block" (click)="close()">Close</ion-button>
+  </ion-toolbar>
+</ion-footer>

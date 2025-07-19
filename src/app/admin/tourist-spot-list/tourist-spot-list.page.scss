@@ -43,27 +43,56 @@ ion-item-sliding {
 ion-item {
   --background: #fff;
   backdrop-filter: none;
-  --padding-start: 16px;
-  --padding-end: 16px;
-  --min-height: 80px;
+  --padding-start: 0;
+  --padding-end: 0;
+  --min-height: auto;
   border-left: 4px solid #2ecc71;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   border: 1px solid #f3e7d3;
-  
-  h2 {
-    font-weight: 700;
-    background: linear-gradient(45deg, #2D3748, #e67e22);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: none;
-  }
-  
-  p {
-    color: #2D3748;
-    font-size: 0.9rem;
-    font-weight: 500;
-    opacity: 0.8;
+}
+
+.spot-item {
+  .spot-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    
+    .spot-image {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      border-radius: 16px 16px 0 0;
+    }
+    
+    .spot-details {
+      padding: 16px;
+      
+      h2 {
+        font-weight: 700;
+        font-size: 1.3rem;
+        background: linear-gradient(45deg, #2D3748, #e67e22);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: none;
+        margin: 0 0 8px 0;
+      }
+      
+      .category {
+        color: #e74c3c;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin: 0 0 4px 0;
+      }
+      
+      .date {
+        color: #6c757d;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin: 0;
+      }
+    }
   }
 }
 

@@ -251,34 +251,25 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
           return { lat: latlng.lat, lng: latlng.lng };
         }),
         snapToRoads: this.snapToRoads,
+        createdAt: new Date(),
         updatedAt: new Date()
       };
 
       if (this.isEditMode && this.editingRouteId) {
-        // Update existing route
         await this.firestore.collection('jeepney_routes').doc(this.editingRouteId).update(routeData);
-        
-        const alert = await this.alertCtrl.create({
-          header: 'Success',
-          message: `Jeepney Route ${this.routeCode} updated successfully!`,
-          buttons: ['OK']
-        });
-        await alert.present();
       } else {
-        // Create new route
-        routeData.createdAt = new Date();
         await this.firestore.collection('jeepney_routes').add(routeData);
-        
-        const alert = await this.alertCtrl.create({
-          header: 'Success',
-          message: `Jeepney Route ${this.routeCode} saved!`,
-          buttons: ['OK']
-        });
-        await alert.present();
       }
 
-      this.clearRoute();
+      const alert = await this.alertCtrl.create({
+        header: 'Success',
+        message: this.isEditMode ? 'Route updated successfully!' : 'Route saved successfully!',
+        buttons: ['OK']
+      });
+      await alert.present();
+
     } catch (error) {
+      console.error('Error saving route:', error);
       const alert = await this.alertCtrl.create({
         header: 'Error',
         message: 'Failed to save route. Please try again.',
@@ -289,29 +280,29 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
   }
 
   clearRoute() {
+    this.routeCode = '';
+    this.routeColor = '#FF5722';
     this.markers.forEach(marker => this.map.removeLayer(marker));
     this.markers = [];
-    
     if (this.routeLine) {
       this.map.removeLayer(this.routeLine);
       this.routeLine = undefined;
     }
-    
-    this.routeCode = '';
-    this.isEditMode = false;
-    this.editingRouteId = '';
     this.map.setView([this.defaultLat, this.defaultLng], this.defaultZoom);
   }
 
   removeLastPin() {
     if (this.markers.length > 0) {
       const lastMarker = this.markers.pop();
-      if (lastMarker) this.map.removeLayer(lastMarker);
-      this.updateRouteLine();
+      if (lastMarker) {
+        this.map.removeLayer(lastMarker);
+        this.updateRouteLine();
+      }
     }
   }
 
   toggleSnapToRoads() {
+    this.snapToRoads = !this.snapToRoads;
     this.updateRouteLine();
   }
 }

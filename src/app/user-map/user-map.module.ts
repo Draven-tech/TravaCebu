@@ -16,6 +16,7 @@ import { DaySpotPickerComponent } from './day-spot-picker.component';
     DaySpotPickerComponent
   ],
   imports: [
+    CommonModule,
     TouristSpotSheetComponent,
     IonicModule,
     FormsModule,

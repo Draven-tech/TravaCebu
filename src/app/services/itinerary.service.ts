@@ -79,6 +79,7 @@ export class ItineraryService {
 
   // Fetch and cache restaurant/hotel suggestions for a finalized itinerary
   async fetchSuggestionsForItinerary(itinerary: ItineraryDay[]): Promise<ItineraryDay[]> {
+    // Check for cached suggestions first
     const cacheKey = this.getCacheKey(itinerary);
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
@@ -86,33 +87,35 @@ export class ItineraryService {
         return JSON.parse(cached);
       } catch {}
     }
-    // Otherwise, fetch suggestions
+    
+    // Fetch fresh suggestions
     for (const day of itinerary) {
+      // Fetch restaurant suggestions for meal times
       for (const spot of day.spots) {
         if (spot.mealType) {
-          const canCall = await this.apiTracker.canCallApiToday('places', 100);
-          if (canCall) {
-            this.apiTracker.logApiCall('places', 'restaurant', { lat: spot.location.lat, lng: spot.location.lng, mealType: spot.mealType });
+          try {
             const restRes: any = await this.placesService.getNearbyPlaces(spot.location.lat, spot.location.lng, 'restaurant').toPromise();
             spot.restaurantSuggestions = restRes.results || [];
-          } else {
+          } catch (error) {
+            console.error(`Error fetching restaurants for ${spot.name}:`, error);
             spot.restaurantSuggestions = [];
           }
         }
       }
-      // Hotels for last spot of the day
+      
+      // Fetch hotel suggestions for last spot of the day
       if (day.spots.length > 0) {
         const lastSpot = day.spots[day.spots.length - 1];
-        const canCall = await this.apiTracker.canCallApiToday('places', 100);
-        if (canCall) {
-          this.apiTracker.logApiCall('places', 'hotel', { lat: lastSpot.location.lat, lng: lastSpot.location.lng });
+        try {
           const hotelRes: any = await this.placesService.getNearbyPlaces(lastSpot.location.lat, lastSpot.location.lng, 'lodging').toPromise();
           day.hotelSuggestions = hotelRes.results || [];
-        } else {
+        } catch (error) {
+          console.error(`Error fetching hotels for Day ${day.day}:`, error);
           day.hotelSuggestions = [];
         }
       }
     }
+    
     // Cache the result
     localStorage.setItem(cacheKey, JSON.stringify(itinerary));
     return itinerary;

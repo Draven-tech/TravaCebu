@@ -80,12 +80,12 @@ export class AuthService {
   }
 
   async isUser(): Promise<boolean> {
-  const user = await this.afAuth.currentUser;
-  if (!user?.uid) return false;
+    const user = await this.afAuth.currentUser;
+    if (!user?.uid) return false;
 
-  const userDoc = await this.firestore.collection('users')
-    .doc(user.uid).get().toPromise();
+    const userDoc = await this.firestore.collection('users')
+      .doc(user.uid).get().toPromise();
 
-  return userDoc?.exists || false;
-}
+    return userDoc?.exists || false;
+  }
 }

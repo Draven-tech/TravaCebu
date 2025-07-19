@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { NavController } from '@ionic/angular';
+import { Component, Input, OnInit } from '@angular/core';
+import { ModalController, NavController, AlertController } from '@ionic/angular';
 import * as L from 'leaflet';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-tourist-spot-detail',
@@ -10,28 +11,32 @@ import * as L from 'leaflet';
   standalone: false,
 })
 export class TouristSpotDetailPage implements OnInit {
-  public spotData: any;
+  @Input() spot: any;
   private map?: L.Map;
   private marker?: L.Marker;
 
-  constructor(private route: ActivatedRoute, private navCtrl: NavController) {}
+  constructor(
+    private modalCtrl: ModalController,
+    private navCtrl: NavController,
+    private alertCtrl: AlertController,
+    private firestore: AngularFirestore,
+    public datePipe: DatePipe
+  ) {}
 
   ngOnInit() {
-    // Try to get spot data from navigation state (modal or route)
-    if (window.history.state && window.history.state.spot) {
-      this.spotData = window.history.state.spot;
-    } else {
-      // Fallback: get from route params or service if needed
-      // this.spotData = ...
-    }
-    setTimeout(() => this.initMap(), 100); // Small delay to ensure DOM is ready
+    setTimeout(() => {
+      this.destroyMap();
+      if (this.spot && this.spot.location) {
+        this.initMap();
+      }
+    }, 100);
   }
 
   private initMap() {
-    if (!this.spotData?.location) return;
+    if (!this.spot?.location) return;
 
     this.map = L.map('spot-detail-map', {
-      center: [this.spotData.location.lat, this.spotData.location.lng],
+      center: [this.spot.location.lat, this.spot.location.lng],
       zoom: 15,
       preferCanvas: true
     });
@@ -41,7 +46,7 @@ export class TouristSpotDetailPage implements OnInit {
       maxZoom: 19
     }).addTo(this.map);
 
-    this.marker = L.marker([this.spotData.location.lat, this.spotData.location.lng], {
+    this.marker = L.marker([this.spot.location.lat, this.spot.location.lng], {
       icon: L.icon({
         iconUrl: 'assets/leaflet/marker-icon.png',
         shadowUrl: 'assets/leaflet/marker-shadow.png',
@@ -55,25 +60,56 @@ export class TouristSpotDetailPage implements OnInit {
 
     this.marker.bindPopup(`
       <div style="text-align: center;">
-        <strong>${this.spotData.name}</strong><br>
-        ${this.spotData.location.lat.toFixed(5)}, ${this.spotData.location.lng.toFixed(5)}
+        <strong>${this.spot.name}</strong><br>
+        ${this.spot.location.lat.toFixed(5)}, ${this.spot.location.lng.toFixed(5)}
       </div>
     `).openPopup();
   }
 
+  private destroyMap() {
+    if (this.map) {
+      this.map.remove();
+      this.map = undefined;
+    }
+    this.marker = undefined;
+  }
+
+  ngOnDestroy() {
+    this.destroyMap();
+  }
+
   close() {
-    // The original code had modalCtrl, but it's not imported.
-    // Assuming this function is no longer relevant or needs to be re-evaluated
-    // based on the new structure, but for now, keeping it as is.
-    // If modalCtrl is intended to be used, it needs to be re-added.
-    // For now, commenting out the line as it's not defined.
-    // this.modalCtrl.dismiss();
+    this.modalCtrl.dismiss();
   }
 
   editSpot() {
     this.close();
     this.navCtrl.navigateForward(['/admin/tourist-spot-editor'], {
-      state: { spot: this.spotData }
+      state: { spotToEdit: this.spot }
     });
+  }
+
+  async confirmDeleteSpot() {
+    const alert = await this.alertCtrl.create({
+      header: 'Delete Tourist Spot',
+      message: 'THIS ACTION IS IRREVERSIBLE!\n\nAre you absolutely sure you want to permanently delete this tourist spot? This cannot be undone.',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Delete Forever',
+          role: 'destructive',
+          handler: async () => {
+            if (this.spot && this.spot.id) {
+              await this.firestore.collection('tourist_spots').doc(this.spot.id).delete();
+              this.close();
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 }

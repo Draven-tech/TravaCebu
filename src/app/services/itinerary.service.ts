@@ -4,6 +4,29 @@ import { DirectionsService } from './directions.service';
 import { ApiTrackerService } from './api-tracker.service';
 import { PlacesService } from './places.service';
 
+export interface ItinerarySpot {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  img?: string;
+  location: { lat: number; lng: number };
+  timeSlot: string;
+  estimatedDuration: string;
+  restaurantSuggestions?: any[];
+  mealType?: string;
+  durationMinutes?: number;
+  chosenRestaurant?: any;
+}
+
+export interface ItineraryDay {
+  day: number;
+  spots: ItinerarySpot[];
+  routes: any[];
+  hotelSuggestions?: any[];
+  chosenHotel?: any;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ItineraryService {
   constructor(
@@ -13,59 +36,113 @@ export class ItineraryService {
     private placesService: PlacesService
   ) {}
 
-  // Generate an itinerary given a list of spot IDs and number of days
-  async generateItinerary(spotIds: string[], numDays: number): Promise<any[]> {
-    // 1. Distribute spots across days
+  // Generate itinerary with meal/hotel slots, but no suggestions
+  async generateItinerary(
+    spots: any[],
+    numDays: number,
+    startTime: string = '08:00',
+    endTime: string = '18:00'
+  ): Promise<ItineraryDay[]> {
     const days: any[] = Array.from({ length: numDays }, () => []);
-    spotIds.forEach((spotId, i) => {
-      days[i % numDays].push(spotId);
+    spots.forEach((spot, i) => {
+      days[i % numDays].push(spot);
     });
-
-    // 2. For each day, build routes between consecutive spots (curated only)
-    const itinerary: any[] = [];
+    const itinerary: ItineraryDay[] = [];
     for (let day = 0; day < days.length; day++) {
       const daySpots = days[day];
-      const dayPlan: any = { spots: [], routes: [], restaurants: [], hotels: [] };
+      const dayPlan: ItineraryDay = { day: day + 1, spots: [], routes: [] };
+      const totalSpots = daySpots.length;
+      const start = this.parseTime(startTime);
+      const end = this.parseTime(endTime);
+      const totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+      const slotMinutes = Math.floor(totalMinutes / totalSpots);
+      let currentTime = new Date(start);
       for (let i = 0; i < daySpots.length; i++) {
-        // Fetch spot data
-        const spotDoc = await this.firestore.collection('tourist_spots').doc(daySpots[i]).get().toPromise();
-        const spotData = { id: daySpots[i], ...(spotDoc?.data() || {}) } as { id: any; location: { lat: number; lng: number } };
-        dayPlan.spots.push(spotData);
-        // Fetch restaurants near each spot
-        const restRes: any = await this.placesService.getNearbyPlaces(spotData.location.lat, spotData.location.lng, 'restaurant').toPromise();
-        dayPlan.restaurants.push({ spotId: spotData.id, results: restRes.results || [] });
-        // If not the first spot, find curated route from previous spot
-        if (i > 0) {
-          const fromSpot = dayPlan.spots[i - 1];
-          const toSpot = dayPlan.spots[i];
-          // Try to find a jeepney route in Firestore
-          const routeSnap = await this.firestore.collection('jeepney_routes', ref =>
-            ref.where('start', '==', fromSpot.location).where('end', '==', toSpot.location)
-          ).get().toPromise();
-          if (routeSnap && !routeSnap.empty) {
-            // Use local jeepney route
-            dayPlan.routes.push({
-              type: 'jeepney',
-              ...(routeSnap.docs[0].data() || {})
-            });
-          } else {
-            // No curated route found
-            dayPlan.routes.push({ type: 'none', message: 'No curated jeepney route found' });
-          }
-        }
-      }
-      // Fetch hotels near the last spot of the day
-      if (dayPlan.spots.length > 0) {
-        const lastSpot = dayPlan.spots[dayPlan.spots.length - 1];
-        const hotelRes: any = await this.placesService.getNearbyPlaces(lastSpot.location.lat, lastSpot.location.lng, 'lodging').toPromise();
-        dayPlan.hotels = hotelRes.results || [];
+        const spotData = daySpots[i];
+        const timeSlot = this.formatTime(currentTime);
+        const estimatedDuration = `${slotMinutes} min`;
+        const mealType = this.getMealType(currentTime);
+        dayPlan.spots.push({
+          ...spotData,
+          timeSlot,
+          estimatedDuration,
+          mealType
+        });
+        currentTime = new Date(currentTime.getTime() + slotMinutes * 60000);
+        // Skip jeepney routes for now to avoid permission issues
+        // Routes can be added later when needed
       }
       itinerary.push(dayPlan);
     }
     return itinerary;
   }
 
-  // Fetch Directions API route on demand for a given segment
+  // Fetch and cache restaurant/hotel suggestions for a finalized itinerary
+  async fetchSuggestionsForItinerary(itinerary: ItineraryDay[]): Promise<ItineraryDay[]> {
+    const cacheKey = this.getCacheKey(itinerary);
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {}
+    }
+    // Otherwise, fetch suggestions
+    for (const day of itinerary) {
+      for (const spot of day.spots) {
+        if (spot.mealType) {
+          const canCall = await this.apiTracker.canCallApiToday('places', 100);
+          if (canCall) {
+            this.apiTracker.logApiCall('places', 'restaurant', { lat: spot.location.lat, lng: spot.location.lng, mealType: spot.mealType });
+            const restRes: any = await this.placesService.getNearbyPlaces(spot.location.lat, spot.location.lng, 'restaurant').toPromise();
+            spot.restaurantSuggestions = restRes.results || [];
+          } else {
+            spot.restaurantSuggestions = [];
+          }
+        }
+      }
+      // Hotels for last spot of the day
+      if (day.spots.length > 0) {
+        const lastSpot = day.spots[day.spots.length - 1];
+        const canCall = await this.apiTracker.canCallApiToday('places', 100);
+        if (canCall) {
+          this.apiTracker.logApiCall('places', 'hotel', { lat: lastSpot.location.lat, lng: lastSpot.location.lng });
+          const hotelRes: any = await this.placesService.getNearbyPlaces(lastSpot.location.lat, lastSpot.location.lng, 'lodging').toPromise();
+          day.hotelSuggestions = hotelRes.results || [];
+        } else {
+          day.hotelSuggestions = [];
+        }
+      }
+    }
+    // Cache the result
+    localStorage.setItem(cacheKey, JSON.stringify(itinerary));
+    return itinerary;
+  }
+
+  // Helper: create a cache key based on spot IDs and time slots
+  private getCacheKey(itinerary: ItineraryDay[]): string {
+    const key = itinerary.map(day => day.spots.map(s => s.id).join('-')).join('|');
+    return 'itinerary_suggestions_' + key;
+  }
+
+  private parseTime(time: string): Date {
+    const [h, m] = time.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d;
+  }
+
+  private formatTime(date: Date): string {
+    return date.toTimeString().slice(0, 5);
+  }
+
+  private getMealType(date: Date): string | null {
+    const hour = date.getHours();
+    if (hour >= 6 && hour < 10) return 'breakfast';
+    if (hour >= 11 && hour < 14) return 'lunch';
+    if (hour >= 18 && hour < 21) return 'dinner';
+    return null;
+  }
+
   async getDirectionsRoute(fromSpot: any, toSpot: any): Promise<any> {
     const canCall = await this.apiTracker.canCallApiToday('directions', 100);
     if (!canCall) {
@@ -77,7 +154,6 @@ export class ItineraryService {
       `${toSpot.location.lat},${toSpot.location.lng}`
     ).toPromise();
     if (result.status === 'OK' && result.routes.length > 0) {
-      // Parse transit details (bus/jeepney)
       const steps = result.routes[0].legs[0].steps;
       const transitSteps = steps.filter((s: any) => s.travel_mode === 'TRANSIT');
       return {

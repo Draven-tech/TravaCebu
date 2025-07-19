@@ -14,6 +14,14 @@
 
 <ion-content>
   <div id="map"></div>
+  <ion-button expand="block" color="primary" (click)="navigateNextItineraryStep()" [disabled]="navigating">
+    Navigate Next Itinerary Step
+  </ion-button>
+  <ion-list *ngIf="navigationInstructions.length > 0">
+    <ion-item *ngFor="let instr of navigationInstructions">
+      <div [innerHTML]="instr"></div>
+    </ion-item>
+  </ion-list>
 </ion-content>
 
 <ion-footer>

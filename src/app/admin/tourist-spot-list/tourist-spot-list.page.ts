@@ -24,10 +24,7 @@ export class TouristSpotListPage implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.firestore.collection('tourist_spots').valueChanges({ idField: 'id' }).subscribe(spots => {
-      this.spots = spots;
-      this.isLoading = false;
-    });
+    this.loadSpots();
   }
 
   loadSpots() {
@@ -47,6 +44,7 @@ export class TouristSpotListPage implements OnInit {
         error: (err) => {
           console.error('Error loading spots:', err);
           this.isLoading = false;
+          this.showAlert('Error', 'Failed to load spots');
         }
       });
   }

@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { BucketService } from '../services/bucket-list.service';
 import { NavController } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { AlertController } from '@ionic/angular';
+import { AlertController, ModalController } from '@ionic/angular';
 
 @Component({
   selector: 'app-bucket-list',
@@ -12,12 +12,14 @@ import { AlertController } from '@ionic/angular';
 })
 export class BucketListPage implements OnInit {
   spots: any[] = [];
+  itinerary: any[] = [];
 
   constructor(
     private bucketService: BucketService,
     private navCtrl: NavController,
     private afAuth: AngularFireAuth,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private modalCtrl: ModalController
   ) { }
 
   ngOnInit() {
@@ -45,6 +47,16 @@ export class BucketListPage implements OnInit {
   }
 
   async promptItineraryDays() {
+    if (this.spots.length === 0) {
+      const alert = await this.alertCtrl.create({
+        header: 'Empty Bucket List',
+        message: 'Please add some tourist spots to your bucket list first!',
+        buttons: ['OK']
+      });
+      await alert.present();
+      return;
+    }
+
     const alert = await this.alertCtrl.create({
       header: 'Generate Itinerary',
       message: 'How many days will you stay?',
@@ -53,7 +65,8 @@ export class BucketListPage implements OnInit {
           name: 'days',
           type: 'number',
           min: 1,
-          placeholder: 'Enter number of days'
+          max: 14,
+          placeholder: 'Enter number of days (1-14)'
         }
       ],
       buttons: [
@@ -65,8 +78,10 @@ export class BucketListPage implements OnInit {
           text: 'Generate',
           handler: (data) => {
             const days = parseInt(data.days, 10);
-            if (days > 0) {
+            if (days > 0 && days <= 14) {
               this.generateItinerary(days);
+            } else {
+              this.showAlert('Invalid Input', 'Please enter a number between 1 and 14 days.');
             }
           }
         }
@@ -76,7 +91,149 @@ export class BucketListPage implements OnInit {
   }
 
   generateItinerary(days: number) {
-    // TODO: Implement itinerary generation logic
-    console.log('Generating itinerary for', days, 'days');
+    if (this.spots.length === 0) {
+      this.showAlert('Empty Bucket List', 'Please add some tourist spots first!');
+      return;
+    }
+
+    // Create a copy of spots to work with
+    const availableSpots = [...this.spots];
+    this.itinerary = [];
+
+    // Calculate spots per day
+    const spotsPerDay = Math.ceil(availableSpots.length / days);
+
+    for (let day = 1; day <= days; day++) {
+      const daySpots = [];
+      const spotsToAdd = Math.min(spotsPerDay, availableSpots.length);
+
+      // Add spots for this day
+      for (let i = 0; i < spotsToAdd; i++) {
+        if (availableSpots.length > 0) {
+          // Try to group spots by proximity (simple approach)
+          const currentSpot = availableSpots.shift()!;
+          daySpots.push({
+            ...currentSpot,
+            timeSlot: this.generateTimeSlot(i, spotsToAdd),
+            estimatedDuration: this.getEstimatedDuration(currentSpot.category)
+          });
+        }
+      }
+
+      if (daySpots.length > 0) {
+        this.itinerary.push({
+          day: day,
+          spots: daySpots,
+          totalSpots: daySpots.length
+        });
+      }
+    }
+
+    // Show the itinerary
+    this.showItinerary();
+  }
+
+  private generateTimeSlot(index: number, totalSpots: number): string {
+    const startHour = 9; // Start at 9 AM
+    const hoursPerSpot = Math.max(2, Math.floor(8 / totalSpots)); // At least 2 hours per spot
+    const startTime = startHour + (index * hoursPerSpot);
+    const endTime = startTime + hoursPerSpot;
+    
+    return `${startTime}:00 - ${endTime}:00`;
+  }
+
+  private getEstimatedDuration(category: string): string {
+    const durations: { [key: string]: string } = {
+      'attraction': '2-3 hours',
+      'mall': '3-4 hours',
+      'restaurant': '1-2 hours',
+      'hotel': 'Overnight',
+      'beach': '3-5 hours',
+      'church': '1-2 hours',
+      'museum': '2-3 hours',
+      'park': '2-3 hours',
+      'other': '2-3 hours'
+    };
+    
+    return durations[category] || '2-3 hours';
+  }
+
+  private async showItinerary() {
+    let message = '<div style="text-align: left;">';
+    
+    this.itinerary.forEach(day => {
+      message += `<h3 style="color: #e74c3c; margin: 16px 0 8px 0;">Day ${day.day}</h3>`;
+      day.spots.forEach((spot: any, index: number) => {
+        message += `
+          <div style="margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #e74c3c;">
+            <strong>${index + 1}. ${spot.name}</strong><br>
+            <small style="color: #6c757d;">⏰ ${spot.timeSlot} | ⏱️ ${spot.estimatedDuration}</small><br>
+            <small style="color: #6c757d;">📍 ${spot.category}</small>
+          </div>
+        `;
+      });
+    });
+
+    message += '</div>';
+
+    const alert = await this.alertCtrl.create({
+      header: 'Your Itinerary',
+      message: message,
+      cssClass: 'itinerary-alert',
+      buttons: [
+        {
+          text: 'Save to Notes',
+          handler: () => {
+            this.saveItineraryToNotes();
+          }
+        },
+        {
+          text: 'Close',
+          role: 'cancel'
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  private saveItineraryToNotes() {
+    let notes = '=== MY CEBU ITINERARY ===\n\n';
+    
+    this.itinerary.forEach(day => {
+      notes += `DAY ${day.day}\n`;
+      notes += '='.repeat(20) + '\n';
+      
+      day.spots.forEach((spot: any, index: number) => {
+        notes += `${index + 1}. ${spot.name}\n`;
+        notes += `   Time: ${spot.timeSlot}\n`;
+        notes += `   Duration: ${spot.estimatedDuration}\n`;
+        notes += `   Category: ${spot.category}\n`;
+        if (spot.description) {
+          notes += `   Notes: ${spot.description}\n`;
+        }
+        notes += '\n';
+      });
+      notes += '\n';
+    });
+
+    // Copy to clipboard (if supported)
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(notes).then(() => {
+        this.showAlert('Saved!', 'Itinerary copied to clipboard. You can paste it in your notes app.');
+      }).catch(() => {
+        this.showAlert('Itinerary Generated', 'Please manually copy the itinerary from the previous dialog.');
+      });
+    } else {
+      this.showAlert('Itinerary Generated', 'Please manually copy the itinerary from the previous dialog.');
+    }
+  }
+
+  private async showAlert(header: string, message: string) {
+    const alert = await this.alertCtrl.create({
+      header,
+      message,
+      buttons: ['OK']
+    });
+    await alert.present();
   }
 }

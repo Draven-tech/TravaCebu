@@ -182,3 +182,267 @@ ion-button[fill="clear"] {
     border-radius: 16px;
   }
 }
+
+// Beautiful Itinerary Setup Modal
+::ng-deep .setup-modal {
+  --height: 90vh;
+  --width: 95vw;
+  --border-radius: 20px;
+  
+  .modal-wrapper {
+    border-radius: 20px;
+    overflow: hidden;
+  }
+}
+
+.setup-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.setup-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+  pointer-events: none;
+}
+
+.setup-header {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  padding: 40px 20px 30px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.header-content {
+  position: relative;
+  z-index: 2;
+}
+
+.header-icon {
+  font-size: 48px;
+  color: white;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+}
+
+.setup-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: white;
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  letter-spacing: 1px;
+}
+
+.setup-subtitle {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.9);
+  margin: 0;
+  font-weight: 400;
+}
+
+.setup-content {
+  flex: 1;
+  padding: 30px 20px;
+  overflow-y: auto;
+}
+
+.setup-section {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  animation: slideInUp 0.6s ease-out;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-icon {
+  font-size: 24px;
+  color: #667eea;
+  margin-right: 12px;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.section-header h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
+}
+
+.days-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.day-btn {
+  --border-radius: 16px;
+  --border-width: 2px;
+  --border-style: solid;
+  --border-color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.9rem;
+  height: 48px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  }
+}
+
+.custom-days-input {
+  --background: white;
+  --border-radius: 16px;
+  --border-width: 2px;
+  --border-color: #667eea;
+  --border-style: solid;
+  margin-top: 16px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  
+  ion-label {
+    color: #2d3748;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+}
+
+.custom-number-input {
+  --background: transparent;
+  --color: #2d3748;
+  --placeholder-color: #a0aec0;
+  --placeholder-opacity: 0.8;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  
+  &::placeholder {
+    color: #a0aec0;
+    font-weight: 400;
+  }
+}
+
+.time-selector {
+  margin-bottom: 16px;
+}
+
+.time-input {
+  --background: #f8fafc;
+  --border-radius: 16px;
+  --border-width: 1px;
+  --border-color: #e2e8f0;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+}
+
+.custom-datetime {
+  --background: transparent;
+  --color: #2d3748;
+  font-weight: 600;
+}
+
+.setup-summary {
+  margin-top: 30px;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  color: white;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+}
+
+.summary-icon {
+  font-size: 32px;
+  margin-right: 16px;
+  opacity: 0.9;
+}
+
+.summary-content h4 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+
+.summary-content p {
+  margin: 4px 0;
+  opacity: 0.9;
+  font-size: 0.95rem;
+}
+
+.spots-count {
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.setup-actions {
+  padding: 20px;
+  background: white;
+  border-top: 1px solid #e2e8f0;
+}
+
+.generate-btn {
+  --background: linear-gradient(45deg, #667eea, #764ba2);
+  --color: white;
+  --border-radius: 16px;
+  --box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  font-weight: 700;
+  font-size: 1.1rem;
+  height: 56px;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    --box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+    transform: translateY(-2px);
+  }
+}
+
+.cancel-btn {
+  --color: #64748b;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

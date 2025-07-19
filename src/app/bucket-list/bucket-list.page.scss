@@ -193,6 +193,15 @@ ion-button[fill="clear"] {
     border-radius: 20px;
     overflow: hidden;
   }
+  
+  // Fix accessibility issues
+  ion-modal {
+    --backdrop-opacity: 0.5;
+  }
+  
+  .modal-wrapper {
+    --background: transparent;
+  }
 }
 
 .setup-container {

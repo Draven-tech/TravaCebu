@@ -26,6 +26,7 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
   spotCategory: string = 'attraction';
   imageFile?: File;
   imageUrl: string = '';
+  originalImageUrl: string = ''; // Track the original image URL for deletion
   isUploading: boolean = false;
   uploadProgress: number = 0;
   selectedTile: string = 'esri';
@@ -74,6 +75,7 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
         this.spotDescription = spot.description || '';
         this.spotCategory = spot.category || 'attraction';
         this.imageUrl = spot.img || '';
+        this.originalImageUrl = spot.img || ''; // Store original image URL
         this.initMap();
         if (spot.location) {
           this.addPin(L.latLng(spot.location.lat, spot.location.lng));
@@ -156,8 +158,21 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     }
   }
 
+  removeImage() {
+    this.imageFile = undefined;
+    this.imageUrl = '';
+    // Don't clear originalImageUrl here as we want to delete it when saving
+  }
+
   private async uploadImage(): Promise<string> {
+    // If no new image is selected and we're editing
     if (!this.imageFile) {
+      // If we're editing and the image was removed, delete the original
+      if (this.isEditing && this.originalImageUrl && !this.imageUrl) {
+        await this.storageService.deleteFileByURL(this.originalImageUrl);
+        console.log('Original image deleted due to removal:', this.originalImageUrl);
+        return ''; // Return empty string for no image
+      }
       return this.imageUrl || '';
     }
     
@@ -167,6 +182,13 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     
     try {
       const url = await this.storageService.uploadFile(filePath, this.imageFile);
+      
+      // If we're editing and there was a previous image, delete it
+      if (this.isEditing && this.originalImageUrl && this.originalImageUrl !== url) {
+        await this.storageService.deleteFileByURL(this.originalImageUrl);
+        console.log('Old image deleted:', this.originalImageUrl);
+      }
+      
       return url;
     } catch (error) {
       console.error('Image upload failed:', error);
@@ -230,6 +252,7 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     this.spotCategory = 'attraction';
     this.imageFile = undefined;
     this.imageUrl = '';
+    this.originalImageUrl = '';
     if (this.marker) {
       this.map.removeLayer(this.marker);
       this.marker = undefined;

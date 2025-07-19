@@ -4,6 +4,7 @@ import { NavController } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AlertController, ModalController } from '@ionic/angular';
 import { ItineraryModalComponent } from './itinerary-modal.component';
+import { ItineraryService, ItineraryDay } from '../services/itinerary.service';
 
 @Component({
   selector: 'app-bucket-list',
@@ -13,17 +14,26 @@ import { ItineraryModalComponent } from './itinerary-modal.component';
 })
 export class BucketListPage implements OnInit {
   spots: any[] = [];
-  itinerary: any[] = [];
+  itinerary: ItineraryDay[] = [];
+  showSetupModal = false;
+  showCustomDays = false;
+  setup = { days: 1, startTime: '1970-01-01T08:00', endTime: '1970-01-01T18:00' };
+  editing = false;
 
   constructor(
     private bucketService: BucketService,
     private navCtrl: NavController,
     private afAuth: AngularFireAuth,
     private alertCtrl: AlertController,
-    private modalCtrl: ModalController
+    private modalCtrl: ModalController,
+    private itineraryService: ItineraryService
   ) { }
 
   ngOnInit() {
+    this.spots = this.bucketService.getBucket();
+  }
+
+  ionViewWillEnter() {
     this.spots = this.bucketService.getBucket();
   }
 
@@ -41,133 +51,74 @@ export class BucketListPage implements OnInit {
     const user = await this.afAuth.currentUser;
     if (user) {
       this.navCtrl.navigateForward(`/user-dashboard/${user.uid}`);
-
     } else {
       this.navCtrl.navigateRoot('/login');
     }
   }
 
-  async promptItineraryDays() {
+  openItinerarySetup() {
     if (this.spots.length === 0) {
-      const alert = await this.alertCtrl.create({
-        header: 'Empty Bucket List',
-        message: 'Please add some tourist spots to your bucket list first!',
-        buttons: ['OK']
-      });
-      await alert.present();
+      this.showAlert('Empty Bucket List', 'Please add some tourist spots to your bucket list first!');
       return;
     }
-
-    const alert = await this.alertCtrl.create({
-      header: 'Generate Itinerary',
-      message: 'How many days will you stay?',
-      inputs: [
-        {
-          name: 'days',
-          type: 'number',
-          min: 1,
-          max: 14,
-          placeholder: 'Enter number of days (1-14)'
-        }
-      ],
-      buttons: [
-        {
-          text: 'Cancel',
-          role: 'cancel'
-        },
-        {
-          text: 'Generate',
-          handler: (data) => {
-            const days = parseInt(data.days, 10);
-            if (days > 0 && days <= 14) {
-              this.generateItinerary(days);
-            } else {
-              this.showAlert('Invalid Input', 'Please enter a number between 1 and 14 days.');
-            }
-          }
-        }
-      ]
-    });
-    await alert.present();
+    this.setup = { days: 1, startTime: '1970-01-01T08:00', endTime: '1970-01-01T18:00' };
+    this.showSetupModal = true;
   }
 
-  generateItinerary(days: number) {
+  async confirmItinerarySetup() {
+    if (!this.setup.days || this.setup.days < 1 || this.setup.days > 14) {
+      this.showAlert('Invalid Input', 'Please enter a number between 1 and 14 days.');
+      return;
+    }
+    if (!this.setup.startTime || !this.setup.endTime) {
+      this.showAlert('Invalid Input', 'Please select start and end time.');
+      return;
+    }
+    this.showSetupModal = false;
+    // Extract HH:mm from ISO string
+    const startTime = this.setup.startTime.substring(11, 16);
+    const endTime = this.setup.endTime.substring(11, 16);
+    await this.generateItinerary(this.setup.days, startTime, endTime);
+  }
+
+  async generateItinerary(days: number, startTime: string, endTime: string) {
     if (this.spots.length === 0) {
       this.showAlert('Empty Bucket List', 'Please add some tourist spots first!');
       return;
     }
-
-    // Create a copy of spots to work with
-    const availableSpots = [...this.spots];
-    this.itinerary = [];
-
-    // Calculate spots per day
-    const spotsPerDay = Math.ceil(availableSpots.length / days);
-
-    for (let day = 1; day <= days; day++) {
-      const daySpots = [];
-      const spotsToAdd = Math.min(spotsPerDay, availableSpots.length);
-
-      // Add spots for this day
-      for (let i = 0; i < spotsToAdd; i++) {
-        if (availableSpots.length > 0) {
-          // Try to group spots by proximity (simple approach)
-          const currentSpot = availableSpots.shift()!;
-          daySpots.push({
-            ...currentSpot,
-            timeSlot: this.generateTimeSlot(i, spotsToAdd),
-            estimatedDuration: this.getEstimatedDuration(currentSpot.category)
-          });
-        }
-      }
-
-      if (daySpots.length > 0) {
-        this.itinerary.push({
-          day: day,
-          spots: daySpots,
-          totalSpots: daySpots.length
-        });
-      }
-    }
-
-    // Show the itinerary
+    // Use the new itinerary service with full spot objects
+    this.itinerary = await this.itineraryService.generateItinerary(this.spots, days, startTime, endTime);
+    this.editing = false;
     this.showItinerary();
   }
 
-  private generateTimeSlot(index: number, totalSpots: number): string {
-    const startHour = 9; // Start at 9 AM
-    const hoursPerSpot = Math.max(2, Math.floor(8 / totalSpots)); // At least 2 hours per spot
-    const startTime = startHour + (index * hoursPerSpot);
-    const endTime = startTime + hoursPerSpot;
-    
-    return `${startTime}:00 - ${endTime}:00`;
-  }
-
-  private getEstimatedDuration(category: string): string {
-    const durations: { [key: string]: string } = {
-      'attraction': '2-3 hours',
-      'mall': '3-4 hours',
-      'restaurant': '1-2 hours',
-      'hotel': 'Overnight',
-      'beach': '3-5 hours',
-      'church': '1-2 hours',
-      'museum': '2-3 hours',
-      'park': '2-3 hours',
-      'other': '2-3 hours'
-    };
-    
-    return durations[category] || '2-3 hours';
-  }
-
-  private async showItinerary() {
+  async showItinerary() {
     const modal = await this.modalCtrl.create({
       component: ItineraryModalComponent,
       componentProps: {
-        itinerary: this.itinerary
+        itinerary: this.itinerary,
+        editable: true,
+        onEdit: () => this.editItinerary()
       },
       cssClass: 'itinerary-modal'
     });
     await modal.present();
+  }
+
+  async editItinerary() {
+    // For simplicity, just allow re-running the setup for now
+    // (Advanced: implement drag-and-drop, day assignment, duration editing)
+    this.showSetupModal = true;
+  }
+
+  getTimeDisplay(timeString: string): string {
+    if (!timeString) return 'Not set';
+    // Extract time from ISO string (e.g., "1970-01-01T08:00" -> "8:00 AM")
+    const time = timeString.substring(11, 16);
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
   }
 
   private async showAlert(header: string, message: string) {

@@ -4,7 +4,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AuthService } from '../services/auth.service';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { BucketService } from '../services/bucket-list.service';
-import { NavController } from '@ionic/angular';
+import { NavController, ToastController } from '@ionic/angular';
 
 @Component({
   selector: 'app-user-dashboard',
@@ -27,7 +27,8 @@ export class UserDashboardPage implements OnInit {
     private authService: AuthService,
     private afAuth: AngularFireAuth,
     private bucketService: BucketService,
-    private navCtrl: NavController
+    private navCtrl: NavController,
+    private toastCtrl: ToastController
   ) { }
 
   async ngOnInit() {
@@ -83,8 +84,23 @@ export class UserDashboardPage implements OnInit {
       );
     }
   }
-  addToTrip(spot: any) {
+  async addToTrip(spot: any) {
     this.bucketService.addToBucket(spot);
+    
+    // Show success notification
+    const toast = await this.toastCtrl.create({
+      message: `${spot.name} added to bucket list!`,
+      duration: 2000,
+      color: 'success',
+      position: 'top',
+      buttons: [
+        {
+          icon: 'checkmark-circle',
+          side: 'start'
+        }
+      ]
+    });
+    toast.present();
   }
   async logout() {
     await this.authService.logoutUser();

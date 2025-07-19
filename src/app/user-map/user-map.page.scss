@@ -28,26 +28,58 @@ ion-content {
   left: 0;
 }
 
+// Enhanced neumorphic tab styling
 .tab-btn {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 8px 0;
 
   ion-button {
     flex-direction: column;
     text-align: center;
     --padding-start: 0;
     --padding-end: 0;
-    --color: black;
+    --color: #2D3748;
+    --background: #FFD144;
+    --background-hover: #FFE066;
+    --background-activated: #FFC107;
+    --border-radius: 16px;
+    --box-shadow: 
+      0 4px 8px rgba(0,0,0,0.1),
+      inset 0 2px 4px rgba(255,255,255,0.3),
+      inset 0 -2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    width: 60px;
+    height: 60px;
+    margin: 0;
+    
+    &:hover {
+      --box-shadow: 
+        0 6px 12px rgba(0,0,0,0.15),
+        inset 0 2px 4px rgba(255,255,255,0.4),
+        inset 0 -2px 4px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+    
+    &:active {
+      --box-shadow: 
+        0 2px 4px rgba(0,0,0,0.1),
+        inset 0 2px 4px rgba(0,0,0,0.1);
+      transform: translateY(0);
+    }
   }
 
   ion-icon {
-    font-size: 22px;
-    margin-bottom: 2px;
+    font-size: 24px;
+    margin-bottom: 4px;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
   }
 
   ion-label {
     font-size: 0.7rem;
     margin-top: 0;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
   }
 }

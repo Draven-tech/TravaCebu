@@ -8,6 +8,7 @@ import { ItineraryModalComponent } from './itinerary-modal.component';
 import { ItineraryEditorComponent } from './itinerary-editor.component';
 import { ItineraryMapComponent } from './itinerary-map.component';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { RestaurantCardComponent } from './restaurant-card.component';
 
 @NgModule({
   imports: [

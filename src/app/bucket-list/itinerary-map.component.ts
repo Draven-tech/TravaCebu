@@ -181,6 +181,7 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
       this.initMap();
       setTimeout(() => {
         if (this.map) this.map.invalidateSize();
+        this.attachAddToItineraryHandler();
       }, 500);
     }, 200);
   }
@@ -379,6 +380,8 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
                 marker.addTo(this.map);
               }
 
+              const isSelected = spot.chosenRestaurant && spot.chosenRestaurant.name === restaurant.name;
+              const addBtnHtml = !isSelected ? `<button onclick="window.addRestaurantToItinerary && window.addRestaurantToItinerary('${dayIndex}', '${spotIndex}', '${restIndex}')" style="margin-top:8px; width:100%; background:#4CAF50; color:white; border:none; border-radius:4px; padding:6px 0; font-size:13px; cursor:pointer;">+ Add to Itinerary</button>` : '';
               const popup = L.popup({
                 maxWidth: 250,
                 className: 'restaurant-popup'
@@ -406,6 +409,7 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
                         🍕 Zomato
                       </a>
                     </div>
+                    ${addBtnHtml}
                   </div>
                 </div>
               `);
@@ -514,5 +518,24 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
 
   close() {
     this.modalCtrl.dismiss();
+  }
+
+  private attachAddToItineraryHandler() {
+    (window as any).addRestaurantToItinerary = (dayIdx: string, spotIdx: string, restIdx: string) => {
+      this.ngZone.run(() => {
+        const d = parseInt(dayIdx, 10);
+        const s = parseInt(spotIdx, 10);
+        const r = parseInt(restIdx, 10);
+        const day = this.itinerary[d];
+        const spot = day?.spots?.[s];
+        const restaurant = spot?.restaurantSuggestions?.[r];
+        if (day && spot && restaurant) {
+          spot.chosenRestaurant = restaurant;
+          this.clearMarkers();
+          this.initMap();
+          this.map.closePopup();
+        }
+      });
+    };
   }
 } 

@@ -9,20 +9,18 @@ import { ItineraryMapComponent } from './itinerary-map.component';
   selector: 'app-itinerary-modal',
   template: `
     <ion-header>
-      <ion-toolbar color="warning">
-        <ion-title>Your Itinerary</ion-title>
+      <ion-toolbar color="warning" style="--min-height: 32px; --padding-top: 2px; --padding-bottom: 2px; display: flex; align-items: center; justify-content: space-between;">
+        <ion-title style="font-size: 1.1rem; font-weight: 700; text-align: center; flex: 1; padding: 0; margin: 0;">Your Itinerary</ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="editItinerary()">
-            <ion-icon name="create-outline"></ion-icon>
-            Edit
+          <ion-button (click)="editItinerary()" aria-label="Edit" style="--padding-start: 4px; --padding-end: 4px; --min-height: 28px;">
+            <ion-icon name="create-outline" style="font-size: 16px;"></ion-icon>
           </ion-button>
-          <ion-button (click)="close()">
-            <ion-icon name="close"></ion-icon>
+          <ion-button (click)="close()" aria-label="Close" style="--padding-start: 4px; --padding-end: 4px; --min-height: 28px;">
+            <ion-icon name="close" style="font-size: 16px;"></ion-icon>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content>
       <div class="itinerary-container">
         <div *ngFor="let day of itinerary" class="day-section">
@@ -50,14 +48,14 @@ import { ItineraryMapComponent } from './itinerary-map.component';
                   <span *ngIf="spot.chosenRestaurant.vicinity">📍 {{ spot.chosenRestaurant.vicinity }}</span>
                   <span class="meal-time">🍽️ {{ spot.mealType }} time</span>
                 </div>
-                                  <div class="booking-links">
-                    <ion-button size="small" fill="outline" color="primary" (click)="viewRestaurantMap(spot.chosenRestaurant)">
-                      <ion-icon name="map"></ion-icon> View on Map
-                    </ion-button>
-                    <a [href]="getGoogleReviewsUrl(spot.chosenRestaurant)" target="_blank" class="booking-link">
-                      <ion-icon name="star"></ion-icon> Reviews
-                    </a>
-                  </div>
+                <div class="booking-links">
+                  <ion-button size="small" fill="outline" color="primary" (click)="viewRestaurantMap(spot.chosenRestaurant)">
+                    <ion-icon name="map"></ion-icon> View on Map
+                  </ion-button>
+                  <a [href]="getGoogleReviewsUrl(spot.chosenRestaurant)" target="_blank" class="booking-link">
+                    <ion-icon name="star"></ion-icon> Reviews
+                  </a>
+                </div>
               </div>
             </div>
 
@@ -188,6 +186,23 @@ import { ItineraryMapComponent } from './itinerary-map.component';
     </ion-footer>
   `,
   styles: [`
+    /* Compact Header */
+    .modal-header-compact {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .modal-title {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #2D3748;
+    }
+    
     .itinerary-container {
       padding: 16px;
     }
@@ -339,6 +354,9 @@ import { ItineraryMapComponent } from './itinerary-map.component';
       background: #f8f9fa;
       border-radius: 12px;
       border: 1px solid #dee2e6;
+      overflow-x: auto;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .suggestions-header {
@@ -354,6 +372,8 @@ import { ItineraryMapComponent } from './itinerary-map.component';
       display: grid;
       gap: 12px;
       margin-bottom: 12px;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .suggestion-card {
@@ -362,6 +382,9 @@ import { ItineraryMapComponent } from './itinerary-map.component';
       padding: 12px;
       border: 1px solid #dee2e6;
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow-x: auto;
     }
 
     .suggestion-name {
@@ -381,8 +404,17 @@ import { ItineraryMapComponent } from './itinerary-map.component';
 
     .suggestion-actions {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      flex-wrap: wrap;
+      gap: 6px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .suggestion-actions ion-button {
+      flex: 1 1 40%;
+      min-width: 90px;
+      max-width: 100%;
+      font-size: 0.9rem;
     }
 
     .map-link, .booking-link-small {
@@ -423,6 +455,37 @@ import { ItineraryMapComponent } from './itinerary-map.component';
       --width: 90%;
       --max-width: 800px;
     }
+    .modal-title-compact {
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #e67e22;
+      margin: 12px 0 12px 0;
+      letter-spacing: 0.5px;
+    }
+    ion-toolbar ion-buttons {
+      gap: 8px;
+    }
+    .refresh-label {
+      margin-left: 6px;
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+    }
+    .refresh-helper-text {
+      font-size: 0.95rem;
+      color: #666;
+      margin-top: 2px;
+      margin-bottom: 8px;
+      text-align: right;
+      max-width: 180px;
+      margin-left: auto;
+    }
+    @media (max-width: 600px) {
+      .refresh-label {
+        display: none;
+      }
+    }
   `],
   standalone: false
 })
@@ -438,14 +501,17 @@ export class ItineraryModalComponent {
 
   async fetchSuggestions() {
     this.fetchingSuggestions = true;
+    
     try {
-      console.log('Fetching suggestions for itinerary:', this.itinerary);
-      this.itinerary = await this.itineraryService.fetchSuggestionsForItinerary(this.itinerary);
+      this.itinerary = await this.itineraryService.fetchSuggestionsForItinerary(this.itinerary, (msg: string) => {
+        // console.log(msg); // Removed debug logging
+      });
       this.cdr.detectChanges();
-      console.log('Suggestions fetched successfully:', this.itinerary);
+      
+      // Show success message
+      this.showAlert('Success', 'Restaurant and hotel suggestions updated!');
+      
     } catch (error) {
-      console.error('Error fetching suggestions:', error);
-      // Show user-friendly error message
       this.showAlert('Error', 'Failed to fetch suggestions. Please try again.');
     } finally {
       this.fetchingSuggestions = false;
@@ -473,6 +539,9 @@ export class ItineraryModalComponent {
   }
 
   async editItinerary() {
+    // Store original itinerary for comparison
+    const originalItinerary = JSON.stringify(this.itinerary);
+    
     // Get all spots from the itinerary to use as available spots
     const allSpots = this.itinerary.reduce((spots: any[], day: ItineraryDay) => {
       return spots.concat(day.spots);
@@ -488,7 +557,13 @@ export class ItineraryModalComponent {
     });
     modal.onDidDismiss().then(result => {
       if (result.data) {
+        const newItinerary = JSON.stringify(result.data);
         this.itinerary = result.data;
+        
+        // Only auto-refresh if the itinerary actually changed
+        if (originalItinerary !== newItinerary) {
+          this.fetchSuggestions();
+        }
       }
     });
     await modal.present();
@@ -595,7 +670,31 @@ export class ItineraryModalComponent {
   }
 
   private async showAlert(header: string, message: string) {
-    // You can implement a simple alert here or use a toast
-    console.log(`${header}: ${message}`);
+    // Create a simple toast-like alert
+    const alertDiv = document.createElement('div');
+    alertDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: ${header === 'Success' ? '#4caf50' : '#f44336'};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      z-index: 10000;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      max-width: 300px;
+      text-align: center;
+    `;
+    alertDiv.textContent = message;
+    document.body.appendChild(alertDiv);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      if (document.body.contains(alertDiv)) {
+        document.body.removeChild(alertDiv);
+      }
+    }, 3000);
   }
-} 
+}

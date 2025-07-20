@@ -1,29 +1,73 @@
-<ion-content class="modern-login-bg ion-padding">
-  <div class="admin-topbar">
-    <ion-button fill="clear" routerLink="/welcome">
+<ion-content class="login-content" [scrollEvents]="true" (ionScroll)="onScroll($event)">
+  <!-- Header -->
+  <div class="header">
+    <ion-button fill="clear" routerLink="/welcome" class="back-btn">
       <ion-icon name="arrow-back"></ion-icon>
     </ion-button>
-    <div class="admin-title">TravaCebu Admin Login</div>
+    <h1 class="header-title">TravaCebu Admin</h1>
   </div>
-  <div class="modern-login-container">
-    <img src="assets/img/car.png" alt="Travacebu Logo" class="logo" />
-    <h2 class="login-title">Welcome Back!</h2>
-    <form [formGroup]="form" (ngSubmit)="login()">
-      <ion-item>
-        <ion-label position="floating">Email</ion-label>
-        <ion-input type="email" formControlName="email"></ion-input>
-      </ion-item>
-      <ion-item>
-        <ion-label position="floating">Password</ion-label>
-        <ion-input type="password" formControlName="password"></ion-input>
-      </ion-item>
-      <ion-button 
-        type="submit" 
-        expand="block" 
-        class="modern-login-btn ion-margin-top"
-        [disabled]="form.invalid">
-        Login
-      </ion-button>
-    </form>
+
+  <!-- Main Login Container -->
+  <div class="login-wrapper" #loginContainer>
+    <div class="login-card">
+      <!-- Logo Section -->
+      <div class="logo-section">
+        <img src="assets/img/crowd.png" alt="TravaCebu Logo" class="logo" />
+      </div>
+
+      <!-- Welcome Text -->
+      <div class="welcome-section">
+        <h3 class="welcome-title">Welcome Back!</h3>
+        <p class="welcome-subtitle">Sign in to your admin account</p>
+      </div>
+
+      <!-- Login Form -->
+      <form [formGroup]="form" (ngSubmit)="login()" class="login-form">
+        <div class="input-group">
+          <ion-item class="input-item">
+            <ion-label position="floating">Email Address</ion-label>
+            <ion-input 
+              type="email" 
+              formControlName="email"
+              (ionFocus)="onInputFocus($event)"
+              (ionBlur)="onInputBlur($event)"
+              inputmode="email"
+              autocomplete="email">
+            </ion-input>
+          </ion-item>
+        </div>
+
+        <div class="input-group">
+          <ion-item class="input-item">
+            <ion-label position="floating">Password</ion-label>
+            <div class="password-input-container">
+              <ion-input 
+                [type]="showPassword ? 'text' : 'password'"
+                formControlName="password"
+                (ionFocus)="onInputFocus($event)"
+                (ionBlur)="onInputBlur($event)"
+                inputmode="text"
+                autocomplete="current-password">
+              </ion-input>
+              <button 
+                type="button" 
+                class="password-toggle-btn"
+                (click)="togglePasswordVisibility()">
+                <ion-icon [name]="showPassword ? 'eye-off' : 'eye'"></ion-icon>
+              </button>
+            </div>
+          </ion-item>
+        </div>
+
+        <ion-button 
+          type="submit" 
+          expand="block" 
+          class="login-button"
+          [disabled]="form.invalid">
+          <ion-icon name="log-in-outline" slot="start"></ion-icon>
+          Sign In
+        </ion-button>
+      </form>
+    </div>
   </div>
 </ion-content>

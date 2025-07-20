@@ -1,40 +1,96 @@
-<ion-content>
-  <div class="content-layer">
+<ion-content [scrollEvents]="true" (ionScroll)="onScroll($event)">
+  <div class="content-layer" #registerContainer>
     <h1>SIGN TO<br />TRAVACEBU</h1>
 
     <form (submit)="register()" class="custom-form">
       <div class="form-group">
         <label class="floating-label" [class.filled]="fullName">
           <span>Enter your name</span>
-          <input type="text" [(ngModel)]="fullName" name="fullName" required />
+          <input 
+            type="text" 
+            [(ngModel)]="fullName" 
+            name="fullName" 
+            required 
+            (focus)="onInputFocus($event)"
+            (blur)="onInputBlur($event)"
+            inputmode="text"
+            autocomplete="name" />
         </label>
       </div>
 
       <div class="form-group">
         <label class="floating-label" [class.filled]="username">
           <span>Enter your username</span>
-          <input type="text" [(ngModel)]="username" name="username" required />
+          <input 
+            type="text" 
+            [(ngModel)]="username" 
+            name="username" 
+            required 
+            (focus)="onInputFocus($event)"
+            (blur)="onInputBlur($event)"
+            inputmode="text"
+            autocomplete="username" />
         </label>
       </div>
 
       <div class="form-group">
         <label class="floating-label" [class.filled]="email">
           <span>Email</span>
-          <input type="email" [(ngModel)]="email" name="email" required />
+          <input 
+            type="email" 
+            [(ngModel)]="email" 
+            name="email" 
+            required 
+            (focus)="onInputFocus($event)"
+            (blur)="onInputBlur($event)"
+            inputmode="email"
+            autocomplete="email" />
         </label>
       </div>
 
       <div class="form-group">
         <label class="floating-label" [class.filled]="password">
           <span>Enter your password</span>
-          <input type="password" [(ngModel)]="password" name="password" required />
+          <div class="password-input-container">
+            <input 
+              [type]="showPassword ? 'text' : 'password'"
+              [(ngModel)]="password" 
+              name="password" 
+              required 
+              (focus)="onInputFocus($event)"
+              (blur)="onInputBlur($event)"
+              inputmode="text"
+              autocomplete="new-password" />
+            <button 
+              type="button" 
+              class="password-toggle-btn"
+              (click)="togglePasswordVisibility()">
+              <ion-icon [name]="showPassword ? 'eye-off' : 'eye'"></ion-icon>
+            </button>
+          </div>
         </label>
       </div>
 
       <div class="form-group">
         <label class="floating-label" [class.filled]="confirmPassword">
           <span>Re-enter your password</span>
-          <input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" required />
+          <div class="password-input-container">
+            <input 
+              [type]="showConfirmPassword ? 'text' : 'password'"
+              [(ngModel)]="confirmPassword" 
+              name="confirmPassword" 
+              required 
+              (focus)="onInputFocus($event)"
+              (blur)="onInputBlur($event)"
+              inputmode="text"
+              autocomplete="new-password" />
+            <button 
+              type="button" 
+              class="password-toggle-btn"
+              (click)="toggleConfirmPasswordVisibility()">
+              <ion-icon [name]="showConfirmPassword ? 'eye-off' : 'eye'"></ion-icon>
+            </button>
+          </div>
         </label>
       </div>
 

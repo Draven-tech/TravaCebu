@@ -1,151 +1,353 @@
-ion-content {
-  --background: #FFD144;
-  background: #FFD144;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  animation: fadeIn 0.8s ease-out;
-}
-
-.modern-login-bg {
+// Main content styling
+.login-content {
+  --background: linear-gradient(135deg, #FFE066 0%, #FFD144 60%, #FFF6D1 100%);
   background: linear-gradient(135deg, #FFE066 0%, #FFD144 60%, #FFF6D1 100%);
   min-height: 100vh;
-  position: relative;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  padding-top: constant(safe-area-inset-top); /* iOS 11.0 */
+  overflow-y: auto !important;
+  scroll-behavior: smooth;
 }
 
-.modern-login-bg::before {
-  content: '';
+// Force ion-content to scroll properly
+ion-content {
+  --overflow: auto !important;
+  overflow-y: auto !important;
+  scroll-behavior: smooth !important;
+}
+
+// Header styling
+.header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-top: calc(16px + constant(safe-area-inset-top)); /* iOS 11.0 */
+  background: #e74c3c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 2px 12px rgba(44, 62, 80, 0.08);
+  min-height: 60px;
+}
+
+.back-btn {
+  --color: #ffffff;
+  --background-hover: rgba(255, 255, 255, 0.1);
+  --background-activated: rgba(255, 255, 255, 0.2);
+  margin: 0;
+  padding: 8px;
+  border-radius: 50%;
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(231, 76, 60, 0.08) 0%, transparent 50%),
-              radial-gradient(circle, rgba(46, 204, 113, 0.05) 30%, transparent 70%),
-              radial-gradient(circle, rgba(230, 126, 34, 0.04) 60%, transparent 90%);
-  z-index: 0;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
 }
 
-@keyframes float {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(-10px, -10px) rotate(1deg); }
-  50% { transform: translate(10px, -5px) rotate(-1deg); }
-  75% { transform: translate(-5px, 10px) rotate(0.5deg); }
-}
-
-.modern-login-container {
-  position: relative;
-  z-index: 1;
-  max-width: 400px;
-  margin: 0 auto;
-  padding: 40px 20px;
+.header-title {
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
   text-align: center;
-  background: #fcfcfc;
-  border-radius: 18px;
-  box-shadow: 0 8px 32px rgba(44, 62, 80, 0.10);
+  width: 100%;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 8px rgba(44, 62, 80, 0.35);
+}
+
+// Main login wrapper
+.login-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  min-height: calc(100vh - 80px - env(safe-area-inset-top));
+  min-height: calc(100vh - 80px - constant(safe-area-inset-top)); /* iOS 11.0 */
+}
+
+// Login card
+.login-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 40px 30px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   border: 1px solid #f3e7d3;
+  backdrop-filter: blur(10px);
+  margin-bottom: 400px; // Much larger space for keyboard
+}
+
+// Logo section
+.logo-section {
+  text-align: center;
+  margin-bottom: 30px;
 }
 
 .logo {
-  width: 120px;
+  width: 280px;
   height: auto;
-  margin-bottom: 20px;
-  filter: drop-shadow(0 4px 8px rgba(231, 76, 60, 0.10));
-}
-
-.login-title {
-  font-size: 2rem;
-  font-weight: 900;
   margin-bottom: 30px;
-  color: #2D3748;
-  letter-spacing: 1px;
+  filter: drop-shadow(0 4px 8px rgba(231, 76, 60, 0.1));
 }
 
-ion-item {
-  --background: #f7f7f7;
+.brand-name {
+  color: #2d3748;
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+// Welcome section
+.welcome-section {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.welcome-title {
+  color: #2d3748;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.5px;
+}
+
+.welcome-subtitle {
+  color: #718096;
+  font-size: 1rem;
+  margin: 0;
+  font-weight: 400;
+}
+
+// Login form
+.login-form {
+  width: 100%;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-item {
+  --background: #f7fafc;
   --border-radius: 12px;
+  --border-color: #e2e8f0;
+  --border-width: 1px;
+  --border-style: solid;
   --padding-start: 16px;
   --padding-end: 16px;
-  margin-bottom: 16px;
-  border: 1px solid #f3e7d3;
-  box-shadow: 0 2px 8px rgba(44, 62, 80, 0.04);
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+  margin: 0;
+  border-radius: 12px;
   transition: all 0.3s ease;
+  
+  &:focus-within {
+    --background: #ffffff;
+    --border-color: #e74c3c;
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+    transform: translateY(-1px);
+  }
 }
 
-ion-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(44, 62, 80, 0.10);
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-container ion-input {
+  flex: 1;
+  --padding-end: 40px !important; // Override the general ion-input padding
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10; // Ensure it's above the input
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #333;
+  }
+  
+  &:active {
+    background: rgba(0, 0, 0, 0.2);
+  }
+  
+  ion-icon {
+    font-size: 18px;
+  }
 }
 
 ion-label {
-  color: #2D3748 !important;
-  font-weight: 600;
+  color: #4a5568 !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
 }
 
 ion-input {
-  color: #2D3748 !important;
-  font-weight: 500;
+  color: #2d3748 !important;
+  font-weight: 500 !important;
+  font-size: 16px !important;
+  --padding-start: 0 !important;
+  --padding-end: 0 !important;
 }
 
-.modern-login-btn {
+// Login button
+.login-button {
   --background: linear-gradient(90deg, #e74c3c 0%, #FFD144 100%);
-  --color: white;
+  --color: #ffffff;
   --border-radius: 12px;
-  --box-shadow: 0 4px 16px rgba(231, 76, 60, 0.12);
-  font-weight: 700;
-  font-size: 1.1rem;
+  --box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+  font-weight: 600;
+  font-size: 1rem;
   height: 50px;
+  margin-top: 20px;
   transition: all 0.3s ease;
-  letter-spacing: 1px;
-  border: none;
+  letter-spacing: 0.5px;
+  
+  &:hover {
+    --box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+    transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  &[disabled] {
+    --background: #cbd5e0;
+    --box-shadow: none;
+    transform: none;
+  }
 }
 
-.modern-login-btn:hover {
-  --box-shadow: 0 8px 24px rgba(231, 76, 60, 0.18);
-  transform: translateY(-2px);
+// Mobile responsive design
+@media (max-width: 768px) {
+  .login-wrapper {
+    padding: 16px;
+    min-height: calc(100vh - 70px);
+  }
+  
+  .login-card {
+    padding: 30px 24px;
+    margin-bottom: 100px; // Extra space for keyboard
+  }
+  
+  .logo {
+    width: 220px;
+  }
+  
+  .brand-name {
+    font-size: 1.5rem;
+  }
+  
+  .welcome-title {
+    font-size: 1.5rem;
+  }
+  
+  .header-title {
+    font-size: 1.3rem;
+  }
 }
 
-.modern-login-btn:active {
-  transform: translateY(0);
+@media (max-width: 480px) {
+  .login-card {
+    padding: 24px 20px;
+    margin-bottom: 120px;
+  }
+  
+  .logo {
+    width: 180px;
+  }
+  
+  .brand-name {
+    font-size: 1.3rem;
+  }
+  
+  .welcome-title {
+    font-size: 1.3rem;
+  }
+  
+  .header-title {
+    font-size: 1.2rem;
+  }
 }
 
-.admin-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 18px 0 18px;
-  background: #e74c3c;
-  min-height: 64px;
-  margin-bottom: 8px;
-  border-radius: 0 0 18px 18px;
-  box-shadow: 0 2px 12px rgba(44, 62, 80, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+// Custom alert styling
+.custom-alert {
+  --background: #ffffff;
+  --color: #2d3748;
+  --border-radius: 16px;
+  
+  .alert-wrapper {
+    border-radius: 16px;
+  }
+  
+  .alert-head {
+    background: #e74c3c;
+    color: white;
+    border-radius: 16px 16px 0 0;
+    font-weight: 600;
+  }
+  
+  .alert-message {
+    padding: 24px;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #4a5568;
+  }
+  
+  .alert-button {
+    color: #e74c3c;
+    font-weight: 600;
+  }
 }
 
-.admin-title {
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #fff;
-  letter-spacing: 1px;
-  text-shadow: 0 2px 8px rgba(44, 62, 80, 0.35), 0 0 2px #e74c3c;
+// Animations
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-ion-button[fill="clear"] {
-  --color: #fff;
-  font-size: 1.2rem;
-  --background-hover: rgba(255,255,255,0.08);
-  --background-activated: rgba(255,255,255,0.15);
-  border-radius: 50%;
-  transition: all 0.3s ease;
+.login-card {
+  animation: fadeInUp 0.6s ease-out;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.logo-section {
+  animation: fadeInUp 0.6s ease-out 0.1s both;
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+.welcome-section {
+  animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+.login-form {
+  animation: fadeInUp 0.6s ease-out 0.3s both;
 }

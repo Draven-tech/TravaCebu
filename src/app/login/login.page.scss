@@ -23,6 +23,7 @@ ion-content {
   max-width: 360px;
   padding: 5vw;
   margin: 0 auto;
+  margin-bottom: 400px; // Much larger space for keyboard
 }
 
 h1 {
@@ -76,6 +77,48 @@ h1 {
   background: transparent;
   font-size: 16px;
   color: #000;
+}
+
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-container input {
+  flex: 1;
+  padding-right: 40px; // Make space for the toggle button
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #333;
+  }
+  
+  &:active {
+    background: rgba(0, 0, 0, 0.2);
+  }
+  
+  ion-icon {
+    font-size: 18px;
+  }
 }
 
 .floating-label.filled span,

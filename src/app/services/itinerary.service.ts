@@ -82,21 +82,22 @@ export class ItineraryService {
   async fetchSuggestionsForItinerary(itinerary: ItineraryDay[], logFn?: (msg: string) => void): Promise<ItineraryDay[]> {
     // TEMPORARILY DISABLE CACHING TO FORCE FRESH FETCH
     // logFn?.('[DEBUG] Caching disabled, fetching fresh suggestions...');
+    
     // Fetch fresh suggestions
     for (const day of itinerary) {
       // Fetch restaurant suggestions for meal times
       for (const spot of day.spots) {
         if (spot.mealType) {
           try {
-            const resp: any = await this.placesService.getNearbyPlaces(spot.location.lat, spot.location.lng, 'restaurant').toPromise();
-            // Only include results that have 'restaurant' in their types
-            const filteredResults = (resp.results || []).filter((r: any) => r.types && r.types.includes('restaurant'));
-            spot.restaurantSuggestions = filteredResults;
-          } catch (err) {
+            const restRes: any = await this.placesService.getNearbyPlaces(spot.location.lat, spot.location.lng, 'restaurant').toPromise();
+            spot.restaurantSuggestions = restRes.results || [];
+          } catch (error) {
+            console.error(`Error fetching restaurants for ${spot.name}:`, error);
             spot.restaurantSuggestions = [];
           }
         }
       }
+      
       // Fetch hotel suggestions for last spot of the day
       if (day.spots.length > 0) {
         const lastSpot = day.spots[day.spots.length - 1];
@@ -104,10 +105,12 @@ export class ItineraryService {
           const hotelRes: any = await this.placesService.getNearbyPlaces(lastSpot.location.lat, lastSpot.location.lng, 'lodging').toPromise();
           day.hotelSuggestions = hotelRes.results || [];
         } catch (error) {
+          console.error(`Error fetching hotels for Day ${day.day}:`, error);
           day.hotelSuggestions = [];
         }
       }
     }
+    
     return itinerary;
   }
 

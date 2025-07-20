@@ -11,12 +11,13 @@ export interface ItinerarySpot {
   category?: string;
   img?: string;
   location: { lat: number; lng: number };
-  timeSlot: string;
-  estimatedDuration: string;
+  timeSlot?: string;
+  estimatedDuration?: string;
   restaurantSuggestions?: any[];
   mealType?: string;
   durationMinutes?: number;
   chosenRestaurant?: any;
+  customTime?: boolean;
 }
 
 export interface ItineraryDay {
@@ -78,31 +79,24 @@ export class ItineraryService {
   }
 
   // Fetch and cache restaurant/hotel suggestions for a finalized itinerary
-  async fetchSuggestionsForItinerary(itinerary: ItineraryDay[]): Promise<ItineraryDay[]> {
-    // Check for cached suggestions first
-    const cacheKey = this.getCacheKey(itinerary);
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch {}
-    }
-    
+  async fetchSuggestionsForItinerary(itinerary: ItineraryDay[], logFn?: (msg: string) => void): Promise<ItineraryDay[]> {
+    // TEMPORARILY DISABLE CACHING TO FORCE FRESH FETCH
+    // logFn?.('[DEBUG] Caching disabled, fetching fresh suggestions...');
     // Fetch fresh suggestions
     for (const day of itinerary) {
       // Fetch restaurant suggestions for meal times
       for (const spot of day.spots) {
         if (spot.mealType) {
           try {
-            const restRes: any = await this.placesService.getNearbyPlaces(spot.location.lat, spot.location.lng, 'restaurant').toPromise();
-            spot.restaurantSuggestions = restRes.results || [];
-          } catch (error) {
-            console.error(`Error fetching restaurants for ${spot.name}:`, error);
+            const resp: any = await this.placesService.getNearbyPlaces(spot.location.lat, spot.location.lng, 'restaurant').toPromise();
+            // Only include results that have 'restaurant' in their types
+            const filteredResults = (resp.results || []).filter((r: any) => r.types && r.types.includes('restaurant'));
+            spot.restaurantSuggestions = filteredResults;
+          } catch (err) {
             spot.restaurantSuggestions = [];
           }
         }
       }
-      
       // Fetch hotel suggestions for last spot of the day
       if (day.spots.length > 0) {
         const lastSpot = day.spots[day.spots.length - 1];
@@ -110,14 +104,10 @@ export class ItineraryService {
           const hotelRes: any = await this.placesService.getNearbyPlaces(lastSpot.location.lat, lastSpot.location.lng, 'lodging').toPromise();
           day.hotelSuggestions = hotelRes.results || [];
         } catch (error) {
-          console.error(`Error fetching hotels for Day ${day.day}:`, error);
           day.hotelSuggestions = [];
         }
       }
     }
-    
-    // Cache the result
-    localStorage.setItem(cacheKey, JSON.stringify(itinerary));
     return itinerary;
   }
 
@@ -170,6 +160,19 @@ export class ItineraryService {
       };
     } else {
       return { type: 'none', message: 'No route found' };
+    }
+  }
+
+  // Test API connection and return the full response
+  async testApiConnection(): Promise<any> {
+    try {
+      console.log('🧪 Testing API connection...');
+      const testResult = await this.placesService.testApiKey().toPromise();
+      console.log('API Test Result:', testResult);
+      return testResult;
+    } catch (error) {
+      console.error('❌ API connection test error:', error);
+      return { status: 'ERROR', error: (error && typeof error === 'object' && 'message' in error) ? (error as any).message : String(error) };
     }
   }
 } 

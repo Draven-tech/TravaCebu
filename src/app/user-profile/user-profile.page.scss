@@ -148,3 +148,56 @@
   }
 }
 
+
+.profile-view-alert .alert-wrapper {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 360px;
+  padding: 0;
+}
+
+.profile-view-alert img {
+  border-radius: 12px;
+  width: 100%;
+  height: auto;
+}
+
+::ng-deep .avatar-action-sheet .action-sheet-group {
+  border-radius: 16px;
+  background: #fff;
+  padding: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+::ng-deep .avatar-action-sheet .action-sheet-title {
+  font-weight: bold;
+  font-size: 1rem;
+  padding: 12px 16px;
+  color: #333;
+}
+
+::ng-deep .avatar-action-sheet .action-sheet-button {
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 14px 16px;
+  color: #222;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s ease;
+}
+
+::ng-deep .avatar-action-sheet .action-sheet-button:hover {
+  background: #f4f4f4;
+}
+
+::ng-deep .avatar-action-sheet .action-sheet-icon {
+  font-size: 20px;
+  margin-right: 12px;
+  color: #666;
+}
+
+::ng-deep .avatar-action-sheet .action-sheet-cancel {
+  color: #e53935;
+  font-weight: bold;
+}

@@ -243,3 +243,46 @@ h1 {
 }
 
 
+.terms-text {
+  margin-top: 20px;
+  font-size: 13px;
+  color: #000;
+  text-align: center;
+
+  a {
+    color: #e53935;
+    font-weight: bold;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  b {
+    font-weight: 600;
+  }
+}
+
+.modal-content {
+  --background: transparent;
+  padding: 0;
+}
+
+.modal-text {
+  padding: 16px;
+  font-size: 14px;
+  color: #000;
+  line-height: 1.6;
+  background: transparent;
+}
+
+ion-modal::part(content) {
+  background: rgba(255, 255, 255, 0.65); 
+  backdrop-filter: blur(6px);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+ion-toolbar {
+  --background: #FFD144;
+  --color: #000; // text color for title and close button
+  border-bottom: 1px solid #ccc;
+}

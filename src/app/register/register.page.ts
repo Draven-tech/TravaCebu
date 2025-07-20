@@ -5,10 +5,10 @@ import { AlertController, NavController, IonContent, Platform } from '@ionic/ang
 import { Keyboard } from '@capacitor/keyboard';
 
 @Component({
+  standalone: false,
   selector: 'app-register',
   templateUrl: './register.page.html',
   styleUrls: ['./register.page.scss'],
-  standalone: false, 
 })
 export class RegisterPage implements OnInit {
   @ViewChild(IonContent) content!: IonContent;
@@ -84,24 +84,29 @@ export class RegisterPage implements OnInit {
     }
 
     try {
+      // Create user account
       const userCredential = await this.afAuth.createUserWithEmailAndPassword(this.email, this.password);
-      const uid = userCredential.user?.uid;
+      const user = userCredential.user;
 
-      try {
-        await this.firestore.collection('users').doc(uid).set({
-          fullName: this.fullName,
-          username: this.username,
-          email: this.email,
-          createdAt: new Date()
-        });
+      if (user) {
+        // Save user profile to Firestore
+        try {
+          await this.firestore.collection('users').doc(user.uid).set({
+            uid: user.uid,
+            email: this.email,
+            fullName: this.fullName,
+            username: this.username,
+            createdAt: new Date(),
+            photoURL: null
+          });
 
-        await this.showAlert('Success', 'Registration successful! You can now login.');
-        this.navCtrl.navigateRoot('/login');
-      } catch (firestoreError) {
-        await this.showAlert('Firestore Error', 'Account was created but user profile failed to save. Please contact support.');
-        console.error('Firestore error:', firestoreError);
+          await this.showAlert('Success', 'Registration successful! You can now login.');
+          this.navCtrl.navigateRoot('/login');
+        } catch (firestoreError) {
+          await this.showAlert('Firestore Error', 'Account was created but user profile failed to save. Please contact support.');
+          console.error('Firestore error:', firestoreError);
+        }
       }
-
     } catch (authError: any) {
       console.error('Registration error:', authError);
       

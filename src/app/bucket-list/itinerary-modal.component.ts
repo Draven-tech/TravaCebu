@@ -21,6 +21,7 @@ import { ItineraryMapComponent } from './itinerary-map.component';
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
+
     <ion-content>
       <div class="itinerary-container">
         <div *ngFor="let day of itinerary" class="day-section">
@@ -32,6 +33,7 @@ import { ItineraryMapComponent } from './itinerary-map.component';
               <span class="duration">⏱️ {{ spot.estimatedDuration }}</span>
             </div>
             <div class="spot-category">📍 {{ spot.category }}</div>
+            
             <!-- Selected Restaurant Card -->
             <div *ngIf="spot.mealType && spot.chosenRestaurant" class="selected-card restaurant-card">
               <div class="card-header">
@@ -96,6 +98,7 @@ import { ItineraryMapComponent } from './itinerary-map.component';
               <span>Restaurant suggestions will appear here after saving.</span>
             </div>
           </div>
+          
           <!-- Selected Hotel Card -->
           <div *ngIf="day.chosenHotel" class="selected-card hotel-card">
             <div class="card-header">
@@ -112,17 +115,17 @@ import { ItineraryMapComponent } from './itinerary-map.component';
                 <span *ngIf="day.chosenHotel.vicinity">📍 {{ day.chosenHotel.vicinity }}</span>
                 <span class="check-in-time">🛏️ Check-in: Evening</span>
               </div>
-                                <div class="booking-links">
-                    <a [href]="getBookingUrl(day.chosenHotel)" target="_blank" class="booking-link">
-                      <ion-icon name="card"></ion-icon> Booking.com
-                    </a>
-                    <a [href]="getAgodaUrl(day.chosenHotel)" target="_blank" class="booking-link">
-                      <ion-icon name="bed"></ion-icon> Agoda
-                    </a>
-                    <ion-button size="small" fill="outline" color="primary" (click)="viewHotelMap(day.chosenHotel)">
-                      <ion-icon name="map"></ion-icon> View on Map
-                    </ion-button>
-                  </div>
+              <div class="booking-links">
+                <a [href]="getBookingUrl(day.chosenHotel)" target="_blank" class="booking-link">
+                  <ion-icon name="card"></ion-icon> Booking.com
+                </a>
+                <a [href]="getAgodaUrl(day.chosenHotel)" target="_blank" class="booking-link">
+                  <ion-icon name="bed"></ion-icon> Agoda
+                </a>
+                <ion-button size="small" fill="outline" color="primary" (click)="viewHotelMap(day.chosenHotel)">
+                  <ion-icon name="map"></ion-icon> View on Map
+                </ion-button>
+              </div>
             </div>
           </div>
 
@@ -186,23 +189,6 @@ import { ItineraryMapComponent } from './itinerary-map.component';
     </ion-footer>
   `,
   styles: [`
-    /* Compact Header */
-    .modal-header-compact {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      background: #f8f9fa;
-      border-bottom: 1px solid #dee2e6;
-    }
-    
-    .modal-title {
-      margin: 0;
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: #2D3748;
-    }
-    
     .itinerary-container {
       padding: 16px;
     }
@@ -244,24 +230,6 @@ import { ItineraryMapComponent } from './itinerary-map.component';
       font-size: 0.85rem;
       font-weight: 600;
       text-transform: uppercase;
-    }
-    .restaurant-section {
-      margin-top: 8px;
-      font-size: 0.95rem;
-    }
-    .restaurant-title {
-      font-weight: 600;
-      color: #2D3748;
-      margin-bottom: 4px;
-    }
-    .hotel-section {
-      margin-top: 16px;
-      font-size: 0.95rem;
-    }
-    .hotel-title {
-      font-weight: 600;
-      color: #2D3748;
-      margin-bottom: 4px;
     }
 
     /* Selected Cards */
@@ -417,25 +385,6 @@ import { ItineraryMapComponent } from './itinerary-map.component';
       font-size: 0.9rem;
     }
 
-    .map-link, .booking-link-small {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      background: #f8f9fa;
-      border: 1px solid #dee2e6;
-      border-radius: 6px;
-      color: #495057;
-      text-decoration: none;
-      transition: all 0.2s;
-    }
-
-    .map-link:hover, .booking-link-small:hover {
-      background: #e9ecef;
-      border-color: #adb5bd;
-    }
-
     /* No Suggestions */
     .no-suggestions {
       display: flex;
@@ -454,37 +403,6 @@ import { ItineraryMapComponent } from './itinerary-map.component';
       --height: 90%;
       --width: 90%;
       --max-width: 800px;
-    }
-    .modal-title-compact {
-      text-align: center;
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: #e67e22;
-      margin: 12px 0 12px 0;
-      letter-spacing: 0.5px;
-    }
-    ion-toolbar ion-buttons {
-      gap: 8px;
-    }
-    .refresh-label {
-      margin-left: 6px;
-      font-size: 1rem;
-      font-weight: 500;
-      letter-spacing: 0.2px;
-    }
-    .refresh-helper-text {
-      font-size: 0.95rem;
-      color: #666;
-      margin-top: 2px;
-      margin-bottom: 8px;
-      text-align: right;
-      max-width: 180px;
-      margin-left: auto;
-    }
-    @media (max-width: 600px) {
-      .refresh-label {
-        display: none;
-      }
     }
   `],
   standalone: false
@@ -521,9 +439,11 @@ export class ItineraryModalComponent {
   chooseRestaurant(spot: ItinerarySpot, restaurant: any) {
     spot.chosenRestaurant = restaurant;
   }
+  
   skipRestaurant(spot: ItinerarySpot) {
     spot.chosenRestaurant = { name: 'User will decide on the day' };
   }
+  
   clearRestaurantChoice(spot: ItinerarySpot) {
     spot.chosenRestaurant = undefined;
   }
@@ -531,9 +451,11 @@ export class ItineraryModalComponent {
   chooseHotel(day: ItineraryDay, hotel: any) {
     day.chosenHotel = hotel;
   }
+  
   skipHotel(day: ItineraryDay) {
     day.chosenHotel = { name: 'User will decide on the day' };
   }
+  
   clearHotelChoice(day: ItineraryDay) {
     day.chosenHotel = undefined;
   }
@@ -697,4 +619,4 @@ export class ItineraryModalComponent {
       }
     }, 3000);
   }
-}
+} 

@@ -1,3 +1,15 @@
+.bg-car {
+  position: absolute;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: auto;
+  z-index: 0;
+  opacity: 1;
+  pointer-events: none;
+}
+
 ion-content {
   --background: #FFD144;
   position: relative;
@@ -9,17 +21,24 @@ ion-content {
   z-index: 2;
   width: 100%;
   max-width: 360px;
-  padding: 20px;
+  padding: 5vw;
   margin: 0 auto;
+  margin-bottom: 400px; // Space for keyboard
 }
 
 h1 {
-  font-weight: 900;
+  font-weight: 900; 
   font-size: 26px;
-  color: #000;
+  color: #000000;
   text-align: left;
   line-height: 1.2;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 14px;
+  color: #000;
+  margin-bottom: 30px;
 }
 
 .custom-form {
@@ -117,122 +136,48 @@ h1 {
 }
 
 .checkbox-wrapper {
-  margin-top: 20px;
   display: flex;
   align-items: center;
-  font-size: 13px;
-  color: #000;
-
-  ion-checkbox {
-    margin-right: 8px;
-    --border-color: #000;
-    --background: #fff;
-  }
-}
-
-.btn-login {
-  width: 100%;
+  gap: 12px;
   margin-top: 20px;
   padding: 12px;
-  border: none;
-  border-radius: 25px;
-  background: #000;
-  color: #fff;
-  font-weight: bold;
-}
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-.signup-text {
-  text-align: center;
-  margin-top: 16px;
-  font-size: 14px;
-  color: #000;
-
-  a {
-    color: #ffffff;
-    font-weight: bold;
-    text-decoration: none;
+  ion-checkbox {
+    --border-radius: 4px;
+    --border-color: #111720;
+    --border-color-checked: #111720;
+    --checkmark-color: white;
+    --background-checked: #111720;
   }
-}
 
-
-.select-group select,
-.birthdate-dropdowns select {
-  width: 100%;
-  height: 50px;
-  border: none;
-  background: #fff;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  color: #000;
-}
-
-.birthdate-group {
-  margin-top: 20px;
-}
-
-.birthdate-dropdowns {
-  display: flex;
-  gap: 10px;
-
-  select {
-    flex: 1;
-  }
-}
-
-.select-group {
-  margin-top: 20px;
-}
-
-.select-group select {
-  width: 100%;
-  height: 50px;
-  border: none;
-  background: #fff;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  color: #000;
-}
-
-
-.form-label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 14px;
-  color: #000;
-  font-weight: 500;
-}
-
-.form-group select {
-  width: 100%;
-  height: 50px;
-  border: none;
-  background: #fff;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  color: #000;
-}
-
-.birthdate-dropdowns {
-  display: flex;
-  gap: 10px;
-  select {
-    flex: 1;
-    border: none;
-    background: #fff;
-    border-radius: 8px;
-    padding: 10px;
-    font-size: 14px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  span {
     color: #000;
+    font-size: 12px;
+    line-height: 1.4;
+    
+    a {
+      color: #111720;
+      text-decoration: none;
+      font-weight: 600;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
   }
 }
 
+.btn-container {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
 
 .btn-road {
   position: relative;
@@ -244,7 +189,6 @@ h1 {
   font-size: 16px;
   font-weight: bold;
   color: white;
-  margin-top: 40px;
   overflow: hidden;
   z-index: 1;
   display: flex;
@@ -279,9 +223,54 @@ h1 {
 }
 
 .btn-road:hover {
-  background-color: #111720;
   transform: scale(1.02);
   transition: 0.3s ease;
 }
 
+.login-link {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: #000;
 
+  a {
+    color: #111720;
+    font-weight: bold;
+    text-decoration: none;
+  }
+}
+
+// Mobile-specific styles
+@media (max-width: 480px) {
+  .content-layer {
+    padding: 15px;
+  }
+
+  .floating-label input {
+    font-size: 16px; // Prevents zoom on iOS
+  }
+}
+
+// Custom alert styling
+::ng-deep .custom-alert .alert-wrapper {
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+::ng-deep .custom-alert .alert-head {
+  background: #111720;
+  color: white;
+  border-radius: 16px 16px 0 0;
+}
+
+::ng-deep .custom-alert .alert-message {
+  color: #333;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+::ng-deep .custom-alert .alert-button {
+  color: #111720;
+  font-weight: 600;
+}

@@ -87,10 +87,9 @@
 ## 🔗 Get Started
 
 ```bash
-git clone https://github.com/your-repo/travacebu.git
+git clone https://github.com/Draven-tech/TravaCebu
 cd travacebu
 npm install
-npm start
 ```
 
 > Let’s explore Cebu the smart way! 🚍🌴

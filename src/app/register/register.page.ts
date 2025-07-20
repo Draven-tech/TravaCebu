@@ -16,13 +16,21 @@ export class RegisterPage {
   fullName: string = '';
   username: string = '';
   agreed: boolean = false;
-
+  showTermsModal = false;
+  modalType: 'terms' | 'privacy' = 'terms';
+  modalTitle = '';
   constructor(
     private afAuth: AngularFireAuth,
     private firestore: AngularFirestore,
     private alertCtrl: AlertController,
     private navCtrl: NavController
   ) {}
+
+  openModal(type: 'terms' | 'privacy') {
+  this.modalType = type;
+  this.modalTitle = type === 'terms' ? 'Terms and Conditions' : 'Privacy Statement';
+  this.showTermsModal = true;
+}
 
   async register() {
     if (!this.agreed) {

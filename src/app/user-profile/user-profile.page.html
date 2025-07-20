@@ -1,9 +1,18 @@
 <ion-content class="ion-padding user-profile-content">
 
   <div class="profile-box">
-    <ion-avatar class="avatar">
-      <img src="assets/avatar.png" />
+    <ion-avatar class="avatar" (click)="presentAvatarOptions()">
+      <img [src]="userData?.photoURL || 'assets/img/default.png'" />
     </ion-avatar>
+
+    <input
+      type="file"
+      accept="image/*"
+      (change)="onAvatarSelected($event)"
+      hidden
+      #avatarInput
+    />
+
 
     <h2 class="full-name">{{ userData?.fullName || 'John Doe' }}</h2>
     <p class="username"><span>&#64;</span>{{ userData?.username || 'username' }}</p>

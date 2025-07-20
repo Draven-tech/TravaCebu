@@ -38,10 +38,178 @@
         </label>
       </div>
 
-      <div class="checkbox-wrapper">
-        <ion-checkbox [(ngModel)]="agreed" name="agreed" required></ion-checkbox>
-        <span>I agree with the terms of service and privacy policy</span>
+      <div class="terms-text">
+        By clicking <b>Create Account</b>, you agree to our 
+        <a (click)="openModal('terms')">Terms and Conditions</a> and 
+        <a (click)="openModal('privacy')">Privacy Statement</a>.
       </div>
+
+      <ion-modal [isOpen]="showTermsModal" (didDismiss)="showTermsModal = false">
+        <ng-template>
+          <ion-content class="modal-content">
+            <ion-toolbar>
+              <ion-title>{{ modalTitle }}</ion-title>
+              <ion-buttons slot="end">
+                <ion-button (click)="showTermsModal = false">✕</ion-button>
+              </ion-buttons>
+            </ion-toolbar>
+            <div class="modal-text">
+              <div *ngIf="modalType === 'terms'" class="modal-text">
+                  <h2>TravaCebu Terms and Conditions</h2>
+                  <p><strong>Effective Date:</strong> July 20, 2025</p>
+
+                  <p>
+                    Welcome to <strong>TravaCebu</strong>, a mobile-based itinerary planner designed for tourists and locals exploring Cebu, Philippines.
+                    By accessing or using the TravaCebu app ("App"), you agree to be bound by the following Terms and Conditions ("Terms").
+                  </p>
+
+                  <h3>1. Acceptance of Terms</h3>
+                  <p>By clicking "Create Account", accessing, or using TravaCebu, you affirm that:</p>
+                  <ul>
+                    <li>You are at least 16 years old.</li>
+                    <li>You have read, understood, and agreed to be legally bound by these Terms.</li>
+                    <li>You consent to the collection and use of your data in accordance with our Privacy Policy.</li>
+                  </ul>
+
+                  <h3>2. Description of the App</h3>
+                  <p>
+                    TravaCebu provides itinerary planning services, suggested jeepney routes, restaurant and hotel recommendations,
+                    weather insights, and local event listings for Cebu-based travel.
+                    We do not guarantee the real-time accuracy of third-party data or services.
+                  </p>
+
+                  <h3>3. User Accounts</h3>
+                  <p>
+                    You must register with accurate information. You're responsible for your account and activity.
+                    We may suspend accounts that violate these terms.
+                  </p>
+
+                  <h3>4. Acceptable Use</h3>
+                  <p>
+                    Do not use TravaCebu for illegal, disruptive, or fraudulent activities. Misuse of features or location spoofing is prohibited.
+                  </p>
+
+                  <h3>5. Third-Party Services</h3>
+                  <p>
+                    TravaCebu integrates APIs such as Google Places. We are not liable for third-party booking errors, availability, or downtime.
+                  </p>
+
+                  <h3>6. Location-Based Services</h3>
+                  <p>
+                    Features like jeepney routing and “Lakaw Mode” require access to your location. You must allow permissions for full functionality.
+                  </p>
+
+                  <h3>7. Offline Access</h3>
+                  <p>
+                    Saved itineraries and maps are available offline, but some features require an internet connection.
+                  </p>
+
+                  <h3>8. Content Ownership</h3>
+                  <p>
+                    All TravaCebu content and branding is protected. Do not copy, modify, or redistribute app material without permission.
+                  </p>
+
+                  <h3>9. Privacy</h3>
+                  <p>
+                    Your data is used only to improve travel planning and is not sold to third parties. Review our Privacy Statement for full details.
+                  </p>
+
+                  <h3>10. Disclaimer</h3>
+                  <p>
+                    We do not guarantee perfect route accuracy or availability. Use is at your own risk.
+                    TravaCebu is not responsible for missed bookings, traffic delays, or travel disruptions.
+                  </p>
+
+                  <h3>11. Updates</h3>
+                  <p>
+                    These terms may change. Continued use of the app after changes implies your agreement.
+                  </p>
+
+                  <h3>12. Termination</h3>
+                  <p>
+                    We may suspend your access for violations. You can request data deletion by contacting our team.
+                  </p>
+
+                  <h3>13. Governing Law</h3>
+                  <p>
+                    These terms are governed by Philippine law. Disputes shall be resolved within the Philippines.
+                  </p>
+
+                  <h3>14. Contact</h3>
+                  <p>
+                    For questions or support, email us at <strong>admin@trava.com</strong> or visit the University of San Jose-Recoletos.
+                  </p>
+                </div>
+
+              <div *ngIf="modalType === 'privacy'" class="modal-text">
+                  <h2>TravaCebu Privacy Policy</h2>
+                  <p><strong>Effective Date:</strong> July 20, 2025</p>
+
+                  <p>
+                    TravaCebu is committed to protecting your privacy. This Privacy Policy describes how we collect, use, store, and protect your personal data when you use our mobile application.
+                  </p>
+
+                  <h3>1. Information We Collect</h3>
+                  <p>We collect the following types of data when you use the app:</p>
+                  <ul>
+                    <li><strong>Account Information:</strong> Name, username, email, and password when you register.</li>
+                    <li><strong>Itinerary Preferences:</strong> Selected destinations, trip duration, and preferred categories.</li>
+                    <li><strong>Location Data:</strong> Real-time location (with permission) to suggest jeepney routes and nearby places.</li>
+                    <li><strong>Usage Data:</strong> App usage logs, feedback, and selected features (e.g., Lakaw Mode, budget tracking).</li>
+                    <li><strong>Device Information:</strong> Device type and OS used for debugging and analytics purposes.</li>
+                  </ul>
+
+                  <h3>2. How We Use Your Information</h3>
+                  <p>We use your data to:</p>
+                  <ul>
+                    <li>Generate personalized travel itineraries</li>
+                    <li>Provide jeepney route recommendations</li>
+                    <li>Suggest nearby hotels, restaurants, and attractions</li>
+                    <li>Show weather updates and event-based travel tips</li>
+                    <li>Improve app performance and user experience</li>
+                  </ul>
+
+                  <h3>3. Data Storage and Security</h3>
+                  <p>
+                    Your data is securely stored using <strong>Firebase Authentication</strong> and <strong>Cloud Firestore</strong>. We implement encryption and security practices to ensure that your data remains private and protected.
+                  </p>
+
+                  <h3>4. Third-Party Services</h3>
+                  <p>
+                    TravaCebu uses external services such as Google Places, Agoda, and Booking.com to fetch information and redirect you to booking platforms. These services have their own privacy policies. We do not share your personal data with these platforms — redirection is user-initiated.
+                  </p>
+
+                  <h3>5. Offline and Cached Data</h3>
+                  <p>
+                    The app stores certain data (e.g., selected itineraries, offline maps) on your device for faster access and offline usage. This data remains local and is not shared unless you choose to back it up or export it.
+                  </p>
+
+                  <h3>6. User Control and Access</h3>
+                  <p>
+                    You can view or update your account details anytime. If you wish to delete your account and all associated data, you can email us at <strong>admin@trava.com</strong>.
+                  </p>
+
+                  <h3>7. Children's Privacy</h3>
+                  <p>
+                    TravaCebu is not intended for children under 16 years of age. We do not knowingly collect data from minors without parental consent.
+                  </p>
+
+                  <h3>8. Changes to This Policy</h3>
+                  <p>
+                    We may update this Privacy Policy from time to time. Changes will be announced through the app. Continued use of TravaCebu means you accept the updated policy.
+                  </p>
+
+                  <h3>9. Contact Us</h3>
+                  <p>
+                    For questions or support, email us at <strong>admin@trava.com</strong> or visit the University of San Jose-Recoletos.
+                  </p>
+                </div>
+
+            </div>
+          </ion-content>
+        </ng-template>
+      </ion-modal>
+
 
       <button type="button" class="btn-road" (click)="register()">
         <span class="btn-label">CREATE ACCOUNT</span>

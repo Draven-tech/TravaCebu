@@ -1,11 +1,14 @@
 <ion-content [scrollEvents]="true" (ionScroll)="onScroll($event)">
-  <div class="content-layer" #registerContainer>
-    <h1>SIGN TO<br />TRAVACEBU</h1>
+  <img src="assets/img/car.png" class="bg-car" />
 
-    <form (submit)="register()" class="custom-form">
+  <div class="content-layer" #registerContainer>
+    <h1>CREATE ACCOUNT</h1>
+    <p>Join TravaCebu to start planning your perfect Cebu adventure!</p>
+
+    <form class="custom-form">
       <div class="form-group">
         <label class="floating-label" [class.filled]="fullName">
-          <span>Enter your name</span>
+          <span>Full Name</span>
           <input 
             type="text" 
             [(ngModel)]="fullName" 
@@ -20,7 +23,7 @@
 
       <div class="form-group">
         <label class="floating-label" [class.filled]="username">
-          <span>Enter your username</span>
+          <span>Username</span>
           <input 
             type="text" 
             [(ngModel)]="username" 
@@ -50,7 +53,7 @@
 
       <div class="form-group">
         <label class="floating-label" [class.filled]="password">
-          <span>Enter your password</span>
+          <span>Password</span>
           <div class="password-input-container">
             <input 
               [type]="showPassword ? 'text' : 'password'"
@@ -73,7 +76,7 @@
 
       <div class="form-group">
         <label class="floating-label" [class.filled]="confirmPassword">
-          <span>Re-enter your password</span>
+          <span>Confirm Password</span>
           <div class="password-input-container">
             <input 
               [type]="showConfirmPassword ? 'text' : 'password'"
@@ -96,16 +99,18 @@
 
       <div class="checkbox-wrapper">
         <ion-checkbox [(ngModel)]="agreed" name="agreed" required></ion-checkbox>
-        <span>I agree with the terms of service and privacy policy</span>
+        <span>I agree with the <a routerLink="/terms">terms of service</a> and <a routerLink="/privacy">privacy policy</a></span>
       </div>
+    </form>
 
+    <div class="btn-container">
       <button type="button" class="btn-road" (click)="register()">
         <span class="btn-label">CREATE ACCOUNT</span>
       </button>
 
-      <div class="signup-text">
-        Already have an account? <a routerLink="/login">Login</a>
+      <div class="login-link">
+        Already have an account? <a routerLink="/login">Login here</a>
       </div>
-    </form>
+    </div>
   </div>
 </ion-content>

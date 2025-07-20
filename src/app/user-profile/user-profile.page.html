@@ -1,34 +1,82 @@
-<ion-content class="ion-padding user-profile-content">
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-title>Profile</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="logout()">
+        <ion-icon name="log-out-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
 
-  <div class="profile-box">
-    <ion-avatar class="avatar">
-      <img src="assets/avatar.png" />
-    </ion-avatar>
+<ion-content class="ion-padding">
+  <div class="profile-container">
+    <div class="profile-header">
+      <ion-avatar class="avatar" (click)="presentAvatarOptions()">
+        <img [src]="userData?.photoURL || 'assets/img/default.png'" />
+      </ion-avatar>
 
-    <h2 class="full-name">{{ userData?.fullName || 'John Doe' }}</h2>
-    <p class="username"><span>&#64;</span>{{ userData?.username || 'username' }}</p>
+      <input
+        type="file"
+        accept="image/*"
+        (change)="onAvatarSelected($event)"
+        hidden
+        #avatarInput
+      />
 
-    <ion-list lines="none">
-      <ion-item>
-        <ion-label>
-          <strong>Email</strong><br />
-          {{ userData?.email || 'sample@email.com' }}
-        </ion-label>
-      </ion-item>
+      <div class="user-info">
+        <h2>{{ userData?.fullName || 'User' }}</h2>
+        <p>{{ userData?.email || 'No email' }}</p>
+        <p class="username">@{{ userData?.username || 'username' }}</p>
+      </div>
+    </div>
 
-      <ion-item>
-        <ion-label>
-          <strong>Joined</strong><br />
-          {{ userData?.createdAt?.toDate() | date:'longDate' }}
-        </ion-label>
-      </ion-item>
-    </ion-list>
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Account Information</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item>
+            <ion-label>
+              <h3>Full Name</h3>
+              <p>{{ userData?.fullName || 'Not set' }}</p>
+            </ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <h3>Username</h3>
+              <p>{{ userData?.username || 'Not set' }}</p>
+            </ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <h3>Email</h3>
+              <p>{{ userData?.email || 'Not set' }}</p>
+            </ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <h3>Member Since</h3>
+              <p>{{ userData?.createdAt?.toDate() | date:'mediumDate' }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
 
-    <ion-button expand="block" color="warning" (click)="logout()">
-      Logout
-    </ion-button>
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Actions</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-button expand="block" (click)="presentAvatarOptions()" color="primary">
+          <ion-icon name="camera-outline" slot="start"></ion-icon>
+          Change Profile Picture
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
   </div>
-
 </ion-content>
 
 

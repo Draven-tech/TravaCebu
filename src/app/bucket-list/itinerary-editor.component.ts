@@ -2,7 +2,6 @@ import { Component, Input, Output, EventEmitter, OnInit, AfterViewInit, ChangeDe
 import { ModalController, AlertController } from '@ionic/angular';
 import { CdkDragDrop, moveItemInArray, transferArrayItem, CdkDropList } from '@angular/cdk/drag-drop';
 import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itinerary.service';
-import { AngularFirestore } from '@angular/fire/compat/firestore';
 
 @Component({
   selector: 'app-itinerary-editor',
@@ -33,15 +32,21 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
               <ion-col size="6">
                 <ion-item>
                   <ion-label position="stacked">Start Time</ion-label>
-                  <label>Start Time</label>
-                  <input type="time" [(ngModel)]="settings.startTime" (change)="updateAllTimeSlots()" style="margin-bottom: 12px; width: 100%;" />
+                  <ion-datetime 
+                    presentation="time"
+                    [(ngModel)]="settings.startTime"
+                    (ionChange)="updateAllTimeSlots()">
+                  </ion-datetime>
                 </ion-item>
               </ion-col>
               <ion-col size="6">
                 <ion-item>
                   <ion-label position="stacked">End Time</ion-label>
-                  <label>End Time</label>
-                  <input type="time" [(ngModel)]="settings.endTime" (change)="updateAllTimeSlots()" style="margin-bottom: 12px; width: 100%;" />
+                  <ion-datetime 
+                    presentation="time"
+                    [(ngModel)]="settings.endTime"
+                    (ionChange)="updateAllTimeSlots()">
+                  </ion-datetime>
                 </ion-item>
               </ion-col>
             </ion-row>
@@ -52,18 +57,19 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
         </ion-card-content>
       </ion-card>
 
-      <!-- Search Tourist Spots -->
+      <!-- Available Spots -->
       <ion-card>
         <ion-card-header>
-          <ion-card-title>Search Tourist Spots</ion-card-title>
+          <ion-card-title>Available Tourist Spots</ion-card-title>
         </ion-card-header>
         <ion-card-content>
-          <ion-item>
-            <ion-label position="stacked">Search</ion-label>
-            <ion-input [(ngModel)]="searchQuery" placeholder="Type to search spots..."></ion-input>
-          </ion-item>
-          <div *ngIf="filteredSpots().length > 0">
-            <div class="spot-card" *ngFor="let spot of filteredSpots()">
+          <div cdkDropList
+               #availableList="cdkDropList"
+               [cdkDropListData]="availableSpots"
+               [cdkDropListConnectedTo]="dayLists"
+               class="drop-list available-drop-list"
+               (cdkDropListDropped)="drop($event)">
+            <div class="spot-card" *ngFor="let spot of availableSpots" cdkDrag>
               <ion-item>
                 <ion-avatar slot="start">
                   <img [src]="spot.img || 'assets/placeholder.jpg'" alt="{{ spot.name }}">
@@ -72,14 +78,13 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
                   <h3>{{ spot.name }}</h3>
                   <p>{{ spot.category }}</p>
                 </ion-label>
-                <ion-button size="small" fill="outline" color="success" slot="end" (click)="addSpotToDay(spot)">
-                  <ion-icon name="add"></ion-icon> Add to Day
-                </ion-button>
+                <ion-icon name="move" slot="end" color="medium"></ion-icon>
               </ion-item>
             </div>
-          </div>
-          <div *ngIf="filteredSpots().length === 0 && searchQuery">
-            <p>No spots found.</p>
+            <div *ngIf="availableSpots.length === 0" class="empty-message">
+              <ion-icon name="basket-outline" size="large" color="medium"></ion-icon>
+              <p>No available tourist spots</p>
+            </div>
           </div>
         </ion-card-content>
       </ion-card>
@@ -104,30 +109,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
                   </ion-avatar>
                   <ion-label>
                     <h3>{{ spot.name }}</h3>
-                    <ng-container *ngIf="spot.chosenRestaurant">
-                      <div class="restaurant-selected-card">
-                        <ion-item color="light">
-                          <ion-icon name="restaurant" slot="start" color="warning"></ion-icon>
-                          <ion-label>
-                            <h4>{{ spot.chosenRestaurant.name }}</h4>
-                            <p *ngIf="spot.chosenRestaurant.vicinity">{{ spot.chosenRestaurant.vicinity }}</p>
-                          </ion-label>
-                          <ion-button size="small" fill="clear" color="danger" slot="end" (click)="spot.chosenRestaurant = undefined">
-                            <ion-icon name="close"></ion-icon>
-                          </ion-button>
-                        </ion-item>
-                      </div>
-                    </ng-container>
-                    <div class="time-section">
-                      <label class="time-label">Time</label>
-                      <input type="time"
-                        [ngModel]="spot.timeSlot || settings.startTime"
-                        (ngModelChange)="onSpotTimeInputChange(dayIndex, spotIndex, $event)"
-                        style="margin-bottom: 8px; width: 100%; background: #fffbe6; color: #2d3748; border: 1px solid #ffd144; border-radius: 6px; font-weight: 600;" />
-                      <ion-button size="small" fill="clear" color="medium" *ngIf="spot.customTime" (click)="resetSpotTime(dayIndex, spotIndex)">
-                        <ion-icon name="refresh-outline"></ion-icon> Reset to Default
-                      </ion-button>
-                    </div>
+                    <p class="time-slot">⏰ {{ spot.timeSlot }}</p>
                     <p class="category">{{ spot.category }}</p>
                   </ion-label>
                   <ion-icon name="move" slot="end" color="medium"></ion-icon>
@@ -187,12 +169,6 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 
     .available-drop-list {
       min-height: 150px;
-      background: #fffbe6;
-      border: 2px solid #ffc107;
-      border-radius: 12px;
-      margin-bottom: 24px;
-      padding: 16px;
-      overflow-x: auto;
     }
 
     .day-drop-list {
@@ -207,14 +183,6 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
       cursor: move;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       transition: all 0.3s ease;
-      margin-bottom: 16px;
-      background: #f8f9fa;
-      border-radius: 12px;
-      border: 1px solid #e0e0e0;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-      padding: 8px 0;
-      /* Remove overflow-x: auto; */
-      min-height: 120px;
     }
 
     .spot-card:hover {
@@ -264,13 +232,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
     }
 
     .day-card {
-      margin-bottom: 32px;
-      background: #fff;
-      border-radius: 18px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
-      border: 2px solid #ffc107;
-      /* Remove overflow-x: auto; */
-      padding: 16px 12px 24px 12px;
+      margin-bottom: 20px;
     }
 
     .day-card ion-card-header {
@@ -312,183 +274,6 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
     ion-avatar img {
       object-fit: cover;
     }
-
-    .restaurant-selected-card {
-      background: #fff8e1;
-      border: 2px solid #ffc107;
-      border-radius: 12px;
-      margin: 8px 0 16px 0;
-      box-shadow: 0 2px 8px rgba(255,193,7,0.08);
-    }
-    .ion-padding {
-      padding: 20px !important;
-    }
-    :host {
-      --ion-background-color: #fffbe6;
-    }
-    ion-content {
-      --background: #fffbe6;
-    }
-    ion-card, .day-card {
-      background: #fff;
-      border-radius: 18px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
-      border: 2px solid #ffd144;
-      margin-bottom: 32px;
-      padding: 16px 12px 24px 12px;
-    }
-    ion-card-header, .day-card ion-card-header {
-      background: linear-gradient(135deg, #ffe066, #ffd144);
-      color: #2d3748;
-      border-radius: 18px 18px 0 0;
-      padding: 12px 16px;
-    }
-    ion-card-title, .day-card ion-card-title {
-      color: #e67e22;
-      font-weight: 700;
-      font-size: 1.2rem;
-    }
-    .spot-card {
-      margin-bottom: 20px;
-      background: #fffbe6;
-      border-radius: 14px;
-      border: 1px solid #ffe066;
-      box-shadow: 0 2px 8px rgba(255,193,7,0.08);
-      padding: 12px 0;
-      /* Remove overflow-x: auto; */
-      min-height: 120px;
-    }
-    ion-item, .spot-card ion-item {
-      --background: #fff;
-      --border-radius: 12px;
-      margin-bottom: 8px;
-    }
-    ion-input, ion-searchbar {
-      --background: #fffbe6;
-      --color: #2d3748;
-      border-radius: 8px;
-    }
-    ion-button {
-      --background: #ffd144;
-      --color: #2d3748;
-      font-weight: 600;
-      border-radius: 8px;
-    }
-    ion-button[color="success"] {
-      --background: #4caf50;
-      --color: #fff;
-    }
-    ion-button[color="danger"] {
-      --background: #e74c3c;
-      --color: #fff;
-    }
-    ion-label, .category {
-      color: #2d3748;
-    }
-    .restaurant-selected-card {
-      background: #fffde7;
-      border: 2px solid #ffd144;
-      border-radius: 12px;
-      margin: 8px 0 16px 0;
-      box-shadow: 0 2px 8px rgba(255,193,7,0.08);
-    }
-    :host, ion-content, .day-card, ion-card, .spot-card, .restaurant-selected-card {
-      color: #2d3748 !important;
-    }
-    ion-label, .category, .spot-card h3, .spot-card p, .restaurant-selected-card h4, .restaurant-selected-card p {
-      color: #2d3748 !important;
-    }
-    ion-input, ion-searchbar {
-      --color: #2d3748 !important;
-      --placeholder-color: #2d3748 !important;
-    }
-    ion-button {
-      --color: #fff !important;
-    }
-    ion-button[color="light"], ion-button[color="warning"] {
-      --color: #2d3748 !important;
-    }
-    .day-card, ion-card, .spot-card, .restaurant-selected-card {
-      border: 2px solid #ffd144 !important;
-      background: #fff !important;
-    }
-    .time-section, .settings-time-col {
-      margin-bottom: 12px;
-      background: none;
-      border-radius: 0;
-      padding: 0;
-    }
-    .time-label {
-      display: block;
-      font-weight: 600;
-      color: #e67e22;
-      margin-bottom: 4px;
-      font-size: 1rem;
-    }
-    .settings-time-row {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    .settings-time-col {
-      flex: 1;
-    }
-    .time-display {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #2d3748;
-      margin-bottom: 4px;
-    }
-    ion-datetime {
-      --background: #fffbe6 !important;
-      --color: #2d3748 !important;
-      --placeholder-color: #2d3748 !important;
-      border-radius: 8px;
-      width: 100%;
-      display: block;
-    }
-    .settings-time-col, .time-section {
-      min-width: 260px;
-    }
-    .settings-time-row-fixed {
-      display: flex;
-      gap: 24px;
-      margin-bottom: 16px;
-      justify-content: center;
-    }
-    .settings-time-col-fixed {
-      min-width: 300px;
-      max-width: 340px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    .settings-time-col-fixed label {
-      font-weight: 600;
-      color: #e67e22;
-      margin-bottom: 4px;
-      font-size: 1rem;
-    }
-    .settings-time-col-fixed ion-datetime {
-      width: 100%;
-      min-width: 240px;
-      max-width: 320px;
-      --background: #fffbe6 !important;
-      --color: #2d3748 !important;
-      border-radius: 8px;
-    }
-    .settings-time-vertical {
-      display: block;
-      width: 350px;
-      margin: 0 auto 16px auto;
-    }
-    .settings-time-col-fixed {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      margin-bottom: 12px;
-    }
   `],
   standalone: false
 })
@@ -499,29 +284,20 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
   @ViewChildren(CdkDropList) dropLists!: QueryList<CdkDropList>;
 
   editedItinerary: ItineraryDay[] = [];
-  settings = { startTime: '08:00', endTime: '18:00' };
+  settings = { startTime: '1970-01-01T08:00', endTime: '1970-01-01T18:00' };
   dayLists: CdkDropList[] = [];
   allLists: (string | CdkDropList<any>)[] = [];
-  allSpots: any[] = [];
   searchQuery: string = '';
 
   constructor(
     private modalCtrl: ModalController,
     private alertCtrl: AlertController,
-    private cdr: ChangeDetectorRef,
-    private firestore: AngularFirestore
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
-    if (!this.settings.startTime) this.settings.startTime = '08:00';
-    if (!this.settings.endTime) this.settings.endTime = '18:00';
     // Deep copy the itinerary for editing
     this.editedItinerary = JSON.parse(JSON.stringify(this.itinerary));
-    this.firestore.collection('tourist_spots').valueChanges({ idField: 'id' }).subscribe(spots => {
-      this.allSpots = spots;
-      this.calculateAvailableSpots();
-      this.cdr.detectChanges();
-    });
     
     // Initialize duration for each spot
     this.editedItinerary.forEach(day => {
@@ -555,7 +331,7 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
     });
 
     // Filter available spots to show only unassigned spots
-    this.availableSpots = this.allSpots.filter(spot => !assignedSpotIds.has(spot.id));
+    this.availableSpots = this.availableSpots.filter(spot => !assignedSpotIds.has(spot.id));
   }
 
   ngAfterViewInit() {
@@ -608,9 +384,7 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
     let currentTime = new Date(startTime);
 
     day.spots.forEach(spot => {
-      if (!spot.customTime) {
-        spot.timeSlot = this.formatTime(currentTime);
-      }
+      spot.timeSlot = this.formatTime(currentTime);
       const endTime = new Date(currentTime.getTime() + (spot.durationMinutes || 120) * 60000);
       spot.estimatedDuration = `${spot.durationMinutes || 120} min`;
       currentTime = endTime;
@@ -641,13 +415,6 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
 
   private formatTime(date: Date): string {
     return date.toTimeString().slice(0, 5);
-  }
-
-  normalizeTimeValue(val: string | string[] | null | undefined): string {
-    if (Array.isArray(val)) {
-      return val[0] || '';
-    }
-    return val || '';
   }
 
   async saveChanges() {
@@ -757,7 +524,7 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
         day.spots.forEach(spot => assignedSpotIds.add(spot.id));
       }
     });
-    return this.allSpots.filter(spot =>
+    return this.availableSpots.filter(spot =>
       !assignedSpotIds.has(spot.id) &&
       (!this.searchQuery || spot.name.toLowerCase().includes(this.searchQuery.toLowerCase()))
     );

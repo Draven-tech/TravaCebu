@@ -1,0 +1,122 @@
+.spot-detail-content {
+  --padding-start: 0;
+  --padding-end: 0;
+  background-color: #121212;
+  color: #fff;
+}
+
+.spot-header-img img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-bottom: 4px solid #f1c40f;
+}
+
+.spot-info-card {
+  background: #1e1e1e;
+  margin: 16px;
+  border-radius: 12px;
+  color: #fff;
+
+  ion-card-title {
+    font-size: 1.5rem;
+    color: #f1c40f;
+  }
+
+  ion-card-subtitle {
+    font-size: 1rem;
+    color: #bbb;
+  }
+
+  .spot-description {
+    margin-bottom: 10px;
+    color: #ddd;
+  }
+}
+
+.add-review-container {
+  background: #1e1e1e;
+  margin: 16px;
+  padding: 16px;
+  border-radius: 12px;
+
+  h2 {
+    margin-bottom: 12px;
+    color: #f1c40f;
+    font-size: 1.2rem;
+  }
+
+  ion-item {
+    margin-bottom: 12px;
+  }
+
+  .preview-img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin: 12px 0;
+  }
+}
+.rating-slider {
+  width: 100%;
+  ion-label {
+    font-weight: bold;
+    font-size: 25px;
+    margin-bottom: 6px;
+  }
+
+  ion-range {
+    width: 100%;
+    --bar-background: #ccc;
+    --bar-background-active: #ffc107;
+    --knob-background: #ffc107;
+    --pin-background: #ffc107;
+    --pin-color: #000;
+  }
+
+  ion-icon {
+    font-size: 23px;
+    color: #f4a261;
+  }
+}
+
+
+.reviews-container {
+  background: #1a1a1a;
+  margin: 16px;
+  padding: 16px;
+  border-radius: 12px;
+
+  h2 {
+    color: #f1c40f;
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+  }
+
+  .review-card {
+    background: #222;
+    color: #fff;
+    margin-bottom: 16px;
+    border-radius: 12px;
+  }
+
+  .review-comment {
+    color: #ccc;
+    font-style: italic;
+  }
+
+  .review-img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    margin-top: 12px;
+    border-radius: 10px;
+  }
+
+  .no-review-msg {
+    text-align: center;
+    margin-top: 20px;
+    color: #888;
+  }
+}

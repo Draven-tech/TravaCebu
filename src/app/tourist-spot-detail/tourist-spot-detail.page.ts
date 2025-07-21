@@ -16,7 +16,7 @@ export class TouristSpotDetailPage implements OnInit {
   spotId: string | null = null;
   spotData: any;
   reviews: any[] = [];
-
+  
   rating: number = 5;
   comment: string = '';
   selectedFile?: File;
@@ -76,12 +76,13 @@ export class TouristSpotDetailPage implements OnInit {
       photoUrl = await this.storageService.uploadFile(filePath, this.selectedFile);
     }
 
-    const reviewData = {
-      rating: this.rating,
-      comment: this.comment,
-      photoUrl,
-      createdAt: new Date(),
-      username: 'Anonymous' // Replace with auth displayName if available
+const user = await this.afAuth.currentUser;
+const reviewData = {
+  rating: this.rating,
+  comment: this.comment,
+  photoUrl,
+  createdAt: new Date(),
+  username: user?.displayName || user?.email || 'Anonymous'
     };
 
     await this.firestore

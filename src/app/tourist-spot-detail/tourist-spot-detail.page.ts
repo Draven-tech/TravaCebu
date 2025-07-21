@@ -16,7 +16,7 @@ export class TouristSpotDetailPage implements OnInit {
   spotId: string | null = null;
   spotData: any;
   reviews: any[] = [];
-  
+  postAsAnonymous = false;
   rating: number = 5;
   comment: string = '';
   selectedFile?: File;
@@ -33,7 +33,7 @@ export class TouristSpotDetailPage implements OnInit {
     private storageService: StorageService,
     private fb: FormBuilder,
     private alertCtrl: AlertController
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.spotId = this.route.snapshot.paramMap.get('id');
@@ -62,49 +62,52 @@ export class TouristSpotDetailPage implements OnInit {
       });
   }
   async addReview() {
-  if (!this.comment.trim() || this.rating < 1 || this.rating > 5) {
-    this.showAlert('Error', 'Please provide a rating and a comment.');
-    return;
-  }
-
-  this.uploading = true;
-  let photoUrl = '';
-
-  try {
-    if (this.selectedFile) {
-      const filePath = `reviews/${Date.now()}_${this.selectedFile.name}`;
-      photoUrl = await this.storageService.uploadFile(filePath, this.selectedFile);
+    if (!this.comment.trim() || this.rating < 1 || this.rating > 5) {
+      this.showAlert('Error', 'Please provide a rating and a comment.');
+      return;
     }
 
-const user = await this.afAuth.currentUser;
-const reviewData = {
-  rating: this.rating,
-  comment: this.comment,
-  photoUrl,
-  createdAt: new Date(),
-  username: user?.displayName || user?.email || 'Anonymous'
-    };
+    this.uploading = true;
+    let photoUrl = '';
 
-    await this.firestore
-      .collection('tourist_spots')
-      .doc(this.spotId!)
-      .collection('reviews')
-      .add(reviewData);
+    try {
+      if (this.selectedFile) {
+        const filePath = `reviews/${Date.now()}_${this.selectedFile.name}`;
+        photoUrl = await this.storageService.uploadFile(filePath, this.selectedFile);
+      }
 
-    this.comment = '';
-    this.rating = 5;
-    this.selectedFile = undefined;
-    this.selectedFilePreview = undefined;
+      const user = await this.afAuth.currentUser;
+      const reviewData = {
+        rating: this.rating,
+        comment: this.comment,
+        photoUrl,
+        createdAt: new Date(),
+        username: this.postAsAnonymous ? 'Anonymous' : (user?.displayName || user?.email || 'Anonymous')
+      };
 
-    this.loadReviews();
-    this.showAlert('Success', 'Review submitted successfully!');
-  } catch (error) {
-    console.error('Failed to submit review:', error);
-    this.showAlert('Error', 'Something went wrong while submitting your review.');
-  } finally {
-    this.uploading = false;
+
+
+
+      await this.firestore
+        .collection('tourist_spots')
+        .doc(this.spotId!)
+        .collection('reviews')
+        .add(reviewData);
+
+      this.comment = '';
+      this.rating = 5;
+      this.selectedFile = undefined;
+      this.selectedFilePreview = undefined;
+
+      this.loadReviews();
+      this.showAlert('Success', 'Review submitted successfully!');
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+      this.showAlert('Error', 'Something went wrong while submitting your review.');
+    } finally {
+      this.uploading = false;
+    }
   }
-}
 
   onFileSelected(event: any) {
     const file = event.target.files[0];
@@ -168,6 +171,7 @@ const reviewData = {
       this.reviewForm.reset();
       this.removeImage();
       this.rating = 5;
+      this.postAsAnonymous = false;
     } catch (error) {
       console.error('Error uploading review:', error);
       this.showAlert('Error', 'Failed to upload review');

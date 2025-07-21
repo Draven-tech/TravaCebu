@@ -7,80 +7,84 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content *ngIf="spotData">
-  <img [src]="spotData.img || 'assets/placeholder.jpg'" style="width: 100%; height: 200px; object-fit: cover;" />
+<ion-content *ngIf="spotData" class="spot-detail-content">
+  <!-- Header Image -->
+  <div class="spot-header-img">
+    <img [src]="spotData.img || 'assets/placeholder.jpg'" />
+  </div>
 
-  <ion-card>
+  <!-- Spot Info -->
+  <ion-card class="spot-info-card">
     <ion-card-header>
       <ion-card-title>{{ spotData.name }}</ion-card-title>
       <ion-card-subtitle>{{ spotData.category }}</ion-card-subtitle>
     </ion-card-header>
     <ion-card-content>
-      <p>{{ spotData.description }}</p>
-      <p><strong>Latitude:</strong> {{ spotData.location?.lat }}</p>
-      <p><strong>Longitude:</strong> {{ spotData.location?.lng }}</p>
+      <p class="spot-description">{{ spotData.description }}</p>
     </ion-card-content>
   </ion-card>
 
+  <!-- Add Review -->
+  <div class="add-review-container">
+    <h2>Add Your Review</h2>
 
+<ion-item lines="none" class="rating-slider" style="flex-direction: column; align-items: flex-start;">
+  <ion-label position="stacked">Rating: {{ rating }}</ion-label>
+  <ion-range
+    min="1"
+    max="5"
+    step="1"
+    snaps="true"
+    pin="true"
+    [(ngModel)]="rating"
+    color="warning"
+  >
+    <ion-icon slot="start" name="sad-outline"></ion-icon>
+    <ion-icon slot="end" name="happy-outline"></ion-icon>
+  </ion-range>
+</ion-item>
+    <ion-item lines="none">
+      <ion-label>Post as Anonymous</ion-label>
+      <ion-toggle slot="end" [(ngModel)]="postAsAnonymous"></ion-toggle>
+    </ion-item>
 
-  <!-- Add Review Form -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Add Your Review</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-item>
-        <ion-label position="stacked">Rating (1 to 5)</ion-label>
-        <ion-range min="1" max="5" step="1" snaps="true" [(ngModel)]="rating">
-          <ion-label slot="end">{{ rating }}</ion-label>
-        </ion-range>
-      </ion-item>
+    <ion-item>
+      <ion-label position="stacked">Comment</ion-label>
+      <ion-textarea [(ngModel)]="comment" placeholder="Share your experience..."></ion-textarea>
+    </ion-item>
 
-      <ion-item>
-        <ion-label position="stacked">Comment</ion-label>
-        <ion-textarea [(ngModel)]="comment" placeholder="Share your experience..."></ion-textarea>
-      </ion-item>
-      <ion-item>
-        <ion-label position="stacked">Upload Photo (optional)</ion-label>
-        <input type="file" (change)="onFileSelected($event)" accept="image/*" />
-      </ion-item>
-      
-      <ion-img *ngIf="selectedFilePreview" [src]="selectedFilePreview" style="margin: 10px; border-radius: 8px;"></ion-img>
-      
-      <ion-button expand="full" color="warning" (click)="addReview()" [disabled]="uploading">
-        {{ uploading ? 'Uploading...' : 'Submit Review' }}
-      </ion-button>
-      
-      <!-- Reviews Section -->
-<h3 class="review-section-title">Reviews</h3>
+    <ion-item lines="none">
+      <ion-label position="stacked">Upload Photo (optional)</ion-label>
+      <input type="file" (change)="onFileSelected($event)" accept="image/*" />
+    </ion-item>
 
-<div *ngIf="reviews.length > 0; else noReviewsTemplate">
-  <ion-card *ngFor="let review of reviews" class="review-card">
-    <ion-card-header>
-      <ion-card-title>{{ review.username }}</ion-card-title>
-      <ion-card-subtitle>Rating: {{ review.rating }}</ion-card-subtitle>
-    </ion-card-header>
-    <ion-card-content>
-      <p>{{ review.comment }}</p>
-      <ion-img *ngIf="review.photoUrl" [src]="review.photoUrl" class="review-img"></ion-img>
-    </ion-card-content>
-  </ion-card>
-</div>
+    <ion-img *ngIf="selectedFilePreview" [src]="selectedFilePreview" class="preview-img"></ion-img>
 
-<ng-template #noReviewsTemplate>
-  <ion-card class="review-card">
-    <ion-card-header>
-      <ion-card-title>Reviews</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
+    <ion-button expand="block" color="warning" (click)="addReview()" [disabled]="uploading">
+      {{ uploading ? 'Uploading...' : 'Submit Review' }}
+    </ion-button>
+  </div>
+
+  <!-- Review List -->
+  <div class="reviews-container">
+    <h2>Reviews</h2>
+    <div *ngIf="reviews.length > 0; else noReviewsTemplate">
+      <ion-card *ngFor="let review of reviews" class="review-card">
+        <ion-card-header>
+          <ion-card-title>{{ review.username }}</ion-card-title>
+          <ion-card-subtitle>⭐ {{ review.rating }}</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <p class="review-comment">{{ review.comment }}</p>
+          <ion-img *ngIf="review.photoUrl" [src]="review.photoUrl" class="review-img"></ion-img>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <ng-template #noReviewsTemplate>
       <ion-text color="medium">
-        <p class="no-reviews-text">No reviews yet. Be the first to leave one!</p>
+        <p class="no-review-msg">No reviews yet. Be the first to leave one!</p>
       </ion-text>
-    </ion-card-content>
-  </ion-card>
-</ng-template>
-
-    </ion-card-content>
-  </ion-card>
+    </ng-template>
+  </div>
 </ion-content>

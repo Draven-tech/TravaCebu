@@ -56,16 +56,27 @@
   </ion-grid>
 
   <!-- History -->
-  <h2 class="title">History:</h2>
-  <ion-card color="warning" class="history-card">
-    <ion-card-header>
-      <ion-card-title>SM Seaside Cebu</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-button fill="clear" color="dark" size="small">Visit Again</ion-button>
-    </ion-card-content>
-  </ion-card>
-</ion-content>
+<ion-card *ngIf="visitedSpots.length > 0">
+  <ion-card-header>
+    <ion-card-title>Visited Spots</ion-card-title>
+  </ion-card-header>
+
+  <ion-card-content>
+    <ion-grid>
+      <ion-row>
+        <ion-col size="6" *ngFor="let spot of visitedSpots">
+          <ion-card (click)="openSpotDetail(spot.id)">
+            <img [src]="spot.img" alt="spot image" />
+            <ion-card-header>
+              <ion-card-title>{{ spot.name }}</ion-card-title>
+              <ion-note>{{ spot.visitedAt.toDate() | date:'medium' }}</ion-note>
+            </ion-card-header>
+          </ion-card>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ion-card-content>
+</ion-card>
 
 <ion-footer>
   <ion-toolbar color="warning">

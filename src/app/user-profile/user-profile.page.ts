@@ -130,7 +130,12 @@ async viewProfilePicture() {
     }
   }
 
-  goToHome() {
-    this.navCtrl.navigateRoot('/home');
+  async goToHome() {
+    const user = await this.afAuth.currentUser;
+    if (user) {
+      this.navCtrl.navigateForward(`/user-dashboard/${user.uid}`);
+    } else {
+      this.navCtrl.navigateRoot('/login');
+    }
   }
 }

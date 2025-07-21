@@ -2,7 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import firebase from 'firebase/compat/app';
+import { AlertController } from '@ionic/angular';
+import { StorageService } from '../services/storage.service';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-tourist-spot-detail',
@@ -17,11 +19,20 @@ export class TouristSpotDetailPage implements OnInit {
 
   rating: number = 5;
   comment: string = '';
+  selectedFile?: File;
+  selectedFilePreview?: string;
+  uploading = false;
+  uploadProgress: number = 0;
+  reviewForm!: FormGroup;
+  imageUrl: string = '';
 
   constructor(
     private route: ActivatedRoute,
     private firestore: AngularFirestore,
-    private afAuth: AngularFireAuth
+    private afAuth: AngularFireAuth,
+    private storageService: StorageService,
+    private fb: FormBuilder,
+    private alertCtrl: AlertController
   ) {}
 
   ngOnInit() {
@@ -30,6 +41,10 @@ export class TouristSpotDetailPage implements OnInit {
       this.loadSpot();
       this.loadReviews();
     }
+    this.reviewForm = this.fb.group({
+      name: ['', Validators.required],
+      comment: ['', Validators.required],
+    });
   }
 
   loadSpot() {
@@ -39,28 +54,131 @@ export class TouristSpotDetailPage implements OnInit {
   }
 
   loadReviews() {
-    this.firestore.collection(`tourist_spots/${this.spotId}/reviews`, ref => ref.orderBy('createdAt', 'desc'))
-      .valueChanges()
+    this.firestore
+      .collection(`tourist_spots/${this.spotId}/reviews`, ref => ref.orderBy('createdAt', 'desc'))
+      .valueChanges({ idField: 'id' })
       .subscribe(data => {
         this.reviews = data;
       });
   }
-
   async addReview() {
-    const user = await this.afAuth.currentUser;
-    if (!user || !this.spotId) return;
+  if (!this.comment.trim() || this.rating < 1 || this.rating > 5) {
+    this.showAlert('Error', 'Please provide a rating and a comment.');
+    return;
+  }
 
-    const newReview = {
-      userId: user.uid,
-      username: user.displayName || 'Anonymous',
+  this.uploading = true;
+  let photoUrl = '';
+
+  try {
+    if (this.selectedFile) {
+      const filePath = `reviews/${Date.now()}_${this.selectedFile.name}`;
+      photoUrl = await this.storageService.uploadFile(filePath, this.selectedFile);
+    }
+
+    const reviewData = {
       rating: this.rating,
       comment: this.comment,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      photoUrl,
+      createdAt: new Date(),
+      username: 'Anonymous' // Replace with auth displayName if available
     };
 
-    await this.firestore.collection(`tourist_spots/${this.spotId}/reviews`).add(newReview);
-    this.rating = 5;
+    await this.firestore
+      .collection('tourist_spots')
+      .doc(this.spotId!)
+      .collection('reviews')
+      .add(reviewData);
+
     this.comment = '';
-    this.loadReviews(); // refresh
+    this.rating = 5;
+    this.selectedFile = undefined;
+    this.selectedFilePreview = undefined;
+
+    this.loadReviews();
+    this.showAlert('Success', 'Review submitted successfully!');
+  } catch (error) {
+    console.error('Failed to submit review:', error);
+    this.showAlert('Error', 'Something went wrong while submitting your review.');
+  } finally {
+    this.uploading = false;
+  }
+}
+
+  onFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = () => this.selectedFilePreview = reader.result as string;
+      reader.readAsDataURL(file);
+    }
+  }
+
+  removeImage() {
+    this.selectedFile = undefined;
+    this.selectedFilePreview = '';
+  }
+
+  private async uploadImage(): Promise<string> {
+    if (!this.selectedFile) return '';
+
+    this.uploading = true;
+    this.uploadProgress = 0;
+    const filePath = `reviews/${Date.now()}_${this.selectedFile.name}`;
+
+    try {
+      const url = await this.storageService.uploadFile(filePath, this.selectedFile);
+      return url;
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      throw error;
+    } finally {
+      this.uploading = false;
+      this.uploadProgress = 100;
+    }
+  }
+
+  async submitReview() {
+    if (this.reviewForm.invalid) {
+      this.showAlert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const imageUrl = await this.uploadImage();
+      const { name, comment } = this.reviewForm.value;
+
+      const reviewData: any = {
+        name,
+        comment,
+        img: imageUrl,
+        createdAt: new Date(),
+        rating: this.rating
+      };
+
+      await this.firestore
+        .collection('tourist_spots')
+        .doc(this.spotId!)
+        .collection('reviews')
+        .add(reviewData);
+
+      this.showAlert('Success', 'Review submitted successfully');
+      this.reviewForm.reset();
+      this.removeImage();
+      this.rating = 5;
+    } catch (error) {
+      console.error('Error uploading review:', error);
+      this.showAlert('Error', 'Failed to upload review');
+    }
+  }
+
+  private async showAlert(header: string, message: string) {
+    const alert = await this.alertCtrl.create({
+      header,
+      message,
+      buttons: ['OK'],
+    });
+    await alert.present();
   }
 }

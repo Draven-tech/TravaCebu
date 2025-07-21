@@ -22,23 +22,7 @@
     </ion-card-content>
   </ion-card>
 
-  <!-- Reviews Section -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Reviews</ion-card-title>
-    </ion-card-header>
-    <ion-card-content *ngIf="reviews.length > 0; else noReviews">
-      <ion-item *ngFor="let review of reviews">
-        <ion-label>
-          <h3>{{ review.username }}</h3>
-          <p>⭐ {{ review.rating }} - {{ review.comment }}</p>
-        </ion-label>
-      </ion-item>
-    </ion-card-content>
-    <ng-template #noReviews>
-      <ion-card-content>No reviews yet.</ion-card-content>
-    </ng-template>
-  </ion-card>
+
 
   <!-- Add Review Form -->
   <ion-card>
@@ -57,8 +41,46 @@
         <ion-label position="stacked">Comment</ion-label>
         <ion-textarea [(ngModel)]="comment" placeholder="Share your experience..."></ion-textarea>
       </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Upload Photo (optional)</ion-label>
+        <input type="file" (change)="onFileSelected($event)" accept="image/*" />
+      </ion-item>
+      
+      <ion-img *ngIf="selectedFilePreview" [src]="selectedFilePreview" style="margin: 10px; border-radius: 8px;"></ion-img>
+      
+      <ion-button expand="full" color="warning" (click)="addReview()" [disabled]="uploading">
+        {{ uploading ? 'Uploading...' : 'Submit Review' }}
+      </ion-button>
+      
+      <!-- Reviews Section -->
+<h3 class="review-section-title">Reviews</h3>
 
-      <ion-button expand="block" color="dark" (click)="addReview()">Submit</ion-button>
+<div *ngIf="reviews.length > 0; else noReviewsTemplate">
+  <ion-card *ngFor="let review of reviews" class="review-card">
+    <ion-card-header>
+      <ion-card-title>{{ review.username }}</ion-card-title>
+      <ion-card-subtitle>Rating: {{ review.rating }}</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <p>{{ review.comment }}</p>
+      <ion-img *ngIf="review.photoUrl" [src]="review.photoUrl" class="review-img"></ion-img>
+    </ion-card-content>
+  </ion-card>
+</div>
+
+<ng-template #noReviewsTemplate>
+  <ion-card class="review-card">
+    <ion-card-header>
+      <ion-card-title>Reviews</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-text color="medium">
+        <p class="no-reviews-text">No reviews yet. Be the first to leave one!</p>
+      </ion-text>
+    </ion-card-content>
+  </ion-card>
+</ng-template>
+
     </ion-card-content>
   </ion-card>
 </ion-content>

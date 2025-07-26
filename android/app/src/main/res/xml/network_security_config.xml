@@ -4,6 +4,10 @@
         <domain includeSubdomains="true">maps.googleapis.com</domain>
         <domain includeSubdomains="true">maps.google.com</domain>
         <domain includeSubdomains="true">googleapis.com</domain>
+        <domain includeSubdomains="true">server.arcgisonline.com</domain>
+        <domain includeSubdomains="true">tile.openstreetmap.org</domain>
+        <domain includeSubdomains="true">router.project-osrm.org</domain>
+        <domain includeSubdomains="true">api.openrouteservice.org</domain>
     </domain-config>
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>

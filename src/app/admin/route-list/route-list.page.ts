@@ -69,6 +69,7 @@ export class RouteListPage implements OnInit {
   }
 
   navigateToEditor() {
+    console.log('RouteList navigating to editor');
     this.navCtrl.navigateForward('/admin/route-editor');
   }
 

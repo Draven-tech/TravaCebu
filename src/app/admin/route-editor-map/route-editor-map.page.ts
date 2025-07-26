@@ -67,12 +67,17 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    console.log('RouteEditorMapPage ngOnInit called');
     this.checkOsrmStatus();
     // Check for edit mode
     const nav = window.history.state;
+    console.log('Navigation state:', nav);
+    // Use a longer timeout to ensure DOM is ready, especially on mobile
     setTimeout(() => {
+      console.log('Initializing map after timeout');
       this.destroyMap();
       if (nav && nav.routeToEdit) {
+        console.log('Edit mode detected');
         const route = nav.routeToEdit;
         this.isEditMode = true;
         this.editingRouteId = route.id;
@@ -87,11 +92,12 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
           this.updateRouteLine();
         }
       } else {
+        console.log('Create new route mode');
         this.isEditMode = false;
         this.editingRouteId = '';
         this.initMap();
       }
-    }, 0);
+    }, 100);
   }
 
   checkOsrmStatus() {
@@ -106,16 +112,26 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
   }
 
   private initMap() {
-    this.map = L.map('route-editor-map', {
-      center: [this.defaultLat, this.defaultLng],
-      zoom: this.defaultZoom,
-      preferCanvas: true
-    });
-    this.addTileLayer();
-    this.map.on('click', (e: L.LeafletMouseEvent) => {
-      this.addPin(e.latlng);
-      this.updateRouteLine();
-    });
+    try {
+      const mapElement = document.getElementById('route-editor-map');
+      if (!mapElement) {
+        console.error('Map element not found');
+        return;
+      }
+      
+      this.map = L.map('route-editor-map', {
+        center: [this.defaultLat, this.defaultLng],
+        zoom: this.defaultZoom,
+        preferCanvas: true
+      });
+      this.addTileLayer();
+      this.map.on('click', (e: L.LeafletMouseEvent) => {
+        this.addPin(e.latlng);
+        this.updateRouteLine();
+      });
+    } catch (error) {
+      console.error('Error initializing map:', error);
+    }
   }
 
   private addTileLayer() {
@@ -203,9 +219,13 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
     
     try {
       const points = this.markers.map(m => m.getLatLng());
+      console.log('Follow Roads enabled:', this.snapToRoads);
+      
       const routePath = this.snapToRoads 
         ? await this.getRoutePath(points) 
         : points;
+
+      console.log('Route path points:', routePath.length, 'snapToRoads:', this.snapToRoads);
 
       this.routeLine = L.polyline(routePath, {
         color: this.routeColor,
@@ -301,8 +321,5 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
     }
   }
 
-  toggleSnapToRoads() {
-    this.snapToRoads = !this.snapToRoads;
-    this.updateRouteLine();
-  }
+  // toggleSnapToRoads() method removed - using ngModel directly now
 }

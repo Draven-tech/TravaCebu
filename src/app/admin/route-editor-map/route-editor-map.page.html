@@ -6,16 +6,17 @@
     <div class="admin-title">Jeepney Route Editor</div>
   </div>
   <div class="osrm-status-indicator" style="margin: 8px 0 0 16px; display: flex; align-items: center;">
-    <ion-icon [name]="osrmStatus === 'online' ? 'checkmark-circle' : osrmStatus === 'offline' ? 'close-circle' : 'help-circle'" [color]="osrmStatus === 'online' ? 'success' : osrmStatus === 'offline' ? 'danger' : 'medium'"></ion-icon>
-    <span style="margin-left: 8px; font-weight: 500;">
-      OSRM Server: <span [ngStyle]="{ color: osrmStatus === 'online' ? 'green' : osrmStatus === 'offline' ? 'red' : 'gray' }">
-        {{ osrmStatus === 'online' ? 'Online' : osrmStatus === 'offline' ? 'Offline' : 'Checking...' }}
-      </span>
+  <ion-icon [name]="osrmStatus === 'online' ? 'checkmark-circle' : osrmStatus === 'offline' ? 'close-circle' : 'help-circle'" [color]="osrmStatus === 'online' ? 'success' : osrmStatus === 'offline' ? 'danger' : 'medium'"></ion-icon>
+  <span style="margin-left: 8px; font-weight: 500;">
+    <span class="snapping-status-label" style="font-weight: bold; margin-right: 4px; color: #e74c3c;">OSRM Status:</span>
+    <span [ngStyle]="{ color: osrmStatus === 'online' ? 'green' : osrmStatus === 'offline' ? 'red' : 'gray' }">
+      {{ osrmStatus === 'online' ? 'Online' : osrmStatus === 'offline' ? 'Offline' : 'Checking...' }}
     </span>
-    <ion-button size="small" fill="clear" (click)="checkOsrmStatus()" style="margin-left: 8px;">
-      <ion-icon name="refresh"></ion-icon>
-    </ion-button>
-  </div>
+  </span>
+  <ion-button size="small" fill="clear" (click)="checkOsrmStatus()" style="margin-left: 8px;">
+    <ion-icon name="refresh"></ion-icon>
+  </ion-button>
+</div>
   <ion-item>
     <ion-label>Map Tiles</ion-label>
     <ion-select [(ngModel)]="selectedTile" (ionChange)="onTileChange()">
@@ -55,7 +56,7 @@
         <ion-label>Follow Roads</ion-label>
         <ion-toggle 
           [(ngModel)]="snapToRoads" 
-          (ionChange)="toggleSnapToRoads()"
+          (ionChange)="updateRouteLine()"
           [disabled]="isCalculatingRoute">
         </ion-toggle>
         <ion-spinner *ngIf="isCalculatingRoute" slot="end"></ion-spinner>

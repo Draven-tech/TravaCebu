@@ -11,7 +11,15 @@ const config: CapacitorConfig = {
       'https://maps.googleapis.com',
       'https://maps.googleapis.com/*',
       'https://maps.google.com',
-      'https://maps.google.com/*'
+      'https://maps.google.com/*',
+      'https://server.arcgisonline.com',
+      'https://server.arcgisonline.com/*',
+      'https://*.tile.openstreetmap.org',
+      'https://*.tile.openstreetmap.org/*',
+      'https://router.project-osrm.org',
+      'https://router.project-osrm.org/*',
+      'https://api.openrouteservice.org',
+      'https://api.openrouteservice.org/*'
     ]
   },
   plugins: {

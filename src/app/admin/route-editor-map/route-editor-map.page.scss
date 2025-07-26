@@ -63,7 +63,7 @@ ion-card {
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-  margin: 16px;
+  margin: 8px;
   border: 1px solid #f3e7d3;
   animation: slideUp 0.6s ease-out;
   position: relative;
@@ -91,9 +91,9 @@ ion-card {
 ion-item {
   --background: #fff;
   --border-radius: 12px;
-  --padding-start: 16px;
-  --padding-end: 16px;
-  margin-bottom: 16px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  margin-bottom: 8px;
   border: 1.5px solid #e74c3c;
   box-shadow: 0 2px 8px rgba(44, 62, 80, 0.04);
   transition: all 0.3s ease;
@@ -148,4 +148,32 @@ ion-fab-list {
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+#route-editor-map {
+  width: calc(100% - 32px);
+  height: 75vh;
+  border-radius: 12px;
+  margin: 8px 16px;
+  border: 2px solid #e74c3c;
+  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.15);
+  z-index: 1;
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+#route-editor-map .leaflet-container {
+  border-radius: 12px;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.osrm-status-indicator {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin: 4px 8px;
+  border: 1px solid #e74c3c;
+  font-size: 0.85rem;
 }

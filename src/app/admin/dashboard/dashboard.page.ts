@@ -34,17 +34,22 @@ export class DashboardPage implements OnInit {
   }
 
   navigateTo(route: string) {
+    console.log('Dashboard navigating to:', route);
     switch (route) {
       case 'route-editor':
-        this.router.navigate(['/admin/route-editor-map']);
+        console.log('Navigating to route-editor');
+        this.router.navigate(['/admin/route-editor']);
         break;
       case 'route-list':
+        console.log('Navigating to route-list');
         this.router.navigate(['/admin/route-list']);
         break;
       case 'tourist-spot-editor':
+        console.log('Navigating to tourist-spot-editor');
         this.router.navigate(['/admin/tourist-spot-editor']);
         break;
       case 'tourist-spot-list':
+        console.log('Navigating to tourist-spot-list');
         this.router.navigate(['/admin/tourist-spot-list']);
         break;
     }

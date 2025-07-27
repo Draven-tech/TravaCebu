@@ -16,11 +16,12 @@ export class UserDashboardPage implements OnInit {
   userId: string | null = null;
   userData: any = null;
   spots: any[] = [];
-  visitedSpots: any[] = []; // ✅ added for history
   isLoading = true;
   tags = ['All', 'Attraction', 'Mall', 'Beach', 'Landmark', 'Museum', 'Park'];
   selectedTag = 'All';
   originalSpots: any[] = [];
+  visitedSpots: any[] = [];
+
 
   constructor(
     private route: ActivatedRoute,
@@ -30,43 +31,26 @@ export class UserDashboardPage implements OnInit {
     private bucketService: BucketService,
     private navCtrl: NavController,
     private toastCtrl: ToastController
-  ) {}
+  ) { }
 
   async ngOnInit() {
+    // Get Firebase Auth UID
     const currentUser = await this.afAuth.currentUser;
     this.userId = this.route.snapshot.paramMap.get('uid') ?? currentUser?.uid ?? null;
     if (!this.userId) {
       return;
     }
-
-    this.firestore
-      .collection('users')
-      .doc(this.userId)
-      .valueChanges()
-      .subscribe((data) => {
-        this.userData = data;
-      });
-
+    // Load user profile data
+    this.firestore.collection('users').doc(this.userId).valueChanges().subscribe(data => {
+      this.userData = data;
+    });
     // Load tourist spots
-    this.firestore
-      .collection('tourist_spots')
-      .valueChanges({ idField: 'id' })
-      .subscribe((spots) => {
-        this.spots = spots;
-        this.originalSpots = spots;
-        this.applyFilter();
-        this.isLoading = false;
-      });
-
-    // ✅ Load visited spots
-    this.firestore
-      .collection('users')
-      .doc(this.userId)
-      .collection('visitedSpots', ref => ref.orderBy('visitedAt', 'desc'))
-      .valueChanges({ idField: 'id' })
-      .subscribe((visited) => {
-        this.visitedSpots = visited;
-      });
+    this.firestore.collection('tourist_spots').valueChanges({ idField: 'id' }).subscribe(spots => {
+      this.spots = spots;
+      this.originalSpots = spots;
+      this.isLoading = false;
+    });
+    await this.loadVisitedSpots();
   }
 
   loadSpots() {
@@ -77,7 +61,7 @@ export class UserDashboardPage implements OnInit {
       .subscribe({
         next: (data) => {
           this.originalSpots = data;
-          this.applyFilter();
+          this.applyFilter(); // filter based on current tag
           this.isLoading = false;
         },
         error: (err) => {
@@ -91,49 +75,23 @@ export class UserDashboardPage implements OnInit {
     this.selectedTag = tag;
     this.applyFilter();
   }
-
-  async openSpotDetail(spotId: string) {
-    const spot = this.spots.find(s => s.id === spotId);
-    if (spot && this.userId) {
-      await this.logVisitedSpot(spot); // ✅ track the visit
-    }
+  openSpotDetail(spotId: string) {
     this.navCtrl.navigateForward(`/tourist-spot-detail/${spotId}`);
   }
-
-  // ✅ Save spot to user's visited history
-  async logVisitedSpot(spot: any) {
-    if (!this.userId || !spot?.id) return;
-
-    const visitedRef = this.firestore
-      .collection('users')
-      .doc(this.userId)
-      .collection('visitedSpots')
-      .doc(spot.id);
-
-    await visitedRef.set(
-      {
-        spotId: spot.id,
-        name: spot.name,
-        img: spot.img || '',
-        visitedAt: new Date(),
-      },
-      { merge: true }
-    );
-  }
-
   applyFilter(): void {
     if (this.selectedTag === 'All') {
       this.spots = this.originalSpots;
     } else {
       this.spots = this.originalSpots.filter(
-        (spot) => spot.category?.toLowerCase() === this.selectedTag.toLowerCase()
+        spot => spot.category?.toLowerCase() === this.selectedTag.toLowerCase()
       );
+      
     }
   }
-
   async addToTrip(spot: any) {
     this.bucketService.addToBucket(spot);
-
+    
+    // Show success notification
     const toast = await this.toastCtrl.create({
       message: `${spot.name} added to bucket list!`,
       duration: 2000,
@@ -142,14 +100,26 @@ export class UserDashboardPage implements OnInit {
       buttons: [
         {
           icon: 'checkmark-circle',
-          side: 'start',
-        },
-      ],
+          side: 'start'
+        }
+      ]
     });
     toast.present();
+    
   }
-
   async logout() {
     await this.authService.logoutUser();
   }
+  async loadVisitedSpots() {
+  if (!this.userId) return;
+
+  const snapshot = await this.firestore
+    .collection(`users/${this.userId}/visitedSpots`, ref => ref.orderBy('visitedAt', 'desc'))
+    .get()
+    .toPromise();
+
+  this.visitedSpots = snapshot?.docs.map(doc => doc.data()) || [];
 }
+
+}
+

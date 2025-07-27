@@ -6,6 +6,7 @@ import { AlertController } from '@ionic/angular';
 import { StorageService } from '../services/storage.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
+
 @Component({
   selector: 'app-tourist-spot-detail',
   templateUrl: './tourist-spot-detail.page.html',
@@ -32,7 +33,8 @@ export class TouristSpotDetailPage implements OnInit {
     private afAuth: AngularFireAuth,
     private storageService: StorageService,
     private fb: FormBuilder,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+
   ) { }
 
   ngOnInit() {
@@ -61,6 +63,7 @@ export class TouristSpotDetailPage implements OnInit {
         this.reviews = data;
       });
   }
+
   async addReview() {
     if (!this.comment.trim() || this.rating < 1 || this.rating > 5) {
       this.showAlert('Error', 'Please provide a rating and a comment.');
@@ -85,9 +88,6 @@ export class TouristSpotDetailPage implements OnInit {
         username: this.postAsAnonymous ? 'Anonymous' : (user?.displayName || user?.email || 'Anonymous')
       };
 
-
-
-
       await this.firestore
         .collection('tourist_spots')
         .doc(this.spotId!)
@@ -101,6 +101,9 @@ export class TouristSpotDetailPage implements OnInit {
 
       this.loadReviews();
       this.showAlert('Success', 'Review submitted successfully!');
+
+
+
     } catch (error) {
       console.error('Failed to submit review:', error);
       this.showAlert('Error', 'Something went wrong while submitting your review.');
@@ -172,6 +175,9 @@ export class TouristSpotDetailPage implements OnInit {
       this.removeImage();
       this.rating = 5;
       this.postAsAnonymous = false;
+
+
+
     } catch (error) {
       console.error('Error uploading review:', error);
       this.showAlert('Error', 'Failed to upload review');
@@ -186,4 +192,35 @@ export class TouristSpotDetailPage implements OnInit {
     });
     await alert.present();
   }
+  
+  async markAsVisited() {
+  const user = await this.afAuth.currentUser;
+  if (!user || !this.spotId || !this.spotData) {
+    this.showAlert('Error', 'User not logged in or spot data missing.');
+    return;
+  }
+
+  const visitedRef = this.firestore
+    .collection('users')
+    .doc(user.uid)
+    .collection('visitedSpots')
+    .doc(this.spotId);
+
+  try {
+    await visitedRef.set(
+      {
+        spotId: this.spotId,
+        name: this.spotData.name || '',
+        img: this.spotData.img || '',
+        visitedAt: new Date(),
+      },
+      { merge: true }
+    );
+
+    this.showAlert('Success', 'Marked as visited!');
+  } catch (error) {
+    console.error('Error marking as visited:', error);
+    this.showAlert('Error', 'Failed to mark as visited.');
+  }
+}
 }

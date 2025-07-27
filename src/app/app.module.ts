@@ -9,7 +9,7 @@ import { AppRoutingModule } from './app-routing.module';
 
 import { AngularFireModule } from '@angular/fire/compat';
 import { AngularFireAuthModule } from '@angular/fire/compat/auth';
-import { AngularFirestoreModule } from '@angular/fire/compat/firestore';
+import { AngularFirestoreModule, SETTINGS } from '@angular/fire/compat/firestore'; 
 import { environment } from '../environments/environment';
 import { HttpClientModule } from '@angular/common/http'; 
 import { initializeApp } from 'firebase/app';
@@ -31,7 +31,7 @@ try {
     AppRoutingModule, 
     AngularFireModule.initializeApp(environment.firebase),
     AngularFireAuthModule,
-    AngularFirestoreModule
+    AngularFirestoreModule.enablePersistence()
   ],
   providers: [{ provide: RouteReuseStrategy, useClass: IonicRouteStrategy }],
   bootstrap: [AppComponent],

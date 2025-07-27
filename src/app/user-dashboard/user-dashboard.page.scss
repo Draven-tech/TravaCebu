@@ -76,7 +76,24 @@ ion-chip {
     font-weight: bold;
   }
 }
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 
+ion-content {
+  flex: 1;
+  --padding-bottom: 70px; /* Prevent content from hiding behind the footer */
+}
+
+ion-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
 // Enhanced neumorphic tab styling
 .tab-btn {
   display: flex;

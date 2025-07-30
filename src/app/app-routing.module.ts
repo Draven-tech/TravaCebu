@@ -51,7 +51,11 @@ const routes: Routes = [
   {
     path: 'privacy',
     loadChildren: () => import('./privacy/privacy.module').then(m => m.PrivacyPageModule)
+  },  {
+    path: 'user-calendar',
+    loadChildren: () => import('./user-calendar/user-calendar.module').then( m => m.UserCalendarPageModule)
   },
+
 ];
 
 @NgModule({

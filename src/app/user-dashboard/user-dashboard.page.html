@@ -79,34 +79,4 @@
   <p>No visited spots yet.</p>
 </ion-text>
 
-<ion-footer>
-  <ion-toolbar color="warning">
-    <ion-grid>
-      <ion-row class="ion-justify-content-around ion-align-items-center">
-        <ion-col size="3" class="tab-btn">
-          <ion-button fill="clear" routerLink="user-dashboard">
-            <ion-icon name="home-outline"></ion-icon>
-          </ion-button>
-        </ion-col>
-        <ion-col size="3" class="tab-btn">
-          <ion-button fill="clear" routerLink="/bucket-list">
-            <ion-icon name="basket-outline"></ion-icon>
-            <ion-label></ion-label>
-          </ion-button>
-        </ion-col>
-        <ion-col size="3" class="tab-btn">
-          <ion-button fill="clear" routerLink="/user-map">
-            <ion-icon name="map-outline"></ion-icon>
-            <ion-label></ion-label>
-          </ion-button>
-        </ion-col>
-        <ion-col size="3" class="tab-btn">
-          <ion-button fill="clear" routerLink="/user-profile">
-            <ion-icon name="person-outline"></ion-icon>
-            <ion-label></ion-label>
-          </ion-button>
-        </ion-col>
-      </ion-row>
-    </ion-grid>
-  </ion-toolbar>
-</ion-footer>
+<app-bottom-nav></app-bottom-nav>

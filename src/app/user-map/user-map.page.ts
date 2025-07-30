@@ -156,21 +156,31 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       componentProps: { spot },
       backdropDismiss: true
     });
-    modal.onDidDismiss().then(result => {
+    modal.onDidDismiss().then(async result => {
       if (result.data && result.data.addToBucket) {
-        this.bucketService.addToBucket(result.data.spot);
-        this.toastCtrl.create({
-          message: `${result.data.spot.name} added to bucket list!`,
-          duration: 2000,
-          color: 'success',
-          position: 'top',
-          buttons: [
-            {
-              icon: 'checkmark-circle',
-              side: 'start'
-            }
-          ]
-        }).then(toast => toast.present());
+        try {
+          await this.bucketService.addToBucket(result.data.spot);
+          this.toastCtrl.create({
+            message: `${result.data.spot.name} added to bucket list!`,
+            duration: 2000,
+            color: 'success',
+            position: 'top',
+            buttons: [
+              {
+                icon: 'checkmark-circle',
+                side: 'start'
+              }
+            ]
+          }).then(toast => toast.present());
+        } catch (error) {
+          console.error('Error adding to bucket list:', error);
+          this.toastCtrl.create({
+            message: 'Failed to add to bucket list. Please try again.',
+            duration: 2000,
+            color: 'danger',
+            position: 'top'
+          }).then(toast => toast.present());
+        }
       }
     });
     await modal.present();

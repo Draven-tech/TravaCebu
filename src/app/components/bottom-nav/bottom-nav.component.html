@@ -1,0 +1,24 @@
+<div class="side-nav">
+    <div class="bottom-nav">
+      <div class="nav-button" [class.active]="currentPage === 'user-dashboard'" (click)="navigateTo('user-dashboard')">
+        <ion-icon name="home-outline"></ion-icon>
+      </div>
+  
+      <div class="nav-button" [class.active]="currentPage === 'bucket-list'" (click)="navigateTo('bucket-list')">
+        <ion-icon name="basket-outline"></ion-icon>
+      </div>
+  
+      <div class="nav-button" [class.active]="currentPage === 'user-map'" (click)="navigateTo('user-map')">
+        <ion-icon name="map-outline"></ion-icon>
+      </div>
+  
+      <div class="nav-button" [class.active]="currentPage === 'user-calendar'" (click)="navigateTo('user-calendar')">
+        <ion-icon name="calendar-outline"></ion-icon>
+      </div>
+  
+      <div class="nav-button" [class.active]="currentPage === 'user-profile'" (click)="navigateTo('user-profile')">
+        <ion-icon name="person-outline"></ion-icon>
+      </div>
+    </div>
+  </div>
+  

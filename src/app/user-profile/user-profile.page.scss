@@ -1,173 +1,19 @@
-.profile-container {
-  max-width: 600px;
-  margin: 0 auto;
+.user-profile-content {
+  --background: #ffffff;
 }
 
-.profile-header {
-  text-align: center;
-  margin-bottom: 30px;
-  padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  color: white;
-  margin-bottom: 20px;
-
-  .avatar {
-    width: 120px;
-    height: 120px;
-    margin: 0 auto 20px;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    cursor: pointer;
-    transition: transform 0.3s ease;
-
-    &:hover {
-      transform: scale(1.05);
-    }
-
-    img {
-      object-fit: cover;
-    }
-  }
-
-  .user-info {
-    h2 {
-      margin: 0 0 8px 0;
-      font-size: 1.8rem;
-      font-weight: 700;
-    }
-
-    p {
-      margin: 4px 0;
-      opacity: 0.9;
-      font-size: 1rem;
-
-      &.username {
-        font-weight: 600;
-        color: #FFD144;
-      }
-    }
-  }
-}
-
-ion-card {
-  margin-bottom: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-  ion-card-header {
-    background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
-
-    ion-card-title {
-      color: #333;
-      font-weight: 600;
-      font-size: 1.2rem;
-    }
-  }
-
-  ion-card-content {
-    padding: 0;
-
-    ion-list {
-      padding: 0;
-
-      ion-item {
-        --padding-start: 16px;
-        --padding-end: 16px;
-        --min-height: 60px;
-
-        ion-label {
-          h3 {
-            color: #333;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 4px;
-          }
-
-          p {
-            color: #666;
-            font-size: 1rem;
-            margin: 0;
-          }
-        }
-      }
-    }
-  }
-}
-
-ion-button {
-  --border-radius: 8px;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
-  font-weight: 600;
-}
-
-// Loading state
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #666;
-}
-
-// Upload state
-.uploading {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-// Profile view alert styling
-.profile-view-alert .alert-wrapper {
-  background: #fff;
-  border-radius: 12px;
-  max-width: 360px;
-  padding: 0;
-}
-
-.profile-view-alert img {
-  border-radius: 12px;
-  width: 100%;
-  height: auto;
-}
-
-::ng-deep .avatar-action-sheet .action-sheet-group {
-  border-radius: 16px;
-  background: #fff;
-  padding: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-::ng-deep .avatar-action-sheet .action-sheet-title {
-  font-weight: bold;
-  font-size: 1rem;
-  padding: 12px 16px;
-  color: #333;
-}
-
-::ng-deep .avatar-action-sheet .action-sheet-button {
-  font-size: 1rem;
-  font-weight: 500;
-  padding: 14px 16px;
-  color: #222;
-  border-radius: 12px;
+ion-content {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  transition: background 0.2s ease;
+  padding: 16px;
+  background: #ffffff;
+  padding-top: 140px;
 }
 
-::ng-deep .avatar-action-sheet .action-sheet-button:hover {
-  background: #f4f4f4;
-}
 
-::ng-deep .avatar-action-sheet .action-sheet-icon {
-  font-size: 20px;
-  margin-right: 12px;
-  color: #666;
-}
+///////////////////////////////////////////// bottom header ////////////////////////////////////////////////
 
-::ng-deep .avatar-action-sheet .action-sheet-cancel {
-  color: #e53935;
-  font-weight: bold;
-}
 .tab-btn {
   display: flex;
   justify-content: center;
@@ -179,7 +25,7 @@ ion-button {
     text-align: center;
     --padding-start: 0;
     --padding-end: 0;
-    --color: #2D3748;
+    --color: #35482d;
     --background: #FFD144;
     --background-hover: #FFE066;
     --background-activated: #FFC107;
@@ -222,3 +68,242 @@ ion-button {
     text-shadow: 0 1px 2px rgba(0,0,0,0.1);
   }
 }
+
+
+//////////////////////////////////////////////////////// profile buuble on top ///////////////////////////////////
+
+.profile-bubble {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  z-index: 10;
+
+  ion-avatar {
+    width: 64px;
+    height: 64px;
+    border: 3px solid #FFD144;
+    margin-right: 16px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+  }
+
+    ion-menu-button {
+    --color: #000; // or any color you prefer
+  }
+
+  .user-text {
+    flex-grow: 1;
+
+    h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+      color: #000;
+    }
+
+    p {
+      font-size: 0.75rem;
+      color: #666;
+      margin: 2px 0 0;
+    }
+
+    .bio {
+      font-size: 0.8rem;
+      color: #000000;
+      margin-top: 6px;
+    }
+  }
+}
+
+
+.profile-edit-box {
+  margin: 84px auto 24px;
+  padding: 16px;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 16px;
+  text-align: center;
+
+  ion-button {
+    --color: #000;
+    font-weight: bold;
+  }
+}
+
+
+
+//////////////////////// hamburger menu  styles /////////////////////////////////////////////
+ion-menu {
+  --width: 260px;
+  --background: transparent;
+  border-radius: 20px;
+
+  ion-header {
+    --background: #ffffff;
+
+    ion-toolbar {
+      --background: #ffffff;
+      --color: #ffffff;
+      font-weight: bold;
+      border-bottom: 1px solid #e0e0e0;
+      border-radius: 20px 20px 0 0;
+    }
+
+    ion-title {
+      color: #000000;
+    }
+  }
+
+  ion-content {
+    --background: #ffffff;
+
+    ion-list {
+      ion-item {
+        --background: transparent;
+        --color: #000000;
+        font-weight: 500;
+        --min-height: 50px;
+        border-bottom: none;
+
+        ion-icon {
+          color: #000000;
+          margin-right: 8px;
+        }
+
+        &:hover {
+          --background: #FFD144;
+        }
+      }
+    }
+  }
+}
+
+
+ion-menu.light-menu {
+  color-scheme: light;
+  border-radius: 20px !important;
+  --width: 260px;
+
+  ion-header, ion-toolbar, ion-content, ion-list, ion-item {
+    --background: #fff !important;
+    background: #fff !important;
+    color: #000 !important;
+    border-radius: 20px !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  ion-title {
+    color: #000 !important;
+  }
+
+  ion-item:hover {
+    --background: #FFD144 !important;
+    background: #FFD144 !important;
+  }
+}
+
+ion-menu.light-menu ion-item,
+ion-menu.light-menu ion-item::after,
+ion-menu.light-menu ion-item::before {
+  --border-width: 0 !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+::ng-deep ion-menu.light-menu ion-item,
+::ng-deep ion-menu.light-menu ion-item::after,
+::ng-deep ion-menu.light-menu ion-item::before {
+  --border-width: 0 !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+ion-menu.light-menu ion-list {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+::ng-deep ion-menu.light-menu ion-list {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+
+.custom-menu-title {
+  background: #FFD144;
+  color: #000;
+  font-size: 1.3rem;
+  font-weight: bold;
+  padding: 20px 24px 16px 24px;
+  border-radius: 20px 20px 0 0;
+  text-align: left;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+
+
+/////////////////////////////// tab button  //////////////////////////
+
+ .profile-tabs {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  gap: 12px;
+  background-color: #ffffff;
+  margin-top: 100px;
+
+  button {
+    flex: 1;
+    padding: 12px;
+    background-color: #fff;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: #444;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    cursor: pointer;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &.active {
+      background-color: #FFD144;
+      color: #000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+:host ::ng-deep .profile-tabs button.active {
+  background-color: #FFD144 !important;
+  color: #000 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+

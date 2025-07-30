@@ -9,6 +9,7 @@ import { UserMapPageRoutingModule } from './user-map-routing.module';
 import { UserMapPage } from './user-map.page';
 import { TouristSpotSheetComponent } from './tourist-spot-sheet.component';
 import { DaySpotPickerComponent } from './day-spot-picker.component';
+import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
 
 @NgModule({
   declarations: [
@@ -20,7 +21,8 @@ import { DaySpotPickerComponent } from './day-spot-picker.component';
     TouristSpotSheetComponent,
     IonicModule,
     FormsModule,
-    UserMapPageRoutingModule
+    UserMapPageRoutingModule,
+    BottomNavModule
   ]
 })
 export class UserMapPageModule {}

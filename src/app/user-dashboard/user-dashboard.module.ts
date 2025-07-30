@@ -7,13 +7,15 @@ import { IonicModule } from '@ionic/angular';
 import { UserDashboardPageRoutingModule } from './user-dashboard-routing.module';
 
 import { UserDashboardPage } from './user-dashboard.page';
+import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    UserDashboardPageRoutingModule
+    UserDashboardPageRoutingModule,
+    BottomNavModule
   ],
   declarations: [UserDashboardPage]
 })

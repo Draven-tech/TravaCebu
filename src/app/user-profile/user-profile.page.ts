@@ -1,4 +1,5 @@
 import { Component, ViewChild, OnInit, ElementRef  } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AuthService } from '../services/auth.service';
@@ -6,21 +7,28 @@ import { NavController, AlertController } from '@ionic/angular';
 import { StorageService } from '../services/storage.service';
 import { ActionSheetController, ModalController } from '@ionic/angular';
 import { ViewProfilePictureComponent } from '../modals/view-profile-picture/view-profile-picture.component';
+import { EditProfileModalComponent } from '../modals/edit-profile-modal/edit-profile-modal.component';
+import { MenuController } from '@ionic/angular';
+
+
+
 
 @Component({
-  standalone: false,
   selector: 'app-user-profile',
   templateUrl: './user-profile.page.html',
   styleUrls: ['./user-profile.page.scss'],
+  standalone: false,
 })
 export class UserProfilePage implements OnInit {
+  userId: string | null = null;
   userData: any = null;
-  loading = true;
   uploading: boolean = false;
+  activeTab = 'tab-1';
 
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
 
   constructor(
+    private route: ActivatedRoute,
     private afAuth: AngularFireAuth,
     private firestore: AngularFirestore,
     private authService: AuthService,
@@ -28,25 +36,32 @@ export class UserProfilePage implements OnInit {
     private storageService: StorageService,
     private alertCtrl: AlertController,
     private actionSheetCtrl: ActionSheetController,
-    private modalCtrl: ModalController
+    private modalCtrl: ModalController,
+    private menuCtrl: MenuController
   ) {}
 
   async ngOnInit() {
-    try {
-      const user = await this.afAuth.currentUser;
-      if (user) {
-        const doc = await this.firestore.collection('users').doc(user.uid).get().toPromise();
-        this.userData = doc?.data();
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    } finally {
-      this.loading = false;
+    // Get Firebase Auth UID
+    const currentUser = await this.afAuth.currentUser;
+    this.userId = this.route.snapshot.paramMap.get('uid') ?? currentUser?.uid ?? null;
+    if (!this.userId) {
+      return;
     }
+    
+    // Load user profile data
+    this.firestore.collection('users').doc(this.userId).valueChanges().subscribe(data => {
+      this.userData = data;
+    });
+
+    this.menuCtrl.enable(true, 'main-menu');
   }
 
   openAvatarOptions() {
     this.avatarInput.nativeElement.click();
+  }
+
+  setActiveTab(tab: string) {
+    this.activeTab = tab;
   }
 
   async presentAvatarOptions() {
@@ -87,6 +102,33 @@ async viewProfilePicture() {
   await modal.present();
 }
 
+
+async openEditProfileModal() {
+  const modal = await this.modalCtrl.create({
+    component: EditProfileModalComponent,
+    cssClass: 'edit-profile-modal-class fullscreen',
+    componentProps: {
+      fullName: this.userData?.fullName,
+      username: this.userData?.username,
+      bio: this.userData?.bio
+    },
+    backdropDismiss: true,
+    showBackdrop: true
+  });
+
+  await modal.present();
+
+  const { data } = await modal.onWillDismiss();
+  if (data) {
+    // update the view with returned data if needed
+    this.userData.fullName = data.fullName;
+    this.userData.username = data.username;
+    this.userData.bio = data.bio;
+  }
+}
+
+
+
   async onAvatarSelected(event: any) {
   const file: File = event.target.files[0];
   if (!file) return;
@@ -121,21 +163,12 @@ async viewProfilePicture() {
     await alert.present();
   }
 
+
   async logout() {
-    try {
-      await this.authService.logout();
-      this.navCtrl.navigateRoot('/welcome');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    await this.authService.logoutUser();
   }
 
-  async goToHome() {
-    const user = await this.afAuth.currentUser;
-    if (user) {
-      this.navCtrl.navigateForward(`/user-dashboard/${user.uid}`);
-    } else {
-      this.navCtrl.navigateRoot('/login');
-    }
+  goToHome() {
+    this.navCtrl.navigateForward('/user-dashboard');
   }
 }

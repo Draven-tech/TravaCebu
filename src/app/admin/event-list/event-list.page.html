@@ -1,0 +1,72 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>event-list</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="admin-topbar">
+    <ion-button fill="clear" routerLink="/admin/dashboard">
+      <ion-icon name="arrow-back"></ion-icon>
+    </ion-button>
+    <div class="admin-title">Events</div>
+    <ion-button fill="clear" (click)="refreshEvents()">
+      <ion-icon name="refresh"></ion-icon>
+    </ion-button>
+  </div>
+  
+  <div class="admin-toolbar-search">
+    <ion-searchbar [(ngModel)]="searchQuery" placeholder="Search events..."></ion-searchbar>
+  </div>
+  
+  <div *ngIf="isLoading" class="loading-container">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading events...</p>
+  </div>
+  
+  <ion-list *ngIf="!isLoading">
+    <ion-item-sliding *ngFor="let event of filterEvents()">
+      <ion-item (click)="openEventDetail(event)">
+        <ion-avatar slot="start" *ngIf="event.imageUrl">
+          <img [src]="event.imageUrl" [alt]="event.name">
+        </ion-avatar>
+        <ion-avatar slot="start" *ngIf="!event.imageUrl">
+          <ion-icon name="calendar" size="large" color="primary"></ion-icon>
+        </ion-avatar>
+        
+        <ion-label>
+          <h2>{{ event.name || 'No name' }}</h2>
+          <p><strong>Date:</strong> {{ event.date }} at {{ event.time }}</p>
+          <p><strong>Location:</strong> {{ event.location || 'No location' }}</p>
+          <p><small>{{ datePipe.transform(event.createdAt, 'mediumDate') || 'No date' }}</small></p>
+        </ion-label>
+        
+        <ion-badge color="primary" slot="end">
+          <ion-icon name="calendar" size="small"></ion-icon>
+        </ion-badge>
+      </ion-item>
+
+      <ion-item-options side="end">
+        <ion-item-option color="primary" (click)="editEvent(event); $event.stopPropagation()">
+          <ion-icon name="create" slot="icon-only"></ion-icon>
+        </ion-item-option>
+        <ion-item-option color="danger" (click)="deleteEvent(event.id); $event.stopPropagation()">
+          <ion-icon name="trash" slot="icon-only"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+    </ion-item-sliding>
+  </ion-list>
+
+  <div *ngIf="!isLoading && filterEvents().length === 0" class="empty-state">
+    <ion-icon name="calendar-outline" size="large" color="medium"></ion-icon>
+    <h3>No events found</h3>
+    <p *ngIf="searchQuery">Try adjusting your search terms</p>
+    <p *ngIf="!searchQuery">Create your first event to get started</p>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="navigateToEditor()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

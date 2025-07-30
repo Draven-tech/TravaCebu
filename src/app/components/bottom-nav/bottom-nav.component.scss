@@ -1,0 +1,43 @@
+.side-nav {
+    position: fixed;
+    bottom: 20px; /* 20px gap from bottom to avoid system home button */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: auto;
+    pointer-events: none; /* Important: allow touch through except on buttons */
+  }
+  
+  .bottom-nav {
+    border-radius: 16px;
+    padding: 8px 12px;
+    display: flex;
+    gap: 3%;
+    align-items: center;
+    pointer-events: auto; /* React to touch */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: black;
+  }
+  
+  .nav-button {
+    width: 50px;
+    height: 50px;   
+    border-radius: 12px; /* slight rounding for modern feel */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    color: #969696;
+    transition: background 0.3s;
+    cursor: pointer;
+  }
+  
+  .nav-button.active {
+    background: #FFD144;
+    color: #fff;
+  }
+  
+  .nav-button:hover {
+    background: #FFD144;
+  }
+  

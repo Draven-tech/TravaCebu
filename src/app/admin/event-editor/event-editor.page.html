@@ -1,0 +1,104 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Create Event</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="admin-topbar">
+    <ion-button fill="clear" [routerLink]="isEditing ? '/admin/event-list' : '/admin/dashboard'">
+      <ion-icon name="arrow-back"></ion-icon>
+    </ion-button>
+    <div class="admin-title">{{ isEditing ? 'Edit Event' : 'Add Event' }}</div>
+  </div>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Event Details</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Event Name <ion-text color="danger">*</ion-text></ion-label>
+        <ion-input [(ngModel)]="eventName" placeholder="Enter event name..."></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Description</ion-label>
+        <ion-textarea [(ngModel)]="eventDescription" rows="3" placeholder="Enter event description..."></ion-textarea>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Date <ion-text color="danger">*</ion-text></ion-label>
+        <ion-input type="date" [(ngModel)]="eventDate"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Time <ion-text color="danger">*</ion-text></ion-label>
+        <ion-input type="time" [(ngModel)]="eventTime"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Location <ion-text color="danger">*</ion-text></ion-label>
+        <ion-select 
+          [(ngModel)]="selectedSpotId" 
+          (ionChange)="onSpotSelected($event)"
+          placeholder="Select a tourist spot..."
+          interface="popover">
+          <ion-select-option 
+            *ngFor="let spot of touristSpots" 
+            [value]="spot.id">
+            {{ spot.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <div *ngIf="loadingSpots" style="text-align: center; padding: 20px;">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Loading tourist spots...</p>
+      </div>
+
+      <div *ngIf="!loadingSpots && touristSpots.length === 0" style="text-align: center; padding: 20px; color: #666;">
+        <ion-icon name="location-outline" size="large" color="medium"></ion-icon>
+        <p>No tourist spots found.</p>
+        <p><small>Please add tourist spots first before creating events.</small></p>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Event Image</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Upload Image</ion-label>
+        <input type="file" (change)="onImageSelected($event)" accept="image/*" />
+      </ion-item>
+      <div *ngIf="imageUrl" style="margin-top: 10px; text-align: center;">
+        <img [src]="imageUrl" style="max-width: 100%; max-height: 200px; border-radius: 8px;" />
+        <ion-button fill="clear" color="danger" size="small" (click)="removeImage()" style="margin-top: 8px;">
+          <ion-icon name="trash"></ion-icon>
+          Remove Image
+        </ion-button>
+      </div>
+      <div *ngIf="isUploading" style="text-align:center; margin: 10px 0;">
+        <ion-spinner name="crescent"></ion-spinner>
+        <div>Uploading image...</div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button>
+      <ion-icon name="menu"></ion-icon>
+    </ion-fab-button>
+    <ion-fab-list side="top">
+      <ion-fab-button color="danger" (click)="clearEvent()">
+        <ion-icon name="trash"></ion-icon>
+      </ion-fab-button>
+      <ion-fab-button color="success" (click)="saveEvent()">
+        <ion-icon name="save"></ion-icon>
+      </ion-fab-button>
+    </ion-fab-list>
+  </ion-fab>
+</ion-content>

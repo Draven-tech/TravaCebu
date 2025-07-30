@@ -1,0 +1,115 @@
+.calendar-container {
+  height: calc(100vh - 120px); // Account for header and bottom nav
+  padding: 10px;
+  
+  ::ng-deep {
+    // FullCalendar styling
+    .fc {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      
+      .fc-toolbar {
+        background: #ffc409;
+        color: #000;
+        border-radius: 8px; 
+        border: 1px solid #000; 
+        padding: 12px 20px;
+        margin-bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between; 
+        min-height: 50px;
+        
+        .fc-toolbar-title {
+          font-weight: bold;
+          color: #000;
+          font-size: 16px;
+          margin: 0 12px;
+          text-transform: capitalize;
+        }
+        
+        .fc-button {
+          background: #f5f5dc;
+          border: none;
+          color: #000;
+          border-radius: 4px;
+          padding: 4px 8px; 
+          margin: 0 2px; 
+          font-weight: 500;
+          font-size: 12px; 
+          transition: background 0.2s ease;
+          min-width: 30px;
+          height: 28px;
+          
+          &:hover {
+            background: #e8e8d0;
+          }
+          
+          &.fc-button-active {
+            background: #e8e8d0;
+          }
+          
+          // Style the "today" button text
+          &.fc-today-button {
+            color: #ffffff; // Light gray text for "today" button
+          }
+        }
+        
+        // Layout the toolbar chunks horizontally
+        .fc-toolbar-chunk {
+          display: flex;
+          align-items: center;
+          
+          &:first-child {
+            justify-content: flex-start; // Left side: prev, title, next
+            flex: 1;
+          }
+          
+          &:last-child {
+            justify-content: flex-end; // Right side: today
+          }
+        }
+      }
+      
+      .fc-daygrid-day {
+        border: 1px solid #ddd;
+        padding: 4px; // Smaller padding to make boxes smaller
+        
+        &.fc-day-today {
+          background: rgba(255, 196, 9, 0.1);
+        }
+      }
+      
+      .fc-daygrid-day-number {
+        color: #333;
+        font-weight: 500;
+        font-size: 14px; // Slightly smaller font for dates
+      }
+      
+      // Style the weekday headers (Sun, Mon, Tue, etc.)
+      .fc-col-header-cell {
+        background: #ffc409; // Yellow background for weekday headers
+        color: #000;
+        font-weight: bold;
+        padding: 8px 4px;
+        border: 1px solid #ddd;
+        
+        .fc-col-header-cell-cushion {
+          color: #000;
+          font-weight: bold;
+        }
+      }
+      
+      .fc-event {
+        border-radius: 4px;
+        border: none;
+        font-size: 12px;
+        padding: 2px 4px;
+        margin: 1px 0;
+      }
+      
+      .fc-daygrid-event-dot {
+        border-color: var(--ion-color-primary);
+      }
+    }
+  }
+}

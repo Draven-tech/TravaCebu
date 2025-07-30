@@ -1,0 +1,33 @@
+<div class="custom-modal-header">
+  <button class="back-btn" (click)="close()">
+    <ion-icon name="arrow-back-outline"></ion-icon>
+  </button>
+  <span class="header-title">Edit Profile</span>
+</div>
+
+<div class="edit-profile-form">
+  <div class="form-group">
+    <label class="floating-label" [class.filled]="updatedFullName">
+      <span>Full Name</span>
+      <input type="text" [(ngModel)]="updatedFullName" name="fullName" class="native-input" />
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label class="floating-label" [class.filled]="updatedUsername">
+      <span>Username</span>
+      <input type="text" [(ngModel)]="updatedUsername" name="username" class="native-input" />
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label class="floating-label" [class.filled]="updatedBio">
+      <span>Bio</span>
+      <textarea [(ngModel)]="updatedBio" name="bio" class="native-textarea"></textarea>
+    </label>
+  </div>
+</div>
+
+<div class="save-btn-container">
+  <button type="button" class="save-btn" (click)="saveChanges()">SAVE</button>
+</div>

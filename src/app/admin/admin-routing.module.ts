@@ -50,6 +50,16 @@ const routes: Routes = [
     path: 'tourist-spot-detail',
     loadChildren: () => import('./tourist-spot-detail/tourist-spot-detail.module').then(m => m.TouristSpotDetailPageModule),
     canActivate: [AdminGuard]
+  },
+  {
+    path: 'event-list',
+    loadChildren: () => import('./event-list/event-list.module').then( m => m.EventListPageModule),
+    canActivate: [AdminGuard]
+  },
+  {
+    path: 'event-editor',
+    loadChildren: () => import('./event-editor/event-editor.module').then( m => m.EventEditorPageModule),
+    canActivate: [AdminGuard]
   }
 
 ];

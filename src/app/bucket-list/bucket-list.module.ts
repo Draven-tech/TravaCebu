@@ -9,6 +9,7 @@ import { ItineraryEditorComponent } from './itinerary-editor.component';
 import { ItineraryMapComponent } from './itinerary-map.component';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { RestaurantCardComponent } from './restaurant-card.component';
+import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
 
 @NgModule({
   imports: [
@@ -16,7 +17,8 @@ import { RestaurantCardComponent } from './restaurant-card.component';
     FormsModule,
     IonicModule,
     BucketListPageRoutingModule,
-    DragDropModule
+    DragDropModule,
+    BottomNavModule
   ],
   declarations: [
     BucketListPage,

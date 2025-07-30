@@ -52,6 +52,14 @@ export class DashboardPage implements OnInit {
         console.log('Navigating to tourist-spot-list');
         this.router.navigate(['/admin/tourist-spot-list']);
         break;
+      case 'event-editor':
+        console.log('Navigating to event-editor');
+        this.router.navigate(['/admin/event-editor']);
+        break;
+      case 'event-list':
+        console.log('Navigating to event-list');
+        this.router.navigate(['/admin/event-list']);
+      break;
     }
   }
 

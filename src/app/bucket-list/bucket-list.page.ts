@@ -19,6 +19,7 @@ export class BucketListPage implements OnInit {
   showCustomDays = false;
   setup = { days: 1, startTime: '1970-01-01T08:00', endTime: '1970-01-01T18:00' };
   editing = false;
+  isLoading = true;
 
   constructor(
     private bucketService: BucketService,
@@ -29,22 +30,46 @@ export class BucketListPage implements OnInit {
     private itineraryService: ItineraryService
   ) { }
 
-  ngOnInit() {
-    this.spots = this.bucketService.getBucket();
+  async ngOnInit() {
+    await this.loadBucketList();
   }
 
-  ionViewWillEnter() {
-    this.spots = this.bucketService.getBucket();
+  async ionViewWillEnter() {
+    await this.loadBucketList();
   }
 
-  remove(spotId: string) {
-    this.bucketService.removeFromBucket(spotId);
-    this.spots = this.bucketService.getBucket();
+  async loadBucketList() {
+    this.isLoading = true;
+    try {
+      this.spots = await this.bucketService.getBucket();
+      this.isLoading = false;
+    } catch (error) {
+      console.error('Error loading bucket list:', error);
+      this.isLoading = false;
+      this.showAlert('Error', 'Failed to load bucket list. Please try again.');
+    }
   }
 
-  clear() {
-    this.bucketService.clearBucket();
-    this.spots = [];
+  async remove(spotId: string) {
+    try {
+      await this.bucketService.removeFromBucket(spotId);
+      // Reload the bucket list to update the UI
+      await this.loadBucketList();
+    } catch (error) {
+      console.error('Error removing spot:', error);
+      this.showAlert('Error', 'Failed to remove spot from bucket list.');
+    }
+  }
+
+  async clear() {
+    try {
+      await this.bucketService.clearBucket();
+      // Reload the bucket list to update the UI
+      await this.loadBucketList();
+    } catch (error) {
+      console.error('Error clearing bucket list:', error);
+      this.showAlert('Error', 'Failed to clear bucket list.');
+    }
   }
   
   async goToHome() {

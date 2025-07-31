@@ -3,6 +3,7 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Router } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { HttpClient } from '@angular/common/http';
+import firebase from 'firebase/compat/app';
 
 @Injectable({
   providedIn: 'root'
@@ -13,13 +14,16 @@ export class AuthService {
     private afAuth: AngularFireAuth,
     private router: Router,
     private firestore: AngularFirestore
-  ) {}
+  ) { }
 
   async adminLogin(email: string, password: string) {
     try {
       const userCredential = await this.afAuth.signInWithEmailAndPassword(email, password);
       const adminDoc = await this.firestore.collection('admins').doc(userCredential.user?.uid).get().toPromise();
-      
+      this.afAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .then(() => console.log('Auth persistence: LOCAL'))
+        .catch(err => console.error('Persistence error', err));
+
       if (!adminDoc?.exists) {
         await this.afAuth.signOut();
         throw new Error('Access restricted to admins only');
@@ -36,12 +40,12 @@ export class AuthService {
   async isAdmin(): Promise<boolean> {
     const user = await this.afAuth.currentUser;
     if (!user?.uid) return false;
-    
+
     const adminDoc = await this.firestore.collection('admins')
       .doc(user.uid)
       .get()
       .toPromise();
-      
+
     return adminDoc?.exists || false;
   }
 
@@ -50,7 +54,7 @@ export class AuthService {
     this.router.navigate(['/admin/login']);
   }
 
-////////////////////////////////////////////////////login/////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////login/////////////////////////////////////////////////////////////////
 
   async loginUser(email: string, password: string) {
     try {
@@ -76,7 +80,7 @@ export class AuthService {
 
   async logoutUser() {
     await this.afAuth.signOut();
-    this.router.navigate(['/login']); 
+    this.router.navigate(['/login']);
   }
 
   async isUser(): Promise<boolean> {

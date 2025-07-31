@@ -37,6 +37,7 @@
     "@fullcalendar/interaction": "^6.1.18",
     "@ionic/angular": "^8.0.0",
     "@ionic/storage": "^4.0.0",
+    "@ionic/storage-angular": "^4.0.0",
     "axios": "^1.10.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",

@@ -69,6 +69,22 @@
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
+// Modal styles
+.create-post-modal {
+  --height: 80%;
+  --border-radius: 16px 16px 0 0;
+}
+
+.comments-modal {
+  --height: 70%;
+  --border-radius: 16px 16px 0 0;
+}
+
+// Ensure modals have proper backdrop
+ion-modal {
+  --backdrop-opacity: 0.5;
+}
+
 /* Marker Popups */
 .leaflet-popup-content {
   font-size: 14px;
@@ -130,4 +146,4 @@
   margin-top: 5px;
   width: 100%;
   box-sizing: border-box;
-} 
+}

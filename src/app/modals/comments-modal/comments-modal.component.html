@@ -1,0 +1,54 @@
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-buttons slot="start">
+      <ion-button (click)="dismiss()">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Comments</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="comments-content">
+  <div class="comments-container">
+    <div *ngIf="post?.comments?.length === 0" class="no-comments">
+      <ion-icon name="chatbubble-outline"></ion-icon>
+      <h3>No comments yet</h3>
+      <p>Be the first to comment!</p>
+    </div>
+
+    <div *ngFor="let comment of post?.comments" class="comment-item">
+      <ion-avatar class="comment-avatar">
+        <img [src]="comment.userPhotoURL || 'assets/img/default.png'" />
+      </ion-avatar>
+      <div class="comment-content">
+        <div class="comment-header">
+          <h4>{{ comment.userName }}</h4>
+          <span class="comment-time">{{ comment.timestamp?.toDate?.() | date:'short' }}</span>
+        </div>
+        <p>{{ comment.content }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Comment -->
+  <div class="add-comment-section">
+    <ion-item>
+      <ion-avatar slot="start">
+        <img [src]="userData?.photoURL || 'assets/img/default.png'" />
+      </ion-avatar>
+      <ion-input
+        [(ngModel)]="newComment"
+        placeholder="Write a comment..."
+        (keyup.enter)="addComment()">
+      </ion-input>
+      <ion-button
+        slot="end"
+        fill="clear"
+        (click)="addComment()"
+        [disabled]="!newComment.trim()">
+        <ion-icon name="send"></ion-icon>
+      </ion-button>
+    </ion-item>
+  </div>
+</ion-content> 

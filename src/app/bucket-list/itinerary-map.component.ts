@@ -1,7 +1,9 @@
-import { Component, Input, OnInit, OnDestroy, NgZone, AfterViewInit } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, AfterViewInit, NgZone } from '@angular/core';
 import { ModalController } from '@ionic/angular';
-import { ItineraryDay, ItinerarySpot } from '../services/itinerary.service';
 import * as L from 'leaflet';
+import { ItineraryDay, ItineraryService } from '../services/itinerary.service';
+import { DaySpotPickerComponent } from '../user-map/day-spot-picker.component';
+import { AlertController } from '@ionic/angular';
 
 @Component({
   selector: 'app-itinerary-map',
@@ -170,7 +172,12 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
   mapLoaded = false;
   useEsri = false; // Toggle between Esri Satellite and OpenStreetMap
 
-  constructor(private modalCtrl: ModalController, private ngZone: NgZone) {}
+  constructor(
+    private modalCtrl: ModalController, 
+    private ngZone: NgZone,
+    private itineraryService: ItineraryService,
+    private alertCtrl: AlertController
+  ) {}
 
   ngOnInit() {
     // Component initialized
@@ -183,10 +190,45 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
         if (this.map) this.map.invalidateSize();
       }, 500);
     }, 200);
+
+    // Add global functions for popup buttons
+    (window as any).addRestaurantToItinerary = (placeId: string, restaurantData: string) => {
+      console.log('addRestaurantToItinerary called with:', placeId, restaurantData);
+      try {
+        const restaurant = JSON.parse(restaurantData);
+        console.log('Parsed restaurant data:', restaurant);
+        this.ngZone.run(() => {
+          this.addToItinerary(restaurant, 'restaurant');
+        });
+      } catch (error) {
+        console.error('Error parsing restaurant data:', error);
+        console.error('Raw restaurant data:', restaurantData);
+      }
+    };
+
+    (window as any).addHotelToItinerary = (placeId: string, hotelData: string) => {
+      console.log('addHotelToItinerary called with:', placeId, hotelData);
+      try {
+        const hotel = JSON.parse(hotelData);
+        console.log('Parsed hotel data:', hotel);
+        this.ngZone.run(() => {
+          this.addToItinerary(hotel, 'hotel');
+        });
+      } catch (error) {
+        console.error('Error parsing hotel data:', error);
+        console.error('Raw hotel data:', hotelData);
+      }
+    };
   }
 
   ngOnDestroy() {
-    this.clearMarkers();
+    if (this.map) {
+      this.map.remove();
+    }
+    
+    // Clean up global functions
+    delete (window as any).addRestaurantToItinerary;
+    delete (window as any).addHotelToItinerary;
   }
 
   private initMap() {
@@ -313,32 +355,43 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
               marker.addTo(this.map);
             }
 
+            // Safely escape data for HTML
+            const hotelName = hotel.name || 'Hotel Name Not Available';
+            const hotelRating = hotel.rating ? `${hotel.rating}★` : 'Not Available';
+            const hotelLocation = hotel.vicinity || 'Location Not Available';
+            const placeId = hotel.place_id || '';
+            const safeHotelData = JSON.stringify(hotel).replace(/'/g, "\\'");
+
             const popup = L.popup({
               maxWidth: 250,
               className: 'hotel-popup'
             }).setContent(`
               <div style="padding: 10px;">
-                <h3 style="margin: 0 0 5px 0; color: #1976D2;">${hotel.name || 'Hotel Name Not Available'}</h3>
+                <h3 style="margin: 0 0 5px 0; color: #1976D2;">${hotelName}</h3>
                 <p style="margin: 5px 0; color: #666;">
-                  ${hotel.rating ? `Rating: ${hotel.rating}★<br>` : 'Rating: Not Available<br>'}
-                  ${hotel.vicinity ? `Location: ${hotel.vicinity}<br>` : 'Location: Not Available<br>'}
+                  Rating: ${hotelRating}<br>
+                  Location: ${hotelLocation}<br>
                   <strong>Day ${day.day} Hotel</strong>
                 </p>
                 <div style="margin-top: 10px;">
                   <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <a href="https://www.booking.com/search.html?ss=${encodeURIComponent(hotel.name || 'hotel')}" 
+                    <button onclick="window.addHotelToItinerary('${placeId}', '${safeHotelData}')" 
+                            style="background: #667eea; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                      📅 Add to Itinerary
+                    </button>
+                    <a href="https://www.booking.com/search.html?ss=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #1976D2; text-decoration: none; padding: 5px 8px; border: 1px solid #1976D2; border-radius: 4px; text-align: center; font-size: 12px;">
                       📖 Booking.com
                     </a>
-                    <a href="https://www.agoda.com/search?q=${encodeURIComponent(hotel.name || 'hotel')}" 
+                    <a href="https://www.agoda.com/search?q=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #E53E3E; text-decoration: none; padding: 5px 8px; border: 1px solid #E53E3E; border-radius: 4px; text-align: center; font-size: 12px;">
                       🏨 Agoda.com
                     </a>
-                    <a href="https://www.hotels.com/search.do?q-destination=${encodeURIComponent(hotel.name || 'hotel')}" 
+                    <a href="https://www.hotels.com/search.do?q-destination=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #38A169; text-decoration: none; padding: 5px 8px; border: 1px solid #38A169; border-radius: 4px; text-align: center; font-size: 12px;">
                       🏢 Hotels.com
                     </a>
-                    <a href="https://www.expedia.com/hotels?q=${encodeURIComponent(hotel.name || 'hotel')}" 
+                    <a href="https://www.expedia.com/hotels?q=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #805AD5; text-decoration: none; padding: 5px 8px; border: 1px solid #805AD5; border-radius: 4px; text-align: center; font-size: 12px;">
                       ✈️ Expedia
                     </a>
@@ -354,9 +407,9 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
         });
       }
     });
-  }
+}
 
-  private addRestaurantMarkers() {
+private addRestaurantMarkers() {
     this.itinerary.forEach((day, dayIndex) => {
       day.spots.forEach((spot, spotIndex) => {
         if (spot.restaurantSuggestions && spot.restaurantSuggestions.length > 0) {
@@ -379,29 +432,41 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
                 marker.addTo(this.map);
               }
 
+              // Safely escape data for HTML
+              const restaurantName = restaurant.name || 'Restaurant Name Not Available';
+              const restaurantRating = restaurant.rating ? `${restaurant.rating}★` : 'Not Available';
+              const restaurantLocation = restaurant.vicinity || 'Location Not Available';
+              const placeId = restaurant.place_id || '';
+              const safeRestaurantData = JSON.stringify(restaurant).replace(/'/g, "\\'");
+              const mealType = spot.mealType || 'meal';
+
               const popup = L.popup({
                 maxWidth: 250,
                 className: 'restaurant-popup'
               }).setContent(`
                 <div style="padding: 10px;">
-                  <h3 style="margin: 0 0 5px 0; color: #FF9800;">${restaurant.name || 'Restaurant Name Not Available'}</h3>
+                  <h3 style="margin: 0 0 5px 0; color: #FF9800;">${restaurantName}</h3>
                   <p style="margin: 5px 0; color: #666;">
-                    ${restaurant.rating ? `Rating: ${restaurant.rating}★<br>` : 'Rating: Not Available<br>'}
-                    ${restaurant.vicinity ? `Location: ${restaurant.vicinity}<br>` : 'Location: Not Available<br>'}
-                    <strong>${spot.mealType} option</strong><br>
+                    Rating: ${restaurantRating}<br>
+                    Location: ${restaurantLocation}<br>
+                    <strong>${mealType} option</strong><br>
                     Near: ${spot.name}
                   </p>
                   <div style="margin-top: 10px;">
                     <div style="display: flex; flex-direction: column; gap: 6px;">
-                      <a href="https://www.google.com/search?q=${encodeURIComponent((restaurant.name || 'restaurant') + ' reviews')}" 
+                      <button onclick="window.addRestaurantToItinerary('${placeId}', '${safeRestaurantData}')" 
+                              style="background: #667eea; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                        📅 Add to Itinerary
+                      </button>
+                      <a href="https://www.google.com/search?q=${encodeURIComponent(restaurantName + ' reviews')}" 
                          target="_blank" style="color: #FF9800; text-decoration: none; padding: 4px 6px; border: 1px solid #FF9800; border-radius: 4px; text-align: center; font-size: 11px;">
                         🔍 Google Reviews
                       </a>
-                      <a href="https://www.tripadvisor.com/search?q=${encodeURIComponent(restaurant.name || 'restaurant')}" 
+                      <a href="https://www.tripadvisor.com/search?q=${encodeURIComponent(restaurantName)}" 
                          target="_blank" style="color: #00AA6C; text-decoration: none; padding: 4px 6px; border: 1px solid #00AA6C; border-radius: 4px; text-align: center; font-size: 11px;">
                         🍽️ TripAdvisor
                       </a>
-                      <a href="https://www.zomato.com/search?q=${encodeURIComponent(restaurant.name || 'restaurant')}" 
+                      <a href="https://www.zomato.com/search?q=${encodeURIComponent(restaurantName)}" 
                          target="_blank" style="color: #E23744; text-decoration: none; padding: 4px 6px; border: 1px solid #E23744; border-radius: 4px; text-align: center; font-size: 11px;">
                         🍕 Zomato
                       </a>
@@ -418,7 +483,7 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
         }
       });
     });
-  }
+}
 
   toggleHotels() {
     this.showHotels = !this.showHotels;
@@ -502,13 +567,116 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private clearMarkers() {
-    this.markers.forEach(marker => marker.remove());
+    this.markers.forEach(marker => {
+      if (this.map.hasLayer(marker)) {
+        this.map.removeLayer(marker);
+      }
+    });
     this.markers = [];
     this.popups = [];
     
     if (this.highlightMarker) {
       this.map.removeLayer(this.highlightMarker);
       this.highlightMarker = undefined;
+    }
+  }
+
+  async addToItinerary(place: any, placeType: 'restaurant' | 'hotel') {
+    try {
+      console.log('Adding to itinerary:', placeType, place);
+      
+      // Use the existing itinerary passed as input, or load from localStorage as fallback
+      let itinerary: ItineraryDay[] = this.itinerary || [];
+      
+      if (itinerary.length === 0) {
+        // Try to load from localStorage as fallback
+        const cached = localStorage.getItem('itinerary_suggestions_cache');
+        if (cached) {
+          try {
+            itinerary = JSON.parse(cached);
+          } catch (error) {
+            console.error('Error parsing cached itinerary:', error);
+          }
+        }
+      }
+
+      if (itinerary.length === 0) {
+        // Create a new itinerary if none exists
+        itinerary = [{
+          day: 1,
+          spots: [],
+          routes: [],
+          hotelSuggestions: [],
+          chosenHotel: null
+        }];
+      }
+
+      // Open day spot picker modal
+      const modal = await this.modalCtrl.create({
+        component: DaySpotPickerComponent,
+        componentProps: {
+          itinerary: itinerary
+        },
+        cssClass: 'day-picker-modal'
+      });
+
+      await modal.present();
+
+      const result = await modal.onDidDismiss();
+      
+      if (result.data) {
+        const { dayIndex, spotIndex } = result.data;
+        
+        // Create a new spot object for the itinerary
+        const newSpot = {
+          id: place.place_id || `place_${Date.now()}`,
+          name: place.name,
+          description: `${placeType === 'restaurant' ? 'Restaurant' : 'Hotel'}: ${place.name}`,
+          category: placeType === 'restaurant' ? 'Restaurant' : 'Hotel',
+          img: place.photos?.[0]?.photo_reference ? 
+            `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${place.photos[0].photo_reference}&key=YOUR_API_KEY` : 
+            'assets/img/default.png',
+          location: {
+            lat: place.geometry.location.lat,
+            lng: place.geometry.location.lng
+          },
+          timeSlot: '09:00', // Default time
+          estimatedDuration: placeType === 'restaurant' ? '1 hour' : 'Overnight',
+          durationMinutes: placeType === 'restaurant' ? 60 : 480,
+          restaurantSuggestions: [],
+          mealType: placeType === 'restaurant' ? 'lunch' : undefined,
+          chosenRestaurant: null,
+          customTime: false
+        };
+
+        // Add the spot to the selected position
+        itinerary[dayIndex].spots.splice(spotIndex, 0, newSpot);
+        
+        // Update time slots for the day
+        this.itineraryService.updateTimeSlots(itinerary[dayIndex]);
+        
+        // Update the input itinerary reference
+        this.itinerary = itinerary;
+        
+        // Save updated itinerary to localStorage
+        localStorage.setItem('itinerary_suggestions_cache', JSON.stringify(itinerary));
+        
+        // Show success message
+        const alert = await this.alertCtrl.create({
+          header: 'Success',
+          message: `${place.name} has been added to Day ${itinerary[dayIndex].day} at position ${spotIndex + 1}`,
+          buttons: ['OK']
+        });
+        await alert.present();
+      }
+    } catch (error) {
+      console.error('Error adding to itinerary:', error);
+      const alert = await this.alertCtrl.create({
+        header: 'Error',
+        message: 'Failed to add place to itinerary. Please try again.',
+        buttons: ['OK']
+      });
+      await alert.present();
     }
   }
 

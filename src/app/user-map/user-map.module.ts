@@ -13,12 +13,12 @@ import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
 
 @NgModule({
   declarations: [
-    UserMapPage,
-    DaySpotPickerComponent
+    UserMapPage
   ],
   imports: [
     CommonModule,
     TouristSpotSheetComponent,
+    DaySpotPickerComponent,
     IonicModule,
     FormsModule,
     UserMapPageRoutingModule,

@@ -3,6 +3,7 @@ import { ModalController, NavController, AlertController } from '@ionic/angular'
 import * as L from 'leaflet';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { DatePipe } from '@angular/common';
+import { StorageService } from '../../services/storage.service';
 
 @Component({
   selector: 'app-tourist-spot-detail',
@@ -20,6 +21,7 @@ export class TouristSpotDetailPage implements OnInit {
     private navCtrl: NavController,
     private alertCtrl: AlertController,
     private firestore: AngularFirestore,
+    private storageService: StorageService,
     public datePipe: DatePipe
   ) {}
 
@@ -92,7 +94,7 @@ export class TouristSpotDetailPage implements OnInit {
   async confirmDeleteSpot() {
     const alert = await this.alertCtrl.create({
       header: 'Delete Tourist Spot',
-      message: 'THIS ACTION IS IRREVERSIBLE!\n\nAre you absolutely sure you want to permanently delete this tourist spot? This cannot be undone.',
+      message: 'THIS ACTION IS IRREVERSIBLE!\n\nAre you absolutely sure you want to permanently delete this tourist spot? This will also delete the associated image. This cannot be undone.',
       buttons: [
         {
           text: 'Cancel',
@@ -103,8 +105,22 @@ export class TouristSpotDetailPage implements OnInit {
           role: 'destructive',
           handler: async () => {
             if (this.spot && this.spot.id) {
-              await this.firestore.collection('tourist_spots').doc(this.spot.id).delete();
-              this.close();
+              try {
+                // Delete the image from storage if it exists
+                if (this.spot.img) {
+                  await this.storageService.deleteFileByURL(this.spot.img);
+                  console.log('Image deleted from storage:', this.spot.img);
+                }
+                
+                // Delete the Firestore document
+                await this.firestore.collection('tourist_spots').doc(this.spot.id).delete();
+                
+                this.close();
+              } catch (error) {
+                console.error('Error deleting tourist spot:', error);
+                // Still close the modal even if image deletion fails
+                this.close();
+              }
             }
           }
         }

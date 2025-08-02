@@ -6,15 +6,79 @@
       </button>
       <button class="close-btn" (click)="close()">&times;</button>
     </div>
-    <img *ngIf="spot?.img" [src]="spot.img" alt="Spot image" class="sheet-image" />
+    
+    <!-- Image Gallery -->
+    <div class="image-gallery" *ngIf="!isLoading">
+      <div class="main-image-container">
+        <img [src]="getCurrentImage()" alt="Spot image" class="sheet-image" />
+        
+        <!-- Image Navigation -->
+        <div class="image-nav" *ngIf="hasMultipleImages()">
+          <button class="nav-btn prev" (click)="previousImage()">
+            <ion-icon name="chevron-back"></ion-icon>
+          </button>
+          <button class="nav-btn next" (click)="nextImage()">
+            <ion-icon name="chevron-forward"></ion-icon>
+          </button>
+        </div>
+        
+        <!-- Image Counter -->
+        <div class="image-counter" *ngIf="hasMultipleImages()">
+          {{ currentImageIndex + 1 }} / {{ allImages.length }}
+        </div>
+      </div>
+      
+      <!-- Thumbnail Gallery -->
+      <div class="thumbnail-gallery" *ngIf="hasMultipleImages()">
+        <div 
+          *ngFor="let image of allImages; let i = index" 
+          class="thumbnail"
+          [class.active]="i === currentImageIndex"
+          (click)="selectImage(i)"
+        >
+          <img [src]="image.url" [alt]="'Image ' + (i + 1)" />
+        </div>
+      </div>
+    </div>
+    
+    <!-- Loading State -->
+    <div class="loading-container" *ngIf="isLoading">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading images...</p>
+    </div>
+    
     <div class="sheet-name">{{ spot?.name }}</div>
     <div class="sheet-category">{{ spot?.category }}</div>
+    
+    <!-- Google Places Rating -->
+    <div class="google-rating" *ngIf="hasGoogleData()">
+      <div class="rating-stars" *ngIf="getGoogleRating()">
+        <ion-icon 
+          *ngFor="let star of [1,2,3,4,5]" 
+          [name]="star <= getGoogleRating()! ? 'star' : 'star-outline'"
+          color="warning"
+        ></ion-icon>
+        <span class="rating-text">{{ getGoogleRating() }}/5</span>
+        <span class="user-count" *ngIf="getGoogleUserRatings()">
+          ({{ getGoogleUserRatings() }} reviews)
+        </span>
+      </div>
+      <div class="google-badge">
+        <ion-icon name="logo-google" color="primary"></ion-icon>
+        <span>Google Places</span>
+      </div>
+    </div>
   </div>
+  
   <div class="sheet-body">
     <div class="sheet-description">{{ spot?.description }}</div>
     <div class="sheet-coords">{{ spot?.location?.lat }}, {{ spot?.location?.lng }}</div>
   </div>
+  
   <div class="sheet-actions">
-    <ion-button expand="block" color="danger" (click)="addToBucket()">Add to Bucket List</ion-button>
+    <ion-button expand="block" color="danger" (click)="addToBucket()">
+      <ion-icon name="list-outline" slot="start"></ion-icon>
+      Add to Bucket List
+    </ion-button>
   </div>
 </div> 

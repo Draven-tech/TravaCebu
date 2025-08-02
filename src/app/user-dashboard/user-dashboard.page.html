@@ -2,7 +2,7 @@
   <ion-toolbar color="warning">
     <ion-buttons slot="start">
       <ion-avatar>
-        <img src="assets/avatar.png" />
+        <img src="assets/img/car.png" />
       </ion-avatar>
     </ion-buttons>
     <ion-title>
@@ -17,7 +17,7 @@
 
 <ion-content class="ion-padding" [scrollEvents]="true">
   <!-- Searchbar -->
-  <ion-searchbar placeholder="Search"></ion-searchbar>
+  <ion-searchbar placeholder="Search tourist spots..." [(ngModel)]="searchQuery" (ionInput)="onSearchInput($event)"></ion-searchbar>
 
   <!-- Section Title -->
   <h2 class="title">Plan Your Trip</h2>
@@ -29,13 +29,36 @@
     </ion-chip>
   </div>
 
+  <!-- Search for New Tourist Spots Section -->
+  <div class="search-section" *ngIf="!isSearching && !searchResults.length">
+    <ion-card class="search-card">
+      <ion-card-content>
+        <div class="search-content">
+          <ion-icon name="search-outline" class="search-icon"></ion-icon>
+          <h3>Can't find your desired tourist spot?</h3>
+          <p>Search for tourist spots in Cebu and add them to our database!</p>
+          <ion-button expand="block" color="warning" (click)="openSearchModal()">
+            <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+            Search & Add New Tourist Spot
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading tourist spots...</p>
+  </div>
+
   <!-- Tourist Spot Cards -->
-  <ion-grid>
+  <ion-grid *ngIf="!isLoading && paginatedSpots.length > 0">
     <ion-row>
-      <ion-col size="6" *ngFor="let spot of spots">
+      <ion-col size="6" *ngFor="let spot of paginatedSpots">
         <ion-card class="tourist-card">
           <div class="clickable-card" (click)="openSpotDetail(spot.id)">
-            <img [src]="spot.img || 'assets/placeholder.jpg'" />
+            <img [src]="spot.img || 'assets/img/default.png'" [alt]="spot.name" />
 
             <ion-card-header>
               <ion-card-title>{{ spot.name }}</ion-card-title>
@@ -49,34 +72,63 @@
             </ion-button>
           </ion-card-content>
         </ion-card>
-
-
       </ion-col>
     </ion-row>
   </ion-grid>
 
-<h2 class="title">Recently Visited</h2>
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!isLoading && paginatedSpots.length === 0 && !isSearching">
+    <ion-icon name="location-outline" class="empty-icon"></ion-icon>
+    <h3>No tourist spots found</h3>
+    <p>Try changing your search or category filter</p>
+  </div>
 
-<ion-grid *ngIf="visitedSpots.length > 0">
-  <ion-row>
-    <ion-col size="6" *ngFor="let spot of visitedSpots">
-      <ion-card class="tourist-card">
-        <div class="clickable-card" (click)="openSpotDetail(spot.spotId)">
-          <img [src]="spot.img || 'assets/placeholder.jpg'" />
-          <ion-card-header>
-            <ion-card-title>{{ spot.name }}</ion-card-title>
-            <ion-card-subtitle>
-              {{ spot.visitedAt?.toDate ? (spot.visitedAt.toDate() | date:'shortDate') : '' }}
-            </ion-card-subtitle>
-          </ion-card-header>
-        </div>
-      </ion-card>
-    </ion-col>
-  </ion-row>
-</ion-grid>
+  <!-- Pagination -->
+  <div class="pagination-container" *ngIf="totalPages > 1">
+    <ion-button fill="clear" [disabled]="currentPage === 1" (click)="previousPage()">
+      <ion-icon name="chevron-back"></ion-icon>
+      Previous
+    </ion-button>
+    
+    <div class="page-info">
+      Page {{ currentPage }} of {{ totalPages }}
+    </div>
+    
+    <ion-button fill="clear" [disabled]="currentPage === totalPages" (click)="nextPage()">
+      Next
+      <ion-icon name="chevron-forward"></ion-icon>
+    </ion-button>
+  </div>
+</ion-content>
 
-<ion-text *ngIf="visitedSpots.length === 0">
-  <p>No visited spots yet.</p>
-</ion-text>
-
-<app-bottom-nav></app-bottom-nav>
+<ion-footer>
+  <ion-toolbar color="warning">
+    <ion-grid>
+      <ion-row class="ion-justify-content-around ion-align-items-center">
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" (click)="goToHome()">
+            <ion-icon name="home-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/bucket-list">
+            <ion-icon name="basket-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/user-map">
+            <ion-icon name="map-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+        <ion-col size="3" class="tab-btn">
+          <ion-button fill="clear" routerLink="/user-profile">
+            <ion-icon name="person-outline"></ion-icon>
+            <ion-label></ion-label>
+          </ion-button>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ion-toolbar>
+</ion-footer>

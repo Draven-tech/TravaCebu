@@ -36,7 +36,6 @@
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import "@ionic/angular/css/palettes/dark.system.css";
 
-
 /* Map Container */
 #route-editor-map {
   width: calc(100% - 32px);
@@ -69,41 +68,66 @@
   align-items: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
-  
-  /* Marker Popups */
-  .leaflet-popup-content {
-    font-size: 14px;
-    min-width: 180px;
-    
-    strong {
-      color: var(--ion-color-primary);
-    }
-  }
-  
-  /* Layer Control */
-  .leaflet-control-layers {
-    border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-    
-    label {
-      display: flex;
-      align-items: center;
-    }
-  }
-  
-  /* Alert Customization */
-  .custom-alert {
-    --backdrop-opacity: 0.7;
-  }
-  
-  .success-alert {
-    --background: var(--ion-color-success);
-    --color: white;
-  }
-  
-  .error-alert {
-    --background: var(--ion-color-danger);
-    --color: white;
-  }
 
+/* Marker Popups */
+.leaflet-popup-content {
+  font-size: 14px;
+  min-width: 180px;
   
+  strong {
+    color: var(--ion-color-primary);
+  }
+}
+
+/* Layer Control */
+.leaflet-control-layers {
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  
+  label {
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* Alert Customization */
+.custom-alert {
+  --backdrop-opacity: 0.7;
+}
+
+.success-alert {
+  --background: var(--ion-color-success);
+  --color: white;
+}
+
+.error-alert {
+  --background: var(--ion-color-danger);
+  --color: white;
+}
+
+/* Day Picker Modal */
+.day-picker-modal {
+  --height: 70%;
+  --width: 90%;
+  --max-width: 400px;
+  --border-radius: 16px;
+}
+
+.day-picker-modal .modal-wrapper {
+  border-radius: 16px;
+}
+
+.day-picker-modal ion-header {
+  border-radius: 16px 16px 0 0;
+}
+
+.day-picker-modal ion-content {
+  --background: #f8f9fa;
+}
+
+/* Styles for the new Add to Itinerary buttons in map popups */
+.leaflet-popup-content button {
+  margin-top: 5px;
+  width: 100%;
+  box-sizing: border-box;
+} 

@@ -3,6 +3,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, ModalController, NavController } from '@ionic/angular';
 import { TouristSpotDetailPage } from '../tourist-spot-detail/tourist-spot-detail.page';
 import { DatePipe } from '@angular/common';
+import { StorageService } from '../../services/storage.service';
 
 @Component({
   standalone: false,
@@ -20,6 +21,7 @@ export class TouristSpotListPage implements OnInit {
     private alertCtrl: AlertController,
     private modalCtrl: ModalController,
     private navCtrl: NavController,
+    private storageService: StorageService,
     public datePipe: DatePipe
   ) {}
 
@@ -75,7 +77,7 @@ export class TouristSpotListPage implements OnInit {
   async deleteSpot(id: string) {
     const alert = await this.alertCtrl.create({
       header: 'Confirm Delete',
-      message: 'Are you sure you want to delete this tourist spot?',
+      message: 'Are you sure you want to delete this tourist spot? This will also delete the associated image.',
       buttons: [
         {
           text: 'Cancel',
@@ -83,15 +85,26 @@ export class TouristSpotListPage implements OnInit {
         },
         {
           text: 'Delete',
-          handler: () => {
-            this.firestore.collection('tourist_spots').doc(id).delete()
-              .then(() => {
-                this.showAlert('Success', 'Tourist spot deleted successfully');
-              })
-              .catch(err => {
-                this.showAlert('Error', 'Failed to delete tourist spot');
-                console.error(err);
-              });
+          handler: async () => {
+            try {
+              // First, get the spot data to find the image URL
+              const spotDoc = await this.firestore.collection('tourist_spots').doc(id).get().toPromise();
+              const spotData = spotDoc?.data() as any;
+              
+              // Delete the image from storage if it exists
+              if (spotData?.img) {
+                await this.storageService.deleteFileByURL(spotData.img);
+                console.log('Image deleted from storage:', spotData.img);
+              }
+              
+              // Delete the Firestore document
+              await this.firestore.collection('tourist_spots').doc(id).delete();
+              
+              this.showAlert('Success', 'Tourist spot and associated image deleted successfully');
+            } catch (err) {
+              console.error('Error deleting tourist spot:', err);
+              this.showAlert('Error', 'Failed to delete tourist spot');
+            }
           }
         }
       ]

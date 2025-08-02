@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiTrackerService } from '../../services/api-tracker.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   standalone: false,
@@ -14,7 +15,8 @@ export class DashboardPage implements OnInit {
 
   constructor(
     private router: Router,
-    private apiTracker: ApiTrackerService
+    private apiTracker: ApiTrackerService,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
@@ -63,9 +65,14 @@ export class DashboardPage implements OnInit {
     }
   }
 
-  logout() {
-    // Add logout logic here
-    this.router.navigate(['/login']);
+  async logout() {
+    try {
+      await this.authService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback navigation
+      this.router.navigate(['/admin/login']);
+    }
   }
 
   getApiKeys(): string[] {

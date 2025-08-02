@@ -1,0 +1,10 @@
+[33me755a2f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m fixed tourist-spot-detail not opening, added mark visited and fixed history on user-dashboard
+[33m274559d[m fixed add routes issue not opening
+[33ma246baf[m added anonymous posting, also added visited sites on user-dashboard (not tested yet)
+[33md5d2bde[m fixed name on user reviews and user navigation and styling on user-profile
+[33m89fc721[m added user reviews with image submittions
+[33md2399dc[m fixed restaurant suggestions for mobile deployment + few tweaks
+[33mf5a3163[m polished the itinerary modal with working featuers for mobile
+[33m282b009[m added terms and condition and privacy statement, worked user-profile 70%
+[33md690656[m Merge branch 'main' of https://github.com/Draven-tech/TravaCebu
+[33m1018af2[m added terms and condition and privacy statement, worked user-profile 70%

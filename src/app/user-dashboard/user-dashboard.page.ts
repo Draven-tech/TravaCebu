@@ -6,7 +6,6 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { BucketService } from '../services/bucket-list.service';
 import { NavController, ToastController, ModalController, AlertController } from '@ionic/angular';
 import { PlacesService } from '../services/places.service';
-import { StorageService } from '../services/storage.service';
 
 @Component({
   selector: 'app-user-dashboard',
@@ -46,8 +45,7 @@ export class UserDashboardPage implements OnInit {
     private toastCtrl: ToastController,
     private modalCtrl: ModalController,
     private alertCtrl: AlertController,
-    private placesService: PlacesService,
-    private storageService: StorageService
+    private placesService: PlacesService
   ) { }
 
   async ngOnInit() {
@@ -374,18 +372,18 @@ export class UserDashboardPage implements OnInit {
   }
 
   async logout() {
-    await this.authService.logout();
+    await this.authService.logoutUser();
   }
 
   async loadVisitedSpots() {
     if (!this.userId) return;
-    
-    try {
-      const visitedDoc = await this.firestore.collection('users').doc(this.userId).collection('visited_spots').get().toPromise();
-      this.visitedSpots = visitedDoc?.docs.map(doc => doc.data()) || [];
-    } catch (error) {
-      console.error('Error loading visited spots:', error);
-    }
+
+    const snapshot = await this.firestore
+      .collection(`users/${this.userId}/visitedSpots`, ref => ref.orderBy('visitedAt', 'desc'))
+      .get()
+      .toPromise();
+
+    this.visitedSpots = snapshot?.docs.map(doc => doc.data()) || [];
   }
 
   goToHome() {

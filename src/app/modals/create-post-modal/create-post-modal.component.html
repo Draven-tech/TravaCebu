@@ -1,0 +1,104 @@
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-buttons slot="start">
+      <ion-button (click)="dismiss()">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>{{ isEditing ? 'Edit Post' : 'Create Post' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="createPost()" [disabled]="uploading">
+        <ion-icon name="checkmark"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="create-post-content">
+  <div class="post-form">
+    <!-- User Info Header -->
+    <div class="user-info">
+      <ion-avatar>
+        <img [src]="userData?.photoURL || 'assets/img/default.png'" />
+      </ion-avatar>
+      <div class="user-details">
+        <h4>{{ userData?.fullName || 'Anonymous' }}</h4>
+        <p>Public Post</p>
+      </div>
+    </div>
+
+    <!-- Post Content -->
+    <div class="post-input-section">
+      <ion-textarea
+        [(ngModel)]="postContent"
+        placeholder="What's on your mind?"
+        rows="4"
+        class="post-textarea"
+        maxlength="1000"
+        showCounter="true">
+      </ion-textarea>
+    </div>
+
+    <!-- Tourist Spot Selection -->
+    <div class="location-section">
+      <ion-item lines="none">
+        <ion-icon name="location-outline" slot="start" color="medium"></ion-icon>
+        <ion-select
+          [(ngModel)]="selectedSpotId"
+          placeholder="Select a tourist spot (optional)"
+          interface="popover">
+          <ion-select-option value="">No location</ion-select-option>
+          <ion-select-option 
+            *ngFor="let spot of touristSpots" 
+            [value]="spot.id">
+            {{ spot.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+      
+      <!-- Selected Spot Info -->
+      <div *ngIf="selectedSpotId && getSelectedSpot()" class="selected-spot-info">
+        <ion-item lines="none">
+          <ion-icon name="location" slot="start" color="warning"></ion-icon>
+          <ion-label>
+            <h3>{{ getSelectedSpot()?.name }}</h3>
+            <p>{{ getSelectedSpot()?.description }}</p>
+          </ion-label>
+        </ion-item>
+      </div>
+    </div>
+
+    <!-- Image Preview -->
+    <div *ngIf="imagePreview" class="image-preview-section">
+      <div class="image-preview-container">
+        <img [src]="imagePreview" class="preview-image" />
+        <ion-button
+          fill="clear"
+          class="remove-image-btn"
+          (click)="removeImage()">
+          <ion-icon name="close-circle" color="danger"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="post-actions">
+      <ion-button
+        fill="clear"
+        class="action-btn"
+        (click)="selectImage()">
+        <ion-icon name="image-outline" slot="start"></ion-icon>
+        Photo
+      </ion-button>
+    </div>
+
+    <!-- Hidden file input -->
+    <input
+      type="file"
+      accept="image/*"
+      (change)="onImageSelected($event)"
+      hidden
+      #imageInput
+    />
+  </div>
+</ion-content> 

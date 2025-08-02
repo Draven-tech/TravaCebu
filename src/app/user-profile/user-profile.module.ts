@@ -8,6 +8,8 @@ import { UserProfilePageRoutingModule } from './user-profile-routing.module';
 
 import { UserProfilePage } from './user-profile.page';
 import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
+import { CreatePostModalComponent } from '../modals/create-post-modal/create-post-modal.component';
+import { CommentsModalComponent } from '../modals/comments-modal/comments-modal.component';
 
 @NgModule({
   imports: [
@@ -17,6 +19,10 @@ import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
     UserProfilePageRoutingModule,
     BottomNavModule
   ],
-  declarations: [UserProfilePage]
+  declarations: [
+    UserProfilePage,
+    CreatePostModalComponent,
+    CommentsModalComponent
+  ]
 })
 export class UserProfilePageModule {}

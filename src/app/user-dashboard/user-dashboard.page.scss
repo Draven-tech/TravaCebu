@@ -1,151 +1,227 @@
+ion-content {
+  --background: linear-gradient(135deg, #FFE066 0%, #FFD144 60%, #FFF6D1 100%);
+  background: linear-gradient(135deg, #FFE066 0%, #FFD144 60%, #FFF6D1 100%);
+}
+
 .title {
-  font-size: 1.4rem;
-  font-weight: bold;
-  margin-top: 1rem;
-  color: #fff;
+  color: #2D3748;
+  font-weight: 700;
+  margin: 20px 0 15px 0;
+  font-size: 1.8rem;
+  text-align: center;
 }
 
 .category-scroll {
   display: flex;
   overflow-x: auto;
-  gap: 8px;
-  padding: 0.5rem 0;
-
+  padding: 10px 0;
+  margin-bottom: 20px;
+  
   ion-chip {
+    margin-right: 10px;
     flex-shrink: 0;
-  }
-
-  &::-webkit-scrollbar {
-    display: none;
+    font-weight: 600;
   }
 }
 
-ion-chip {
-  margin-right: 0.5rem;
-  font-weight: bold;
-  color: #000000;
-  background-color: #fac31c;
+// Search Section
+.search-section {
+  margin: 20px 0;
+  
+  .search-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    
+    .search-content {
+      text-align: center;
+      padding: 20px;
+      
+      .search-icon {
+        font-size: 3rem;
+        color: #FF6B35;
+        margin-bottom: 15px;
+      }
+      
+      h3 {
+        color: #2D3748;
+        font-weight: 700;
+        margin: 0 0 10px 0;
+        font-size: 1.3rem;
+      }
+      
+      p {
+        color: #718096;
+        margin: 0 0 20px 0;
+        font-size: 0.95rem;
+      }
+    }
+  }
+}
+
+// Loading State
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  
+  ion-spinner {
+    margin-bottom: 15px;
+  }
+  
+  p {
+    color: #718096;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+}
+
+// Empty State
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  
+  .empty-icon {
+    font-size: 4rem;
+    color: #CBD5E0;
+    margin-bottom: 20px;
+  }
+  
+  h3 {
+    color: #2D3748;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+    font-size: 1.2rem;
+  }
+  
+  p {
+    color: #718096;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+}
+
+// Tourist Cards Grid
+ion-grid {
+  padding: 0;
+  margin-bottom: 20px;
 }
 
 .tourist-card {
-  background-color: #ffc107; // yellow background
+  margin: 0 0 15px 0;
   border-radius: 12px;
-  text-align: center;
   overflow: hidden;
-
-  img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background: white;
+  
+  .clickable-card {
+    cursor: pointer;
+    
+    img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+    
+    ion-card-header {
+      padding: 12px 16px 8px;
+      
+      ion-card-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #2D3748;
+        margin: 0;
+        line-height: 1.2;
+      }
+    }
   }
-
-  ion-card-title {
-    font-weight: bold;
-    color: #000;
-    font-size: 1rem;
-  }
-
+  
   .bucket-action {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #000;
-
-    ion-icon {
-      font-size: 16px;
-      color: #000;
-    }
-
-    span {
+    padding: 8px 16px 12px;
+    
+    ion-button {
+      --padding-start: 8px;
+      --padding-end: 8px;
+      height: 32px;
       font-size: 0.75rem;
-      color: #000;
+      font-weight: 600;
+      
+      ion-icon {
+        margin-right: 4px;
+      }
     }
   }
 }
 
-.history-card {
-  border-radius: 12px;
-  ion-card-title {
-    color: #fff;
-    font-weight: bold;
-  }
-}
-:host {
+// Pagination
+.pagination-container {
   display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-ion-content {
-  flex: 1;
-  --padding-bottom: 70px; /* Prevent content from hiding behind the footer */
-}
-
-ion-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-}
-// Enhanced neumorphic tab styling
-.tab-btn {
-  display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 8px 0;
-
+  justify-content: center;
+  padding: 20px 0;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  margin: 20px 0;
+  
   ion-button {
-    flex-direction: column;
-    text-align: center;
-    --padding-start: 0;
-    --padding-end: 0;
-    --color: #2D3748;
-    --background: #FFD144;
-    --background-hover: #FFE066;
-    --background-activated: #FFC107;
-    --border-radius: 16px;
-    --box-shadow: 
-      0 4px 8px rgba(0,0,0,0.1),
-      inset 0 2px 4px rgba(255,255,255,0.3),
-      inset 0 -2px 4px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-    width: 60px;
-    height: 60px;
-    margin: 0;
-    
-    &:hover {
-      --box-shadow: 
-        0 6px 12px rgba(0,0,0,0.15),
-        inset 0 2px 4px rgba(255,255,255,0.4),
-        inset 0 -2px 4px rgba(0,0,0,0.1);
-      transform: translateY(-2px);
-    }
-    
-    &:active {
-      --box-shadow: 
-        0 2px 4px rgba(0,0,0,0.1),
-        inset 0 2px 4px rgba(0,0,0,0.1);
-      transform: translateY(0);
-    }
-  }
-
-  ion-icon {
-    font-size: 24px;
-    margin-bottom: 4px;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
-  }
-
-  ion-label {
-    font-size: 0.7rem;
-    margin-top: 0;
+    --color: #FF6B35;
     font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    
+    &:disabled {
+      --color: #CBD5E0;
+    }
+  }
+  
+  .page-info {
+    margin: 0 20px;
+    color: #2D3748;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+}
+
+// Footer
+ion-footer {
+  ion-toolbar {
+    --background: #FF6B35;
+    
+    .tab-btn {
+      text-align: center;
+      
+      ion-button {
+        --color: white;
+        font-size: 0.8rem;
+        
+        ion-icon {
+          font-size: 1.2rem;
+        }
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 576px) {
+  .tourist-card .clickable-card img {
+    height: 100px;
+  }
+  
+  .tourist-card .bucket-action ion-button {
+    font-size: 0.7rem;
+  }
+  
+  .pagination-container {
+    flex-direction: column;
+    gap: 10px;
+    
+    .page-info {
+      margin: 0;
+    }
   }
 }

@@ -22,6 +22,7 @@ export interface ItinerarySpot {
 
 export interface ItineraryDay {
   day: number;
+  date?: string; // Add date for calendar integration
   spots: ItinerarySpot[];
   routes: any[];
   hotelSuggestions?: any[];
@@ -42,7 +43,8 @@ export class ItineraryService {
     spots: any[],
     numDays: number,
     startTime: string = '08:00',
-    endTime: string = '18:00'
+    endTime: string = '18:00',
+    startDate?: string
   ): Promise<ItineraryDay[]> {
     const days: any[] = Array.from({ length: numDays }, () => []);
     spots.forEach((spot, i) => {
@@ -52,9 +54,16 @@ export class ItineraryService {
     for (let day = 0; day < days.length; day++) {
       const daySpots = days[day];
       const dayPlan: ItineraryDay = { day: day + 1, spots: [], routes: [] };
+      
+      // Calculate the date for this day
+      if (startDate) {
+        const dayDate = new Date(startDate);
+        dayDate.setDate(dayDate.getDate() + day);
+        dayPlan.date = dayDate.toISOString().split('T')[0];
+      }
       const totalSpots = daySpots.length;
-      const start = this.parseTime(startTime);
-      const end = this.parseTime(endTime);
+      const start = this.parseTime(startTime, startDate);
+      const end = this.parseTime(endTime, startDate);
       const totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
       const slotMinutes = Math.floor(totalMinutes / totalSpots);
       let currentTime = new Date(start);
@@ -120,10 +129,20 @@ export class ItineraryService {
     return 'itinerary_suggestions_' + key;
   }
 
-  private parseTime(time: string): Date {
+  private parseTime(time: string, startDate?: string): Date {
     const [h, m] = time.split(':').map(Number);
-    const d = new Date();
-    d.setHours(h, m, 0, 0);
+    let d: Date;
+    
+    if (startDate) {
+      // Use the provided start date
+      d = new Date(startDate);
+      d.setHours(h, m, 0, 0);
+    } else {
+      // Use current date as fallback
+      d = new Date();
+      d.setHours(h, m, 0, 0);
+    }
+    
     return d;
   }
 
@@ -176,6 +195,32 @@ export class ItineraryService {
     } catch (error) {
       console.error('❌ API connection test error:', error);
       return { status: 'ERROR', error: (error && typeof error === 'object' && 'message' in error) ? (error as any).message : String(error) };
+    }
+  }
+
+  // Update time slots for a day's spots
+  updateTimeSlots(day: ItineraryDay, startTime: string = '08:00'): void {
+    if (!day.spots || day.spots.length === 0) return;
+
+    let currentTime = this.parseTime(startTime);
+    
+    for (let i = 0; i < day.spots.length; i++) {
+      const spot = day.spots[i];
+      
+      // Only update time if it's not custom
+      if (!spot.customTime) {
+        spot.timeSlot = this.formatTime(currentTime);
+      }
+      
+      // Calculate end time for this spot
+      const durationMinutes = spot.durationMinutes || 120;
+      const endTime = new Date(currentTime.getTime() + durationMinutes * 60000);
+      
+      // Update estimated duration
+      spot.estimatedDuration = `${durationMinutes} min`;
+      
+      // Set current time to end time for next spot
+      currentTime = endTime;
     }
   }
 } 

@@ -16,7 +16,7 @@
   </ion-card>
   <ion-button expand="block" color="medium" (click)="clear()">Clear All</ion-button>
   <ion-button expand="block" color="primary" (click)="openItinerarySetup()" class="generate-itinerary-btn">
-    Generate Itinerary
+    Continue
   </ion-button>
 
   <!-- Beautiful Itinerary Setup Modal -->
@@ -83,6 +83,25 @@
             </ion-item>
           </div>
 
+          <!-- Date Selection -->
+          <div class="setup-section">
+            <div class="section-header">
+              <ion-icon name="calendar" class="section-icon"></ion-icon>
+              <h3>When do you want to start?</h3>
+            </div>
+            <div class="date-selector">
+              <ion-item class="date-input">
+                <ion-label position="stacked">Start Date</ion-label>
+                <ion-datetime 
+                  presentation="date" 
+                  [(ngModel)]="setup.startDate"
+                  [min]="getTodayString()"
+                  class="custom-datetime">
+                </ion-datetime>
+              </ion-item>
+            </div>
+          </div>
+
           <!-- Time Selection -->
           <div class="setup-section">
             <div class="section-header">
@@ -124,7 +143,7 @@
               <ion-icon name="information-circle" class="summary-icon"></ion-icon>
               <div class="summary-content">
                 <h4>Your Plan</h4>
-                <p>{{ setup.days }} day{{ setup.days > 1 ? 's' : '' }} • {{ getTimeDisplay(setup.startTime) }} - {{ getTimeDisplay(setup.endTime) }}</p>
+                <p>{{ getDateDisplay(setup.startDate) }} • {{ setup.days }} day{{ setup.days > 1 ? 's' : '' }} • {{ getTimeDisplay(setup.startTime) }} - {{ getTimeDisplay(setup.endTime) }}</p>
                 <p class="spots-count">{{ spots.length }} tourist spot{{ spots.length > 1 ? 's' : '' }} to explore</p>
               </div>
             </div>
@@ -140,7 +159,7 @@
             (click)="confirmItinerarySetup()"
             class="generate-btn">
             <ion-icon name="rocket" slot="start"></ion-icon>
-            Generate My Itinerary
+            Proceed
           </ion-button>
           <ion-button 
             expand="block" 

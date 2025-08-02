@@ -42,15 +42,159 @@
   />
 </div>
 
-
 <div class="profile-tabs">
   <button [class.active]="activeTab === 'tab-1'" (click)="setActiveTab('tab-1')">Feed</button>
   <button [class.active]="activeTab === 'tab-2'" (click)="setActiveTab('tab-2')">Your Posts</button>
   <button [class.active]="activeTab === 'tab-3'" (click)="setActiveTab('tab-3')">Badges</button>
 </div>
 
+<!-- Tab Content -->
+<div class="tab-content-container">
+  <!-- Feed Tab -->
+  <div *ngIf="activeTab === 'tab-1'" class="tab-content">
+    <!-- Create Post Button -->
+    <div class="create-post-section">
+      <ion-button 
+        expand="block" 
+        class="create-post-btn" 
+        (click)="openCreatePostModal()"
+        fill="solid">
+        <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+        Create Post
+      </ion-button>
+    </div>
+
+    <!-- Posts Feed -->
+    <div class="posts-container">
+      <div *ngIf="posts.length === 0" class="no-posts">
+        <ion-icon name="newspaper-outline"></ion-icon>
+        <h3>No posts yet</h3>
+        <p>Be the first to share your travel experience!</p>
+        <ion-button fill="outline" (click)="openCreatePostModal()">
+          Create Your First Post
+        </ion-button>
+      </div>
+
+      <div *ngFor="let post of posts" class="post-card">
+        <div class="post-header">
+          <ion-avatar class="post-avatar">
+            <img [src]="post.userPhotoURL || 'assets/img/default.png'" />
+          </ion-avatar>
+          <div class="post-user-info">
+            <h4>{{ post.userName }}</h4>
+            <p class="post-time">{{ formatTimestamp(post.timestamp) }}</p>
+          </div>
+          <ion-button fill="clear" size="small" (click)="showPostOptions(post)">
+            <ion-icon name="ellipsis-horizontal"></ion-icon>
+          </ion-button>
+        </div>
+
+        <div class="post-content">
+          <p *ngIf="post.content">{{ post.content }}</p>
+          <img *ngIf="post.imageUrl" [src]="post.imageUrl" class="post-image" />
+          
+          <!-- Tourist Spot Location -->
+          <div *ngIf="post.touristSpotName" class="post-location">
+            <ion-icon name="location" color="warning"></ion-icon>
+            <span>{{ post.touristSpotName }}</span>
+          </div>
+        </div>
+
+        <div class="post-actions">
+          <ion-button fill="clear" size="small" (click)="toggleLike(post)">
+            <ion-icon [name]="post.liked ? 'heart' : 'heart-outline'" [color]="post.liked ? 'danger' : 'medium'"></ion-icon>
+            <span>{{ post.likes?.length || 0 }}</span>
+          </ion-button>
+          <ion-button fill="clear" size="small" (click)="showComments(post)">
+            <ion-icon name="chatbubble-outline"></ion-icon>
+            <span>{{ post.comments?.length || 0 }}</span>
+          </ion-button>
+          <ion-button fill="clear" size="small" (click)="sharePost(post)">
+            <ion-icon name="share-outline"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Your Posts Tab -->
+  <div *ngIf="activeTab === 'tab-2'" class="tab-content">
+    <div class="create-post-section">
+      <ion-button 
+        expand="block" 
+        class="create-post-btn" 
+        (click)="openCreatePostModal()"
+        fill="solid">
+        <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+        Create Post
+      </ion-button>
+    </div>
+
+    <div class="posts-container">
+      <div *ngIf="userPosts.length === 0" class="no-posts">
+        <ion-icon name="newspaper-outline"></ion-icon>
+        <h3>No posts yet</h3>
+        <p>Share your travel experiences with the community!</p>
+        <ion-button fill="outline" (click)="openCreatePostModal()">
+          Create Your First Post
+        </ion-button>
+      </div>
+
+      <div *ngFor="let post of userPosts" class="post-card">
+        <div class="post-header">
+          <ion-avatar class="post-avatar">
+            <img [src]="post.userPhotoURL || 'assets/img/default.png'" />
+          </ion-avatar>
+          <div class="post-user-info">
+            <h4>{{ post.userName }}</h4>
+            <p class="post-time">{{ formatTimestamp(post.timestamp) }}</p>
+          </div>
+          <ion-button fill="clear" size="small" (click)="showPostOptions(post)">
+            <ion-icon name="ellipsis-horizontal"></ion-icon>
+          </ion-button>
+        </div>
+
+        <div class="post-content">
+          <p *ngIf="post.content">{{ post.content }}</p>
+          <img *ngIf="post.imageUrl" [src]="post.imageUrl" class="post-image" />
+          
+          <!-- Tourist Spot Location -->
+          <div *ngIf="post.touristSpotName" class="post-location">
+            <ion-icon name="location" color="warning"></ion-icon>
+            <span>{{ post.touristSpotName }}</span>
+          </div>
+        </div>
+
+        <div class="post-actions">
+          <ion-button fill="clear" size="small" (click)="toggleLike(post)">
+            <ion-icon [name]="post.liked ? 'heart' : 'heart-outline'" [color]="post.liked ? 'danger' : 'medium'"></ion-icon>
+            <span>{{ post.likes?.length || 0 }}</span>
+          </ion-button>
+          <ion-button fill="clear" size="small" (click)="showComments(post)">
+            <ion-icon name="chatbubble-outline"></ion-icon>
+            <span>{{ post.comments?.length || 0 }}</span>
+          </ion-button>
+          <ion-button fill="clear" size="small" (click)="editPost(post)">
+            <ion-icon name="create-outline"></ion-icon>
+          </ion-button>
+          <ion-button fill="clear" size="small" (click)="deletePost(post)">
+            <ion-icon name="trash-outline" color="danger"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Badges Tab -->
+  <div *ngIf="activeTab === 'tab-3'" class="tab-content">
+    <div class="no-posts">
+      <ion-icon name="trophy-outline"></ion-icon>
+      <h3>Badges coming soon!</h3>
+      <p>Earn badges for your travel achievements</p>
+    </div>
+  </div>
+</div>
 
 </ion-content>
-
 
 <app-bottom-nav></app-bottom-nav>

@@ -3,7 +3,6 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Router } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { HttpClient } from '@angular/common/http';
-import firebase from 'firebase/compat/app';
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +19,7 @@ export class AuthService {
     try {
       const userCredential = await this.afAuth.signInWithEmailAndPassword(email, password);
       const adminDoc = await this.firestore.collection('admins').doc(userCredential.user?.uid).get().toPromise();
-      this.afAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      this.afAuth.setPersistence('local')
         .then(() => console.log('Auth persistence: LOCAL'))
         .catch(err => console.error('Persistence error', err));
 

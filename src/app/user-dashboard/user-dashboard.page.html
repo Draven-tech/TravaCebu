@@ -91,7 +91,7 @@
           <ion-icon name="search-outline" class="search-icon"></ion-icon>
           <h3>Can't find your desired tourist spot?</h3>
           <p>Search for tourist spots in Cebu and add them to our database!</p>
-          <ion-button expand="block" color="warning" (click)="openSearchModal()">
+          <ion-button expand="block" style="--background: #FFD144; --color: #000000;" (click)="openSearchModal()">
             <ion-icon name="add-circle-outline" slot="start"></ion-icon>
             Search & Add New Tourist Spot
           </ion-button>
@@ -99,36 +99,30 @@
       </ion-card-content>
     </ion-card>
   </div>
-</ion-content>
 
-<ion-footer>
-  <ion-toolbar color="warning">
-    <ion-grid>
-      <ion-row class="ion-justify-content-around ion-align-items-center">
-        <ion-col size="3" class="tab-btn">
-          <ion-button fill="clear" (click)="goToHome()">
-            <ion-icon name="home-outline"></ion-icon>
-          </ion-button>
-        </ion-col>
-        <ion-col size="3" class="tab-btn">
-          <ion-button fill="clear" routerLink="/bucket-list">
-            <ion-icon name="basket-outline"></ion-icon>
-            <ion-label></ion-label>
-          </ion-button>
-        </ion-col>
-        <ion-col size="3" class="tab-btn">
-          <ion-button fill="clear" routerLink="/user-map">
-            <ion-icon name="map-outline"></ion-icon>
-            <ion-label></ion-label>
-          </ion-button>
-        </ion-col>
-        <ion-col size="3" class="tab-btn">
-          <ion-button fill="clear" routerLink="/user-profile">
-            <ion-icon name="person-outline"></ion-icon>
-            <ion-label></ion-label>
-          </ion-button>
-        </ion-col>
-      </ion-row>
-    </ion-grid>
-  </ion-toolbar>
-</ion-footer>
+  <!-- Recently Visited Section -->
+  <h2 class="title">Recently Visited</h2>
+
+  <ion-grid *ngIf="visitedSpots.length > 0">
+    <ion-row>
+      <ion-col size="6" *ngFor="let spot of visitedSpots">
+        <ion-card class="tourist-card">
+          <div class="clickable-card" (click)="openSpotDetail(spot.spotId)">
+            <img [src]="spot.img || 'assets/img/default.png'" />
+            <ion-card-header>
+              <ion-card-title>{{ spot.name }}</ion-card-title>
+              <ion-card-subtitle>
+                {{ spot.visitedAt?.toDate ? (spot.visitedAt.toDate() | date:'shortDate') : '' }}
+              </ion-card-subtitle>
+            </ion-card-header>
+          </div>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+
+  <ion-text *ngIf="visitedSpots.length === 0">
+    <p>No visited spots yet.</p>
+  </ion-text>
+
+<app-bottom-nav></app-bottom-nav>

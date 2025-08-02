@@ -92,21 +92,31 @@ export class UserProfilePage implements OnInit {
 
   async loadPosts() {
     this.loadingPosts = true;
+    console.log('Loading posts for user:', this.userId);
+    
     try {
       // Load all public posts for feed
+      console.log('Loading public posts...');
       this.firestore.collection('posts', ref => 
         ref.where('isPublic', '==', true).orderBy('timestamp', 'desc').limit(20)
       ).snapshotChanges().subscribe(async (changes) => {
+        console.log('Public posts changes:', changes.length);
         const posts = changes.map(c => ({ id: c.payload.doc.id, ...(c.payload.doc.data() as any) }));
+        console.log('Public posts data:', posts);
         this.posts = await this.processPosts(posts);
+        console.log('Processed public posts:', this.posts.length);
       });
 
       // Load user's posts
+      console.log('Loading user posts for userId:', this.userId);
       this.firestore.collection('posts', ref => 
         ref.where('userId', '==', this.userId).orderBy('timestamp', 'desc')
       ).snapshotChanges().subscribe(async (changes) => {
+        console.log('User posts changes:', changes.length);
         const posts = changes.map(c => ({ id: c.payload.doc.id, ...(c.payload.doc.data() as any) }));
+        console.log('User posts data:', posts);
         this.userPosts = await this.processPosts(posts);
+        console.log('Processed user posts:', this.userPosts.length);
       });
     } catch (error) {
       console.error('Error loading posts:', error);

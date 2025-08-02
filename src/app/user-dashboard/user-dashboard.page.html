@@ -29,23 +29,6 @@
     </ion-chip>
   </div>
 
-  <!-- Search for New Tourist Spots Section -->
-  <div class="search-section" *ngIf="!isSearching && !searchResults.length">
-    <ion-card class="search-card">
-      <ion-card-content>
-        <div class="search-content">
-          <ion-icon name="search-outline" class="search-icon"></ion-icon>
-          <h3>Can't find your desired tourist spot?</h3>
-          <p>Search for tourist spots in Cebu and add them to our database!</p>
-          <ion-button expand="block" color="warning" (click)="openSearchModal()">
-            <ion-icon name="add-circle-outline" slot="start"></ion-icon>
-            Search & Add New Tourist Spot
-          </ion-button>
-        </div>
-      </ion-card-content>
-    </ion-card>
-  </div>
-
   <!-- Loading State -->
   <div class="loading-container" *ngIf="isLoading">
     <ion-spinner name="crescent"></ion-spinner>
@@ -98,6 +81,23 @@
       Next
       <ion-icon name="chevron-forward"></ion-icon>
     </ion-button>
+  </div>
+
+  <!-- Search for New Tourist Spots Section -->
+  <div class="search-section" *ngIf="!isSearching && !searchResults.length">
+    <ion-card class="search-card">
+      <ion-card-content>
+        <div class="search-content">
+          <ion-icon name="search-outline" class="search-icon"></ion-icon>
+          <h3>Can't find your desired tourist spot?</h3>
+          <p>Search for tourist spots in Cebu and add them to our database!</p>
+          <ion-button expand="block" color="warning" (click)="openSearchModal()">
+            <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+            Search & Add New Tourist Spot
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
   </div>
 </ion-content>
 

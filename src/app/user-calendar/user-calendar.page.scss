@@ -70,20 +70,36 @@
         }
       }
       
-      .fc-daygrid-day {
-        border: 1px solid #ddd;
-        padding: 4px; // Smaller padding to make boxes smaller
-        
-        &.fc-day-today {
-          background: rgba(255, 196, 9, 0.1);
-        }
+
+
+
+      //////////////////////////////////////day cell /////////////////////////////////////////
+      .fc .fc-daygrid-body {
+        display: flex;
+        flex-wrap: wrap;
       }
       
-      .fc-daygrid-day-number {
-        color: #333;
-        font-weight: 500;
-        font-size: 14px; // Slightly smaller font for dates
+      .fc .fc-daygrid-day {
+        flex: 1 0 14.28%; // ~100% ÷ 7 days
+        max-width: 14.28%;
+        height: 60px;
+        background-color: #fdf5e6;
+        margin: 2px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
       }
+      
+      .fc .fc-daygrid-day-number {
+        position: static;
+        font-size: 14px;
+        font-weight: bold;
+        color: #000;
+      }
+      
+      /////////////////////////////////////////////////////////////////////////////////
       
       // Style the weekday headers (Sun, Mon, Tue, etc.)
       .fc-col-header-cell {

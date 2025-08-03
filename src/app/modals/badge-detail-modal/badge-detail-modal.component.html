@@ -1,0 +1,43 @@
+<div class="modal-backdrop" (click)="dismiss()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <!-- Close Button -->
+    <button class="close-button" (click)="dismiss()">
+      <ion-icon name="close"></ion-icon>
+    </button>
+
+    <!-- Badge Content -->
+    <div class="badge-content">
+      <!-- Badge Icon -->
+      <div class="badge-icon-section">
+        <div class="badge-icon-wrapper" [ngClass]="{'locked': !badge.isUnlocked}">
+          <img [src]="getBadgeIcon()" [alt]="badge.title" class="badge-icon" />
+        </div>
+      </div>
+
+      <!-- Badge Info -->
+      <div class="badge-info-section">
+        <h2 class="badge-title">{{ badge.title }}</h2>
+        
+        <!-- Tier Badge -->
+        <div class="tier-badge" [style.background-color]="getTierColor()">
+          <span class="tier-text">{{ getTierText() }}</span>
+        </div>
+
+        <!-- Description -->
+        <p class="badge-description">{{ badge.description }}</p>
+
+        <!-- Achievement Date -->
+        <div class="achievement-date" *ngIf="badge.isUnlocked && badge.achievedAt">
+          <ion-icon name="calendar"></ion-icon>
+          <span>Achieved on {{ getFormattedDate() }}</span>
+        </div>
+
+        <!-- Status Message -->
+        <div class="status-message" [ngClass]="{'unlocked': badge.isUnlocked, 'locked': !badge.isUnlocked}">
+          <ion-icon [name]="badge.isUnlocked ? 'checkmark-circle' : 'lock-closed'"></ion-icon>
+          <span>{{ badge.isUnlocked ? 'Badge Unlocked!' : 'Complete requirements to unlock this badge' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

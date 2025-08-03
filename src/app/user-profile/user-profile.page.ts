@@ -11,6 +11,8 @@ import { EditProfileModalComponent } from '../modals/edit-profile-modal/edit-pro
 import { MenuController } from '@ionic/angular';
 import { CreatePostModalComponent } from '../modals/create-post-modal/create-post-modal.component';
 import { CommentsModalComponent } from '../modals/comments-modal/comments-modal.component';
+import { BadgeService, Badge } from '../services/badge.service';
+import { BadgeDetailModalComponent } from '../modals/badge-detail-modal/badge-detail-modal.component';
 
 // Post interface
 interface Post {
@@ -56,6 +58,11 @@ export class UserProfilePage implements OnInit {
   userPosts: Post[] = [];
   loadingPosts = false;
 
+  // Badge data
+  userBadges: Badge[] = [];
+  loadingBadges = false;
+  badgesLoaded = false; // Flag to prevent multiple loads
+
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
 
   constructor(
@@ -68,7 +75,8 @@ export class UserProfilePage implements OnInit {
     private alertCtrl: AlertController,
     private actionSheetCtrl: ActionSheetController,
     private modalCtrl: ModalController,
-    private menuCtrl: MenuController
+    private menuCtrl: MenuController,
+    private badgeService: BadgeService
   ) {}
 
   async ngOnInit() {
@@ -80,14 +88,23 @@ export class UserProfilePage implements OnInit {
     }
     
     // Load user profile data
-    this.firestore.collection('users').doc(this.userId).valueChanges().subscribe(data => {
+    this.firestore.collection('users').doc(this.userId).valueChanges().subscribe(async (data) => {
       this.userData = data;
+      
+      // Only evaluate badges once when data is first loaded
+      if (this.userId && data && !this.badgesLoaded) {
+        await this.badgeService.evaluateAllBadges(this.userId, data);
+        this.badgesLoaded = true;
+      }
     });
 
     this.menuCtrl.enable(true, 'main-menu');
     
     // Load posts
     this.loadPosts();
+    
+    // Load badges
+    this.loadBadges();
   }
 
   async loadPosts() {
@@ -123,6 +140,24 @@ export class UserProfilePage implements OnInit {
       this.showAlert('Error', 'Failed to load posts');
     } finally {
       this.loadingPosts = false;
+    }
+  }
+
+  async loadBadges() {
+    if (!this.userId || this.badgesLoaded) return;
+    
+    this.loadingBadges = true;
+    try {
+      this.badgeService.getUserBadges(this.userId).subscribe(badges => {
+        this.userBadges = badges;
+        this.badgesLoaded = true;
+        console.log('Loaded badges:', badges);
+      });
+    } catch (error) {
+      console.error('Error loading badges:', error);
+      this.showAlert('Error', 'Failed to load badges');
+    } finally {
+      this.loadingBadges = false;
     }
   }
 
@@ -365,7 +400,7 @@ async viewProfilePicture() {
   await modal.present();
 }
 
-async openEditProfileModal() {
+  async openEditProfileModal() {
   const modal = await this.modalCtrl.create({
     component: EditProfileModalComponent,
     cssClass: 'edit-profile-modal-class fullscreen',
@@ -386,6 +421,12 @@ async openEditProfileModal() {
     this.userData.fullName = data.fullName;
     this.userData.username = data.username;
     this.userData.bio = data.bio;
+    
+    // Re-evaluate badges after profile update and refresh display
+    if (this.userId) {
+      await this.badgeService.evaluateAllBadges(this.userId, this.userData);
+      this.refreshBadges();
+    }
   }
 }
 
@@ -404,6 +445,10 @@ async openEditProfileModal() {
     const url = await this.storageService.uploadFile(filePath, file);
     await this.firestore.collection('users').doc(uid).update({ photoURL: url });
     this.userData.photoURL = url;
+
+    // Re-evaluate badges after profile picture update and refresh display
+    await this.badgeService.evaluateAllBadges(uid, this.userData);
+    this.refreshBadges();
 
     this.showAlert('Success', 'Profile picture updated!');
   } catch (err) {
@@ -429,5 +474,67 @@ async openEditProfileModal() {
 
   goToHome() {
     this.navCtrl.navigateForward('/user-dashboard');
+  }
+
+  getBadgeIcon(badge: Badge): string {
+    return badge.isUnlocked ? badge.icon : badge.lockedIcon;
+  }
+
+  getBadgeTierClass(badge: Badge): string {
+    if (!badge.isUnlocked) return 'badge-locked';
+    return `badge-${badge.tier}`;
+  }
+
+  async refreshBadges() {
+    if (!this.userId) return;
+    
+    // Reset the flag to allow reloading
+    this.badgesLoaded = false;
+    
+    // Reload badges
+    this.badgeService.getUserBadges(this.userId).subscribe(badges => {
+      this.userBadges = badges;
+      this.badgesLoaded = true;
+    });
+  }
+
+  async evaluateBadges() {
+    if (!this.userId || !this.userData) return;
+    
+    // Manually trigger badge evaluation
+    await this.badgeService.evaluateAllBadges(this.userId, this.userData);
+    
+    // Refresh the display
+    this.refreshBadges();
+  }
+
+  async forceEvaluateBucketListBadge() {
+    if (!this.userId || !this.userData) return;
+    
+    console.log('Current user data:', this.userData);
+    console.log('Bucket list data:', this.userData?.bucketList);
+    
+    // Manually trigger bucket list badge evaluation
+    await this.badgeService.evaluateAllBadges(this.userId, this.userData);
+    
+    // Refresh the display
+    this.refreshBadges();
+  }
+
+
+
+  async openBadgeDetail(badge: Badge) {
+    const modal = await this.modalCtrl.create({
+      component: BadgeDetailModalComponent,
+      componentProps: {
+        badge: badge
+      },
+      cssClass: 'custom-badge-modal',
+      showBackdrop: false,
+      backdropDismiss: false,
+      presentingElement: await this.modalCtrl.getTop()
+    });
+
+    await modal.present();
   }
 }

@@ -187,10 +187,29 @@
 
   <!-- Badges Tab -->
   <div *ngIf="activeTab === 'tab-3'" class="tab-content">
-    <div class="no-posts">
+    <div *ngIf="loadingBadges" class="loading-badges">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading badges...</p>
+    </div>
+
+    <div *ngIf="!loadingBadges && userBadges.length === 0" class="no-badges">
       <ion-icon name="trophy-outline"></ion-icon>
-      <h3>Badges coming soon!</h3>
-      <p>Earn badges for your travel achievements</p>
+      <h3>No badges available</h3>
+      <p>Complete your profile to earn your first badge!</p>
+    </div>
+
+    <div *ngIf="!loadingBadges && userBadges.length > 0" class="badge-grid">
+      <div *ngFor="let badge of userBadges" 
+           class="badge-item" 
+           [ngClass]="getBadgeTierClass(badge)"
+           (click)="openBadgeDetail(badge)">
+        <div class="badge-icon">
+          <img [src]="getBadgeIcon(badge)" [alt]="badge.title" />
+        </div>
+        <div class="badge-overlay" *ngIf="!badge.isUnlocked">
+          <ion-icon name="lock-closed"></ion-icon>
+        </div>
+      </div>
     </div>
   </div>
 </div>

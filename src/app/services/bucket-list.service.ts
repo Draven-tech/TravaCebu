@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
+import { BadgeService } from './badge.service';
 
 @Injectable({
   providedIn: 'root'
@@ -8,7 +9,8 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 export class BucketService {
   constructor(
     private firestore: AngularFirestore,
-    private afAuth: AngularFireAuth
+    private afAuth: AngularFireAuth,
+    private badgeService: BadgeService
   ) {}
 
   // Get current user ID
@@ -61,6 +63,9 @@ export class BucketService {
         .collection(`users/${userId}/bucketList`)
         .doc(spot.id)
         .set(bucketItem);
+      
+      // Trigger badge evaluation after adding item
+      await this.triggerBadgeEvaluation(userId);
     } catch (error) {
       console.error('Error adding to bucket list:', error);
       throw error;
@@ -79,6 +84,9 @@ export class BucketService {
         .collection(`users/${userId}/bucketList`)
         .doc(spotId)
         .delete();
+      
+      // Trigger badge evaluation after removing item
+      await this.triggerBadgeEvaluation(userId);
     } catch (error) {
       console.error('Error removing from bucket list:', error);
       throw error;
@@ -102,6 +110,9 @@ export class BucketService {
       });
       
       await batch.commit();
+      
+      // Trigger badge evaluation after clearing bucket list
+      await this.triggerBadgeEvaluation(userId);
     } catch (error) {
       console.error('Error clearing bucket list:', error);
       throw error;
@@ -124,5 +135,22 @@ export class BucketService {
   async getBucketCount(): Promise<number> {
     const bucket = await this.getBucket();
     return bucket.length;
+  }
+
+  // Trigger badge evaluation after bucket list changes
+  private async triggerBadgeEvaluation(userId: string): Promise<void> {
+    try {
+      // Get current user data
+      const userDoc = await this.firestore.collection('users').doc(userId).get().toPromise();
+      const userData = userDoc?.data();
+      
+      if (userData) {
+        // Trigger badge evaluation
+        await this.badgeService.evaluateAllBadges(userId, userData);
+        console.log('Badge evaluation triggered after bucket list change');
+      }
+    } catch (error) {
+      console.error('Error triggering badge evaluation:', error);
+    }
   }
 }

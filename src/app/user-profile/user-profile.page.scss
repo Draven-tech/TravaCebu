@@ -552,4 +552,210 @@ ion-menu.light-menu ion-list {
   }
 }
 
+/////////////////////////////// Badge Styles //////////////////////////
 
+.loading-badges {
+  text-align: center;
+  padding: 60px 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+
+  ion-spinner {
+    margin-bottom: 16px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+  }
+}
+
+.no-badges {
+  text-align: center;
+  padding: 60px 20px;
+  background: transparent;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+
+  ion-icon {
+    font-size: 64px;
+    color: #ccc;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.2rem;
+    color: #333;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.4;
+  }
+}
+
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: clamp(12px, 3vw, 24px);
+  padding: clamp(12px, 2vw, 20px);
+  max-width: 100%;
+  margin: 0 auto;
+  justify-items: center;
+}
+
+.badge-item {
+  background: transparent;
+  padding: clamp(12px, 2vw, 20px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  min-height: clamp(140px, 25vw, 200px);
+  width: 100%;
+  max-width: 180px;
+
+  &:hover {
+    transform: translateY(-4px);
+    
+    .badge-icon {
+      transform: scale(1.05);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  .badge-icon {
+    width: clamp(120px, 20vw, 160px);
+    height: clamp(120px, 20vw, 160px);
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    border-radius: 50%;
+    background: transparent;
+    padding: clamp(8px, 1.5vw, 12px);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+  }
+
+  &.badge-locked {
+    .badge-icon {
+      opacity: 0.6;
+      
+      img {
+        filter: grayscale(100%);
+      }
+    }
+  }
+
+  .badge-overlay {
+    position: absolute;
+    top: clamp(8px, 1.5vw, 12px);
+    right: clamp(8px, 1.5vw, 12px);
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 50%;
+    width: clamp(20px, 4vw, 28px);
+    height: clamp(20px, 4vw, 28px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    ion-icon {
+      color: white;
+      font-size: clamp(10px, 2vw, 14px);
+    }
+  }
+}
+
+// Responsive badge grid - automatic adjustment
+@media (max-width: 480px) {
+  .badge-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: clamp(8px, 2vw, 16px);
+  }
+
+  .badge-item {
+    max-width: 140px;
+  }
+}
+
+@media (min-width: 768px) {
+  .badge-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: clamp(16px, 3vw, 28px);
+  }
+
+  .badge-item {
+    max-width: 200px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .badge-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: clamp(20px, 4vw, 32px);
+  }
+
+  .badge-item {
+    max-width: 220px;
+  }
+}
+
+// Custom badge modal styling to override Ionic modal
+::ng-deep .custom-badge-modal {
+  --backdrop-opacity: 0;
+  --background: transparent;
+  
+  ion-modal {
+    --background: transparent;
+    --border-radius: 20px;
+    --box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+  
+  .modal-wrapper {
+    background: transparent !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
+  }
+  
+  ion-backdrop {
+    background: transparent !important;
+    opacity: 0 !important;
+  }
+  
+  .ion-page {
+    background: transparent !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  .ion-content {
+    background: transparent !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}

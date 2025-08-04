@@ -10,7 +10,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { UserCalendarPageRoutingModule } from './user-calendar-routing.module';
 
 import { UserCalendarPage } from './user-calendar.page';
-import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
+import { ComponentsModule } from '../components/components.module';
 
 @NgModule({
   imports: [
@@ -19,7 +19,7 @@ import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
     IonicModule,
     FullCalendarModule,
     UserCalendarPageRoutingModule,
-    BottomNavModule
+    ComponentsModule
   ],
   declarations: [UserCalendarPage]
 })

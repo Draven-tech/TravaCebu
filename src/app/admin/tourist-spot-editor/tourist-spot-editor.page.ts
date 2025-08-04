@@ -3,6 +3,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, NavController } from '@ionic/angular';
 import * as L from 'leaflet';
 import { StorageService } from '../../services/storage.service';
+import { PlacesService } from '../../services/places.service';
 
 @Component({
   selector: 'app-tourist-spot-editor',
@@ -31,6 +32,14 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
   uploadProgress: number = 0;
   selectedTile: string = 'esri';
   
+  // Google Places properties
+  googlePlacesImageUrl: string = '';
+  isSearching: boolean = false;
+  searchResults: any[] = [];
+  googlePlaceId: string = '';
+  rating: number = 0;
+  userRatingsTotal: number = 0;
+  
   // Edit mode tracking
   isEditing: boolean = false;
   editingSpotId: string = '';
@@ -50,7 +59,8 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     private firestore: AngularFirestore,
     private alertCtrl: AlertController,
     private navCtrl: NavController,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private placesService: PlacesService
   ) {}
 
   private destroyMap() {
@@ -76,6 +86,13 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
         this.spotCategory = spot.category || 'attraction';
         this.imageUrl = spot.img || '';
         this.originalImageUrl = spot.img || ''; // Store original image URL
+        this.googlePlaceId = spot.googlePlaceId || '';
+        this.rating = spot.rating || 0;
+        this.userRatingsTotal = spot.userRatingsTotal || 0;
+        // If the image URL looks like a Google Places URL, set it as Google Places image
+        if (spot.img && spot.img.includes('maps.googleapis.com')) {
+          this.googlePlacesImageUrl = spot.img;
+        }
         this.initMap();
         if (spot.location) {
           this.addPin(L.latLng(spot.location.lat, spot.location.lng));
@@ -126,6 +143,173 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     this.addTileLayer();
   }
 
+  // Google Places Search Methods
+  async openSearchModal(): Promise<void> {
+    this.isSearching = true;
+    this.searchResults = [];
+    
+    const alert = await this.alertCtrl.create({
+      header: 'Search Google Places',
+      message: 'Enter the name of a tourist spot in Cebu to search for it.',
+      inputs: [
+        {
+          name: 'searchTerm',
+          type: 'text',
+          placeholder: 'e.g., SM Seaside, Magellan\'s Cross, etc.'
+        }
+      ],
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          handler: () => {
+            this.isSearching = false;
+            this.searchResults = [];
+          }
+        },
+        {
+          text: 'Search',
+          handler: async (data) => {
+            if (data.searchTerm?.trim()) {
+              await this.searchTouristSpots(data.searchTerm.trim());
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async searchTouristSpots(searchTerm: string): Promise<void> {
+    this.isSearching = true;
+    this.searchResults = [];
+
+    try {
+      // Search using Google Places API
+      const searchResult = await this.placesService.searchPlaceByName(
+        searchTerm,
+        10.3157, // Cebu City latitude
+        123.8854  // Cebu City longitude
+      ).toPromise();
+
+      if (searchResult.results && searchResult.results.length > 0) {
+        this.searchResults = searchResult.results.slice(0, 5); // Limit to 5 results
+        await this.showSearchResults(searchTerm);
+      } else {
+        this.showAlert('No Results', 'No tourist spots found with that name.');
+        this.searchResults = [];
+      }
+    } catch (error) {
+      console.error('Error searching tourist spots:', error);
+      this.showAlert('Error', 'Failed to search for tourist spots. Please try again.');
+    } finally {
+      this.isSearching = false;
+    }
+  }
+
+  async showSearchResults(searchTerm: string): Promise<void> {
+    const alert = await this.alertCtrl.create({
+      header: `Search Results for "${searchTerm}"`,
+      message: 'Select a tourist spot to auto-fill the form:',
+      inputs: this.searchResults.map((result, index) => ({
+        name: `result_${index}`,
+        type: 'radio',
+        label: `${result.name} - ${result.formatted_address || 'Cebu, Philippines'}`,
+        value: index
+      })),
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          handler: () => {
+            this.searchResults = [];
+          }
+        },
+        {
+          text: 'Select',
+          handler: async (data) => {
+            if (data !== undefined) {
+              const selectedResult = this.searchResults[data];
+              await this.populateFromGooglePlace(selectedResult);
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async populateFromGooglePlace(googlePlace: any): Promise<void> {
+    try {
+      // Get place details for more information
+      const placeDetails = await this.placesService.getPlaceDetails(googlePlace.place_id).toPromise();
+      
+      // Populate form fields
+      this.spotName = googlePlace.name;
+      this.spotDescription = placeDetails.result?.formatted_address || googlePlace.formatted_address || 'A tourist spot in Cebu, Philippines';
+      this.spotCategory = this.determineCategory(googlePlace.types);
+      
+      // Store Google Places data for hidden gems feature
+      this.googlePlaceId = googlePlace.place_id;
+      this.rating = googlePlace.rating !== undefined ? googlePlace.rating : 0;
+      this.userRatingsTotal = googlePlace.user_ratings_total !== undefined ? googlePlace.user_ratings_total : 0;
+      
+      // Set location on map
+      if (googlePlace.geometry?.location) {
+        const latlng = L.latLng(googlePlace.geometry.location.lat, googlePlace.geometry.location.lng);
+        this.addPin(latlng);
+      }
+      
+      // Try to get a photo for the spot
+      try {
+        const photoResult = await this.placesService.getPlacePhotos(googlePlace.place_id).toPromise();
+        if (photoResult.result?.photos?.length > 0) {
+          const photo = photoResult.result.photos[0];
+          this.googlePlacesImageUrl = this.placesService.getPhotoUrl(photo.photo_reference);
+          this.showAlert('Success', `Form populated with data from "${googlePlace.name}". Google Places image is available.`);
+        } else {
+          this.showAlert('Success', `Form populated with data from "${googlePlace.name}". No image available from Google Places - you can upload one manually.`);
+        }
+      } catch (photoError) {
+        console.log('No photo available for this spot');
+        this.showAlert('Success', `Form populated with data from "${googlePlace.name}". No image available from Google Places - you can upload one manually.`);
+      }
+      
+    } catch (error) {
+      console.error('Error populating from Google Place:', error);
+      this.showAlert('Error', 'Failed to populate form with Google Places data. Please try again.');
+    }
+  }
+
+  private determineCategory(types: string[]): string {
+    if (!types || types.length === 0) return 'attraction';
+    
+    const typeMap: { [key: string]: string } = {
+      'shopping_mall': 'mall',
+      'amusement_park': 'attraction',
+      'aquarium': 'attraction',
+      'art_gallery': 'museum',
+      'museum': 'museum',
+      'park': 'park',
+      'natural_feature': 'attraction',
+      'tourist_attraction': 'attraction',
+      'point_of_interest': 'attraction',
+      'establishment': 'attraction',
+      'restaurant': 'restaurant',
+      'lodging': 'hotel',
+      'church': 'church',
+      'beach': 'beach'
+    };
+
+    for (const type of types) {
+      if (typeMap[type]) {
+        return typeMap[type];
+      }
+    }
+    
+    return 'attraction';
+  }
+
   private addPin(latlng: L.LatLng) {
     if (this.marker) {
       this.map.removeLayer(this.marker);
@@ -162,6 +346,10 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     this.imageFile = undefined;
     this.imageUrl = '';
     // Don't clear originalImageUrl here as we want to delete it when saving
+  }
+
+  removeGooglePlacesImage() {
+    this.googlePlacesImageUrl = '';
   }
 
   private async uploadImage(): Promise<string> {
@@ -213,7 +401,14 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     const latlng = this.marker.getLatLng();
     
     try {
-      const imageUrl = await this.uploadImage();
+      let imageUrl = '';
+      
+      // Priority: Manual upload > Google Places image
+      if (this.imageFile) {
+        imageUrl = await this.uploadImage();
+      } else if (this.googlePlacesImageUrl) {
+        imageUrl = this.googlePlacesImageUrl;
+      }
       
       const spotData: any = {
         name: this.spotName.trim(),
@@ -224,6 +419,9 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
           lat: latlng.lat,
           lng: latlng.lng
         },
+        googlePlaceId: this.googlePlaceId,
+        rating: this.rating,
+        userRatingsTotal: this.userRatingsTotal,
         updatedAt: new Date()
       };
 
@@ -253,6 +451,11 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     this.imageFile = undefined;
     this.imageUrl = '';
     this.originalImageUrl = '';
+    this.googlePlacesImageUrl = '';
+    this.googlePlaceId = '';
+    this.rating = 0;
+    this.userRatingsTotal = 0;
+    this.searchResults = [];
     if (this.marker) {
       this.map.removeLayer(this.marker);
       this.marker = undefined;

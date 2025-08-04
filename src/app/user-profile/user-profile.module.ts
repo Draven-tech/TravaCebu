@@ -7,7 +7,7 @@ import { IonicModule } from '@ionic/angular';
 import { UserProfilePageRoutingModule } from './user-profile-routing.module';
 
 import { UserProfilePage } from './user-profile.page';
-import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
+import { ComponentsModule } from '../components/components.module';
 import { CreatePostModalComponent } from '../modals/create-post-modal/create-post-modal.component';
 import { CommentsModalComponent } from '../modals/comments-modal/comments-modal.component';
 
@@ -17,7 +17,7 @@ import { CommentsModalComponent } from '../modals/comments-modal/comments-modal.
     FormsModule,
     IonicModule,
     UserProfilePageRoutingModule,
-    BottomNavModule
+    ComponentsModule
   ],
   declarations: [
     UserProfilePage,

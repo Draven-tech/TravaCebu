@@ -6,14 +6,27 @@ import { ChangeDetectorRef } from '@angular/core';
 import { ItineraryMapComponent } from './itinerary-map.component';
 import { CalendarService, CalendarEvent } from '../services/calendar.service';
 
+interface PlaceSuggestion {
+  name: string;
+  rating?: number;
+  vicinity?: string;
+  place_id?: string;
+  geometry?: {
+    location: {
+      lat: number;
+      lng: number;
+    };
+  };
+}
+
 @Component({
   selector: 'app-itinerary-modal',
   template: `
     <ion-header>
       <ion-toolbar color="warning" style="--min-height: 32px; --padding-top: 2px; --padding-bottom: 2px; display: flex; align-items: center; justify-content: space-between;">
-        <ion-title style="font-size: 1.1rem; font-weight: 700; text-align: center; flex: 1; padding: 0; margin: 0;">Your Itinerary</ion-title>
+        <ion-title style="font-size: 1.1rem; font-weight: 700; text-align: center; flex: 1; padding: 0; margin: 0;">{{ isEditMode ? 'Edit Itinerary' : 'Your Itinerary' }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="editItinerary()" aria-label="Edit" style="--padding-start: 4px; --padding-end: 4px; --min-height: 28px;">
+          <ion-button *ngIf="!isEditMode" (click)="editItinerary()" aria-label="Edit" style="--padding-start: 4px; --padding-end: 4px; --min-height: 28px;">
             <ion-icon name="create-outline" style="font-size: 16px;"></ion-icon>
           </ion-button>
           <ion-button (click)="close()" aria-label="Close" style="--padding-start: 4px; --padding-end: 4px; --min-height: 28px;">
@@ -27,7 +40,7 @@ import { CalendarService, CalendarEvent } from '../services/calendar.service';
       <div class="itinerary-container">
         <div *ngFor="let day of itinerary" class="day-section">
           <h3 class="day-title">Day {{ day.day }}</h3>
-          <div *ngFor="let spot of day.spots; let i = index" class="spot-item">
+          <div *ngFor="let spot of sortByTimeSlot(day.spots); let i = index" class="spot-item">
             <div class="spot-name">{{ i + 1 }}. {{ spot.name }}</div>
             <div class="spot-details">
               <span class="time">⏰ {{ spot.timeSlot }}</span>
@@ -139,11 +152,11 @@ import { CalendarService, CalendarEvent } from '../services/calendar.service';
                 <span>Restaurant Options ({{ spot.mealType }})</span>
               </div>
               <div class="suggestions-grid">
-                <div *ngFor="let rest of spot.restaurantSuggestions | slice:0:3" class="suggestion-card">
-                  <div class="suggestion-name">{{ rest.name }}</div>
+                <div *ngFor="let rest of (spot.restaurantSuggestions || []) | slice:0:3; trackBy: trackByPlaceId" class="suggestion-card">
+                  <div class="suggestion-name">{{ getPlaceName(rest) }}</div>
                   <div class="suggestion-details">
-                    <span *ngIf="rest.rating">⭐ {{ rest.rating }}★</span>
-                    <span *ngIf="rest.vicinity">📍 {{ rest.vicinity }}</span>
+                    <span *ngIf="getPlaceRating(rest)">⭐ {{ getPlaceRating(rest) }}★</span>
+                    <span *ngIf="getPlaceVicinity(rest)">📍 {{ getPlaceVicinity(rest) }}</span>
                   </div>
                   <div class="suggestion-actions">
                     <ion-button size="small" fill="outline" color="success" (click)="chooseRestaurant(spot, rest)">
@@ -207,11 +220,11 @@ import { CalendarService, CalendarEvent } from '../services/calendar.service';
               <span>Hotel Options (End of Day)</span>
             </div>
             <div class="suggestions-grid">
-              <div *ngFor="let hotel of day.hotelSuggestions | slice:0:3" class="suggestion-card">
-                <div class="suggestion-name">{{ hotel.name }}</div>
+              <div *ngFor="let hotel of (day.hotelSuggestions || []) | slice:0:3; trackBy: trackByPlaceId" class="suggestion-card">
+                <div class="suggestion-name">{{ getPlaceName(hotel) }}</div>
                 <div class="suggestion-details">
-                  <span *ngIf="hotel.rating">⭐ {{ hotel.rating }}★</span>
-                  <span *ngIf="hotel.vicinity">📍 {{ hotel.vicinity }}</span>
+                  <span *ngIf="getPlaceRating(hotel)">⭐ {{ getPlaceRating(hotel) }}★</span>
+                  <span *ngIf="getPlaceVicinity(hotel)">📍 {{ getPlaceVicinity(hotel) }}</span>
                 </div>
                 <div class="suggestion-actions">
                   <ion-button size="small" fill="outline" color="success" (click)="chooseHotel(day, hotel)">
@@ -232,7 +245,7 @@ import { CalendarService, CalendarEvent } from '../services/calendar.service';
           </div>
 
           <!-- No Hotel Suggestions -->
-          <div *ngIf="(!day.hotelSuggestions || day.hotelSuggestions.length === 0) && day.spots.length > 0" class="no-suggestions">
+          <div *ngIf="!day.chosenHotel && (!day.hotelSuggestions || day.hotelSuggestions.length === 0) && day.spots.length > 0" class="no-suggestions">
             <ion-icon name="bed-outline" color="medium"></ion-icon>
             <span>Click "Fetch Suggestions" to get hotel options for Day {{ day.day }}.</span>
           </div>
@@ -244,7 +257,7 @@ import { CalendarService, CalendarEvent } from '../services/calendar.service';
       <ion-toolbar>
         <ion-button expand="block" color="success" (click)="saveItinerary()" [disabled]="saving">
           <ion-spinner *ngIf="saving" name="crescent"></ion-spinner>
-          <span *ngIf="!saving">Save to Calendar</span>
+                          <span *ngIf="!saving">{{ isEditMode ? 'Update Itinerary' : 'Save Itinerary' }}</span>
         </ion-button>
         <ion-button expand="block" color="primary" (click)="fetchSuggestions()" [disabled]="fetchingSuggestions">
           <ion-spinner *ngIf="fetchingSuggestions" name="crescent"></ion-spinner>
@@ -484,6 +497,7 @@ import { CalendarService, CalendarEvent } from '../services/calendar.service';
 })
 export class ItineraryModalComponent {
   @Input() itinerary: ItineraryDay[] = [];
+  @Input() isEditMode: boolean = false;
   fetchingSuggestions = false;
   saving = false;
   transportTabs: { [key: string]: string } = {};
@@ -496,6 +510,42 @@ export class ItineraryModalComponent {
     private cdr: ChangeDetectorRef,
     private calendarService: CalendarService
   ) {}
+
+  sortByTimeSlot(items: any[]): any[] {
+    if (!items || items.length === 0) {
+      return items;
+    }
+
+    return items.sort((a, b) => {
+      const timeA = a.timeSlot || '00:00';
+      const timeB = b.timeSlot || '00:00';
+      
+      // Convert time strings to comparable values
+      const [hoursA, minutesA] = timeA.split(':').map(Number);
+      const [hoursB, minutesB] = timeB.split(':').map(Number);
+      
+      const totalMinutesA = hoursA * 60 + minutesA;
+      const totalMinutesB = hoursB * 60 + minutesB;
+      
+      return totalMinutesA - totalMinutesB; // Ascending order (earliest first)
+    });
+  }
+
+  trackByPlaceId(index: number, item: any): string {
+    return (item as PlaceSuggestion).place_id || index.toString();
+  }
+
+  getPlaceName(place: any): string {
+    return (place as PlaceSuggestion)?.name || 'Unknown Place';
+  }
+
+  getPlaceRating(place: any): number | null {
+    return (place as PlaceSuggestion)?.rating || null;
+  }
+
+  getPlaceVicinity(place: any): string | null {
+    return (place as PlaceSuggestion)?.vicinity || null;
+  }
 
   async saveItinerary() {
     // Validate that all restaurants and hotels are either chosen or skipped
@@ -511,8 +561,14 @@ export class ItineraryModalComponent {
       // Save itinerary to calendar/calendar service
       await this.saveItineraryToCalendar();
       
-      // Show success message
-      this.showAlert('Success', 'Itinerary saved to calendar! You can now view it in the calendar page.');
+      // Show success message based on mode
+      if (this.isEditMode) {
+        this.showAlert('Success', 'Itinerary updated successfully!');
+        // Dismiss with saved flag for edit mode
+        this.modalCtrl.dismiss({ saved: true });
+      } else {
+        this.showAlert('Success', 'Itinerary saved to calendar! You can now view it in the calendar page.');
+      }
       
     } catch (error) {
       console.error('Error saving itinerary:', error);
@@ -550,14 +606,14 @@ export class ItineraryModalComponent {
     // Convert itinerary to calendar events
     const events: CalendarEvent[] = [];
     
-    console.log('Saving itinerary to calendar:', this.itinerary);
+
     
     for (const day of this.itinerary) {
       if (!day.date) {
         throw new Error('Itinerary days must have dates assigned');
       }
       
-      console.log(`Processing Day ${day.day} with date: ${day.date}`);
+
       
       // Add spots as events
       for (const spot of day.spots) {
@@ -571,17 +627,19 @@ export class ItineraryModalComponent {
           allDay: false,
           extendedProps: {
             type: 'tourist_spot',
-            description: spot.description,
-            category: spot.category,
-            duration: spot.estimatedDuration,
-            restaurant: spot.chosenRestaurant?.name,
-            mealType: spot.mealType,
-            jeepneyRoute: this.getJeepneyRoute(day, day.spots.indexOf(spot)),
-            googleDirections: this.getGoogleDirections(day, day.spots.indexOf(spot))
+            description: spot.description || '',
+            category: spot.category || 'GENERAL',
+            duration: spot.estimatedDuration || '2 hours',
+            restaurant: spot.chosenRestaurant?.name || null,
+            restaurantRating: spot.chosenRestaurant?.rating || null,
+            restaurantVicinity: spot.chosenRestaurant?.vicinity || null,
+            mealType: spot.mealType || null,
+            jeepneyRoute: this.getJeepneyRoute(day, day.spots.indexOf(spot)) || null,
+            googleDirections: this.getGoogleDirections(day, day.spots.indexOf(spot)) || null
           }
         };
         events.push(event);
-        console.log(`Added event: ${spot.name} at ${startTime}`);
+
       }
       
       // Add hotel as event if chosen
@@ -597,22 +655,23 @@ export class ItineraryModalComponent {
           extendedProps: {
             type: 'hotel',
             description: 'Hotel check-in',
-            hotel: day.chosenHotel.name,
-            vicinity: day.chosenHotel.vicinity
+            hotel: day.chosenHotel.name || '',
+            vicinity: day.chosenHotel.vicinity || '',
+            rating: day.chosenHotel.rating || null,
+            isChosen: true
           }
         };
         events.push(hotelEvent);
-        console.log(`Added hotel event: ${day.chosenHotel.name} at ${hotelStartTime}`);
+
       }
     }
     
-    console.log('Total events to save:', events.length);
-    console.log('Events:', events);
+    
     
     // Save using the calendar service
     await this.calendarService.saveItineraryEvents(events);
     
-    console.log('Events saved successfully!');
+    
   }
 
   async fetchSuggestions() {
@@ -835,14 +894,20 @@ export class ItineraryModalComponent {
   // Get jeepney route for a specific spot (legacy method)
   getJeepneyRoute(day: ItineraryDay, spotIndex: number): any {
     if (spotIndex === 0) return null; // First spot has no previous route
+    if (!day.routes || !Array.isArray(day.routes)) {
+      return null;
+    }
     return day.routes[spotIndex - 1] || null;
   }
 
   // Get route chain for a specific spot
   getRouteChain(day: ItineraryDay, spotIndex: number): any[] {
     // Return all routes that involve this spot
+    if (!day.routes || !Array.isArray(day.routes)) {
+      return [];
+    }
     return day.routes.filter(route => {
-      const spotName = day.spots[spotIndex].name;
+      const spotName = day.spots[spotIndex]?.name;
       return route.from === spotName || route.to === spotName;
     });
   }
@@ -864,6 +929,11 @@ export class ItineraryModalComponent {
     try {
       const prevSpot = day.spots[spotIndex - 1];
       const currentSpot = day.spots[spotIndex];
+      
+      if (!prevSpot || !currentSpot) {
+        console.warn('Missing spot data for directions:', { prevSpot, currentSpot });
+        return;
+      }
       
       const directions = await this.itineraryService.getDirectionsRoute(prevSpot, currentSpot);
       

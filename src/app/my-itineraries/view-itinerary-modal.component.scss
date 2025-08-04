@@ -1,0 +1,208 @@
+.itinerary-container {
+  padding: 16px;
+}
+
+.day-section {
+  margin-bottom: 24px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.day-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e9ecef;
+
+  h2 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+
+  .date {
+    margin: 4px 0 0 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+}
+
+.section {
+  margin-bottom: 20px;
+
+  h3 {
+    margin: 0 0 12px 0;
+    color: #495057;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.spots-list, .restaurants-list, .hotels-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spot-card, .restaurant-card, .hotel-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #007bff;
+}
+
+.spot-header, .restaurant-header, .hotel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.spot-number {
+  background: #007bff;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.spot-name, .restaurant-header h4, .hotel-header h4 {
+  margin: 0;
+  font-weight: 600;
+  color: #2c3e50;
+  flex: 1;
+}
+
+.spot-category {
+  background: #e9ecef;
+  color: #495057;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.time-duration {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #6c757d;
+  font-size: 0.9rem;
+
+  ion-icon {
+    color: #007bff;
+  }
+}
+
+.time {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.check-in {
+  background: #fff3e0;
+  color: #f57c00;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.description {
+  margin: 8px 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.duration {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin: 4px 0;
+}
+
+.chosen-restaurant {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid #28a745;
+}
+
+.restaurant-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.meal-icon {
+  font-size: 1.2rem;
+}
+
+.meal-type {
+  color: #28a745;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: capitalize;
+}
+
+.restaurant-card h4 {
+  margin: 0 0 4px 0;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.rating {
+  color: #ffc107;
+  font-weight: 600;
+  margin: 4px 0;
+}
+
+.address {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin: 4px 0;
+}
+
+.hotel-details {
+  margin-top: 8px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+
+  ion-icon {
+    color: #dee2e6;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    color: #495057;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+} 

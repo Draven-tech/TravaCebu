@@ -161,58 +161,53 @@ export class UserCalendarPage implements OnInit {
     console.log('Event props:', props);
     
     // Create event details message
-    let message = `<div style="text-align: left;">
-      <p><strong>Event:</strong> ${event.title}</p>
-      <p><strong>Date:</strong> ${new Date(event.start!).toLocaleDateString()}</p>
-      <p><strong>Time:</strong> ${new Date(event.start!).toLocaleTimeString()}</p>`;
+    let message = `Event: ${event.title}\n\nDate: ${new Date(event.start!).toLocaleDateString()}\nTime: ${new Date(event.start!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
     
     // Handle different event types
     if (props['type'] === 'tourist_spot') {
       // Itinerary tourist spot event
       if (props['duration']) {
-        message += `<p><strong>Duration:</strong> ${props['duration']}</p>`;
+        message += `\nDuration: ${props['duration']}`;
       }
       if (props['category']) {
-        message += `<p><strong>Category:</strong> ${props['category']}</p>`;
+        message += `\nCategory: ${props['category']}`;
       }
       if (props['restaurant']) {
-        message += `<p><strong>Restaurant:</strong> ${props['restaurant']} (${props['mealType']})</p>`;
+        message += `\nRestaurant: ${props['restaurant']} (${props['mealType']})`;
       }
       if (props['jeepneyRoute']) {
         const route = props['jeepneyRoute'];
-        message += `<p><strong>🚌 Local Jeepney:</strong> Code ${route.jeepneyCode} (${route.estimatedTime})</p>`;
-        message += `<p><strong>Route:</strong> ${route.from} → ${route.to}</p>`;
+        message += `\n🚌 Local Jeepney: Code ${route.jeepneyCode} (${route.estimatedTime})`;
+        message += `\nRoute: ${route.from} → ${route.to}`;
       }
       if (props['googleDirections']) {
         const directions = props['googleDirections'];
-        message += `<p><strong>🗺️ Google Directions:</strong> ${directions.duration} (${directions.distance})</p>`;
+        message += `\n🗺️ Google Directions: ${directions.duration} (${directions.distance})`;
       }
       if (props['description']) {
-        message += `<p><strong>Notes:</strong> ${props['description']}</p>`;
+        message += `\nNotes: ${props['description']}`;
       }
     } else if (props['type'] === 'hotel') {
       // Itinerary hotel event
-      message += `<p><strong>Check-in:</strong> Evening</p>`;
+      message += `\nCheck-in: Evening`;
       if (props['vicinity']) {
-        message += `<p><strong>Location:</strong> ${props['vicinity']}</p>`;
+        message += `\nLocation: ${props['vicinity']}`;
       }
       if (props['description']) {
-        message += `<p><strong>Notes:</strong> ${props['description']}</p>`;
+        message += `\nNotes: ${props['description']}`;
       }
     } else {
       // Admin event
       if (props['time']) {
-        message += `<p><strong>Time:</strong> ${props['time']}</p>`;
+        message += `\nTime: ${props['time']}`;
       }
       if (props['location']) {
-        message += `<p><strong>Location:</strong> ${props['location']}</p>`;
+        message += `\nLocation: ${props['location']}`;
       }
       if (props['description']) {
-        message += `<p><strong>Description:</strong> ${props['description']}</p>`;
+        message += `\nDescription: ${props['description']}`;
       }
     }
-    
-    message += '</div>';
     
     // Show event details in alert
     this.showEventAlert(event.title, message);
@@ -222,7 +217,8 @@ export class UserCalendarPage implements OnInit {
     const alert = await this.alertCtrl.create({
       header: title,
       message: message,
-      buttons: ['Close']
+      buttons: ['Close'],
+      cssClass: 'event-alert'
     });
     await alert.present();
   }

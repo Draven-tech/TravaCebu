@@ -476,6 +476,10 @@ async viewProfilePicture() {
     this.navCtrl.navigateForward('/user-dashboard');
   }
 
+  goToMyItineraries() {
+    this.navCtrl.navigateForward('/my-itineraries');
+  }
+
   getBadgeIcon(badge: Badge): string {
     return badge.isUnlocked ? badge.icon : badge.lockedIcon;
   }

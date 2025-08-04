@@ -7,7 +7,8 @@ import { IonicModule } from '@ionic/angular';
 import { UserDashboardPageRoutingModule } from './user-dashboard-routing.module';
 
 import { UserDashboardPage } from './user-dashboard.page';
-import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
+import { SearchModalComponent } from './search-modal.component';
+import { ComponentsModule } from '../components/components.module';
 
 @NgModule({
   imports: [
@@ -15,8 +16,8 @@ import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
     FormsModule,
     IonicModule,
     UserDashboardPageRoutingModule,
-    BottomNavModule
+    ComponentsModule
   ],
-  declarations: [UserDashboardPage]
+  declarations: [UserDashboardPage, SearchModalComponent]
 })
 export class UserDashboardPageModule {}

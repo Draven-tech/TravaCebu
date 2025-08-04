@@ -72,6 +72,12 @@ ion-button {
   margin-top: 16px;
 }
 
+.my-itineraries-btn {
+  --background: linear-gradient(45deg, #6c5ce7, #a29bfe);
+  --color: white;
+  margin-top: 8px;
+}
+
 ion-fab-button {
   --box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   --background: linear-gradient(45deg, #e74c3c, #2ecc71);

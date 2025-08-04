@@ -94,7 +94,7 @@ export class PlacesImageService {
 
           // Get photos for this place
           return this.placesService.getPlacePhotos(googlePlace.place_id).pipe(
-            map(photoResult => {
+            map((photoResult: any) => {
               if (photoResult.result && photoResult.result.photos) {
                 const photos = photoResult.result.photos.slice(0, 5); // Limit to 5 photos
                 const googleImages = photos.map((photo: any) => ({
@@ -168,7 +168,7 @@ export class PlacesImageService {
         attempts++;
 
         this.placesService.searchPlaceByName(searchTerm, 10.3157, 123.8854).subscribe({
-          next: (result) => {
+          next: (result: any) => {
             if (result.results && result.results.length > 0) {
               const bestMatch = this.findBestMatch(spot.name, result.results);
               if (bestMatch && bestMatch.similarity > 0.3) {
@@ -181,7 +181,7 @@ export class PlacesImageService {
               tryNextSearch();
             }
           },
-          error: (error) => {
+          error: (error: any) => {
             console.error(`Fallback search attempt ${attempts} failed:`, error);
             tryNextSearch();
           }
@@ -203,7 +203,7 @@ export class PlacesImageService {
       spot.location.lat,
       spot.location.lng
     ).pipe(
-      map(searchResult => {
+      map((searchResult: any) => {
         if (searchResult.results && searchResult.results.length > 0) {
           // Find the best match based on name similarity and distance
           const bestMatch = this.findBestMatch(spot.name, searchResult.results);

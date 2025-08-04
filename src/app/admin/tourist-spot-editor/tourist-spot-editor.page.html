@@ -28,6 +28,15 @@
       <ion-card-title>Tourist Spot Details</ion-card-title>
     </ion-card-header>
     <ion-card-content>
+      <!-- Google Places Search Section -->
+      <ion-item>
+        <ion-label position="stacked">Search Google Places (Optional)</ion-label>
+        <ion-button fill="outline" size="small" (click)="openSearchModal()" style="margin-top: 8px;">
+          <ion-icon name="search-outline" slot="start"></ion-icon>
+          Search & Auto-fill
+        </ion-button>
+      </ion-item>
+
       <ion-item>
         <ion-label position="stacked">Name <ion-text color="danger">*</ion-text></ion-label>
         <ion-input [(ngModel)]="spotName" placeholder="Enter spot name..."></ion-input>
@@ -60,17 +69,36 @@
       <ion-card-title>Image</ion-card-title>
     </ion-card-header>
     <ion-card-content>
+      <!-- Google Places Image Info -->
+      <div *ngIf="googlePlacesImageUrl" style="margin-bottom: 16px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #28a745;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center;">
+            <ion-icon name="checkmark-circle" color="success" style="margin-right: 8px;"></ion-icon>
+            <strong>Google Places Image Available</strong>
+          </div>
+          <ion-button fill="clear" color="danger" size="small" (click)="removeGooglePlacesImage()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </div>
+        <img [src]="googlePlacesImageUrl" style="max-width: 100%; max-height: 150px; border-radius: 8px; margin-bottom: 8px;" />
+        <div style="font-size: 0.9rem; color: #666;">
+          This image was automatically fetched from Google Places. You can still upload a custom image below if needed.
+        </div>
+      </div>
+
       <ion-item>
-        <ion-label position="stacked">Upload Image</ion-label>
+        <ion-label position="stacked">Upload Custom Image (Optional)</ion-label>
         <input type="file" (change)="onImageSelected($event)" accept="image/*" />
       </ion-item>
-      <div *ngIf="imageUrl" style="margin-top: 10px; text-align: center;">
+      
+      <div *ngIf="imageUrl && !googlePlacesImageUrl" style="margin-top: 10px; text-align: center;">
         <img [src]="imageUrl" style="max-width: 100%; max-height: 200px; border-radius: 8px;" />
         <ion-button fill="clear" color="danger" size="small" (click)="removeImage()" style="margin-top: 8px;">
           <ion-icon name="trash"></ion-icon>
           Remove Image
         </ion-button>
       </div>
+      
       <div *ngIf="isUploading" style="text-align:center; margin: 10px 0;">
         <ion-spinner name="crescent"></ion-spinner>
         <div>Uploading image...</div>

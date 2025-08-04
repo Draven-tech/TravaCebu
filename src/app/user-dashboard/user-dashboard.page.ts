@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AuthService } from '../services/auth.service';
@@ -6,6 +6,7 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { BucketService } from '../services/bucket-list.service';
 import { NavController, ToastController, ModalController, AlertController } from '@ionic/angular';
 import { PlacesService } from '../services/places.service';
+import { SearchModalComponent } from './search-modal.component';
 
 @Component({
   selector: 'app-user-dashboard',
@@ -13,7 +14,7 @@ import { PlacesService } from '../services/places.service';
   styleUrls: ['./user-dashboard.page.scss'],
   standalone: false,
 })
-export class UserDashboardPage implements OnInit {
+export class UserDashboardPage implements OnInit, OnDestroy {
   userId: string | null = null;
   userData: any = null;
   spots: any[] = [];
@@ -48,6 +49,8 @@ export class UserDashboardPage implements OnInit {
     private placesService: PlacesService
   ) { }
 
+  private spotsSubscription: any;
+
   async ngOnInit() {
     // Get Firebase Auth UID
     const currentUser = await this.afAuth.currentUser;
@@ -59,13 +62,8 @@ export class UserDashboardPage implements OnInit {
     this.firestore.collection('users').doc(this.userId).valueChanges().subscribe(data => {
       this.userData = data;
     });
-    // Load tourist spots
-    this.firestore.collection('tourist_spots').valueChanges({ idField: 'id' }).subscribe(spots => {
-      this.spots = spots;
-      this.originalSpots = spots;
-      this.isLoading = false;
-      this.applyFilter();
-    });
+    // Load tourist spots with proper subscription management
+    this.loadSpots();
     await this.loadVisitedSpots();
     await this.loadBucketStatus();
   }
@@ -80,12 +78,23 @@ export class UserDashboardPage implements OnInit {
 
   loadSpots() {
     this.isLoading = true;
-    this.firestore
-      .collection('tourist_spots', (ref) => ref.orderBy('createdAt', 'desc'))
+    
+    // Unsubscribe from previous subscription if it exists
+    if (this.spotsSubscription) {
+      this.spotsSubscription.unsubscribe();
+    }
+    
+    // Create new subscription - sort by userRatingsTotal (ascending) to show hidden gems first
+    this.spotsSubscription = this.firestore
+      .collection('tourist_spots')
       .valueChanges({ idField: 'id' })
       .subscribe({
         next: (data) => {
-          this.originalSpots = data;
+          console.log('Loaded spots:', data.length, 'spots'); // Debug log
+          
+          // Sort by userRatingsTotal (ascending) - least popular first (hidden gems)
+          this.originalSpots = this.sortByUserRatings(data);
+          
           this.applyFilter(); // filter based on current tag
           this.isLoading = false;
         },
@@ -163,104 +172,43 @@ export class UserDashboardPage implements OnInit {
   }
 
   async openSearchModal(): Promise<void> {
-    this.isSearching = true;
-    this.searchResults = [];
-    
-    const alert = await this.alertCtrl.create({
-      header: 'Search Tourist Spots',
-      message: 'Enter the name of a tourist spot in Cebu to search for it.',
-      inputs: [
-        {
-          name: 'searchTerm',
-          type: 'text',
-          placeholder: 'e.g., SM Seaside, Magellan\'s Cross, etc.'
-        }
-      ],
-      buttons: [
-        {
-          text: 'Cancel',
-          role: 'cancel',
-          handler: () => {
-            this.isSearching = false;
-          }
-        },
-        {
-          text: 'Search',
-          handler: async (data) => {
-            if (data.searchTerm?.trim()) {
-              await this.searchTouristSpots(data.searchTerm.trim());
-            }
-          }
-        }
-      ]
-    });
-    await alert.present();
-  }
-
-  async searchTouristSpots(searchTerm: string): Promise<void> {
-    this.isSearching = true;
-    this.searchResults = [];
-
-    try {
-      // Search using Google Places API
-      const searchResult = await this.placesService.searchPlaceByName(
-        searchTerm,
-        10.3157, // Cebu City latitude
-        123.8854  // Cebu City longitude
-      ).toPromise();
-
-      if (searchResult.results && searchResult.results.length > 0) {
-        this.searchResults = searchResult.results.slice(0, 5); // Limit to 5 results
-        await this.showSearchResults(searchTerm);
-      } else {
-        this.showAlert('No Results', 'No tourist spots found with that name.');
+    const modal = await this.modalCtrl.create({
+      component: SearchModalComponent,
+      cssClass: 'search-modal',
+      componentProps: {
+        existingSpots: this.originalSpots
       }
-    } catch (error) {
-      console.error('Error searching tourist spots:', error);
-      this.showAlert('Error', 'Failed to search for tourist spots. Please try again.');
-    } finally {
-      this.isSearching = false;
+    });
+
+    await modal.present();
+
+    const result = await modal.onDidDismiss();
+    if (result.data && result.data.action === 'add') {
+      await this.addTouristSpotToDatabase(result.data.place);
     }
   }
 
-  async showSearchResults(searchTerm: string): Promise<void> {
-    const alert = await this.alertCtrl.create({
-      header: `Search Results for "${searchTerm}"`,
-      message: 'Select a tourist spot to add to our database:',
-      inputs: this.searchResults.map((result, index) => ({
-        name: `result_${index}`,
-        type: 'radio',
-        label: `${result.name} - ${result.formatted_address || 'Cebu, Philippines'}`,
-        value: index
-      })),
-      buttons: [
-        {
-          text: 'Cancel',
-          role: 'cancel'
-        },
-        {
-          text: 'Add Selected',
-          handler: async (data) => {
-            if (data !== undefined) {
-              const selectedResult = this.searchResults[data];
-              await this.addTouristSpotToDatabase(selectedResult);
-            }
-          }
-        }
-      ]
-    });
-    await alert.present();
-  }
+
 
   async addTouristSpotToDatabase(googlePlace: any): Promise<void> {
     try {
-      // Check if spot already exists in database
-      const existingSpot = this.originalSpots.find(spot => 
-        spot.name?.toLowerCase() === googlePlace.name?.toLowerCase()
-      );
+      // Enhanced duplicate detection
+      const isDuplicate = this.isDuplicateSpot(googlePlace);
 
-      if (existingSpot) {
-        this.showAlert('Already Exists', 'This tourist spot is already in our database.');
+      if (isDuplicate) {
+        const toast = await this.toastCtrl.create({
+          message: `"${googlePlace.name}" is already in our database!`,
+          duration: 3000,
+          color: 'warning',
+          position: 'top',
+          buttons: [
+            {
+              icon: 'information-circle',
+              side: 'start'
+            }
+          ]
+        });
+        toast.present();
         return;
       }
 
@@ -278,8 +226,8 @@ export class UserDashboardPage implements OnInit {
         },
         img: '', // Will be populated with Google Places photo if available
         googlePlaceId: googlePlace.place_id,
-        rating: googlePlace.rating,
-        userRatingsTotal: googlePlace.user_ratings_total,
+        rating: googlePlace.rating !== undefined ? googlePlace.rating : 0, // Set default value if undefined
+        userRatingsTotal: googlePlace.user_ratings_total !== undefined ? googlePlace.user_ratings_total : 0, // Set default value if undefined
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -295,10 +243,22 @@ export class UserDashboardPage implements OnInit {
         console.log('No photo available for this spot');
       }
 
-      // Add to Firestore
-      const docRef = await this.firestore.collection('tourist_spots').add(newSpotData);
-      
-      this.showAlert('Success', `"${googlePlace.name}" has been added to our database!`);
+             // Add to Firestore
+       const docRef = await this.firestore.collection('tourist_spots').add(newSpotData);
+       
+       const toast = await this.toastCtrl.create({
+         message: `"${googlePlace.name}" has been added to our database!`,
+         duration: 3000,
+         color: 'success',
+         position: 'top',
+         buttons: [
+           {
+             icon: 'checkmark-circle',
+             side: 'start'
+           }
+         ]
+       });
+       toast.present();
       
       // Refresh the spots list
       this.loadSpots();
@@ -306,7 +266,63 @@ export class UserDashboardPage implements OnInit {
     } catch (error) {
       console.error('Error adding tourist spot:', error);
       this.showAlert('Error', 'Failed to add tourist spot to database. Please try again.');
+      
+      // Reset search state on error
+      this.searchResults = [];
+      this.isSearching = false;
     }
+  }
+
+  private isDuplicateSpot(googlePlace: any): boolean {
+    if (!this.originalSpots || this.originalSpots.length === 0) {
+      return false;
+    }
+    
+    const placeName = googlePlace.name?.toLowerCase().trim();
+    if (!placeName) return false;
+    
+    // Check for exact match
+    const exactMatch = this.originalSpots.find(spot => 
+      spot.name?.toLowerCase().trim() === placeName
+    );
+    if (exactMatch) return true;
+    
+    // Check for partial matches (one name contains the other)
+    const partialMatch = this.originalSpots.find(spot => {
+      const existingName = spot.name?.toLowerCase().trim();
+      if (!existingName) return false;
+      
+      // Check if one name contains the other (for variations like "SM Seaside" vs "SM Seaside City Cebu")
+      return placeName.includes(existingName) || existingName.includes(placeName);
+    });
+    
+    if (partialMatch) return true;
+    
+    // Check for similar names (common words match)
+    const placeWords = placeName.split(' ').filter((word: string) => word.length > 2);
+    const similarMatch = this.originalSpots.find(spot => {
+      const existingName = spot.name?.toLowerCase().trim();
+      if (!existingName) return false;
+      
+      const existingWords = existingName.split(' ').filter((word: string) => word.length > 2);
+      
+      // Check if they share significant words
+      const commonWords = placeWords.filter((word: string) => existingWords.includes(word));
+      return commonWords.length >= Math.min(2, Math.min(placeWords.length, existingWords.length));
+    });
+    
+    return !!similarMatch;
+  }
+
+  private sortByUserRatings(spots: any[]): any[] {
+    return spots.sort((a, b) => {
+      // Get userRatingsTotal values, defaulting to 0 if undefined
+      const aRatings = a.userRatingsTotal || 0;
+      const bRatings = b.userRatingsTotal || 0;
+      
+      // Sort ascending (least popular first - hidden gems)
+      return aRatings - bRatings;
+    });
   }
 
   private determineCategory(types: string[]): string {
@@ -390,6 +406,39 @@ export class UserDashboardPage implements OnInit {
     this.navCtrl.navigateForward('/home');
   }
 
+  // Manual refresh method to force reload data
+  async refreshData() {
+    console.log('Manually refreshing data...');
+    this.loadSpots();
+    await this.loadBucketStatus();
+    await this.loadVisitedSpots();
+  }
+
+  // Handle pull-to-refresh
+  async handleRefresh(event: any) {
+    console.log('Pull to refresh triggered');
+    await this.refreshData();
+    event.target.complete();
+  }
+
+  // Debug method to check current data
+  debugCurrentData() {
+    console.log('=== DEBUG: Current Data ===');
+    console.log('Original spots count:', this.originalSpots?.length);
+    console.log('Filtered spots count:', this.spots?.length);
+    console.log('Paginated spots count:', this.paginatedSpots?.length);
+    console.log('Current filter:', this.selectedTag);
+    console.log('Search query:', this.searchQuery);
+    
+    // Show first 5 spots with their userRatingsTotal for debugging
+    console.log('First 5 spots (sorted by userRatingsTotal ascending):');
+    this.originalSpots?.slice(0, 5).forEach((spot, index) => {
+      console.log(`${index + 1}. ${spot.name} - Ratings: ${spot.userRatingsTotal || 0}`);
+    });
+    
+    console.log('==========================');
+  }
+
   private async showAlert(header: string, message: string): Promise<void> {
     const alert = await this.alertCtrl.create({
       header,
@@ -397,6 +446,13 @@ export class UserDashboardPage implements OnInit {
       buttons: ['OK']
     });
     await alert.present();
+  }
+
+  ngOnDestroy() {
+    // Clean up subscriptions when component is destroyed
+    if (this.spotsSubscription) {
+      this.spotsSubscription.unsubscribe();
+    }
   }
 }
 

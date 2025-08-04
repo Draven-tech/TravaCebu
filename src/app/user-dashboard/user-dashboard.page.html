@@ -16,6 +16,15 @@
 </ion-header>
 
 <ion-content class="ion-padding" [scrollEvents]="true">
+  <!-- Pull to Refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Pull to refresh"
+      refreshingSpinner="circles"
+      refreshingText="Refreshing...">
+    </ion-refresher-content>
+  </ion-refresher>
   <!-- Searchbar -->
   <ion-searchbar placeholder="Search tourist spots..." [(ngModel)]="searchQuery" (ionInput)="onSearchInput($event)"></ion-searchbar>
 
@@ -84,7 +93,7 @@
   </div>
 
   <!-- Search for New Tourist Spots Section -->
-  <div class="search-section" *ngIf="!isSearching && !searchResults.length">
+  <div class="search-section" *ngIf="!isSearching">
     <ion-card class="search-card">
       <ion-card-content>
         <div class="search-content">

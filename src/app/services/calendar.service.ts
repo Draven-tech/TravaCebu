@@ -12,6 +12,8 @@ export interface CalendarEvent {
   allDay?: boolean;
   extendedProps?: any;
   userId?: string;
+  status?: string;
+  createdAt?: Date;
 }
 
 @Injectable({
@@ -35,20 +37,36 @@ export class CalendarService {
         throw new Error('User not authenticated');
       }
 
-      // Add userId to events
-      const eventsWithUserId = events.map(event => ({
-        ...event,
-        userId: user.uid,
-        createdAt: new Date()
-      }));
+      // Clean and prepare events for Firestore (remove undefined values)
+      const cleanedEvents = events.map(event => {
+        const cleanedEvent = {
+          ...event,
+          userId: user.uid,
+          createdAt: new Date()
+        };
+
+        // Clean extendedProps to remove undefined values
+        if (cleanedEvent.extendedProps) {
+          const cleanedExtendedProps: any = {};
+          Object.keys(cleanedEvent.extendedProps).forEach(key => {
+            const value = cleanedEvent.extendedProps[key];
+            if (value !== undefined && value !== null) {
+              cleanedExtendedProps[key] = value;
+            }
+          });
+          cleanedEvent.extendedProps = cleanedExtendedProps;
+        }
+
+        return cleanedEvent;
+      });
 
       // Save to localStorage for immediate access
-      localStorage.setItem('user_itinerary_events', JSON.stringify(eventsWithUserId));
+      localStorage.setItem('user_itinerary_events', JSON.stringify(cleanedEvents));
 
       // Save to Firestore for persistence
       const batch = this.firestore.firestore.batch();
       
-      eventsWithUserId.forEach(event => {
+      cleanedEvents.forEach(event => {
         const eventRef = this.firestore.collection('user_itinerary_events').doc().ref;
         batch.set(eventRef, event);
       });
@@ -82,15 +100,12 @@ export class CalendarService {
       if (snapshot && !snapshot.empty) {
         const events = snapshot.docs.map(doc => {
           const data = doc.data() as any;
-          console.log('Firestore event data:', data);
           return {
             id: doc.id,
             ...data
           };
         }) as CalendarEvent[];
        
-        console.log('Processed events from Firestore:', events);
-        
         // Update localStorage with Firestore data
         localStorage.setItem('user_itinerary_events', JSON.stringify(events));
         return events;
@@ -111,10 +126,8 @@ export class CalendarService {
   private loadFromLocalStorage(): CalendarEvent[] {
     try {
       const savedEvents = localStorage.getItem('user_itinerary_events');
-      console.log('Raw localStorage data:', savedEvents);
       if (savedEvents) {
         const parsed = JSON.parse(savedEvents);
-        console.log('Parsed localStorage events:', parsed);
         return parsed;
       }
     } catch (error) {

@@ -9,7 +9,7 @@ import { UserMapPageRoutingModule } from './user-map-routing.module';
 import { UserMapPage } from './user-map.page';
 import { TouristSpotSheetComponent } from './tourist-spot-sheet.component';
 import { DaySpotPickerComponent } from './day-spot-picker.component';
-import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
+import { ComponentsModule } from '../components/components.module';
 
 @NgModule({
   declarations: [
@@ -22,7 +22,7 @@ import { BottomNavModule } from '../components/bottom-nav/bottom-nav.module';
     IonicModule,
     FormsModule,
     UserMapPageRoutingModule,
-    BottomNavModule
+    ComponentsModule
   ]
 })
 export class UserMapPageModule {}

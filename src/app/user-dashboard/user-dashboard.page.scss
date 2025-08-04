@@ -4,6 +4,30 @@ ion-content {
   --padding-bottom: 80px;
 }
 
+// Search Modal Styling
+::ng-deep .search-modal {
+  --height: 90%;
+  --border-radius: 16px 16px 0 0;
+  
+  .modal-wrapper {
+    border-radius: 16px 16px 0 0;
+  }
+  
+  ion-header {
+    border-radius: 16px 16px 0 0;
+  }
+  
+  ion-toolbar {
+    --background: #ffc409;
+    --color: #000;
+    border-radius: 16px 16px 0 0;
+  }
+  
+  ion-title {
+    font-weight: 600;
+  }
+}
+
 // Search Bar Styling
 ion-searchbar {
   --background: #ffffff;

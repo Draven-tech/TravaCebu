@@ -1,0 +1,96 @@
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/user-dashboard"></ion-back-button>
+    </ion-buttons>
+    <ion-title>My Itineraries</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading your itineraries...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!isLoading && itineraries.length === 0">
+    <ion-icon name="calendar-outline" class="empty-icon"></ion-icon>
+    <h3>No Saved Itineraries</h3>
+    <p>You haven't saved any itineraries yet. Create one from your bucket list!</p>
+    <ion-button expand="block" color="primary" (click)="goToBucketList()">
+      <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+      Create New Itinerary
+    </ion-button>
+  </div>
+
+  <!-- Itineraries List -->
+  <div *ngIf="!isLoading && itineraries.length > 0">
+    <ion-card *ngFor="let itinerary of itineraries" class="itinerary-card">
+      <ion-card-header>
+        <div class="itinerary-header">
+          <div class="itinerary-info">
+            <ion-card-title>{{ itinerary.title || 'My Itinerary' }}</ion-card-title>
+            <ion-card-subtitle>
+              <ion-icon name="calendar-outline"></ion-icon>
+              {{ getDateDisplay(itinerary.start) }}
+            </ion-card-subtitle>
+          </div>
+          <div class="itinerary-status">
+            <ion-badge [color]="itinerary.status === 'completed' ? 'success' : 'warning'">
+              {{ itinerary.status === 'completed' ? 'Completed' : 'Active' }}
+            </ion-badge>
+          </div>
+        </div>
+      </ion-card-header>
+
+      <ion-card-content>
+        <div class="itinerary-details">
+          <div class="detail-item">
+            <ion-icon name="time-outline"></ion-icon>
+            <span>{{ getTimeDisplay(itinerary.start) }} - {{ getTimeDisplay(itinerary.end) }}</span>
+          </div>
+          <div class="detail-item" *ngIf="itinerary.spotsCount">
+            <ion-icon name="location-outline"></ion-icon>
+            <span>{{ itinerary.spotsCount }} tourist spots</span>
+          </div>
+          <div class="detail-item" *ngIf="itinerary.days">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <span>{{ itinerary.days }} day{{ itinerary.days > 1 ? 's' : '' }}</span>
+          </div>
+        </div>
+
+        <div class="itinerary-actions">
+          <ion-button fill="outline" size="small" color="primary" (click)="viewItinerary(itinerary)">
+            <ion-icon name="eye-outline" slot="start"></ion-icon>
+            View
+          </ion-button>
+          <ion-button fill="outline" size="small" color="warning" (click)="editItinerary(itinerary)">
+            <ion-icon name="create-outline" slot="start"></ion-icon>
+            Edit
+          </ion-button>
+          <ion-button 
+            fill="outline" 
+            size="small" 
+            [color]="itinerary.status === 'completed' ? 'medium' : 'success'"
+            (click)="toggleStatus(itinerary)"
+            [disabled]="itinerary.status === 'completed'">
+            <ion-icon [name]="itinerary.status === 'completed' ? 'checkmark-circle' : 'checkmark-outline'" slot="start"></ion-icon>
+            {{ itinerary.status === 'completed' ? 'Completed' : 'Mark Done' }}
+          </ion-button>
+          <ion-button fill="outline" size="small" color="danger" (click)="deleteItinerary(itinerary)">
+            <ion-icon name="trash-outline" slot="start"></ion-icon>
+            Delete
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>
+
+<app-bottom-nav></app-bottom-nav> 

@@ -81,6 +81,10 @@ export class BucketListPage implements OnInit {
     }
   }
 
+  goToMyItineraries() {
+    this.navCtrl.navigateForward('/my-itineraries');
+  }
+
   openItinerarySetup() {
     if (this.spots.length === 0) {
       this.showAlert('Empty Bucket List', 'Please add some tourist spots to your bucket list first!');

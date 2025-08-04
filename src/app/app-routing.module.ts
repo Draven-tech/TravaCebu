@@ -33,6 +33,10 @@ const routes: Routes = [
     loadChildren: () => import('./user-dashboard/user-dashboard.module').then(m => m.UserDashboardPageModule)
   },
   {
+    path: 'user-dashboard/:uid',
+    loadChildren: () => import('./user-dashboard/user-dashboard.module').then(m => m.UserDashboardPageModule)
+  },
+  {
     path: 'bucket-list',
     loadChildren: () => import('./bucket-list/bucket-list.module').then(m => m.BucketListPageModule)
   },
@@ -59,6 +63,10 @@ const routes: Routes = [
   {
     path: 'user-calendar',
     loadChildren: () => import('./user-calendar/user-calendar.module').then( m => m.UserCalendarPageModule)
+  },
+  {
+    path: 'my-itineraries',
+    loadChildren: () => import('./my-itineraries/my-itineraries.module').then( m => m.MyItinerariesPageModule)
   },
 
 ];

@@ -1,0 +1,151 @@
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  
+  p {
+    margin-top: 16px;
+    color: #666;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  text-align: center;
+  padding: 20px;
+  
+  .empty-icon {
+    font-size: 4rem;
+    color: #ccc;
+    margin-bottom: 16px;
+  }
+  
+  h3 {
+    color: #333;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  
+  p {
+    color: #666;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+}
+
+.itinerary-card {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  ion-card-header {
+    padding: 16px;
+    
+    .itinerary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      
+      .itinerary-info {
+        flex: 1;
+        
+        ion-card-title {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #333;
+          margin-bottom: 4px;
+        }
+        
+        ion-card-subtitle {
+          display: flex;
+          align-items: center;
+          color: #666;
+          font-size: 0.9rem;
+          
+          ion-icon {
+            margin-right: 4px;
+          }
+        }
+      }
+      
+      .itinerary-status {
+        ion-badge {
+          font-size: 0.8rem;
+          padding: 4px 8px;
+        }
+      }
+    }
+  }
+  
+  ion-card-content {
+    padding: 16px;
+    
+    .itinerary-details {
+      margin-bottom: 16px;
+      
+      .detail-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+        color: #666;
+        
+        ion-icon {
+          margin-right: 8px;
+          color: #999;
+          min-width: 16px;
+        }
+      }
+    }
+    
+    .itinerary-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      
+      ion-button {
+        flex: 1;
+        min-width: 80px;
+        --padding-start: 8px;
+        --padding-end: 8px;
+        font-size: 0.8rem;
+        
+        ion-icon {
+          margin-right: 4px;
+        }
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 480px) {
+  .itinerary-actions {
+    ion-button {
+      flex: 1 1 calc(50% - 4px);
+      min-width: 120px;
+    }
+  }
+}
+
+// Animation for cards
+.itinerary-card {
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 

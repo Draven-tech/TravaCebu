@@ -2,9 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Observable } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { ApiTrackerService } from './api-tracker.service';
-import { tap } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class PlacesService {
@@ -25,7 +24,7 @@ export class PlacesService {
     
     console.log('🧪 Testing API key with params:', testParams);
     
-    // Use the working proxy server
+    // Always use proxy for all platforms
     return this.http.get(this.proxyUrl, { params: testParams }).pipe(
       catchError(error => {
         console.error('❌ API key test failed:', error);
@@ -50,7 +49,7 @@ export class PlacesService {
       key: this.apiKey
     };
     
-    // Use the working proxy server
+    // Always use proxy for all platforms
     const apiUrl = this.proxyUrl;
     
     console.log(`🔍 Fetching places from: ${apiUrl}`);
@@ -139,10 +138,14 @@ export class PlacesService {
       console.error('Failed to log API call:', err);
     });
 
+    // Force Cebu City coordinates for all searches
+    const cebuLat = 10.3157;
+    const cebuLng = 123.8854;
+
     const params = {
-      query: name,
-      location: `${lat},${lng}`,
-      radius: '5000', // 5km radius
+      query: `${name} Cebu Philippines`, // Add "Cebu Philippines" to force local results
+      location: `${cebuLat},${cebuLng}`,
+      radius: '30000', // 30km radius to cover greater Cebu area
       key: this.apiKey
     };
 
@@ -151,6 +154,21 @@ export class PlacesService {
     return this.http.get(searchUrl, { params }).pipe(
       tap((searchResult: any) => {
         console.log('✅ Place search response:', searchResult);
+      }),
+      map((searchResult: any) => {
+        // Filter results to only include Cebu locations
+        if (searchResult.results) {
+          searchResult.results = searchResult.results.filter((place: any) => {
+            const address = place.formatted_address?.toLowerCase() || '';
+            return address.includes('cebu') || 
+                   address.includes('philippines') ||
+                   address.includes('cebu city') ||
+                   address.includes('mandaue') ||
+                   address.includes('lapu-lapu') ||
+                   address.includes('talisay');
+          });
+        }
+        return searchResult;
       }),
       catchError(error => {
         console.error('❌ Error searching place:', error);

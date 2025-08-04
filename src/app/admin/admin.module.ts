@@ -14,6 +14,9 @@ import { RouteListPage } from './route-list/route-list.page';
 import { RouteDetailPage } from './route-detail/route-detail.page';
 import { HttpClientModule } from '@angular/common/http';
 
+// Services
+import { PlacesService } from '../services/places.service';
+
 @NgModule({
   declarations: [
     LoginPage,
@@ -31,7 +34,8 @@ import { HttpClientModule } from '@angular/common/http';
     HttpClientModule
   ],
   providers: [
-    DatePipe // Add DatePipe to providers
+    DatePipe, // Add DatePipe to providers
+    PlacesService // Add PlacesService to providers
   ]
 })
 export class AdminModule {}

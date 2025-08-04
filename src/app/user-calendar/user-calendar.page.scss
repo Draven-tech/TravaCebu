@@ -1,6 +1,50 @@
 .calendar-container {
   height: calc(100vh - 120px); // Account for header and bottom nav
   padding: 10px;
+
+// Event Alert Styling
+::ng-deep .event-alert {
+  .alert-wrapper {
+    border-radius: 12px;
+    max-width: 90vw;
+  }
+  
+  .alert-head {
+    background: #ffc409;
+    color: #000;
+    border-radius: 12px 12px 0 0;
+    padding: 16px;
+    
+    .alert-title {
+      font-weight: bold;
+      font-size: 18px;
+    }
+  }
+  
+  .alert-message {
+    padding: 20px;
+    line-height: 1.6;
+    white-space: pre-line; // This will preserve line breaks
+    font-size: 14px;
+    color: #333;
+  }
+  
+  .alert-button-group {
+    padding: 0 20px 20px;
+    
+    .alert-button {
+      background: #ffc409;
+      color: #000;
+      border-radius: 8px;
+      font-weight: 600;
+      padding: 12px 24px;
+      
+      &:hover {
+        background: #e6b008;
+      }
+    }
+  }
+}
   
   ::ng-deep {
     // FullCalendar styling

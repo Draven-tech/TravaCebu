@@ -15,6 +15,13 @@
     </ion-card-content>
   </ion-card>
   <ion-button expand="block" color="medium" (click)="clear()">Clear All</ion-button>
+  
+  <!-- My Itineraries Button -->
+  <ion-button expand="block" color="secondary" (click)="goToMyItineraries()" class="my-itineraries-btn">
+    <ion-icon name="calendar-outline" slot="start"></ion-icon>
+    My Itineraries
+  </ion-button>
+  
   <ion-button expand="block" color="primary" (click)="openItinerarySetup()" class="generate-itinerary-btn">
     Continue
   </ion-button>

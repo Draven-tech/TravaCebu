@@ -1,13 +1,18 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
+import { BottomNavComponent } from './bottom-nav/bottom-nav.component';
 
 @NgModule({
-  declarations: [],
+  declarations: [
+    BottomNavComponent
+  ],
   imports: [
     CommonModule,
     IonicModule
   ],
-  exports: []
+  exports: [
+    BottomNavComponent
+  ]
 })
-export class BottomNavModule {}
+export class ComponentsModule {} 

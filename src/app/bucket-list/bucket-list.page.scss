@@ -1,14 +1,99 @@
+.bucket-header {
+  --background: transparent;
+  box-shadow: none;
+
+  .bucket-header-content {
+    background: #FFE066;
+    padding: 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #2D3748;
+    font-weight: bold;
+  }
+}
+
 ion-content {
-  --background: #ffffff;
   background: #ffffff;
-  --padding-bottom: 90px;
   animation: fadeIn 0.8s ease-out;
   position: relative;
   overflow: hidden;
+  padding: 16px;
+  padding-bottom: 140px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
 }
 
+.clear-text-button {
+  color: #747474;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
 
+.footer-fixed {
+  padding: 16px;
+  padding-bottom: 80px;
+  --background: transparent;
+  border-top: none;
+  box-shadow: none;
 
+  ion-toolbar {
+    --border-width: 0;
+    --box-shadow: none;
+  }
+
+  ion-button.generate-itinerary-btn {
+    --border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-top: 16px;
+  }
+}
+
+.spot-sliding-card {
+  margin-bottom: 12px;
+
+  ion-item {
+    border-radius: 12px;
+    --background: #FFE066;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --min-height: 100px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  ion-thumbnail {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+}
+
+ion-label h3 {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #2d3748;
+  margin: 0;
+}
 
 ion-content::before {
   content: '';
@@ -18,71 +103,70 @@ ion-content::before {
   width: 200%;
   height: 200%;
   background: radial-gradient(circle, rgba(231, 76, 60, 0.08) 0%, transparent 50%),
-              radial-gradient(circle, rgba(46, 204, 113, 0.05) 30%, transparent 70%),
-              radial-gradient(circle, rgba(230, 126, 34, 0.04) 60%, transparent 90%);
+    radial-gradient(circle, rgba(46, 204, 113, 0.05) 30%, transparent 70%),
+    radial-gradient(circle, rgba(230, 126, 34, 0.04) 60%, transparent 90%);
   z-index: 0;
+}
+
+.floating-buttons {
+  position: fixed;
+  bottom: 80px; // above <app-bottom-nav>
+  left: 0;
+  right: 0;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 99;
 }
 
 ion-card {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
   margin: 16px;
   border: 1px solid #f3e7d3;
   animation: slideUp 0.6s ease-out;
   position: relative;
   z-index: 1;
-  
+
   img {
     width: 100%;
     height: 200px;
     object-fit: cover;
     border-radius: 16px 16px 0 0;
   }
-  
-  ion-card-header {
-    padding-bottom: 0;
-    
-    ion-card-title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      background: linear-gradient(45deg, #2D3748, #e67e22);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      text-shadow: none;
-    }
-  }
-  
-  ion-card-content {
-    padding-top: 8px;
-  }
 }
-
 ion-button {
   margin: 8px 16px;
   --border-radius: 12px;
   font-weight: 600;
-  --box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.generate-itinerary-btn {
-  --background: linear-gradient(45deg, #e74c3c, #2ecc71);
-  --color: white;
+ion-button.generate-itinerary-btn {
+  --background: #f8c647;
+  --color: #030303;
   margin-top: 16px;
+  --border-radius: 12px;
+  font-weight: 600;
+  --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.my-itineraries-btn {
-  --background: linear-gradient(45deg, #6c5ce7, #a29bfe);
-  --color: white;
-  margin-top: 8px;
+
+ion-button.my-itineraries-btn {
+  --background: #888888;
+  --color: #030303;
+
 }
 
 ion-fab-button {
-  --box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   --background: linear-gradient(45deg, #e74c3c, #2ecc71);
   --color: white;
 }
+
 
 .admin-topbar {
   display: flex;
@@ -110,20 +194,34 @@ ion-fab-button {
 ion-button[fill="clear"] {
   --color: #fff;
   font-size: 1.2rem;
-  --background-hover: rgba(255,255,255,0.08);
-  --background-activated: rgba(255,255,255,0.15);
+  --background-hover: rgba(255, 255, 255, 0.08);
+  --background-activated: rgba(255, 255, 255, 0.15);
   border-radius: 50%;
   transition: all 0.3s ease;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 // Enhanced neumorphic tab styling
@@ -143,27 +241,27 @@ ion-button[fill="clear"] {
     --background-hover: #FFE066;
     --background-activated: #FFC107;
     --border-radius: 16px;
-    --box-shadow: 
-      0 4px 8px rgba(0,0,0,0.1),
-      inset 0 2px 4px rgba(255,255,255,0.3),
-      inset 0 -2px 4px rgba(0,0,0,0.1);
+    --box-shadow:
+      0 4px 8px rgba(0, 0, 0, 0.1),
+      inset 0 2px 4px rgba(255, 255, 255, 0.3),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
     width: 60px;
     height: 60px;
     margin: 0;
-    
+
     &:hover {
-      --box-shadow: 
-        0 6px 12px rgba(0,0,0,0.15),
-        inset 0 2px 4px rgba(255,255,255,0.4),
-        inset 0 -2px 4px rgba(0,0,0,0.1);
+      --box-shadow:
+        0 6px 12px rgba(0, 0, 0, 0.15),
+        inset 0 2px 4px rgba(255, 255, 255, 0.4),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.1);
       transform: translateY(-2px);
     }
-    
+
     &:active {
-      --box-shadow: 
-        0 2px 4px rgba(0,0,0,0.1),
-        inset 0 2px 4px rgba(0,0,0,0.1);
+      --box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 2px 4px rgba(0, 0, 0, 0.1);
       transform: translateY(0);
     }
   }
@@ -171,14 +269,14 @@ ion-button[fill="clear"] {
   ion-icon {
     font-size: 24px;
     margin-bottom: 4px;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
   }
 
   ion-label {
     font-size: 0.7rem;
     margin-top: 0;
     font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -187,7 +285,7 @@ ion-button[fill="clear"] {
   --height: 80vh;
   --width: 90vw;
   --border-radius: 16px;
-  
+
   .modal-wrapper {
     border-radius: 16px;
   }
@@ -198,17 +296,17 @@ ion-button[fill="clear"] {
   --height: 90vh;
   --width: 95vw;
   --border-radius: 20px;
-  
+
   .modal-wrapper {
     border-radius: 20px;
     overflow: hidden;
   }
-  
+
   // Fix accessibility issues
   ion-modal {
     --backdrop-opacity: 0.5;
   }
-  
+
   .modal-wrapper {
     --background: transparent;
   }
@@ -239,7 +337,7 @@ ion-button[fill="clear"] {
   padding: 40px 20px 30px;
   text-align: center;
   position: relative;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .header-content {
@@ -251,7 +349,7 @@ ion-button[fill="clear"] {
   font-size: 48px;
   color: white;
   margin-bottom: 16px;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
 }
 
 .setup-title {
@@ -259,13 +357,13 @@ ion-button[fill="clear"] {
   font-weight: 800;
   color: white;
   margin: 0 0 8px 0;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   letter-spacing: 1px;
 }
 
 .setup-subtitle {
   font-size: 1rem;
-  color: rgba(255,255,255,0.9);
+  color: rgba(255, 255, 255, 0.9);
   margin: 0;
   font-weight: 400;
 }
@@ -281,8 +379,8 @@ ion-button[fill="clear"] {
   border-radius: 20px;
   padding: 24px;
   margin-bottom: 20px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   animation: slideInUp 0.6s ease-out;
 }
 
@@ -325,10 +423,10 @@ ion-button[fill="clear"] {
   font-size: 0.9rem;
   height: 48px;
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -340,7 +438,7 @@ ion-button[fill="clear"] {
   --border-style: solid;
   margin-top: 16px;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
-  
+
   ion-label {
     color: #2d3748;
     font-weight: 600;
@@ -361,7 +459,7 @@ ion-button[fill="clear"] {
   --padding-end: 16px;
   --padding-top: 12px;
   --padding-bottom: 12px;
-  
+
   &::placeholder {
     color: #a0aec0;
     font-weight: 400;
@@ -442,7 +540,7 @@ ion-button[fill="clear"] {
   height: 56px;
   margin-bottom: 12px;
   transition: all 0.3s ease;
-  
+
   &:hover {
     --box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
     transform: translateY(-2px);
@@ -460,6 +558,7 @@ ion-button[fill="clear"] {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

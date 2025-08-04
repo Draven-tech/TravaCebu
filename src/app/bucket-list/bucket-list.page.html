@@ -1,30 +1,29 @@
-<ion-header>
-  <ion-toolbar color="warning">
-    <ion-title>My Bucket List</ion-title>
-  </ion-toolbar>
+<ion-header class="bucket-header">
+  <div class="bucket-header-content">
+    <h2>My Bucket List</h2>
+  </div>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <ion-card *ngFor="let spot of spots">
-    <img [src]="spot.img" />
-    <ion-card-header>
-      <ion-card-title>{{ spot.name }}</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-button fill="clear" color="danger" size="small" (click)="remove(spot.id)">Remove</ion-button>
-    </ion-card-content>
-  </ion-card>
-  <ion-button expand="block" color="medium" (click)="clear()">Clear All</ion-button>
+<ion-content fullscreen class="bucket-content ion-padding">
+  <span class="clear-text-button" (click)="clear()">CLEAR ALL</span>
+  <ion-item-sliding *ngFor="let spot of spots" class="spot-sliding-card">
+    <ion-item-options side="end">
+      <ion-item-option color="danger" (click)="remove(spot.id)">Remove</ion-item-option>
+    </ion-item-options>
+
+    <ion-item lines="none" class="spot-card-horizontal">
+      <ion-thumbnail slot="start">
+        <img [src]="spot.img" alt="{{ spot.name }}" />
+      </ion-thumbnail>
+      <ion-label>
+        <h3>{{ spot.name }}</h3>
+      </ion-label>
+    </ion-item>
+  </ion-item-sliding>
   
-  <!-- My Itineraries Button -->
-  <ion-button expand="block" color="secondary" (click)="goToMyItineraries()" class="my-itineraries-btn">
-    <ion-icon name="calendar-outline" slot="start"></ion-icon>
-    My Itineraries
-  </ion-button>
-  
-  <ion-button expand="block" color="primary" (click)="openItinerarySetup()" class="generate-itinerary-btn">
-    Continue
-  </ion-button>
+
+    <!-- Spacer to prevent last item being covered -->
+  <div class="content-spacer"></div>
 
   <!-- Beautiful Itinerary Setup Modal -->
   <ion-modal [isOpen]="showSetupModal" (didDismiss)="showSetupModal = false" class="setup-modal">
@@ -181,5 +180,15 @@
     </ng-template>
   </ion-modal>
 </ion-content>
+
+<ion-footer class="footer-fixed">
+    <ion-button expand="block" (click)="goToMyItineraries()" class="my-itineraries-btn">
+    <ion-icon name="calendar-outline" slot="start"></ion-icon>
+    My Itineraries
+  </ion-button>
+  <ion-button expand="block" (click)="openItinerarySetup()" class="generate-itinerary-btn">
+    CONTINUE
+  </ion-button>
+</ion-footer>
 
 <app-bottom-nav></app-bottom-nav>

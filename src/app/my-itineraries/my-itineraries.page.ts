@@ -78,14 +78,31 @@ export class MyItinerariesPage implements OnInit {
     // Convert grouped events to itineraries
     groupedEvents.forEach((dayEvents, date) => {
       if (dayEvents.length > 0) {
+        // Sort events by start time to get proper time range
+        dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        
         const firstEvent = dayEvents[0];
         const lastEvent = dayEvents[dayEvents.length - 1];
+        
+        // Use original time range if available, otherwise fall back to event times
+        let startTime = firstEvent.start;
+        let endTime = lastEvent.end;
+        
+        if (firstEvent.extendedProps?.originalStartTime && firstEvent.extendedProps?.originalEndTime) {
+          // Use original time range but with the correct date
+          const datePart = date; // YYYY-MM-DD
+          const originalStartTimeOnly = firstEvent.extendedProps.originalStartTime.substring(11, 16); // HH:MM
+          const originalEndTimeOnly = firstEvent.extendedProps.originalEndTime.substring(11, 16); // HH:MM
+          
+          startTime = `${datePart}T${originalStartTimeOnly}:00`;
+          endTime = `${datePart}T${originalEndTimeOnly}:00`;
+        }
         
         const itinerary = {
           id: `itinerary_${date}`,
           title: `Itinerary for ${this.getDateDisplay(date)}`,
-          start: firstEvent.start,
-          end: lastEvent.end,
+          start: startTime,
+          end: endTime,
           date: date,
           status: firstEvent.status || 'active',
           spotsCount: dayEvents.filter(e => e.extendedProps?.type === 'tourist_spot').length,

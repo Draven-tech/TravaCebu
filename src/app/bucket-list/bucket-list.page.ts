@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { BucketService } from '../services/bucket-list.service';
 import { NavController } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { AlertController, ModalController } from '@ionic/angular';
+import { AlertController, ModalController, LoadingController } from '@ionic/angular';
 import { ItineraryModalComponent } from './itinerary-modal.component';
 import { ItineraryService, ItineraryDay } from '../services/itinerary.service';
 
@@ -27,6 +27,7 @@ export class BucketListPage implements OnInit {
     private afAuth: AngularFireAuth,
     private alertCtrl: AlertController,
     private modalCtrl: ModalController,
+    private loadingCtrl: LoadingController,
     private itineraryService: ItineraryService
   ) { }
 
@@ -107,11 +108,11 @@ export class BucketListPage implements OnInit {
       this.showAlert('Invalid Input', 'Please select start and end time.');
       return;
     }
+
     this.showSetupModal = false;
-    // Extract HH:mm from ISO string
-    const startTime = this.setup.startTime.substring(11, 16);
-    const endTime = this.setup.endTime.substring(11, 16);
-    await this.generateItinerary(this.setup.days, startTime, endTime, this.setup.startDate);
+    
+    // Generate the original itinerary (like it was before)
+    await this.generateItinerary(this.setup.days, this.setup.startTime, this.setup.endTime, this.setup.startDate);
   }
 
   async generateItinerary(days: number, startTime: string, endTime: string, startDate: string) {
@@ -119,8 +120,13 @@ export class BucketListPage implements OnInit {
       this.showAlert('Empty Bucket List', 'Please add some tourist spots first!');
       return;
     }
+    
+    // Extract time from ISO strings (e.g., "1970-01-01T08:00" -> "08:00")
+    const startTimeOnly = startTime.substring(11, 16);
+    const endTimeOnly = endTime.substring(11, 16);
+    
     // Use the new itinerary service with full spot objects and start date
-    this.itinerary = await this.itineraryService.generateItinerary(this.spots, days, startTime, endTime, startDate);
+    this.itinerary = await this.itineraryService.generateItinerary(this.spots, days, startTimeOnly, endTimeOnly, startDate);
     this.editing = false;
     this.showItinerary();
   }
@@ -130,6 +136,8 @@ export class BucketListPage implements OnInit {
       component: ItineraryModalComponent,
       componentProps: {
         itinerary: this.itinerary,
+        originalStartTime: this.setup.startTime,
+        originalEndTime: this.setup.endTime,
         editable: true,
         onEdit: () => this.editItinerary()
       },
@@ -167,7 +175,10 @@ export class BucketListPage implements OnInit {
 
   getTodayString(): string {
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private async showAlert(header: string, message: string) {

@@ -106,9 +106,12 @@ export class CalendarService {
           };
         }) as CalendarEvent[];
        
-        // Update localStorage with Firestore data
-        localStorage.setItem('user_itinerary_events', JSON.stringify(events));
-        return events;
+        // Filter out completed events
+        const activeEvents = events.filter(event => event.status !== 'completed');
+       
+        // Update localStorage with filtered data
+        localStorage.setItem('user_itinerary_events', JSON.stringify(activeEvents));
+        return activeEvents;
       }
 
       // Fallback to localStorage
@@ -128,12 +131,66 @@ export class CalendarService {
       const savedEvents = localStorage.getItem('user_itinerary_events');
       if (savedEvents) {
         const parsed = JSON.parse(savedEvents);
-        return parsed;
+        // Filter out completed events
+        return parsed.filter((event: CalendarEvent) => event.status !== 'completed');
       }
     } catch (error) {
       console.error('Error loading from localStorage:', error);
     }
     return [];
+  }
+
+  /**
+   * Update an existing event
+   */
+  async updateEvent(event: CalendarEvent): Promise<void> {
+    try {
+      const user = await this.afAuth.currentUser;
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      if (!event.id) {
+        throw new Error('Event ID is required for update');
+      }
+
+      // Update the event with current timestamp
+      const updatedEvent = {
+        ...event,
+        userId: user.uid,
+        updatedAt: new Date()
+      };
+
+      // Clean extendedProps to remove undefined values
+      if (updatedEvent.extendedProps) {
+        const cleanedExtendedProps: any = {};
+        Object.keys(updatedEvent.extendedProps).forEach(key => {
+          const value = updatedEvent.extendedProps[key];
+          if (value !== undefined && value !== null) {
+            cleanedExtendedProps[key] = value;
+          }
+        });
+        updatedEvent.extendedProps = cleanedExtendedProps;
+      }
+
+      // Update in Firestore
+      await this.firestore
+        .collection('user_itinerary_events')
+        .doc(event.id)
+        .update(updatedEvent);
+
+      // Update in localStorage
+      const savedEvents = localStorage.getItem('user_itinerary_events');
+      if (savedEvents) {
+        const events = JSON.parse(savedEvents) as CalendarEvent[];
+        const updatedEvents = events.map(e => e.id === event.id ? updatedEvent : e);
+        localStorage.setItem('user_itinerary_events', JSON.stringify(updatedEvents));
+      }
+      
+    } catch (error) {
+      console.error('Error updating event:', error);
+      throw error;
+    }
   }
 
   /**

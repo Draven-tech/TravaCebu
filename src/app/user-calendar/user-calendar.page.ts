@@ -1,226 +1,539 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { Component, OnInit } from '@angular/core';
 import { AlertController } from '@ionic/angular';
-import { CalendarOptions, EventClickArg } from '@fullcalendar/core';
-import { FullCalendarComponent } from '@fullcalendar/angular';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import { CalendarService } from '../services/calendar.service';
+import { CalendarService, CalendarEvent } from '../services/calendar.service';
 
 @Component({
+  standalone: false,
   selector: 'app-user-calendar',
   templateUrl: './user-calendar.page.html',
   styleUrls: ['./user-calendar.page.scss'],
-  standalone: false,
 })
 export class UserCalendarPage implements OnInit {
-  @ViewChild('calendar') calendarComponent!: FullCalendarComponent;
-  
-  userId: string | null = null;
-  userData: any = null;
-  calendarOptions: CalendarOptions = {
-    plugins: [dayGridPlugin],
-    initialView: 'dayGridMonth',
-    headerToolbar: {
-      left: 'prev,title,next',
-      center: '',
-      right: 'today'
-    },
-    height: 'auto',
-    weekends: true,
-    events: [], // Will be populated with events from Firestore
-    eventClick: this.handleEventClick.bind(this)
-  };
+  events: CalendarEvent[] = [];
+  isLoading = false;
+  selectedDate: string = '';
+  currentMonth = new Date();
+  showEventModal = false;
+  selectedEvent: CalendarEvent | null = null;
+  viewMode: 'grid' | 'agenda' = 'grid';
 
   constructor(
-    private route: ActivatedRoute,
-    private afAuth: AngularFireAuth,
-    private firestore: AngularFirestore,
-    private alertCtrl: AlertController,
-    private calendarService: CalendarService
+    private calendarService: CalendarService,
+    private alertCtrl: AlertController
   ) { }
 
   async ngOnInit() {
-    // Get Firebase Auth UID
-    const currentUser = await this.afAuth.currentUser;
-    this.userId = this.route.snapshot.paramMap.get('uid') ?? currentUser?.uid ?? null;
-    if (!this.userId) {
-      return;
-    }
+    // Clear any stored selected date and ensure it's set to today
+    localStorage.removeItem('calendar_selected_date');
     
-    // Load user profile data
-    this.firestore.collection('users').doc(this.userId).valueChanges().subscribe(data => {
-      this.userData = data;
+    // Create today's date string without timezone issues
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    this.selectedDate = `${year}-${month}-${day}`;
+    
+    await this.loadEvents();
+  }
+
+  async ionViewWillEnter() {
+    // Ensure selectedDate is set to today when entering the page
+    if (!this.selectedDate) {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      this.selectedDate = `${year}-${month}-${day}`;
+    }
+    await this.loadEvents();
+  }
+
+  loadEvents() {
+    this.isLoading = true;
+    this.calendarService.loadItineraryEvents().then(events => {
+      this.events = events;
+      this.isLoading = false;
     });
-
-    // Load events from admin
-    this.loadEvents();
   }
 
-  async loadEvents() {
-    try {
-      // Load admin events with error handling
-      let adminEvents: any[] = [];
-      try {
-        const eventsSnapshot = await this.firestore.collection('events', ref => ref.orderBy('date', 'asc'))
-          .get()
-          .toPromise();
-        
-        if (eventsSnapshot && !eventsSnapshot.empty) {
-          adminEvents = eventsSnapshot.docs.map(doc => {
-            const event = doc.data() as any;
-            return {
-              id: doc.id,
-              title: event.name,
-              start: event.date, // YYYY-MM-DD format
-              color: '#ffc409',  // Yellow highlight to match theme
-              textColor: '#000',
-              allDay: true,
-              extendedProps: {
-                description: event.description,
-                time: event.time,
-                location: event.location,
-                spotId: event.spotId,
-                imageUrl: event.imageUrl,
-                type: 'admin_event'
-              }
-            };
-          });
-        }
-      } catch (adminError) {
-        console.warn('Could not load admin events:', adminError);
-        // Continue without admin events
-      }
-      
-      // Load saved itinerary events from calendar service
-      const savedItineraryEvents = await this.loadSavedItineraryEvents();
-      
-      // Convert itinerary events to FullCalendar format if needed
-      const formattedItineraryEvents = savedItineraryEvents.map(event => ({
-        id: event.id,
-        title: event.title,
-        start: event.start,
-        end: event.end,
-        color: event.color || '#28a745', // Green for user events
-        textColor: event.textColor || '#fff',
-        allDay: event.allDay || false,
-        extendedProps: event.extendedProps || {}
-      }));
-      
-      // Remove duplicates by ID
-      const uniqueEvents = new Map();
-      
-      // Add admin events
-      adminEvents.forEach(event => {
-        if (event.id) {
-          uniqueEvents.set(event.id, event);
-        }
-      });
-      
-      // Add itinerary events (will overwrite duplicates)
-      formattedItineraryEvents.forEach(event => {
-        if (event.id) {
-          uniqueEvents.set(event.id, event);
-        }
-      });
-      
-      // Convert back to array
-      const allEvents = Array.from(uniqueEvents.values());
-      
-      console.log('Loaded events:', allEvents);
-      
-      // Update calendar with events
-      this.calendarOptions.events = allEvents;
-      
-      // Force calendar refresh
-      if (this.calendarComponent) {
-        this.calendarComponent.getApi().refetchEvents();
-      }
-    } catch (error) {
-      console.error('Error loading events:', error);
-    }
+  async refreshEvents() {
+    this.isLoading = true;
+    await this.loadEvents();
   }
 
-  private async loadSavedItineraryEvents(): Promise<any[]> {
-    try {
-      const events = await this.calendarService.loadItineraryEvents();
-      console.log('Loaded saved itinerary events:', events);
-      return events;
-    } catch (error) {
-      console.error('Error loading saved itinerary events:', error);
-      return [];
-    }
-  }
-
-  handleEventClick(clickInfo: EventClickArg) {
-    const event = clickInfo.event;
-    const props = event.extendedProps;
-    
-    console.log('Event clicked:', event);
-    console.log('Event props:', props);
-    
-    // Create event details message
-    let message = `Event: ${event.title}\n\nDate: ${new Date(event.start!).toLocaleDateString()}\nTime: ${new Date(event.start!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-    
-    // Handle different event types
-    if (props['type'] === 'tourist_spot') {
-      // Itinerary tourist spot event
-      if (props['duration']) {
-        message += `\nDuration: ${props['duration']}`;
-      }
-      if (props['category']) {
-        message += `\nCategory: ${props['category']}`;
-      }
-      if (props['restaurant']) {
-        message += `\nRestaurant: ${props['restaurant']} (${props['mealType']})`;
-      }
-      if (props['jeepneyRoute']) {
-        const route = props['jeepneyRoute'];
-        message += `\n🚌 Local Jeepney: Code ${route.jeepneyCode} (${route.estimatedTime})`;
-        message += `\nRoute: ${route.from} → ${route.to}`;
-      }
-      if (props['googleDirections']) {
-        const directions = props['googleDirections'];
-        message += `\n🗺️ Google Directions: ${directions.duration} (${directions.distance})`;
-      }
-      if (props['description']) {
-        message += `\nNotes: ${props['description']}`;
-      }
-    } else if (props['type'] === 'hotel') {
-      // Itinerary hotel event
-      message += `\nCheck-in: Evening`;
-      if (props['vicinity']) {
-        message += `\nLocation: ${props['vicinity']}`;
-      }
-      if (props['description']) {
-        message += `\nNotes: ${props['description']}`;
-      }
-    } else {
-      // Admin event
-      if (props['time']) {
-        message += `\nTime: ${props['time']}`;
-      }
-      if (props['location']) {
-        message += `\nLocation: ${props['location']}`;
-      }
-      if (props['description']) {
-        message += `\nDescription: ${props['description']}`;
-      }
-    }
-    
-    // Show event details in alert
-    this.showEventAlert(event.title, message);
-  }
-
-  private async showEventAlert(title: string, message: string) {
+  async clearAllEvents() {
     const alert = await this.alertCtrl.create({
-      header: title,
-      message: message,
-      buttons: ['Close'],
-      cssClass: 'event-alert'
+      header: 'Clear All Events',
+      message: 'This will delete all your calendar events. Are you sure?',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Clear All',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              // Clear from localStorage
+              localStorage.removeItem('user_itinerary_events');
+              
+              // Clear the events array
+              this.events = [];
+              
+              // Show success message
+              this.showAlert('Success', 'All events have been cleared. You can now create a new itinerary with correct timing.');
+            } catch (error) {
+              console.error('Error clearing events:', error);
+              this.showAlert('Error', 'Failed to clear events. Please try again.');
+            }
+          }
+        }
+      ]
     });
     await alert.present();
   }
 
+  // Debug method to add test events
+  addTestEvents() {
+    const testEvents: CalendarEvent[] = [
+      {
+        id: '1',
+        title: 'Kawasan Falls',
+        start: '2025-08-07T08:00:00',
+        end: '2025-08-07T10:00:00',
+        extendedProps: {
+          isItineraryEvent: true,
+          description: 'Visit the beautiful Kawasan Falls'
+        }
+      },
+      {
+        id: '2',
+        title: 'Robinsons Galleria Cebu',
+        start: '2025-08-07T11:20:00',
+        end: '2025-08-07T13:20:00',
+        extendedProps: {
+          isItineraryEvent: true,
+          description: 'Shopping at Robinsons Galleria'
+        }
+      },
+      {
+        id: '3',
+        title: 'Yap-San Diego Ancestral House',
+        start: '2025-08-07T14:40:00',
+        end: '2025-08-07T16:40:00',
+              extendedProps: {
+          isItineraryEvent: true,
+          description: 'Historical house tour'
+        }
+      },
+      {
+        id: '4',
+        title: 'Cebu Business Hotel',
+        start: '2025-08-07T18:00:00',
+        end: '2025-08-07T20:00:00',
+        extendedProps: {
+          isItineraryEvent: true,
+          description: 'Hotel check-in and dinner'
+        }
+      }
+    ];
+
+    localStorage.setItem('user_itinerary_events', JSON.stringify(testEvents));
+    this.loadEvents();
+  }
+
+  async deleteEvent(eventId: string) {
+    const alert = await this.alertCtrl.create({
+      header: 'Delete Event',
+      message: 'Are you sure you want to delete this event?',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Delete',
+          handler: async () => {
+            try {
+              // Remove from local events array
+              this.events = this.events.filter(e => e.id !== eventId);
+              
+              // Update localStorage
+              localStorage.setItem('user_itinerary_events', JSON.stringify(this.events));
+              
+              this.showAlert('Success', 'Event deleted successfully.');
+            } catch (error) {
+              console.error('Error deleting event:', error);
+              this.showAlert('Error', 'Failed to delete event.');
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  getEventDate(event: CalendarEvent): string {
+    const date = new Date(event.start);
+    return date.toLocaleDateString();
+  }
+
+  getEventTime(event: CalendarEvent): string {
+    const date = new Date(event.start);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  getEventEndTime(event: CalendarEvent): string {
+    if (!event.end) return '';
+    const date = new Date(event.end);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  isItineraryEvent(event: CalendarEvent): boolean {
+    return event.extendedProps?.isItineraryEvent === true;
+  }
+
+  getEventIcon(event: CalendarEvent): string {
+    if (this.isItineraryEvent(event)) {
+      const eventType = event.extendedProps?.type;
+      if (eventType === 'restaurant') {
+        return 'restaurant-outline'; // Use outline version for better rendering
+      } else if (eventType === 'hotel') {
+        return 'bed-outline'; // Use outline version for consistency
+      } else if (eventType === 'admin_event') {
+        return 'star-outline'; // Star icon for admin events
+      } else {
+        return 'location-outline'; // Use outline version for consistency
+      }
+    }
+    return 'calendar-outline';
+  }
+
+  getEventColor(event: CalendarEvent): string {
+    if (this.isItineraryEvent(event)) {
+      const eventType = event.extendedProps?.type;
+      if (eventType === 'restaurant') {
+        return 'warning'; // Orange for restaurants
+      } else if (eventType === 'hotel') {
+        return 'primary'; // Blue for hotels
+      } else if (eventType === 'admin_event') {
+        return 'warning'; // Orange for admin events (same as restaurants)
+      } else {
+        return 'success'; // Green for tourist spots
+      }
+    }
+    return 'medium';
+  }
+
+  getEventsForDate(date: Date): CalendarEvent[] {
+    // Create date string for comparison without timezone issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    return this.events.filter(event => {
+      const eventDate = new Date(event.start);
+      const eventYear = eventDate.getFullYear();
+      const eventMonth = String(eventDate.getMonth() + 1).padStart(2, '0');
+      const eventDay = String(eventDate.getDate()).padStart(2, '0');
+      const eventDateStr = `${eventYear}-${eventMonth}-${eventDay}`;
+      
+      return eventDateStr === dateStr;
+    });
+  }
+
+  onDateSelected(date: Date) {
+    // Create a date string in YYYY-MM-DD format without timezone issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    this.selectedDate = `${year}-${month}-${day}`;
+  }
+
+  // Method to reset selected date to today
+  resetToToday() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    this.selectedDate = `${year}-${month}-${day}`;
+  }
+
+  previousMonth() {
+    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+  }
+
+  nextMonth() {
+    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
+  }
+
+  getCurrentMonthYear(): string {
+    return this.currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  getDayHeaders(): string[] {
+    return ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  }
+
+  getCalendarDates(): Date[] {
+    const year = this.currentMonth.getFullYear();
+    const month = this.currentMonth.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const dates: Date[] = [];
+    const currentDate = new Date(startDate);
+    
+    while (currentDate.getMonth() <= month || currentDate.getDay() !== 0) {
+      dates.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return dates;
+  }
+
+  getDayNumber(date: Date): number {
+    return date.getDate();
+  }
+
+  isCurrentMonth(date: Date): boolean {
+    return date.getMonth() === this.currentMonth.getMonth() && 
+           date.getFullYear() === this.currentMonth.getFullYear();
+  }
+
+  isToday(date: Date): boolean {
+    const today = new Date();
+    return date.getDate() === today.getDate() && 
+           date.getMonth() === today.getMonth() && 
+           date.getFullYear() === today.getFullYear();
+  }
+
+  isSelectedDate(date: Date): boolean {
+    // Create date string for comparison without timezone issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    return dateStr === this.selectedDate;
+  }
+
+  showEventDetails(event: CalendarEvent, eventObj: any) {
+    eventObj.stopPropagation();
+    this.selectedEvent = event;
+    this.showEventModal = true;
+  }
+
+  openInGoogleCalendar(event: CalendarEvent) {
+    // This would open the event in Google Calendar if it was created there
+    // For now, just show a message
+    this.showAlert('Info', 'This feature would open the event in Google Calendar.');
+  }
+
+  async showAlert(header: string, message: string) {
+    const alert = await this.alertCtrl.create({
+      header,
+      message,
+      buttons: ['OK']
+    });
+    await alert.present();
+  }
+
+  // New methods for agenda view
+  getMonthTabs(): any[] {
+    const months = [];
+    const currentDate = new Date(this.currentMonth);
+    
+    for (let i = -2; i <= 2; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      months.push({
+        name: date.toLocaleDateString('en-US', { month: 'short' }),
+        date: date,
+        isCurrent: date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear()
+      });
+    }
+    
+    return months;
+  }
+
+  goToMonth(date: Date) {
+    this.currentMonth = new Date(date);
+    this.loadEvents();
+  }
+
+  getSelectedDayName(): string {
+    const selected = new Date(this.selectedDate);
+    return selected.toLocaleDateString('en-US', { weekday: 'short' });
+  }
+
+  getSelectedDayNumber(): number {
+    const selected = new Date(this.selectedDate);
+    return selected.getDate();
+  }
+
+  getEventsForSelectedDate(): CalendarEvent[] {
+    const selected = new Date(this.selectedDate);
+    return this.events.filter(event => {
+      const eventDate = new Date(event.start);
+      return eventDate.getDate() === selected.getDate() && 
+             eventDate.getMonth() === selected.getMonth() && 
+             eventDate.getFullYear() === selected.getFullYear();
+    });
+  }
+
+  getAllEventsSorted(): CalendarEvent[] {
+    const sortedEvents = this.events
+      .filter(event => {
+        const eventDate = new Date(event.start);
+        const eventMonth = eventDate.getMonth();
+        const eventYear = eventDate.getFullYear();
+        const currentMonth = this.currentMonth.getMonth();
+        const currentYear = this.currentMonth.getFullYear();
+        const isInCurrentMonth = eventMonth === currentMonth && eventYear === currentYear;
+        return isInCurrentMonth;
+      })
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    return sortedEvents;
+  }
+
+  getEventsGroupedByDate(): { date: string; events: CalendarEvent[] }[] {
+    const events = this.getAllEventsSorted();
+    const grouped: { [key: string]: CalendarEvent[] } = {};
+    
+    events.forEach(event => {
+      const eventDate = new Date(event.start);
+      const year = eventDate.getFullYear();
+      const month = String(eventDate.getMonth() + 1).padStart(2, '0');
+      const day = String(eventDate.getDate()).padStart(2, '0');
+      const dateKey = `${year}-${month}-${day}`;
+      
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(event);
+    });
+    
+    // Convert to array and sort by date
+    return Object.keys(grouped)
+      .map(dateKey => ({ date: dateKey, events: grouped[dateKey] }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  getEventsGroupedByWeek(): { weekStart: Date; dateGroups: { date: string; events: CalendarEvent[] }[] }[] {
+    const allEvents = this.getAllEventsSorted();
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Get the first day of the current month
+    const firstDayOfMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), 1);
+    const lastDayOfMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 0);
+    
+    // Get the start of the week for the first day of the month
+    const firstWeekStart = this.getWeekStart(firstDayOfMonth);
+    const lastWeekStart = this.getWeekStart(lastDayOfMonth);
+    
+    const weekGroups: { weekStart: Date; dateGroups: { date: string; events: CalendarEvent[] }[] }[] = [];
+    
+    // Generate all weeks that overlap with the current month
+    let currentWeekStart = new Date(firstWeekStart);
+    while (currentWeekStart <= lastWeekStart) {
+      const weekEnd = new Date(currentWeekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      // Only include weeks that haven't completely passed
+      if (weekEnd >= today) {
+        const dateGroups: { date: string; events: CalendarEvent[] }[] = [];
+        
+        // Group events by date for this week
+        for (let i = 0; i < 7; i++) {
+          const currentDate = new Date(currentWeekStart);
+          currentDate.setDate(currentDate.getDate() + i);
+          
+          const dateString = currentDate.toISOString().split('T')[0];
+          const eventsForDate = allEvents.filter(event => {
+            const eventDate = new Date(event.start);
+            const eventDateString = eventDate.toISOString().split('T')[0];
+            const matches = eventDateString === dateString;
+            return matches;
+          });
+          
+          if (eventsForDate.length > 0) {
+            dateGroups.push({ date: dateString, events: eventsForDate });
+          }
+        }
+        
+        weekGroups.push({ weekStart: new Date(currentWeekStart), dateGroups });
+      }
+      
+      currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+    }
+    
+    return weekGroups;
+  }
+
+  getWeekStart(date: Date): Date {
+    const weekStart = new Date(date);
+    const dayOfWeek = weekStart.getDay();
+    
+    // Normalize to start of day (remove time component)
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - dayOfWeek);
+    
+    return weekStart;
+  }
+
+  getWeekRange(weekStart: Date): string {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    
+    const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
+    const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
+    const startDay = weekStart.getDate();
+    const endDay = weekEnd.getDate();
+    
+    if (startMonth === endMonth) {
+      return `${startMonth} ${startDay} - ${endDay}`;
+    } else {
+      return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+    }
+  }
+
+  getEventCategory(event: CalendarEvent): string {
+    if (this.isItineraryEvent(event)) {
+      const eventType = event.extendedProps?.type;
+      if (eventType === 'restaurant') {
+        return 'Restaurant';
+      } else if (eventType === 'hotel') {
+        return 'Hotel';
+      } else if (eventType === 'admin_event') {
+        return 'Admin Event';
+      } else {
+        return 'My Itinerary';
+      }
+    }
+    return 'Event';
+  }
+
+  getEventDayName(event: CalendarEvent): string {
+    const date = new Date(event.start);
+    return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  }
+
+  getEventDayNumber(event: CalendarEvent): number {
+    const date = new Date(event.start);
+    return date.getDate();
+  }
+
+  isCurrentDayOfWeek(day: string): boolean {
+    const today = new Date();
+    const todayDay = today.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+    return day === todayDay;
+  }
 }

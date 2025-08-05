@@ -497,6 +497,8 @@ interface PlaceSuggestion {
 })
 export class ItineraryModalComponent {
   @Input() itinerary: ItineraryDay[] = [];
+  @Input() originalStartTime: string = '';
+  @Input() originalEndTime: string = '';
   @Input() isEditMode: boolean = false;
   fetchingSuggestions = false;
   saving = false;
@@ -635,11 +637,65 @@ export class ItineraryModalComponent {
             restaurantVicinity: spot.chosenRestaurant?.vicinity || null,
             mealType: spot.mealType || null,
             jeepneyRoute: this.getJeepneyRoute(day, day.spots.indexOf(spot)) || null,
-            googleDirections: this.getGoogleDirections(day, day.spots.indexOf(spot)) || null
+            googleDirections: this.getGoogleDirections(day, day.spots.indexOf(spot)) || null,
+            originalStartTime: this.originalStartTime,
+            originalEndTime: this.originalEndTime
           }
         };
         events.push(event);
 
+        // Add restaurant as separate event if chosen
+        if (spot.chosenRestaurant && spot.chosenRestaurant.name !== 'User will decide on the day') {
+          // Calculate restaurant time based on meal type and spot time
+          const spotStartTime = new Date(startTime);
+          let restaurantTime: Date;
+          
+          // Determine meal time based on spot time and meal type
+          const spotHour = spotStartTime.getHours();
+          const mealType = spot.mealType?.toLowerCase() || '';
+          
+          if (mealType.includes('breakfast') || spotHour < 10) {
+            // Breakfast - schedule 30 minutes after spot starts
+            restaurantTime = new Date(spotStartTime.getTime() + 30 * 60000);
+          } else if (mealType.includes('lunch') || (spotHour >= 10 && spotHour < 14)) {
+            // Lunch - schedule 30 minutes after spot starts
+            restaurantTime = new Date(spotStartTime.getTime() + 30 * 60000);
+          } else if (mealType.includes('dinner') || spotHour >= 14) {
+            // Dinner - schedule 30 minutes after spot starts
+            restaurantTime = new Date(spotStartTime.getTime() + 30 * 60000);
+          } else {
+            // Default - schedule 30 minutes after spot starts
+            restaurantTime = new Date(spotStartTime.getTime() + 30 * 60000);
+          }
+          
+          // Format restaurant time manually to avoid timezone issues
+          const year = restaurantTime.getFullYear();
+          const month = String(restaurantTime.getMonth() + 1).padStart(2, '0');
+          const day = String(restaurantTime.getDate()).padStart(2, '0');
+          const hours = String(restaurantTime.getHours()).padStart(2, '0');
+          const minutes = String(restaurantTime.getMinutes()).padStart(2, '0');
+          const restaurantStartTime = `${year}-${month}-${day}T${hours}:${minutes}:00`;
+          
+          const restaurantEvent: CalendarEvent = {
+            title: `🍽️ ${spot.chosenRestaurant.name}`,
+            start: restaurantStartTime,
+            end: restaurantStartTime,
+            color: '#ff9800', // Orange for restaurants
+            textColor: '#fff',
+            allDay: false,
+            extendedProps: {
+              type: 'restaurant',
+              description: `${spot.mealType} at ${spot.chosenRestaurant.name}`,
+              restaurant: spot.chosenRestaurant.name || '',
+              vicinity: spot.chosenRestaurant.vicinity || '',
+              rating: spot.chosenRestaurant.rating || null,
+              mealType: spot.mealType || '',
+              isChosen: true,
+              isItineraryEvent: true
+            }
+          };
+          events.push(restaurantEvent);
+        }
       }
       
       // Add hotel as event if chosen
@@ -658,7 +714,8 @@ export class ItineraryModalComponent {
             hotel: day.chosenHotel.name || '',
             vicinity: day.chosenHotel.vicinity || '',
             rating: day.chosenHotel.rating || null,
-            isChosen: true
+            isChosen: true,
+            isItineraryEvent: true
           }
         };
         events.push(hotelEvent);

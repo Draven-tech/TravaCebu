@@ -46,13 +46,21 @@ export class ItineraryService {
     endTime: string = '18:00',
     startDate?: string
   ): Promise<ItineraryDay[]> {
+    if (!spots || spots.length === 0) {
+      return [];
+    }
+
     const days: any[] = Array.from({ length: numDays }, () => []);
     spots.forEach((spot, i) => {
       days[i % numDays].push(spot);
     });
+    
     const itinerary: ItineraryDay[] = [];
+    
     for (let day = 0; day < days.length; day++) {
       const daySpots = days[day];
+      if (daySpots.length === 0) continue;
+      
       const dayPlan: ItineraryDay = { day: day + 1, spots: [], routes: [] };
       
       // Calculate the date for this day
@@ -61,23 +69,30 @@ export class ItineraryService {
         dayDate.setDate(dayDate.getDate() + day);
         dayPlan.date = dayDate.toISOString().split('T')[0];
       }
+      
       const totalSpots = daySpots.length;
       const start = this.parseTime(startTime, startDate);
       const end = this.parseTime(endTime, startDate);
-      const totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
-      const slotMinutes = Math.floor(totalMinutes / totalSpots);
+      const totalMinutes = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60));
+      const slotMinutes = Math.max(30, Math.floor(totalMinutes / totalSpots)); // Minimum 30 minutes per spot
+      
       let currentTime = new Date(start);
+      
       for (let i = 0; i < daySpots.length; i++) {
         const spotData = daySpots[i];
         const timeSlot = this.formatTime(currentTime);
         const estimatedDuration = `${slotMinutes} min`;
         const mealType = this.getMealType(currentTime);
+        
         dayPlan.spots.push({
           ...spotData,
           timeSlot,
           estimatedDuration,
-          mealType
+          mealType,
+          durationMinutes: slotMinutes
         });
+        
+        // Move to next time slot
         currentTime = new Date(currentTime.getTime() + slotMinutes * 60000);
         
         // Generate comprehensive route chain for the day
@@ -85,8 +100,10 @@ export class ItineraryService {
           await this.generateRouteChain(dayPlan);
         }
       }
+      
       itinerary.push(dayPlan);
     }
+    
     return itinerary;
   }
 
@@ -146,10 +163,22 @@ export class ItineraryService {
       d.setHours(h, m, 0, 0);
     }
     
+    // Validate the date is not invalid
+    if (isNaN(d.getTime())) {
+      console.warn('Invalid date created, using current date as fallback');
+      d = new Date();
+      d.setHours(h, m, 0, 0);
+    }
+    
     return d;
   }
 
   private formatTime(date: Date): string {
+    // Check if date is valid before formatting
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date passed to formatTime, returning default time');
+      return '09:00';
+    }
     return date.toTimeString().slice(0, 5);
   }
 

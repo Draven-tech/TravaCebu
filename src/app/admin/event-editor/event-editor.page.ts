@@ -3,6 +3,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, NavController } from '@ionic/angular';
 import { StorageService } from '../../services/storage.service';
 import { AuthService } from '../../services/auth.service';
+import { CalendarService, CalendarEvent } from '../../services/calendar.service';
 
 @Component({
   selector: 'app-event-editor',
@@ -37,7 +38,8 @@ export class EventEditorPage implements OnInit {
     private alertCtrl: AlertController,
     private navCtrl: NavController,
     private storageService: StorageService,
-    private authService: AuthService
+    private authService: AuthService,
+    private calendarService: CalendarService
   ) {}
 
   async ngOnInit() {
@@ -188,28 +190,33 @@ export class EventEditorPage implements OnInit {
     try {
       const imageUrl = await this.uploadImage();
       
-      const eventData: any = {
-        name: this.eventName.trim(),
-        description: this.eventDescription.trim(),
-        date: this.eventDate,
-        time: this.eventTime,
-        location: this.eventLocation.trim(),
-        spotId: this.selectedSpotId,
-        imageUrl: imageUrl,
-        updatedAt: new Date()
+      // Create CalendarEvent structure compatible with the calendar system
+      const calendarEvent: CalendarEvent = {
+        title: this.eventName.trim(),
+        start: `${this.eventDate}T${this.eventTime}:00`,
+        end: `${this.eventDate}T${this.eventTime}:00`,
+        color: '#ff6b35', // Orange for admin events
+        textColor: '#fff',
+        allDay: false,
+        extendedProps: {
+          type: 'admin_event',
+          description: this.eventDescription.trim(),
+          location: this.eventLocation.trim(),
+          spotId: this.selectedSpotId,
+          imageUrl: imageUrl,
+          isAdminEvent: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
       };
 
-      // Only add createdAt for new events, not when editing
-      if (!this.isEditing) {
-        eventData.createdAt = new Date();
-      }
-
       if (this.isEditing && this.editingEventId) {
-        await this.firestore.collection('events').doc(this.editingEventId).update(eventData);
+        // Update existing event
+        calendarEvent.id = this.editingEventId;
+        await this.calendarService.updateEvent(calendarEvent);
       } else {
-        // Create the events collection if it doesn't exist (Firebase will create it automatically)
-        const docRef = await this.firestore.collection('events').add(eventData);
-        console.log('Event created with ID:', docRef.id);
+        // Create new event
+        await this.calendarService.saveItineraryEvents([calendarEvent]);
       }
 
       this.showAlert('Success', `Event ${this.isEditing ? 'updated' : 'created'} successfully`);

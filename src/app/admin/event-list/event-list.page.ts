@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, ModalController, NavController } from '@ionic/angular';
 import { DatePipe } from '@angular/common';
+import { CalendarService, CalendarEvent } from '../../services/calendar.service';
 
 @Component({
   standalone: false,
@@ -19,37 +20,52 @@ export class EventListPage implements OnInit {
     private alertCtrl: AlertController,
     private modalCtrl: ModalController,
     private navCtrl: NavController,
-    public datePipe: DatePipe
+    public datePipe: DatePipe,
+    private calendarService: CalendarService
   ) {}
 
   ngOnInit() {
     this.loadEvents();
   }
 
-  loadEvents() {
+  async loadEvents() {
     this.isLoading = true;
-    this.firestore.collection('events', ref => ref.orderBy('createdAt', 'desc'))
-      .valueChanges({ idField: 'id' })
-      .subscribe({
-        next: (events) => {
-          // Convert Firestore Timestamps to JS Dates
-          this.events = events.map((event: any) => ({
-            ...event,
-            createdAt: event.createdAt && event.createdAt.toDate ? event.createdAt.toDate() : event.createdAt,
-            updatedAt: event.updatedAt && event.updatedAt.toDate ? event.updatedAt.toDate() : event.updatedAt
-          }));
-          this.isLoading = false;
-        },
-        error: (err) => {
-          console.error('Error loading events:', err);
-          this.isLoading = false;
-          this.showAlert('Error', 'Failed to load events');
-        }
-      });
+    try {
+      // Load all events from the calendar service
+      const allEvents = await this.calendarService.loadItineraryEvents();
+      
+      // Filter for admin events only
+      this.events = allEvents
+        .filter(event => event.extendedProps?.isAdminEvent === true)
+        .map(event => ({
+          id: event.id,
+          name: event.title,
+          description: event.extendedProps?.description || '',
+          date: event.start.split('T')[0],
+          time: event.start.split('T')[1]?.substring(0, 5) || '',
+          location: event.extendedProps?.location || '',
+          spotId: event.extendedProps?.spotId || '',
+          imageUrl: event.extendedProps?.imageUrl || '',
+          createdAt: event.createdAt,
+          updatedAt: event.extendedProps?.updatedAt
+        }))
+        .sort((a, b) => {
+          // Sort by date descending, then by time
+          const dateA = new Date(a.date + 'T' + a.time);
+          const dateB = new Date(b.date + 'T' + b.time);
+          return dateB.getTime() - dateA.getTime();
+        });
+      
+      this.isLoading = false;
+    } catch (error) {
+      console.error('Error loading events:', error);
+      this.isLoading = false;
+      this.showAlert('Error', 'Failed to load events');
+    }
   }
 
-  refreshEvents() {
-    this.loadEvents();
+  async refreshEvents() {
+    await this.loadEvents();
   }
 
   async openEventDetail(event: any) {
@@ -105,8 +121,16 @@ export class EventListPage implements OnInit {
           text: 'Delete',
           handler: async () => {
             try {
-              await this.firestore.collection('events').doc(id).delete();
+              // Delete from Firestore
+              await this.firestore.collection('user_itinerary_events').doc(id).delete();
+              
+              // Remove from localStorage
+              const currentEvents = JSON.parse(localStorage.getItem('user_itinerary_events') || '[]');
+              const updatedEvents = currentEvents.filter((event: any) => event.id !== id);
+              localStorage.setItem('user_itinerary_events', JSON.stringify(updatedEvents));
+              
               this.showAlert('Success', 'Event deleted successfully');
+              await this.loadEvents(); // Reload the list
             } catch (err) {
               console.error(err);
               this.showAlert('Error', 'Failed to delete event');

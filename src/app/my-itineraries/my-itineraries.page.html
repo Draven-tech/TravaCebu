@@ -74,23 +74,25 @@
             <ion-icon name="create-outline" slot="start"></ion-icon>
             Edit
           </ion-button>
-          <ion-button 
-            fill="outline" 
-            size="small" 
-            [color]="itinerary.status === 'completed' ? 'medium' : 'success'"
-            (click)="toggleStatus(itinerary)"
-            [disabled]="itinerary.status === 'completed'">
-            <ion-icon [name]="itinerary.status === 'completed' ? 'checkmark-circle' : 'checkmark-outline'" slot="start"></ion-icon>
+          <ion-button fill="outline" size="small" [color]="itinerary.status === 'completed' ? 'medium' : 'success'"
+            (click)="toggleStatus(itinerary)" [disabled]="itinerary.status === 'completed'">
+            <ion-icon [name]="itinerary.status === 'completed' ? 'checkmark-circle' : 'checkmark-outline'"
+              slot="start"></ion-icon>
             {{ itinerary.status === 'completed' ? 'Completed' : 'Mark Done' }}
           </ion-button>
           <ion-button fill="outline" size="small" color="danger" (click)="deleteItinerary(itinerary)">
             <ion-icon name="trash-outline" slot="start"></ion-icon>
             Delete
           </ion-button>
+          <ion-button fill="outline" size="small" (click)="exportPDF(itinerary)">
+            Export PDF
+          </ion-button>
         </div>
       </ion-card-content>
     </ion-card>
+    
   </div>
+  
 </ion-content>
 
-<app-bottom-nav></app-bottom-nav> 
+<app-bottom-nav></app-bottom-nav>

@@ -5,6 +5,7 @@ import { NavController, AlertController, ModalController, ToastController } from
 import { CalendarService, CalendarEvent } from '../services/calendar.service';
 import { ViewItineraryModalComponent } from './view-itinerary-modal.component';
 import { ItineraryModalComponent } from '../bucket-list/itinerary-modal.component';
+import { PdfExportService } from '../services/pdf-export.service';
 
 @Component({
   selector: 'app-my-itineraries',
@@ -24,7 +25,8 @@ export class MyItinerariesPage implements OnInit {
     private alertCtrl: AlertController,
     private modalCtrl: ModalController,
     private toastCtrl: ToastController,
-    private calendarService: CalendarService
+    private calendarService: CalendarService,
+    private pdfExportService: PdfExportService
   ) {}
 
   async ngOnInit() {
@@ -359,4 +361,8 @@ export class MyItinerariesPage implements OnInit {
     });
     await toast.present();
   }
+
+  exportPDF(itinerary: any) {
+  this.pdfExportService.generateItineraryPDF(itinerary);
+}
 } 

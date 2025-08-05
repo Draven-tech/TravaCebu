@@ -63,7 +63,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     if (cached) {
       try {
         this.itinerary = JSON.parse(cached);
-      } catch {}
+      } catch { }
     }
   }
 
@@ -106,15 +106,41 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   private async loadTouristSpots(): Promise<void> {
-    try {
-      this.firestore.collection('tourist_spots').valueChanges({ idField: 'id' }).subscribe(spots => {
-        this.touristSpots = spots;
+    const cacheKey = 'tourist_spots_cache';
+    const isOnline = window.navigator.onLine;
+    if (isOnline) {
+      try {
+        this.firestore.collection('tourist_spots').valueChanges({ idField: 'id' }).subscribe(spots => {
+          this.touristSpots = spots;
+          localStorage.setItem(cacheKey, JSON.stringify(spots));
+          this.markers.forEach(m => this.map.removeLayer(m));
+          this.markers = [];
+          this.showTouristSpots();
+        });
+      } catch (error) {
+        console.error('Error loading tourist spots:', error);
+        this.loadSpotsFromCache();
+      }
+    } else {
+      // Load from localStorage if offline
+      this.loadSpotsFromCache();
+    }
+  }
+
+
+  private loadSpotsFromCache() {
+    const cached = localStorage.getItem('tourist_spots_cache');
+    if (cached) {
+      try {
+        this.touristSpots = JSON.parse(cached);
         this.markers.forEach(m => this.map.removeLayer(m));
         this.markers = [];
         this.showTouristSpots();
-      });
-    } catch (error) {
-      console.error('Error loading tourist spots:', error);
+      } catch (e) {
+        console.error('Error parsing cached tourist spots:', e);
+      }
+    } else {
+      console.warn('No cached tourist spots available.');
     }
   }
 
@@ -267,7 +293,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   async navigateNextItineraryStep() {
     this.navigating = true;
     this.navigationInstructions = [];
-    
+
     // Check if itinerary exists
     if (!this.itinerary || this.itinerary.length === 0) {
       this.navigationInstructions = ['No itinerary found. Please create an itinerary first.'];
@@ -286,7 +312,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     });
 
     await modal.present();
-    
+
     const result = await modal.onWillDismiss();
     if (result.data) {
       const { dayIndex, spotIndex } = result.data;
@@ -311,10 +337,10 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
 
     const targetSpot = day.spots[spotIndex];
-    
+
     // 1. Get user location
     const userLoc = await this.showUserLocation();
-    
+
     // 2. Find all curated jeepney routes that end at this spot
     const routesSnap = await this.firestore.collection('jeepney_routes', ref =>
       ref.where('points', 'array-contains', { lat: targetSpot.location.lat, lng: targetSpot.location.lng })
@@ -353,7 +379,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // 4. Show walking route to start
     if (this.walkLine) this.map.removeLayer(this.walkLine);
     if (this.stopMarker) this.map.removeLayer(this.stopMarker);
-    
+
     this.stopMarker = L.marker([bestStart.lat, bestStart.lng], {
       icon: L.icon({
         iconUrl: 'assets/leaflet/marker-icon.png',
@@ -410,7 +436,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   getNextUnvisitedSpot(dayIndex: number): number {
     const day = this.itinerary[dayIndex];
     if (!day || !day.spots) return 0;
-    
+
     // For now, return the first spot - this can be enhanced later
     // to track visited spots and return the next unvisited one
     return 0;

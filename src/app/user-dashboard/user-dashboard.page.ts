@@ -54,6 +54,10 @@ export class UserDashboardPage implements OnInit, OnDestroy {
   private spotsSubscription: any;
 
   async ngOnInit() {
+
+    this.checkNetworkStatus(); // Check immediately on load
+    window.addEventListener('offline', this.showOfflineAlert);
+    window.addEventListener('online', this.showOnlineToast);
     // Get Firebase Auth UID
     const currentUser = await this.afAuth.currentUser;
     this.userId = this.route.snapshot.paramMap.get('uid') ?? currentUser?.uid ?? null;
@@ -80,12 +84,12 @@ export class UserDashboardPage implements OnInit, OnDestroy {
 
   loadSpots() {
     this.isLoading = true;
-    
+
     // Unsubscribe from previous subscription if it exists
     if (this.spotsSubscription) {
       this.spotsSubscription.unsubscribe();
     }
-    
+
     // Create new subscription - sort by userRatingsTotal (ascending) to show hidden gems first
     this.spotsSubscription = this.firestore
       .collection('tourist_spots')
@@ -93,10 +97,10 @@ export class UserDashboardPage implements OnInit, OnDestroy {
       .subscribe({
         next: (data) => {
           console.log('Loaded spots:', data.length, 'spots'); // Debug log
-          
+
           // Sort by userRatingsTotal (ascending) - least popular first (hidden gems)
           this.originalSpots = this.sortByUserRatings(data);
-          
+
           this.applyFilter(); // filter based on current tag
           this.isLoading = false;
         },
@@ -118,7 +122,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
   }
   applyFilter(): void {
     let filteredSpots: any[];
-    
+
     if (this.selectedTag === 'All') {
       filteredSpots = this.originalSpots;
     } else {
@@ -146,7 +150,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     this.totalPages = Math.ceil(this.spots.length / this.itemsPerPage);
     this.currentPage = Math.min(this.currentPage, this.totalPages);
     if (this.currentPage < 1) this.currentPage = 1;
-    
+
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
     this.paginatedSpots = this.spots.slice(startIndex, endIndex);
@@ -216,7 +220,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
 
       // Get place details for more information
       const placeDetails = await this.placesService.getPlaceDetails(googlePlace.place_id).toPromise();
-      
+
       // Create new tourist spot data for approval
       const newSpotData = {
         name: googlePlace.name,
@@ -245,7 +249,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
 
       // Submit for approval instead of directly adding
       await this.pendingSpotService.submitForApproval(newSpotData);
-       
+
       const toast = await this.toastCtrl.create({
         message: `"${googlePlace.name}" has been submitted for approval! We'll notify you once it's reviewed.`,
         duration: 4000,
@@ -259,11 +263,11 @@ export class UserDashboardPage implements OnInit, OnDestroy {
         ]
       });
       toast.present();
-      
+
     } catch (error) {
       console.error('Error submitting tourist spot for approval:', error);
       this.showAlert('Error', 'Failed to submit tourist spot for approval. Please try again.');
-      
+
       // Reset search state on error
       this.searchResults = [];
       this.isSearching = false;
@@ -274,40 +278,40 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     if (!this.originalSpots || this.originalSpots.length === 0) {
       return false;
     }
-    
+
     const placeName = googlePlace.name?.toLowerCase().trim();
     if (!placeName) return false;
-    
+
     // Check for exact match
-    const exactMatch = this.originalSpots.find(spot => 
+    const exactMatch = this.originalSpots.find(spot =>
       spot.name?.toLowerCase().trim() === placeName
     );
     if (exactMatch) return true;
-    
+
     // Check for partial matches (one name contains the other)
     const partialMatch = this.originalSpots.find(spot => {
       const existingName = spot.name?.toLowerCase().trim();
       if (!existingName) return false;
-      
+
       // Check if one name contains the other (for variations like "SM Seaside" vs "SM Seaside City Cebu")
       return placeName.includes(existingName) || existingName.includes(placeName);
     });
-    
+
     if (partialMatch) return true;
-    
+
     // Check for similar names (common words match)
     const placeWords = placeName.split(' ').filter((word: string) => word.length > 2);
     const similarMatch = this.originalSpots.find(spot => {
       const existingName = spot.name?.toLowerCase().trim();
       if (!existingName) return false;
-      
+
       const existingWords = existingName.split(' ').filter((word: string) => word.length > 2);
-      
+
       // Check if they share significant words
       const commonWords = placeWords.filter((word: string) => existingWords.includes(word));
       return commonWords.length >= Math.min(2, Math.min(placeWords.length, existingWords.length));
     });
-    
+
     return !!similarMatch;
   }
 
@@ -316,7 +320,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
       // Get userRatingsTotal values, defaulting to 0 if undefined
       const aRatings = a.userRatingsTotal || 0;
       const bRatings = b.userRatingsTotal || 0;
-      
+
       // Sort ascending (least popular first - hidden gems)
       return aRatings - bRatings;
     });
@@ -324,7 +328,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
 
   private determineCategory(types: string[]): string {
     if (!types || types.length === 0) return 'attraction';
-    
+
     const typeMap: { [key: string]: string } = {
       'shopping_mall': 'mall',
       'amusement_park': 'attraction',
@@ -343,17 +347,17 @@ export class UserDashboardPage implements OnInit, OnDestroy {
         return typeMap[type];
       }
     }
-    
+
     return 'attraction';
   }
 
   async addToTrip(spot: any) {
     try {
       await this.bucketService.addToBucket(spot);
-      
+
       // Update bucket status after adding
       await this.loadBucketStatus();
-      
+
       // Show success notification
       const toast = await this.toastCtrl.create({
         message: `${spot.name} added to bucket list!`,
@@ -426,13 +430,13 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     console.log('Paginated spots count:', this.paginatedSpots?.length);
     console.log('Current filter:', this.selectedTag);
     console.log('Search query:', this.searchQuery);
-    
+
     // Show first 5 spots with their userRatingsTotal for debugging
     console.log('First 5 spots (sorted by userRatingsTotal ascending):');
     this.originalSpots?.slice(0, 5).forEach((spot, index) => {
       console.log(`${index + 1}. ${spot.name} - Ratings: ${spot.userRatingsTotal || 0}`);
     });
-    
+
     console.log('==========================');
   }
 
@@ -451,5 +455,33 @@ export class UserDashboardPage implements OnInit, OnDestroy {
       this.spotsSubscription.unsubscribe();
     }
   }
+  goToMyItineraries() {
+    this.navCtrl.navigateForward('/my-itineraries');
+  }
+  checkNetworkStatus() {
+  if (!navigator.onLine) {
+    this.showOfflineAlert();
+  }
+}
+
+showOfflineAlert = async () => {
+  const alert = await this.alertCtrl.create({
+    header: 'No Internet Connection',
+    message: 'You are currently offline. Some features may not be available. You can still access your itineraries on the map and calendar.',
+    buttons: ['OK']
+  });
+  await alert.present();
+};
+
+showOnlineToast = async () => {
+  const toast = await this.toastCtrl.create({
+    message: 'You are back online!',
+    duration: 2000,
+    color: 'success',
+    position: 'bottom'
+  });
+  toast.present();
+};
+
 }
 

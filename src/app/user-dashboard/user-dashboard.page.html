@@ -16,17 +16,17 @@
 </ion-header>
 
 <ion-content class="ion-padding" [scrollEvents]="true">
+
+  <span class="my-itineraries-btn" (click)="goToMyItineraries()">My Itineraries</span>
   <!-- Pull to Refresh -->
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
-    <ion-refresher-content
-      pullingIcon="chevron-down-circle-outline"
-      pullingText="Pull to refresh"
-      refreshingSpinner="circles"
-      refreshingText="Refreshing...">
+    <ion-refresher-content pullingIcon="chevron-down-circle-outline" pullingText="Pull to refresh"
+      refreshingSpinner="circles" refreshingText="Refreshing...">
     </ion-refresher-content>
   </ion-refresher>
   <!-- Searchbar -->
-  <ion-searchbar placeholder="Search tourist spots..." [(ngModel)]="searchQuery" (ionInput)="onSearchInput($event)"></ion-searchbar>
+  <ion-searchbar placeholder="Search tourist spots..." [(ngModel)]="searchQuery"
+    (ionInput)="onSearchInput($event)"></ion-searchbar>
 
   <!-- Section Title -->
   <h2 class="title">Plan Your Trip</h2>
@@ -81,11 +81,11 @@
       <ion-icon name="chevron-back"></ion-icon>
       Previous
     </ion-button>
-    
+
     <div class="page-info">
       Page {{ currentPage }} of {{ totalPages }}
     </div>
-    
+
     <ion-button fill="clear" [disabled]="currentPage === totalPages" (click)="nextPage()">
       Next
       <ion-icon name="chevron-forward"></ion-icon>
@@ -134,4 +134,4 @@
     <p>No visited spots yet.</p>
   </ion-text>
 
-<app-bottom-nav></app-bottom-nav>
+  <app-bottom-nav></app-bottom-nav>

@@ -3,7 +3,14 @@ ion-content {
   background: #ffffff;
   --padding-bottom: 80px;
 }
-
+.my-itineraries-btn{
+    color: #747474;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
 // Search Modal Styling
 ::ng-deep .search-modal {
   --height: 90%;

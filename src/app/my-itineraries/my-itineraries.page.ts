@@ -6,6 +6,9 @@ import { CalendarService, CalendarEvent } from '../services/calendar.service';
 import { ViewItineraryModalComponent } from './view-itinerary-modal.component';
 import { ItineraryModalComponent } from '../bucket-list/itinerary-modal.component';
 import { PdfExportService } from '../services/pdf-export.service';
+import { Clipboard } from '@capacitor/clipboard';
+import { Share } from '@capacitor/share';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-my-itineraries',
@@ -27,13 +30,23 @@ export class MyItinerariesPage implements OnInit {
     private toastCtrl: ToastController,
     private calendarService: CalendarService,
     private pdfExportService: PdfExportService,
-    private cdr: ChangeDetectorRef
-  ) {}
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute,
+  ) { }
 
   async ngOnInit() {
     const user = await this.afAuth.currentUser;
     this.userId = user?.uid || null;
     await this.loadItineraries();
+      const itineraryId = this.route.snapshot.paramMap.get('id');
+  if (itineraryId) {
+    this.firestore
+      .collection('user_itinerary_events', ref => ref.where('id', '==', itineraryId))
+      .get()
+      .subscribe(snapshot => {
+        // Process and display the itinerary
+      });
+  }
   }
 
   async ionViewWillEnter() {
@@ -45,7 +58,7 @@ export class MyItinerariesPage implements OnInit {
   async loadItineraries() {
     try {
       this.isLoading = true;
-      
+
       if (!this.userId) {
         this.itineraries = [];
         return;
@@ -63,7 +76,7 @@ export class MyItinerariesPage implements OnInit {
       } else {
         this.itineraries = [];
       }
-      
+
       // Force change detection after loading
       this.cdr.detectChanges();
     } catch (error) {
@@ -92,14 +105,14 @@ export class MyItinerariesPage implements OnInit {
       if (dayEvents.length > 0) {
         // Sort events by start time to get proper time range
         dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-        
+
         const firstEvent = dayEvents[0];
         const lastEvent = dayEvents[dayEvents.length - 1];
-        
+
         // Use the actual event times (which reflect the current date)
         let startTime = firstEvent.start;
         let endTime = lastEvent.end;
-        
+
         const itinerary = {
           id: `itinerary_${date}`,
           title: `Itinerary for ${this.getDateDisplay(date)}`,
@@ -112,7 +125,7 @@ export class MyItinerariesPage implements OnInit {
           events: dayEvents,
           createdAt: firstEvent.createdAt
         };
-        
+
         itineraries.push(itinerary);
       }
     });
@@ -123,7 +136,7 @@ export class MyItinerariesPage implements OnInit {
   async viewItinerary(itinerary: any) {
     // Convert itinerary back to the format expected by ViewItineraryModalComponent
     const itineraryDays = this.convertToItineraryDays(itinerary);
-    
+
     const modal = await this.modalCtrl.create({
       component: ViewItineraryModalComponent,
       componentProps: {
@@ -131,7 +144,7 @@ export class MyItinerariesPage implements OnInit {
       },
       cssClass: 'view-itinerary-modal'
     });
-    
+
     await modal.present();
   }
 
@@ -144,7 +157,7 @@ export class MyItinerariesPage implements OnInit {
         .collection('tourist_spots')
         .get()
         .toPromise();
-      
+
       if (touristSpotsSnapshot) {
         originalSpots = touristSpotsSnapshot.docs.map(doc => {
           const data = doc.data();
@@ -161,7 +174,7 @@ export class MyItinerariesPage implements OnInit {
 
     // Convert itinerary back to the format expected by ItineraryModalComponent for editing
     const itineraryDays = this.convertToItineraryDays(itinerary, originalSpots);
-    
+
     const modal = await this.modalCtrl.create({
       component: ItineraryModalComponent,
       componentProps: {
@@ -171,9 +184,9 @@ export class MyItinerariesPage implements OnInit {
       },
       cssClass: 'itinerary-modal'
     });
-    
+
     await modal.present();
-    
+
     // Handle the result when modal is dismissed
     const result = await modal.onDidDismiss();
     if (result.data && result.data.saved) {
@@ -184,22 +197,22 @@ export class MyItinerariesPage implements OnInit {
   async toggleStatus(itinerary: any) {
     try {
       const newStatus = itinerary.status === 'completed' ? 'active' : 'completed';
-      
+
       // Update all events in this itinerary
       const batch = this.firestore.firestore.batch();
-      
+
       itinerary.events.forEach((event: any) => {
         const eventRef = this.firestore.collection('user_itinerary_events').doc(event.id).ref;
         batch.update(eventRef, { status: newStatus });
       });
-      
+
       await batch.commit();
-      
+
       // Reload itineraries to get fresh data
       await this.loadItineraries();
-      
+
       this.showToast(
-        `Itinerary marked as ${newStatus === 'completed' ? 'completed' : 'active'}!`, 
+        `Itinerary marked as ${newStatus === 'completed' ? 'completed' : 'active'}!`,
         'success'
       );
     } catch (error) {
@@ -220,23 +233,23 @@ export class MyItinerariesPage implements OnInit {
         {
           text: 'Delete',
           role: 'destructive',
-                    handler: async () => {
+          handler: async () => {
             try {
               // Check if events have proper Firestore IDs
               const eventsWithIds = itinerary.events.filter((event: any) => event.id && event.id.length > 0);
-              
+
               if (eventsWithIds.length > 0) {
                 // Delete events with proper IDs from Firestore
                 const batch = this.firestore.firestore.batch();
-                
+
                 eventsWithIds.forEach((event: any) => {
                   const eventRef = this.firestore.collection('user_itinerary_events').doc(event.id).ref;
                   batch.delete(eventRef);
                 });
-                
+
                 await batch.commit();
               }
-              
+
               // Always clear from localStorage as well
               const currentEvents = JSON.parse(localStorage.getItem('user_itinerary_events') || '[]');
               const updatedEvents = currentEvents.filter((event: any) => {
@@ -244,16 +257,16 @@ export class MyItinerariesPage implements OnInit {
                 const eventDate = event.start?.split('T')[0];
                 return eventDate !== itinerary.date;
               });
-              
+
               localStorage.setItem('user_itinerary_events', JSON.stringify(updatedEvents));
-              
+
               // Reload itineraries to get fresh data
               await this.loadItineraries();
-              
+
               this.showToast('Itinerary deleted successfully!', 'success');
             } catch (error) {
               console.error('Error deleting itinerary:', error);
-              
+
               // Fallback: Try using calendar service to clear events
               try {
                 await this.calendarService.clearItineraryEvents();
@@ -268,7 +281,7 @@ export class MyItinerariesPage implements OnInit {
         }
       ]
     });
-    
+
     await alert.present();
   }
 
@@ -276,39 +289,39 @@ export class MyItinerariesPage implements OnInit {
     // This is a simplified conversion - you might need to adjust based on your actual data structure
     const dayEvents = itinerary.events || [];
     const spots = dayEvents.filter((event: any) => event?.extendedProps?.type === 'tourist_spot');
-    
+
     // Extract restaurants and hotels from events
     const restaurants = dayEvents.filter((event: any) => event?.extendedProps?.type === 'restaurant');
     const hotels = dayEvents.filter((event: any) => event?.extendedProps?.type === 'hotel');
-    
+
     // Find chosen hotel for this day
     const chosenHotel = hotels.find((hotel: any) => hotel?.extendedProps?.isChosen) || null;
-    
+
     return [{
       day: 1,
       date: itinerary.date,
-             spots: spots.map((event: any) => {
-         // Try to find the original spot data to get proper image
-         const originalSpot = originalSpots.find(spot => spot.name === event.title);
-         
-         return {
-           id: event.extendedProps?.spotId || event.id || '', // Use spotId from extendedProps if available
-           name: event.title || 'Unknown Spot',
-           description: event.extendedProps?.description || originalSpot?.description || '',
-           category: event.extendedProps?.category || originalSpot?.category || 'GENERAL',
-           timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
-           estimatedDuration: event.extendedProps?.duration || '2 hours',
-           durationMinutes: event.extendedProps?.durationMinutes || 120,
-           location: event.extendedProps?.location || originalSpot?.location || { lat: 0, lng: 0 },
-           img: originalSpot?.img || event.extendedProps?.img || 'assets/img/default.png', // Use original spot image if available
-           mealType: event.extendedProps?.mealType || null,
-           chosenRestaurant: event.extendedProps?.restaurant ? {
-             name: event.extendedProps.restaurant,
-             rating: event.extendedProps.restaurantRating,
-             vicinity: event.extendedProps.restaurantVicinity
-           } : null
-         };
-       }),
+      spots: spots.map((event: any) => {
+        // Try to find the original spot data to get proper image
+        const originalSpot = originalSpots.find(spot => spot.name === event.title);
+
+        return {
+          id: event.extendedProps?.spotId || event.id || '', // Use spotId from extendedProps if available
+          name: event.title || 'Unknown Spot',
+          description: event.extendedProps?.description || originalSpot?.description || '',
+          category: event.extendedProps?.category || originalSpot?.category || 'GENERAL',
+          timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
+          estimatedDuration: event.extendedProps?.duration || '2 hours',
+          durationMinutes: event.extendedProps?.durationMinutes || 120,
+          location: event.extendedProps?.location || originalSpot?.location || { lat: 0, lng: 0 },
+          img: originalSpot?.img || event.extendedProps?.img || 'assets/img/default.png', // Use original spot image if available
+          mealType: event.extendedProps?.mealType || null,
+          chosenRestaurant: event.extendedProps?.restaurant ? {
+            name: event.extendedProps.restaurant,
+            rating: event.extendedProps.restaurantRating,
+            vicinity: event.extendedProps.restaurantVicinity
+          } : null
+        };
+      }),
       routes: [], // Add empty routes array to prevent filter errors
       restaurants: restaurants.map((event: any) => ({
         id: event.id || '',
@@ -353,21 +366,21 @@ export class MyItinerariesPage implements OnInit {
   getDateDisplay(dateString: string): string {
     if (!dateString) return 'Unknown date';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   }
 
   getTimeDisplay(dateTimeString: string): string {
     if (!dateTimeString) return 'Unknown time';
     const date = new Date(dateTimeString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
   }
 
@@ -404,6 +417,48 @@ export class MyItinerariesPage implements OnInit {
   }
 
   exportPDF(itinerary: any) {
-  this.pdfExportService.generateItineraryPDF(itinerary);
+    this.pdfExportService.generateItineraryPDF(itinerary);
+  }
+  exportFullItinerary() {
+    if (this.itineraries.length > 0) {
+      this.pdfExportService.generateFullItineraryPDF(this.itineraries);
+    } else {
+      this.showToast('No itineraries to export', 'warning');
+    }
+  }
+
+async shareItinerary() {
+  await this.loadItineraries(); // ensures this.itineraries is populated
+
+  if (!this.itineraries || this.itineraries.length === 0) {
+    this.showToast('No itineraries to share', 'warning');
+    return;
+  }
+
+  const url = await this.pdfExportService.generateAndUploadPDF(this.itineraries);
+
+  if (navigator.share) {
+    await navigator.share({
+      title: 'My Itinerary',
+      text: 'Check out my travel plan!',
+      url, // this is a string like a Firebase Storage link
+    });
+  } else {
+    console.log('Share API not supported. Link:', url);
+    alert(`Here's your shareable link:\n${url}`);
+  }
 }
+
+
+private convertBlobToBase64(blob: Blob): Promise<string | ArrayBuffer | null> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      resolve(reader.result);
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
 } 

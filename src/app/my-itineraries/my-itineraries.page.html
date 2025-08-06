@@ -36,6 +36,14 @@
 
   <!-- Itineraries List -->
   <div *ngIf="!isLoading && itineraries.length > 0">
+    <ion-button expand="block" color="tertiary" (click)="exportFullItinerary()">
+  Export Full Itinerary
+</ion-button>
+<ion-button expand="block" color="success" (click)="shareItinerary()">
+  Share Itinerary
+</ion-button>
+
+
     <ion-card *ngFor="let itinerary of itineraries" class="itinerary-card">
       <ion-card-header>
         <div class="itinerary-header">
@@ -95,7 +103,6 @@
         </div>
       </ion-card-content>
     </ion-card>
-    
   </div>
   
 </ion-content>

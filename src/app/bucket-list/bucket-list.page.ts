@@ -81,7 +81,9 @@ export class BucketListPage implements OnInit {
       this.navCtrl.navigateRoot('/login');
     }
   }
-
+  openSpotDetail(spotId: string) {
+    this.navCtrl.navigateForward(`/tourist-spot-detail/${spotId}`);
+  }
   goToMyItineraries() {
     this.navCtrl.navigateForward('/my-itineraries');
   }

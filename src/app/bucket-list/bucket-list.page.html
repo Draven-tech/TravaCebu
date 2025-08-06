@@ -11,7 +11,7 @@
       <ion-item-option color="danger" (click)="remove(spot.id)">Remove</ion-item-option>
     </ion-item-options>
 
-    <ion-item lines="none" class="spot-card-horizontal">
+    <ion-item lines="none" class="spot-card-horizontal" (click)="openSpotDetail(spot.id)">
       <ion-thumbnail slot="start">
         <img [src]="spot.img" alt="{{ spot.name }}" />
       </ion-thumbnail>

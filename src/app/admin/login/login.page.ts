@@ -1,8 +1,7 @@
 import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LoadingController, AlertController, ToastController, IonContent, Platform } from '@ionic/angular';
-import { Keyboard } from '@capacitor/keyboard';
+import { LoadingController, AlertController, ToastController, IonContent, Platform, NavController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -28,6 +27,7 @@ export class LoginPage implements OnInit {
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
+    private navCtrl: NavController,
     private loadingCtrl: LoadingController,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
@@ -37,31 +37,8 @@ export class LoginPage implements OnInit {
   }
 
   ngOnInit() {
-    // Only use Keyboard plugin on native platforms
-    if (this.isNative) {
-      // Listen for keyboard events
-      Keyboard.addListener('keyboardWillShow', (info) => {
-        this.keyboardHeight = info.keyboardHeight;
-      });
-
-      Keyboard.addListener('keyboardDidShow', (info) => {
-        this.keyboardHeight = info.keyboardHeight;
-        setTimeout(() => {
-          this.scrollToActiveInput();
-        }, 100);
-      });
-
-      Keyboard.addListener('keyboardWillHide', () => {
-        this.keyboardHeight = 0;
-      });
-
-      Keyboard.addListener('keyboardDidHide', () => {
-        this.keyboardHeight = 0;
-        setTimeout(() => {
-          this.content.scrollToTop(300);
-        }, 100);
-      });
-    }
+    // Keyboard handling removed for web compatibility
+    console.log('Admin login page initialized');
   }
 
   async login() {
@@ -247,5 +224,9 @@ export class LoginPage implements OnInit {
         alert(message);
       }
     }
+  }
+
+  goBack() {
+    window.location.href = '/welcome';
   }
 }

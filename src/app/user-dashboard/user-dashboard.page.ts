@@ -6,6 +6,7 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { BucketService } from '../services/bucket-list.service';
 import { NavController, ToastController, ModalController, AlertController } from '@ionic/angular';
 import { PlacesService } from '../services/places.service';
+import { PendingTouristSpotService } from '../services/pending-tourist-spot.service';
 import { SearchModalComponent } from './search-modal.component';
 
 @Component({
@@ -46,7 +47,8 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     private toastCtrl: ToastController,
     private modalCtrl: ModalController,
     private alertCtrl: AlertController,
-    private placesService: PlacesService
+    private placesService: PlacesService,
+    private pendingSpotService: PendingTouristSpotService
   ) { }
 
   private spotsSubscription: any;
@@ -215,7 +217,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
       // Get place details for more information
       const placeDetails = await this.placesService.getPlaceDetails(googlePlace.place_id).toPromise();
       
-      // Create new tourist spot data
+      // Create new tourist spot data for approval
       const newSpotData = {
         name: googlePlace.name,
         description: placeDetails.result?.formatted_address || googlePlace.formatted_address || 'A tourist spot in Cebu, Philippines',
@@ -226,10 +228,8 @@ export class UserDashboardPage implements OnInit, OnDestroy {
         },
         img: '', // Will be populated with Google Places photo if available
         googlePlaceId: googlePlace.place_id,
-        rating: googlePlace.rating !== undefined ? googlePlace.rating : 0, // Set default value if undefined
-        userRatingsTotal: googlePlace.user_ratings_total !== undefined ? googlePlace.user_ratings_total : 0, // Set default value if undefined
-        createdAt: new Date(),
-        updatedAt: new Date()
+        rating: googlePlace.rating !== undefined ? googlePlace.rating : 0,
+        userRatingsTotal: googlePlace.user_ratings_total !== undefined ? googlePlace.user_ratings_total : 0
       };
 
       // Try to get a photo for the spot
@@ -243,29 +243,26 @@ export class UserDashboardPage implements OnInit, OnDestroy {
         console.log('No photo available for this spot');
       }
 
-             // Add to Firestore
-       const docRef = await this.firestore.collection('tourist_spots').add(newSpotData);
+      // Submit for approval instead of directly adding
+      await this.pendingSpotService.submitForApproval(newSpotData);
        
-       const toast = await this.toastCtrl.create({
-         message: `"${googlePlace.name}" has been added to our database!`,
-         duration: 3000,
-         color: 'success',
-         position: 'top',
-         buttons: [
-           {
-             icon: 'checkmark-circle',
-             side: 'start'
-           }
-         ]
-       });
-       toast.present();
-      
-      // Refresh the spots list
-      this.loadSpots();
+      const toast = await this.toastCtrl.create({
+        message: `"${googlePlace.name}" has been submitted for approval! We'll notify you once it's reviewed.`,
+        duration: 4000,
+        color: 'success',
+        position: 'top',
+        buttons: [
+          {
+            icon: 'checkmark-circle',
+            side: 'start'
+          }
+        ]
+      });
+      toast.present();
       
     } catch (error) {
-      console.error('Error adding tourist spot:', error);
-      this.showAlert('Error', 'Failed to add tourist spot to database. Please try again.');
+      console.error('Error submitting tourist spot for approval:', error);
+      this.showAlert('Error', 'Failed to submit tourist spot for approval. Please try again.');
       
       // Reset search state on error
       this.searchResults = [];

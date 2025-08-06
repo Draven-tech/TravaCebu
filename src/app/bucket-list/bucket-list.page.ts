@@ -139,7 +139,8 @@ export class BucketListPage implements OnInit {
         originalStartTime: this.setup.startTime,
         originalEndTime: this.setup.endTime,
         editable: true,
-        onEdit: () => this.editItinerary()
+        onEdit: () => this.editItinerary(),
+        originalSpots: this.spots // Pass the original bucket list spots
       },
       cssClass: 'itinerary-modal'
     });

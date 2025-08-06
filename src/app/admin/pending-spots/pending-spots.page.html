@@ -1,0 +1,249 @@
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/admin/dashboard"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Pending Tourist Spots</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refreshData($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading pending spots...</p>
+  </div>
+
+  <!-- Tab Navigation -->
+  <ion-segment [(ngModel)]="selectedTab" mode="ios" color="warning" *ngIf="!isLoading">
+    <ion-segment-button value="pending">
+      <ion-label>
+        <ion-icon name="time-outline"></ion-icon>
+        Pending ({{ pendingSpots.length }})
+      </ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="approved">
+      <ion-label>
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        Approved ({{ approvedSpots.length }})
+      </ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="rejected">
+      <ion-label>
+        <ion-icon name="close-circle-outline"></ion-icon>
+        Rejected ({{ rejectedSpots.length }})
+      </ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <!-- Pending Spots -->
+  <div *ngIf="selectedTab === 'pending' && !isLoading">
+    <div class="empty-state" *ngIf="pendingSpots.length === 0">
+      <ion-icon name="checkmark-circle-outline" class="empty-icon"></ion-icon>
+      <h3>No Pending Spots</h3>
+      <p>All tourist spot submissions have been reviewed!</p>
+    </div>
+
+    <ion-card *ngFor="let spot of pendingSpots" class="spot-card pending">
+      <ion-card-header>
+        <div class="spot-header">
+          <div class="spot-info">
+            <ion-card-title>{{ spot.name }}</ion-card-title>
+            <ion-card-subtitle>
+              <ion-icon name="person-outline"></ion-icon>
+              {{ spot.submittedByEmail }}
+            </ion-card-subtitle>
+          </div>
+          <div class="spot-status">
+            <ion-badge [color]="getStatusColor(spot.status)">
+              <ion-icon [name]="getStatusIcon(spot.status)"></ion-icon>
+              {{ spot.status | titlecase }}
+            </ion-badge>
+          </div>
+        </div>
+      </ion-card-header>
+
+      <ion-card-content>
+        <div class="spot-details">
+          <div class="detail-item">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            <span>{{ spot.description }}</span>
+          </div>
+          <div class="detail-item">
+            <ion-icon name="pricetag-outline"></ion-icon>
+            <span>{{ spot.category | titlecase }}</span>
+          </div>
+          <div class="detail-item">
+            <ion-icon name="location-outline"></ion-icon>
+            <span>{{ spot.location.lat | number:'1.4-4' }}, {{ spot.location.lng | number:'1.4-4' }}</span>
+          </div>
+          <div class="detail-item" *ngIf="spot.rating">
+            <ion-icon name="star-outline"></ion-icon>
+            <span>{{ spot.rating }}★ ({{ spot.userRatingsTotal }} reviews)</span>
+          </div>
+          <div class="detail-item">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <span>Submitted: {{ spot.submittedAt | date:'medium' }}</span>
+          </div>
+        </div>
+
+        <div class="spot-image" *ngIf="spot.img">
+          <img [src]="spot.img" [alt]="spot.name" />
+        </div>
+
+        <div class="spot-actions">
+          <ion-button size="small" color="medium" (click)="viewSpotDetails(spot)">
+            <ion-icon name="eye-outline" slot="start"></ion-icon>
+            View Details
+          </ion-button>
+          <ion-button size="small" color="success" (click)="approveSpot(spot)">
+            <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+            Approve
+          </ion-button>
+          <ion-button size="small" color="danger" (click)="rejectSpot(spot)">
+            <ion-icon name="close-outline" slot="start"></ion-icon>
+            Reject
+          </ion-button>
+          <ion-button size="small" color="warning" (click)="deleteSpot(spot)">
+            <ion-icon name="trash-outline" slot="start"></ion-icon>
+            Delete
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Approved Spots -->
+  <div *ngIf="selectedTab === 'approved' && !isLoading">
+    <div class="empty-state" *ngIf="approvedSpots.length === 0">
+      <ion-icon name="checkmark-circle-outline" class="empty-icon"></ion-icon>
+      <h3>No Approved Spots</h3>
+      <p>No spots have been approved yet.</p>
+    </div>
+
+    <ion-card *ngFor="let spot of approvedSpots" class="spot-card approved">
+      <ion-card-header>
+        <div class="spot-header">
+          <div class="spot-info">
+            <ion-card-title>{{ spot.name }}</ion-card-title>
+            <ion-card-subtitle>
+              <ion-icon name="person-outline"></ion-icon>
+              {{ spot.submittedByEmail }}
+            </ion-card-subtitle>
+          </div>
+          <div class="spot-status">
+            <ion-badge [color]="getStatusColor(spot.status)">
+              <ion-icon [name]="getStatusIcon(spot.status)"></ion-icon>
+              {{ spot.status | titlecase }}
+            </ion-badge>
+          </div>
+        </div>
+      </ion-card-header>
+
+      <ion-card-content>
+        <div class="spot-details">
+          <div class="detail-item">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            <span>{{ spot.description }}</span>
+          </div>
+          <div class="detail-item">
+            <ion-icon name="pricetag-outline"></ion-icon>
+            <span>{{ spot.category | titlecase }}</span>
+          </div>
+          <div class="detail-item" *ngIf="spot.reviewedAt">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <span>Approved: {{ spot.reviewedAt | date:'medium' }}</span>
+          </div>
+          <div class="detail-item" *ngIf="spot.reviewNotes">
+            <ion-icon name="chatbubble-outline"></ion-icon>
+            <span>Notes: {{ spot.reviewNotes }}</span>
+          </div>
+        </div>
+
+        <div class="spot-image" *ngIf="spot.img">
+          <img [src]="spot.img" [alt]="spot.name" />
+        </div>
+
+        <div class="spot-actions">
+          <ion-button size="small" color="medium" (click)="viewSpotDetails(spot)">
+            <ion-icon name="eye-outline" slot="start"></ion-icon>
+            View Details
+          </ion-button>
+          <ion-button size="small" color="warning" (click)="deleteSpot(spot)">
+            <ion-icon name="trash-outline" slot="start"></ion-icon>
+            Delete
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Rejected Spots -->
+  <div *ngIf="selectedTab === 'rejected' && !isLoading">
+    <div class="empty-state" *ngIf="rejectedSpots.length === 0">
+      <ion-icon name="close-circle-outline" class="empty-icon"></ion-icon>
+      <h3>No Rejected Spots</h3>
+      <p>No spots have been rejected yet.</p>
+    </div>
+
+    <ion-card *ngFor="let spot of rejectedSpots" class="spot-card rejected">
+      <ion-card-header>
+        <div class="spot-header">
+          <div class="spot-info">
+            <ion-card-title>{{ spot.name }}</ion-card-title>
+            <ion-card-subtitle>
+              <ion-icon name="person-outline"></ion-icon>
+              {{ spot.submittedByEmail }}
+            </ion-card-subtitle>
+          </div>
+          <div class="spot-status">
+            <ion-badge [color]="getStatusColor(spot.status)">
+              <ion-icon [name]="getStatusIcon(spot.status)"></ion-icon>
+              {{ spot.status | titlecase }}
+            </ion-badge>
+          </div>
+        </div>
+      </ion-card-header>
+
+      <ion-card-content>
+        <div class="spot-details">
+          <div class="detail-item">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            <span>{{ spot.description }}</span>
+          </div>
+          <div class="detail-item">
+            <ion-icon name="pricetag-outline"></ion-icon>
+            <span>{{ spot.category | titlecase }}</span>
+          </div>
+          <div class="detail-item" *ngIf="spot.reviewedAt">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <span>Rejected: {{ spot.reviewedAt | date:'medium' }}</span>
+          </div>
+          <div class="detail-item" *ngIf="spot.reviewNotes">
+            <ion-icon name="chatbubble-outline"></ion-icon>
+            <span>Reason: {{ spot.reviewNotes }}</span>
+          </div>
+        </div>
+
+        <div class="spot-image" *ngIf="spot.img">
+          <img [src]="spot.img" [alt]="spot.name" />
+        </div>
+
+        <div class="spot-actions">
+          <ion-button size="small" color="medium" (click)="viewSpotDetails(spot)">
+            <ion-icon name="eye-outline" slot="start"></ion-icon>
+            View Details
+          </ion-button>
+          <ion-button size="small" color="warning" (click)="deleteSpot(spot)">
+            <ion-icon name="trash-outline" slot="start"></ion-icon>
+            Delete
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content> 

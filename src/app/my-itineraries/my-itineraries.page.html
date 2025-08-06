@@ -4,6 +4,11 @@
       <ion-back-button defaultHref="/user-dashboard"></ion-back-button>
     </ion-buttons>
     <ion-title>My Itineraries</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="manualRefresh()" fill="clear">
+        <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 

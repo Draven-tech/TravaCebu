@@ -24,9 +24,9 @@ interface PlaceSuggestion {
   template: `
     <ion-header>
       <ion-toolbar color="warning" style="--min-height: 32px; --padding-top: 2px; --padding-bottom: 2px; display: flex; align-items: center; justify-content: space-between;">
-        <ion-title style="font-size: 1.1rem; font-weight: 700; text-align: center; flex: 1; padding: 0; margin: 0;">{{ isEditMode ? 'Edit Itinerary' : 'Your Itinerary' }}</ion-title>
+        <ion-title style="font-size: 1.1rem; font-weight: 700; text-align: center; flex: 1; padding: 0; margin: 0;">Your Itinerary</ion-title>
         <ion-buttons slot="end">
-          <ion-button *ngIf="!isEditMode" (click)="editItinerary()" aria-label="Edit" style="--padding-start: 4px; --padding-end: 4px; --min-height: 28px;">
+          <ion-button (click)="editItinerary()" aria-label="Edit" style="--padding-start: 4px; --padding-end: 4px; --min-height: 28px;">
             <ion-icon name="create-outline" style="font-size: 16px;"></ion-icon>
           </ion-button>
           <ion-button (click)="close()" aria-label="Close" style="--padding-start: 4px; --padding-end: 4px; --min-height: 28px;">
@@ -37,6 +37,8 @@ interface PlaceSuggestion {
     </ion-header>
 
     <ion-content>
+
+
       <div class="itinerary-container">
         <div *ngFor="let day of itinerary" class="day-section">
           <h3 class="day-title">Day {{ day.day }}</h3>
@@ -257,7 +259,7 @@ interface PlaceSuggestion {
       <ion-toolbar>
         <ion-button expand="block" color="success" (click)="saveItinerary()" [disabled]="saving">
           <ion-spinner *ngIf="saving" name="crescent"></ion-spinner>
-                          <span *ngIf="!saving">{{ isEditMode ? 'Update Itinerary' : 'Save Itinerary' }}</span>
+                          <span *ngIf="!saving">Save Itinerary</span>
         </ion-button>
         <ion-button expand="block" color="primary" (click)="fetchSuggestions()" [disabled]="fetchingSuggestions">
           <ion-spinner *ngIf="fetchingSuggestions" name="crescent"></ion-spinner>
@@ -270,6 +272,7 @@ interface PlaceSuggestion {
         <ion-button expand="block" color="warning" (click)="saveToNotes()">
           Save to Notes
         </ion-button>
+
         <ion-button expand="block" fill="clear" (click)="close()">
           Close
         </ion-button>
@@ -290,7 +293,22 @@ interface PlaceSuggestion {
       margin: 16px 0 12px 0;
       border-bottom: 2px solid #e74c3c;
       padding-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
+
+    .day-date {
+      color: #666;
+      font-size: 0.9rem;
+      font-weight: 500;
+      background: rgba(231, 76, 60, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(231, 76, 60, 0.2);
+    }
+
+
     .spot-item {
       background: #f8f9fa;
       border-radius: 12px;
@@ -499,12 +517,17 @@ export class ItineraryModalComponent {
   @Input() itinerary: ItineraryDay[] = [];
   @Input() originalStartTime: string = '';
   @Input() originalEndTime: string = '';
-  @Input() isEditMode: boolean = false;
+  @Input() originalSpots: any[] = [];
+
+  // Store original dates to clear them when editing
+  private originalDates: string[] = [];
+
   fetchingSuggestions = false;
   saving = false;
   transportTabs: { [key: string]: string } = {};
   googleDirections: { [key: string]: any } = {};
   fetchingDirections: { [key: string]: boolean } = {};
+
 
   constructor(
     private modalCtrl: ModalController, 
@@ -563,14 +586,8 @@ export class ItineraryModalComponent {
       // Save itinerary to calendar/calendar service
       await this.saveItineraryToCalendar();
       
-      // Show success message based on mode
-      if (this.isEditMode) {
-        this.showAlert('Success', 'Itinerary updated successfully!');
-        // Dismiss with saved flag for edit mode
-        this.modalCtrl.dismiss({ saved: true });
-      } else {
-        this.showAlert('Success', 'Itinerary saved to calendar! You can now view it in the calendar page.');
-      }
+      // Show success message
+      this.showAlert('Success', 'Itinerary saved to calendar! You can now view it in the calendar page.');
       
     } catch (error) {
       console.error('Error saving itinerary:', error);
@@ -605,17 +622,20 @@ export class ItineraryModalComponent {
   }
 
   private async saveItineraryToCalendar() {
+    // Get the dates for this itinerary
+    const itineraryDates = this.itinerary.map(day => day.date).filter((date): date is string => date !== undefined);
+    
+    // Clear events for both original dates and new dates to prevent duplication
+    const datesToClear = [...new Set([...this.originalDates, ...itineraryDates])];
+    await this.calendarService.clearEventsForDates(datesToClear);
+    
     // Convert itinerary to calendar events
     const events: CalendarEvent[] = [];
-    
-
     
     for (const day of this.itinerary) {
       if (!day.date) {
         throw new Error('Itinerary days must have dates assigned');
       }
-      
-
       
       // Add spots as events
       for (const spot of day.spots) {
@@ -728,7 +748,6 @@ export class ItineraryModalComponent {
     // Save using the calendar service
     await this.calendarService.saveItineraryEvents(events);
     
-    
   }
 
   async fetchSuggestions() {
@@ -736,7 +755,7 @@ export class ItineraryModalComponent {
     
     try {
       this.itinerary = await this.itineraryService.fetchSuggestionsForItinerary(this.itinerary, (msg: string) => {
-        // console.log(msg); // Removed debug logging
+        // Progress callback - can be used for future features
       });
       this.cdr.detectChanges();
       
@@ -775,31 +794,27 @@ export class ItineraryModalComponent {
   }
 
   async editItinerary() {
-    // Store original itinerary for comparison
-    const originalItinerary = JSON.stringify(this.itinerary);
-    
-    // Get all spots from the itinerary to use as available spots
-    const allSpots = this.itinerary.reduce((spots: any[], day: ItineraryDay) => {
-      return spots.concat(day.spots);
-    }, []);
+    // Store the original dates before editing
+    this.originalDates = this.itinerary.map(day => day.date).filter((date): date is string => date !== undefined);
     
     const modal = await this.modalCtrl.create({
       component: ItineraryEditorComponent,
       componentProps: {
         itinerary: this.itinerary,
-        availableSpots: allSpots // Pass all spots as available for editing
+        availableSpots: this.originalSpots // Use the original bucket list spots
       },
       cssClass: 'itinerary-editor-modal'
     });
-    modal.onDidDismiss().then(result => {
+    modal.onDidDismiss().then(async result => {
       if (result.data) {
-        const newItinerary = JSON.stringify(result.data);
+        // Update the itinerary with the edited data
         this.itinerary = result.data;
         
-        // Only auto-refresh if the itinerary actually changed
-        if (originalItinerary !== newItinerary) {
-          this.fetchSuggestions();
-        }
+        // Force change detection to update the UI immediately
+        this.cdr.detectChanges();
+        
+        // Show message to remind user to save
+        this.showAlert('Itinerary Updated', 'Your itinerary has been updated! Click "Save Itinerary" to save your changes to the calendar.');
       }
     });
     await modal.present();
@@ -808,6 +823,8 @@ export class ItineraryModalComponent {
   close() {
     this.modalCtrl.dismiss();
   }
+
+
 
   saveToNotes() {
     let notes = '=== MY CEBU ITINERARY ===\n\n';
@@ -1085,6 +1102,8 @@ export class ItineraryModalComponent {
     });
   }
 
+
+
   // Route display helper methods
   getRouteIcon(type: string): string {
     switch (type) {
@@ -1140,4 +1159,5 @@ export class ItineraryModalComponent {
       default: return '';
     }
   }
+
 } 

@@ -29,23 +29,244 @@ ion-content {
 
 .content-layer {
   width: 100%;
-  max-width: 360px;
+  max-width: 400px;
   margin: 0 auto;
   text-align: left;
+  padding-top: 20px;
+  margin-bottom: 20px;
 }
 
-h1 {
+.welcome-header {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.title-container {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.main-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  margin-bottom: 15px;
+}
+
+.welcome-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  opacity: 0.9;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.brand-name {
+  font-size: 42px;
   font-weight: 900;
-  font-size: 26px;
-  color: #000000;
-  line-height: 1.2;
-  margin-bottom: 10px;
+  color: #000;
+  letter-spacing: 3px;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #000 0%, #333 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #FFD144, #FFA500);
+    border-radius: 2px;
+  }
 }
 
-p {
-  font-size: 14px;
-  color: #000;
-  margin-bottom: 30px;
+.title-decoration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.decoration-line {
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #FFD144, transparent);
+  border-radius: 1px;
+}
+
+.decoration-dot {
+  width: 8px;
+  height: 8px;
+  background: #FFD144;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 209, 68, 0.5);
+}
+
+.subtitle-container {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.tagline-container {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-radius: 20px;
+  padding: 20px 16px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 3s infinite;
+  }
+}
+
+.tagline {
+  font-size: 18px;
+  color: #2d3748;
+  margin-bottom: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1;
+}
+
+.tagline-highlight {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(90deg, #FFD144, #FFA500);
+  border-radius: 25px;
+  margin: 0 auto;
+  width: fit-content;
+  box-shadow: 0 4px 12px rgba(255, 209, 68, 0.3);
+  position: relative;
+  z-index: 1;
+  
+  ion-icon {
+    font-size: 16px;
+    color: #fff;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  }
+  
+  span {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.features {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.feature-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 10px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 100%);
+  border-radius: 16px;
+  backdrop-filter: blur(15px);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #FFD144, #FFA500, #FFD144);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+  
+  &:hover {
+    transform: translateY(-4px) scale(1.05);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 209, 68, 0.6);
+    
+    &::before {
+      transform: scaleX(1);
+    }
+    
+    ion-icon {
+      transform: scale(1.2);
+      color: #e74c3c;
+    }
+    
+    span {
+      color: #2d3748;
+    }
+  }
+  
+  ion-icon {
+    font-size: 28px;
+    color: #2d3748;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+    transition: all 0.3s ease;
+  }
+  
+  span {
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+    text-align: center;
+    letter-spacing: 0.8px;
+    transition: color 0.3s ease;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .custom-form {
@@ -104,4 +325,107 @@ p {
   background-color: #111720;
   transform: scale(1.02);
   transition: 0.3s ease;
+}
+
+// Mobile responsive design
+@media (max-width: 768px) {
+  .content-layer {
+    padding-top: 15px;
+    max-width: 350px;
+  }
+  
+  .brand-name {
+    font-size: 36px;
+    letter-spacing: 2px;
+  }
+  
+  .welcome-text {
+    font-size: 16px;
+  }
+  
+  .tagline {
+    font-size: 16px;
+  }
+  
+  .tagline-highlight {
+    padding: 6px 12px;
+    
+    ion-icon {
+      font-size: 14px;
+    }
+    
+    span {
+      font-size: 12px;
+    }
+  }
+  
+  .features {
+    gap: 8px;
+  }
+  
+  .feature-item {
+    padding: 12px 8px;
+    
+    ion-icon {
+      font-size: 24px;
+      color: #2d3748;
+    }
+    
+    span {
+      font-size: 12px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .content-layer {
+    padding-top: 10px;
+    max-width: 320px;
+  }
+  
+  .brand-name {
+    font-size: 32px;
+    letter-spacing: 1px;
+  }
+  
+  .welcome-text {
+    font-size: 14px;
+  }
+  
+  .tagline {
+    font-size: 15px;
+  }
+  
+  .tagline-highlight {
+    padding: 5px 10px;
+    
+    ion-icon {
+      font-size: 12px;
+    }
+    
+    span {
+      font-size: 11px;
+    }
+  }
+  
+  .features {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .feature-item {
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 12px;
+    
+    ion-icon {
+      font-size: 20px;
+      color: #2d3748;
+    }
+    
+    span {
+      font-size: 13px;
+    }
+  }
 }

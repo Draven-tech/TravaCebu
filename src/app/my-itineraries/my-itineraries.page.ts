@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { NavController, AlertController, ModalController, ToastController } from '@ionic/angular';
@@ -26,12 +26,19 @@ export class MyItinerariesPage implements OnInit {
     private modalCtrl: ModalController,
     private toastCtrl: ToastController,
     private calendarService: CalendarService,
-    private pdfExportService: PdfExportService
+    private pdfExportService: PdfExportService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   async ngOnInit() {
     const user = await this.afAuth.currentUser;
     this.userId = user?.uid || null;
+    await this.loadItineraries();
+  }
+
+  async ionViewWillEnter() {
+    // Refresh data when the page becomes visible
+    // This ensures we get the latest data after editing an itinerary
     await this.loadItineraries();
   }
 
@@ -44,8 +51,8 @@ export class MyItinerariesPage implements OnInit {
         return;
       }
 
-      // Use the calendar service to load events (this handles Firestore + localStorage fallback)
-      const events = await this.calendarService.loadItineraryEvents();
+      // Force refresh from Firestore to ensure we get the latest data
+      const events = await this.calendarService.forceRefreshFromFirestore();
 
       if (events && events.length > 0) {
         // Sort events by start date in descending order
@@ -56,6 +63,9 @@ export class MyItinerariesPage implements OnInit {
       } else {
         this.itineraries = [];
       }
+      
+      // Force change detection after loading
+      this.cdr.detectChanges();
     } catch (error) {
       console.error('Error loading itineraries:', error);
       this.showToast('Error loading itineraries', 'danger');
@@ -86,19 +96,9 @@ export class MyItinerariesPage implements OnInit {
         const firstEvent = dayEvents[0];
         const lastEvent = dayEvents[dayEvents.length - 1];
         
-        // Use original time range if available, otherwise fall back to event times
+        // Use the actual event times (which reflect the current date)
         let startTime = firstEvent.start;
         let endTime = lastEvent.end;
-        
-        if (firstEvent.extendedProps?.originalStartTime && firstEvent.extendedProps?.originalEndTime) {
-          // Use original time range but with the correct date
-          const datePart = date; // YYYY-MM-DD
-          const originalStartTimeOnly = firstEvent.extendedProps.originalStartTime.substring(11, 16); // HH:MM
-          const originalEndTimeOnly = firstEvent.extendedProps.originalEndTime.substring(11, 16); // HH:MM
-          
-          startTime = `${datePart}T${originalStartTimeOnly}:00`;
-          endTime = `${datePart}T${originalEndTimeOnly}:00`;
-        }
         
         const itinerary = {
           id: `itinerary_${date}`,
@@ -136,13 +136,37 @@ export class MyItinerariesPage implements OnInit {
   }
 
   async editItinerary(itinerary: any) {
+    // Load all tourist spots from the main collection (same as user dashboard)
+    // This ensures we have all possible spots to choose from
+    let originalSpots: any[] = [];
+    try {
+      const touristSpotsSnapshot = await this.firestore
+        .collection('tourist_spots')
+        .get()
+        .toPromise();
+      
+      if (touristSpotsSnapshot) {
+        originalSpots = touristSpotsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...(data as any)
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error loading tourist spots for editing:', error);
+      originalSpots = [];
+    }
+
     // Convert itinerary back to the format expected by ItineraryModalComponent for editing
-    const itineraryDays = this.convertToItineraryDays(itinerary);
+    const itineraryDays = this.convertToItineraryDays(itinerary, originalSpots);
     
     const modal = await this.modalCtrl.create({
       component: ItineraryModalComponent,
       componentProps: {
         itinerary: itineraryDays,
+        originalSpots: originalSpots, // Pass the full bucket list as available spots
         isEditMode: true
       },
       cssClass: 'itinerary-modal'
@@ -153,8 +177,6 @@ export class MyItinerariesPage implements OnInit {
     // Handle the result when modal is dismissed
     const result = await modal.onDidDismiss();
     if (result.data && result.data.saved) {
-      // Reload itineraries to get updated data
-      await this.loadItineraries();
       this.showToast('Itinerary updated successfully!', 'success');
     }
   }
@@ -250,7 +272,7 @@ export class MyItinerariesPage implements OnInit {
     await alert.present();
   }
 
-  private convertToItineraryDays(itinerary: any): any[] {
+  private convertToItineraryDays(itinerary: any, originalSpots: any[] = []): any[] {
     // This is a simplified conversion - you might need to adjust based on your actual data structure
     const dayEvents = itinerary.events || [];
     const spots = dayEvents.filter((event: any) => event?.extendedProps?.type === 'tourist_spot');
@@ -265,21 +287,28 @@ export class MyItinerariesPage implements OnInit {
     return [{
       day: 1,
       date: itinerary.date,
-      spots: spots.map((event: any) => ({
-        id: event.id || '',
-        name: event.title || 'Unknown Spot',
-        description: event.extendedProps?.description || '',
-        category: event.extendedProps?.category || 'GENERAL',
-        timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
-        estimatedDuration: event.extendedProps?.duration || '2 hours',
-        location: event.extendedProps?.location || { lat: 0, lng: 0 },
-        mealType: event.extendedProps?.mealType || null,
-        chosenRestaurant: event.extendedProps?.restaurant ? {
-          name: event.extendedProps.restaurant,
-          rating: event.extendedProps.restaurantRating,
-          vicinity: event.extendedProps.restaurantVicinity
-        } : null
-      })),
+             spots: spots.map((event: any) => {
+         // Try to find the original spot data to get proper image
+         const originalSpot = originalSpots.find(spot => spot.name === event.title);
+         
+         return {
+           id: event.extendedProps?.spotId || event.id || '', // Use spotId from extendedProps if available
+           name: event.title || 'Unknown Spot',
+           description: event.extendedProps?.description || originalSpot?.description || '',
+           category: event.extendedProps?.category || originalSpot?.category || 'GENERAL',
+           timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
+           estimatedDuration: event.extendedProps?.duration || '2 hours',
+           durationMinutes: event.extendedProps?.durationMinutes || 120,
+           location: event.extendedProps?.location || originalSpot?.location || { lat: 0, lng: 0 },
+           img: originalSpot?.img || event.extendedProps?.img || 'assets/img/default.png', // Use original spot image if available
+           mealType: event.extendedProps?.mealType || null,
+           chosenRestaurant: event.extendedProps?.restaurant ? {
+             name: event.extendedProps.restaurant,
+             rating: event.extendedProps.restaurantRating,
+             vicinity: event.extendedProps.restaurantVicinity
+           } : null
+         };
+       }),
       routes: [], // Add empty routes array to prevent filter errors
       restaurants: restaurants.map((event: any) => ({
         id: event.id || '',
@@ -350,6 +379,18 @@ export class MyItinerariesPage implements OnInit {
       console.error('Error refreshing itineraries:', error);
       event.target.complete();
     }
+  }
+
+  // Manual refresh method that can be called programmatically
+  async forceRefresh() {
+    await this.loadItineraries();
+  }
+
+  // Manual refresh method for the refresh button
+  async manualRefresh() {
+    this.showToast('Refreshing itineraries...', 'primary');
+    await this.loadItineraries();
+    this.showToast('Itineraries refreshed!', 'success');
   }
 
   private async showToast(message: string, color: string = 'primary') {

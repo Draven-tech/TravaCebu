@@ -124,6 +124,53 @@ export class CalendarService {
   }
 
   /**
+   * Force refresh from Firestore (bypass localStorage cache)
+   */
+  async forceRefreshFromFirestore(): Promise<CalendarEvent[]> {
+    try {
+      const user = await this.afAuth.currentUser;
+      if (!user) {
+        return [];
+      }
+
+      // Clear localStorage cache first
+      localStorage.removeItem('user_itinerary_events');
+
+      // Load fresh from Firestore
+      const snapshot = await this.firestore
+        .collection('user_itinerary_events', ref => 
+          ref.where('userId', '==', user.uid)
+        )
+        .get()
+        .toPromise();
+
+      if (snapshot && !snapshot.empty) {
+        const events = snapshot.docs.map(doc => {
+          const data = doc.data() as any;
+          return {
+            id: doc.id,
+            ...data
+          };
+        }) as CalendarEvent[];
+       
+        // Filter out completed events
+        const activeEvents = events.filter(event => event.status !== 'completed');
+       
+        // Update localStorage with fresh data
+        localStorage.setItem('user_itinerary_events', JSON.stringify(activeEvents));
+        
+        return activeEvents;
+      }
+
+      return [];
+      
+    } catch (error) {
+      console.error('Error force refreshing from Firestore:', error);
+      return [];
+    }
+  }
+
+  /**
    * Load events from localStorage
    */
   private loadFromLocalStorage(): CalendarEvent[] {
@@ -222,6 +269,61 @@ export class CalendarService {
       
     } catch (error) {
       console.error('Error clearing itinerary events:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear events for specific dates only (to prevent duplication when editing)
+   */
+  async clearEventsForDates(dates: string[]): Promise<void> {
+    try {
+      const user = await this.afAuth.currentUser;
+      if (!user || dates.length === 0) {
+        return;
+      }
+
+      // Clear from Firestore for specific dates
+      const snapshot = await this.firestore
+        .collection('user_itinerary_events', ref => 
+          ref.where('userId', '==', user.uid)
+        )
+        .get()
+        .toPromise();
+
+      if (snapshot && !snapshot.empty) {
+        const batch = this.firestore.firestore.batch();
+        let hasEventsToDelete = false;
+
+        snapshot.docs.forEach(doc => {
+          const eventData = doc.data() as CalendarEvent;
+          const eventDate = eventData.start.split('T')[0]; // Get just the date part
+          
+          // Only delete events that match the specified dates
+          if (dates.includes(eventDate)) {
+            batch.delete(doc.ref);
+            hasEventsToDelete = true;
+          }
+        });
+
+        if (hasEventsToDelete) {
+          await batch.commit();
+        }
+      }
+
+      // Clear from localStorage for specific dates
+      const savedEvents = localStorage.getItem('user_itinerary_events');
+      if (savedEvents) {
+        const events = JSON.parse(savedEvents) as CalendarEvent[];
+        const filteredEvents = events.filter(event => {
+          const eventDate = event.start.split('T')[0];
+          return !dates.includes(eventDate);
+        });
+        localStorage.setItem('user_itinerary_events', JSON.stringify(filteredEvents));
+      }
+      
+    } catch (error) {
+      console.error('Error clearing events for dates:', error);
       throw error;
     }
   }

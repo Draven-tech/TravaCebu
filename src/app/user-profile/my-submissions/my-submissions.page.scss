@@ -1,0 +1,332 @@
+// Header styling
+ion-header {
+  ion-toolbar {
+    --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --color: white;
+    
+    ion-title {
+      font-weight: 600;
+      font-size: 1.2rem;
+    }
+    
+    ion-back-button {
+      --color: white;
+    }
+  }
+}
+
+// Content background
+ion-content {
+  --background: #f8f9fa;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  color: #666;
+
+  ion-spinner {
+    margin-bottom: 16px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 1rem;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #666;
+
+  .empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+  }
+
+  p {
+    margin: 0;
+    font-size: 1rem;
+    opacity: 0.8;
+  }
+}
+
+ion-segment {
+  margin: 16px 12px;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  --background: white;
+
+  ion-segment-button {
+    --color: #2d3748;
+    --color-checked: white;
+    --indicator-color: transparent;
+    font-weight: 600;
+    border-radius: 12px;
+    margin: 2px;
+    transition: all 0.3s ease;
+
+    &.segment-button-checked {
+      --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --color: white;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    ion-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #2d3748;
+      padding: 4px 2px;
+
+      ion-icon {
+        font-size: 14px;
+        color: #2d3748;
+      }
+    }
+
+    &.segment-button-checked {
+      ion-label {
+        color: white;
+        
+        ion-icon {
+          color: white;
+        }
+      }
+    }
+  }
+}
+
+.submission-card {
+  margin: 16px 12px;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: white;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  }
+
+  &.pending {
+    border-left: 4px solid #ffc107;
+    background: linear-gradient(135deg, #fffbf0 0%, #ffffff 100%);
+  }
+
+  &.approved {
+    border-left: 4px solid #28a745;
+    background: linear-gradient(135deg, #f8fff9 0%, #ffffff 100%);
+  }
+
+  &.rejected {
+    border-left: 4px solid #dc3545;
+    background: linear-gradient(135deg, #fff8f8 0%, #ffffff 100%);
+  }
+
+  ion-card-header {
+    padding: 16px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+
+    .spot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+
+      .spot-info {
+        flex: 1;
+
+        ion-card-title {
+          font-size: 1.2rem;
+          font-weight: 700;
+          color: #2d3748;
+          margin: 0 0 4px 0;
+        }
+
+        ion-card-subtitle {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: #666;
+          font-size: 0.9rem;
+          margin: 0;
+
+          ion-icon {
+            font-size: 14px;
+          }
+        }
+      }
+
+      .spot-status {
+        ion-badge {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          padding: 6px 10px;
+          border-radius: 20px;
+
+          ion-icon {
+            font-size: 12px;
+          }
+        }
+      }
+    }
+  }
+
+  ion-card-content {
+    padding: 16px;
+
+    .spot-details {
+      margin-bottom: 16px;
+
+      .detail-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+        color: #555;
+
+        ion-icon {
+          font-size: 16px;
+          color: #3880ff;
+          margin-top: 2px;
+          flex-shrink: 0;
+        }
+
+        span {
+          line-height: 1.4;
+        }
+      }
+    }
+
+    .spot-image {
+      margin-bottom: 16px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+      img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+      }
+    }
+
+    .spot-actions {
+      display: flex;
+      justify-content: center;
+
+      ion-button {
+        --border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        --padding-start: 20px;
+        --padding-end: 20px;
+        --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --color: white;
+        --border-color: transparent;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        ion-icon {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  ion-segment {
+    margin: 12px 8px;
+  }
+  
+  .submission-card {
+    margin: 12px 8px;
+
+    ion-card-header {
+      .spot-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+
+        .spot-status {
+          align-self: flex-end;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  ion-segment {
+    margin: 8px 6px;
+    
+    ion-segment-button {
+      margin: 1px;
+      
+      ion-label {
+        font-size: 0.75rem;
+        padding: 2px 1px;
+        
+        ion-icon {
+          font-size: 12px;
+        }
+      }
+    }
+  }
+  
+  .submission-card {
+    margin: 8px 6px;
+  }
+}
+
+// Animation for cards
+.submission-card {
+  animation: slideInUp 0.4s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 

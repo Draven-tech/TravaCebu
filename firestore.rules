@@ -66,6 +66,23 @@ service cloud.firestore {
       }
     }
 
+    // Pending tourist spots approval system
+    match /pending_tourist_spots/{spotId} {
+      // Users can create their own submissions
+      allow create: if request.auth != null && 
+                    request.auth.uid == request.resource.data.submittedBy;
+      
+      // Users can read their own submissions
+      allow read: if request.auth != null && 
+                  request.auth.uid == resource.data.submittedBy;
+      
+      // Only admins can update/delete pending spots (for approval/rejection)
+      allow update, delete: if isAdmin();
+      
+      // Allow admins to read all pending spots
+      allow read: if isAdmin();
+    }
+
     // Admin user verification
     match /admins/{userId} {
       allow read: if request.auth != null;

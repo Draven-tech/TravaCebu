@@ -61,7 +61,11 @@ export class DashboardPage implements OnInit {
       case 'event-list':
         console.log('Navigating to event-list');
         this.router.navigate(['/admin/event-list']);
-      break;
+        break;
+      case 'pending-spots':
+        console.log('Navigating to pending-spots');
+        this.router.navigate(['/admin/pending-spots']);
+        break;
     }
   }
 

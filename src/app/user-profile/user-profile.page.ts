@@ -480,6 +480,10 @@ async viewProfilePicture() {
     this.navCtrl.navigateForward('/my-itineraries');
   }
 
+  goToMySubmissions() {
+    this.navCtrl.navigateForward('/user-profile/my-submissions');
+  }
+
   getBadgeIcon(badge: Badge): string {
     return badge.isUnlocked ? badge.icon : badge.lockedIcon;
   }

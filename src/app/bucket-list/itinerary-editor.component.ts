@@ -20,261 +20,420 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding">
-      <!-- Settings Panel -->
-      <ion-card>
-        <ion-card-header>
-          <ion-card-title>Itinerary Settings</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <ion-grid>
-            <ion-row>
-              <ion-col size="6">
-                <ion-item>
-                  <ion-label position="stacked">Start Time</ion-label>
-                  <ion-datetime 
-                    presentation="time"
-                    [(ngModel)]="settings.startTime"
-                    (ionChange)="updateAllTimeSlots()">
-                  </ion-datetime>
-                </ion-item>
-              </ion-col>
-              <ion-col size="6">
-                <ion-item>
-                  <ion-label position="stacked">End Time</ion-label>
-                  <ion-datetime 
-                    presentation="time"
-                    [(ngModel)]="settings.endTime"
-                    (ionChange)="updateAllTimeSlots()">
-                  </ion-datetime>
-                </ion-item>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-          <ion-button expand="block" color="primary" (click)="updateAllTimeSlots()" class="ion-margin-top">
-            Update All Time Slots
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
+         <ion-content class="ion-padding compact-modal">
+       <!-- Combined Settings -->
+       <ion-item lines="none" class="compact-settings">
+         <ion-label>
+           <h3>⚙️ Settings</h3>
+         </ion-label>
+         <ion-button size="small" fill="clear" (click)="updateAllTimeSlots()">
+           <ion-icon name="refresh"></ion-icon>
+         </ion-button>
+       </ion-item>
+       
+       <!-- Date Settings -->
+       <ion-item lines="none" class="date-header">
+         <ion-label>
+           <h3>📅 Edit Dates</h3>
+         </ion-label>
+         <ion-button size="small" fill="clear" (click)="updateAllDates()">
+           <ion-icon name="refresh"></ion-icon>
+         </ion-button>
+       </ion-item>
+       
+                               <ion-item lines="none" class="compact-time-item">
+           <ion-label position="stacked">Start Date</ion-label>
+           <ion-input 
+             type="date"
+             [(ngModel)]="startDate"
+             (ionChange)="updateAllDates()"
+             class="compact-time-input">
+           </ion-input>
+         </ion-item>
+       
+               <ion-item lines="none" class="compact-time-item">
+          <ion-label position="stacked">Number of Days</ion-label>
+          <ion-input 
+            type="number" 
+            min="1" 
+            max="14"
+            [(ngModel)]="numberOfDays"
+            (ionChange)="updateNumberOfDays()"
+            placeholder="1"
+            class="compact-input">
+          </ion-input>
+        </ion-item>
+       
+                       <!-- Time Settings -->
+         <ion-item lines="none" class="compact-time-item">
+           <ion-label position="stacked">Start Time</ion-label>
+           <ion-input 
+             type="time"
+             [(ngModel)]="settings.startTime"
+             (ionChange)="updateAllTimeSlots()"
+             class="compact-time-input">
+           </ion-input>
+         </ion-item>
+         
+         <ion-item lines="none" class="compact-time-item">
+           <ion-label position="stacked">End Time</ion-label>
+           <ion-input 
+             type="time"
+             [(ngModel)]="settings.endTime"
+             (ionChange)="updateAllTimeSlots()"
+             class="compact-time-input">
+           </ion-input>
+         </ion-item>
 
-      <!-- Available Spots -->
-      <ion-card>
-        <ion-card-header>
-          <ion-card-title>Available Tourist Spots</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <div cdkDropList
-               #availableList="cdkDropList"
-               [cdkDropListData]="availableSpots"
-               [cdkDropListConnectedTo]="dayLists"
-               class="drop-list available-drop-list"
-               (cdkDropListDropped)="drop($event)">
-            <div class="spot-card" *ngFor="let spot of availableSpots" cdkDrag>
-              <ion-item>
-                <ion-avatar slot="start">
-                  <img [src]="spot.img || 'assets/placeholder.jpg'" alt="{{ spot.name }}">
-                </ion-avatar>
-                <ion-label>
-                  <h3>{{ spot.name }}</h3>
-                  <p>{{ spot.category }}</p>
-                </ion-label>
-                <ion-icon name="move" slot="end" color="medium"></ion-icon>
-              </ion-item>
-            </div>
-            <div *ngIf="availableSpots.length === 0" class="empty-message">
-              <ion-icon name="basket-outline" size="large" color="medium"></ion-icon>
-              <p>No available tourist spots</p>
-            </div>
+               <!-- Compact Available Spots -->
+        <ion-item lines="none" class="section-header">
+          <ion-label>
+            <h3>📋 Available Spots ({{ availableSpots.length }})</h3>
+          </ion-label>
+        </ion-item>
+        
+        <div cdkDropList
+             #availableList="cdkDropList"
+             [cdkDropListData]="availableSpots"
+             [cdkDropListConnectedTo]="dayLists"
+             class="drop-list compact-drop-list"
+             (cdkDropListDropped)="drop($event)">
+          <div class="compact-spot-item" *ngFor="let spot of availableSpots" cdkDrag>
+            <ion-avatar slot="start">
+              <img [src]="spot.img || 'assets/placeholder.jpg'" alt="{{ spot.name }}">
+            </ion-avatar>
+            <ion-label>
+              <h4>{{ spot.name }}</h4>
+              <p>{{ spot.category }}</p>
+            </ion-label>
+            <ion-icon name="move" slot="end" color="medium"></ion-icon>
           </div>
-        </ion-card-content>
-      </ion-card>
+          <div *ngIf="availableSpots.length === 0" class="empty-message">
+            <ion-icon name="add-circle-outline" size="small" color="primary"></ion-icon>
+            <p>All spots assigned</p>
+          </div>
+        </div>
 
-      <!-- Days -->
-      <div class="days-section">
-        <ion-card *ngFor="let day of editedItinerary; let dayIndex = index" class="day-card">
-          <ion-card-header>
-            <ion-card-title>Day {{ day.day }}</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <div cdkDropList
-                 #dayList="cdkDropList"
-                 [cdkDropListData]="day.spots"
-                 [cdkDropListConnectedTo]="allLists"
-                 class="drop-list day-drop-list"
-                 (cdkDropListDropped)="drop($event)">
-              <div class="spot-card" *ngFor="let spot of day.spots; let spotIndex = index" cdkDrag>
-                <ion-item>
-                  <ion-avatar slot="start">
-                    <img [src]="spot.img || 'assets/placeholder.jpg'" alt="{{ spot.name }}">
-                  </ion-avatar>
-                  <ion-label>
-                    <h3>{{ spot.name }}</h3>
-                    <p class="time-slot">⏰ {{ spot.timeSlot }}</p>
-                    <p class="category">{{ spot.category }}</p>
+       <!-- Compact Days -->
+       <div class="compact-days">
+         <ion-card *ngFor="let day of editedItinerary; let dayIndex = index" class="compact-day-card">
+           <ion-card-header class="compact-header">
+             <ion-card-title>
+               Day {{ day.day }}
+               <span class="day-date" *ngIf="day.date">{{ formatDateDisplay(day.date) }}</span>
+             </ion-card-title>
+             <ion-button size="small" fill="clear" color="danger" (click)="removeAllSpotsFromDay(dayIndex)" *ngIf="day.spots.length > 0">
+               <ion-icon name="trash"></ion-icon>
+             </ion-button>
+           </ion-card-header>
+           <ion-card-content class="compact-content">
+             <div cdkDropList
+                  #dayList="cdkDropList"
+                  [cdkDropListData]="day.spots"
+                  [cdkDropListConnectedTo]="allLists"
+                  class="drop-list compact-day-drop-list"
+                  (cdkDropListDropped)="drop($event)">
+               <div class="compact-spot-item" *ngFor="let spot of day.spots; let spotIndex = index" cdkDrag>
+                 <ion-avatar slot="start">
+                   <img [src]="spot.img || 'assets/placeholder.jpg'" alt="{{ spot.name }}">
+                 </ion-avatar>
+                                   <ion-label>
+                    <h4>{{ spot.name }}</h4>
+                    <p class="time-slot">{{ spot.timeSlot }}</p>
                   </ion-label>
-                  <ion-icon name="move" slot="end" color="medium"></ion-icon>
-                </ion-item>
-                <ion-item>
-                  <ion-label position="stacked">Duration (minutes)</ion-label>
-                  <ion-input 
-                    type="number" 
-                    min="30" 
-                    max="480"
-                    [(ngModel)]="spot.durationMinutes"
-                    (ionChange)="updateTimeSlots(dayIndex)"
-                    placeholder="120">
-                  </ion-input>
-                  <ion-button 
-                    size="small" 
-                    fill="clear" 
-                    color="primary" 
-                    slot="end"
-                    (click)="editSpotTime(dayIndex, spotIndex)">
-                    <ion-icon name="time"></ion-icon>
-                  </ion-button>
-                  <ion-button 
-                    size="small" 
-                    fill="clear" 
-                    color="danger" 
-                    slot="end"
-                    (click)="removeSpot(dayIndex, spotIndex)">
-                    <ion-icon name="trash"></ion-icon>
-                  </ion-button>
-                </ion-item>
-              </div>
-              <div *ngIf="day.spots.length === 0" class="empty-message">
-                <ion-icon name="calendar-outline" size="large" color="medium"></ion-icon>
-                <p>Drag spots here</p>
-              </div>
-            </div>
-          </ion-card-content>
-        </ion-card>
-      </div>
-    </ion-content>
+                 <div class="compact-actions">
+                   <ion-input 
+                     type="number" 
+                     min="30" 
+                     max="480"
+                     [(ngModel)]="spot.durationMinutes"
+                     (ionChange)="updateTimeSlots(dayIndex)"
+                     placeholder="120"
+                     class="duration-input">
+                   </ion-input>
+                   <ion-button 
+                     size="small" 
+                     fill="clear" 
+                     color="danger" 
+                     (click)="removeSpot(dayIndex, spotIndex)">
+                     <ion-icon name="close"></ion-icon>
+                   </ion-button>
+                 </div>
+               </div>
+                               <div *ngIf="day.spots.length === 0" class="empty-message">
+                  <ion-icon name="calendar-outline" size="small" color="primary"></ion-icon>
+                  <p>Drop spots here</p>
+                </div>
+             </div>
+           </ion-card-content>
+         </ion-card>
+       </div>
+     </ion-content>
   `,
-  styles: [`
-    .drop-list {
-      min-height: 100px;
-      border: 2px dashed #ccc;
-      border-radius: 12px;
-      padding: 12px;
-      background: #f8f9fa;
-      transition: all 0.3s ease;
-    }
+     styles: [`
+           .compact-modal {
+        --padding-start: 4px;
+        --padding-end: 4px;
+        --padding-top: 4px;
+        --padding-bottom: 4px;
+      }
 
-    .drop-list:hover {
-      border-color: #007bff;
-      background: #f0f8ff;
-    }
+      .compact-settings {
+        --background: #ffffff;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        border: 1px solid #e0e0e0;
+      }
 
-    .available-drop-list {
-      min-height: 150px;
-    }
+      .compact-settings h3 {
+        color: #333;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 0;
+      }
 
-    .day-drop-list {
-      min-height: 200px;
-    }
+      .date-header {
+        --background: #1976d2;
+        border-radius: 6px;
+        margin-bottom: 6px;
+      }
 
-    .spot-card {
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 12px;
-      margin-bottom: 12px;
-      cursor: move;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      transition: all 0.3s ease;
-    }
+      .date-header h3 {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 0;
+        color: white;
+      }
 
-    .spot-card:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transform: translateY(-2px);
-    }
+      .day-date {
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 400;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 2px 4px;
+        border-radius: 3px;
+        margin-left: 4px;
+        display: inline-block;
+      }
 
-    .spot-card ion-item {
-      --padding-start: 0;
-      --inner-padding-end: 0;
-    }
+      .section-header {
+        --background: #f5f5f5;
+        border-radius: 6px;
+        margin: 6px 0;
+        border: 1px solid #e0e0e0;
+      }
 
-    .spot-card ion-item:first-child {
-      border-bottom: 1px solid #f0f0f0;
-    }
+      .section-header h3 {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 0;
+        color: #333;
+      }
 
-    .time-slot {
-      color: #007bff;
-      font-weight: 500;
-      margin: 4px 0;
-    }
+                  .compact-drop-list {
+         min-height: 80px;
+         max-height: 140px;
+         overflow-y: auto;
+         border: 1px dashed #ccc;
+         border-radius: 6px;
+         padding: 8px;
+         background: #ffffff;
+         margin-bottom: 8px;
+       }
 
-    .category {
-      color: #666;
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      font-weight: 500;
-    }
+       .compact-day-drop-list {
+         min-height: 70px;
+         max-height: 200px;
+         overflow-y: auto;
+         border: 1px dashed #ccc;
+         border-radius: 6px;
+         padding: 8px;
+         background: #ffffff;
+         margin-top: 6px;
+       }
 
-    .empty-message {
-      text-align: center;
-      color: #999;
-      padding: 40px 20px;
-    }
+      .compact-day-drop-list:empty {
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+      }
 
-    .empty-message ion-icon {
-      margin-bottom: 12px;
-    }
+           .compact-spot-item {
+        display: flex;
+        align-items: center;
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        padding: 6px;
+        cursor: move;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+      }
 
-    .empty-message p {
-      margin: 0;
-      font-size: 0.9rem;
-    }
+      .compact-spot-item:hover {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        transform: translateY(-1px);
+      }
 
-    .days-section {
-      margin-top: 20px;
-    }
+      .compact-spot-item ion-avatar {
+        width: 24px;
+        height: 24px;
+        margin-right: 8px;
+      }
 
-    .day-card {
-      margin-bottom: 20px;
-    }
+      .compact-spot-item ion-label {
+        flex: 1;
+        margin: 0;
+      }
 
-    .day-card ion-card-header {
-      background: linear-gradient(135deg, #ffc107, #ff9800);
-      color: white;
-    }
+      .compact-spot-item h4 {
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin: 0 0 2px 0;
+        color: #333;
+      }
 
-    .day-card ion-card-title {
-      color: white;
-      font-weight: 600;
-    }
+      .compact-spot-item p {
+        font-size: 0.7rem;
+        margin: 0;
+        color: #666;
+      }
 
-    .cdk-drag-preview {
-      box-sizing: border-box;
-      border-radius: 12px;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-      transform: rotate(5deg);
-    }
+      .time-slot {
+        color: #007bff;
+        font-weight: 500;
+        font-size: 0.65rem;
+        margin: 0;
+        opacity: 0.8;
+      }
 
-    .cdk-drag-placeholder {
-      opacity: 0.3;
-      background: #e3f2fd;
-      border: 2px dashed #2196f3;
-    }
+           .compact-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
 
-    .cdk-drag-animating {
-      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-    }
+      .duration-input {
+        width: 45px;
+        --padding-start: 2px;
+        --padding-end: 2px;
+        font-size: 0.6rem;
+        --border-radius: 3px;
+        --min-height: 24px;
+      }
 
-    .drop-list.cdk-drop-list-dragging .spot-card:not(.cdk-drag-placeholder) {
-      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-    }
+           .compact-days {
+        margin-top: 6px;
+      }
 
-    ion-avatar {
-      width: 40px;
-      height: 40px;
-    }
+      .compact-day-card {
+        margin-bottom: 6px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      }
 
-    ion-avatar img {
-      object-fit: cover;
-    }
-  `],
+      .compact-header {
+        background: linear-gradient(135deg, #ffc107, #ff9800);
+        color: white;
+        padding: 6px 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .compact-header ion-card-title {
+        color: white;
+        font-weight: 600;
+        font-size: 0.8rem;
+        margin: 0;
+      }
+
+            .compact-content {
+        padding: 6px;
+      }
+
+      .compact-time-item {
+        --min-height: 35px;
+        --padding-start: 4px;
+        --padding-end: 4px;
+        --padding-top: 1px;
+        --padding-bottom: 1px;
+        margin-bottom: 1px;
+      }
+
+      .compact-time-item ion-label {
+        font-size: 0.65rem;
+        margin-bottom: 1px;
+        --color: #666;
+      }
+
+      .compact-time-input {
+        --height: 28px;
+        --min-height: 28px;
+        --max-height: 28px;
+        font-size: 0.75rem;
+        --padding-start: 4px;
+        --padding-end: 4px;
+        --border-radius: 3px;
+        --border: 1px solid #ddd;
+      }
+
+      .compact-input {
+        --height: 28px;
+        --min-height: 28px;
+        --max-height: 28px;
+        font-size: 0.75rem;
+        --padding-start: 4px;
+        --padding-end: 4px;
+        --border-radius: 3px;
+        --border: 1px solid #ddd;
+      }
+
+            .empty-message {
+        text-align: center;
+        color: #666;
+        padding: 8px 4px;
+        font-size: 0.65rem;
+      }
+
+      .empty-message ion-icon {
+        margin-bottom: 2px;
+        color: #007bff;
+      }
+
+      .empty-message p {
+        margin: 0;
+        font-size: 0.65rem;
+        color: #666;
+      }
+
+     .cdk-drag-preview {
+       box-sizing: border-box;
+       border-radius: 6px;
+       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+       transform: rotate(2deg);
+     }
+
+     .cdk-drag-placeholder {
+       opacity: 0.3;
+       background: #e3f2fd;
+       border: 1px dashed #2196f3;
+     }
+
+     .cdk-drag-animating {
+       transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+     }
+
+     .drop-list.cdk-drop-list-dragging .compact-spot-item:not(.cdk-drag-placeholder) {
+       transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+     }
+
+     ion-avatar img {
+       object-fit: cover;
+     }
+   `],
   standalone: false
 })
 export class ItineraryEditorComponent implements OnInit, AfterViewInit {
@@ -284,10 +443,13 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
   @ViewChildren(CdkDropList) dropLists!: QueryList<CdkDropList>;
 
   editedItinerary: ItineraryDay[] = [];
-  settings = { startTime: '1970-01-01T08:00', endTime: '1970-01-01T18:00' };
+  settings = { startTime: '08:00', endTime: '18:00' };
+  startDate: string = '';
+  numberOfDays: number = 1;
   dayLists: CdkDropList[] = [];
   allLists: (string | CdkDropList<any>)[] = [];
   searchQuery: string = '';
+  originalAvailableSpots: any[] = [];
 
   constructor(
     private modalCtrl: ModalController,
@@ -310,6 +472,14 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
       }
     });
 
+    // Initialize date settings
+    this.initializeDateSettings();
+
+    // Store original available spots for reference
+    this.originalAvailableSpots = [...this.availableSpots];
+    
+
+
     // Calculate available spots (spots not assigned to any day)
     this.calculateAvailableSpots();
 
@@ -320,18 +490,19 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
   }
 
   private calculateAvailableSpots() {
-    // Get all assigned spot IDs
-    const assignedSpotIds = new Set<string>();
+    // Get all assigned spot names from the current edited itinerary
+    const assignedSpotNames = new Set<string>();
     this.editedItinerary.forEach(day => {
       if (day && day.spots) {
         day.spots.forEach(spot => {
-          assignedSpotIds.add(spot.id);
+          assignedSpotNames.add(spot.name);
         });
       }
     });
 
     // Filter available spots to show only unassigned spots
-    this.availableSpots = this.availableSpots.filter(spot => !assignedSpotIds.has(spot.id));
+    // Use original available spots as the source (same as user dashboard)
+    this.availableSpots = this.originalAvailableSpots.filter(spot => !assignedSpotNames.has(spot.name));
   }
 
   ngAfterViewInit() {
@@ -355,6 +526,9 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
       );
     }
     
+    // Recalculate available spots after drag operation
+    this.calculateAvailableSpots();
+    
     // Update time slots for all days after any drag operation
     setTimeout(() => {
       this.updateAllTimeSlots();
@@ -369,9 +543,24 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
     const spot = this.editedItinerary[dayIndex].spots[spotIndex];
     this.availableSpots.push(spot);
     this.editedItinerary[dayIndex].spots.splice(spotIndex, 1);
+    // Recalculate available spots after removing
+    this.calculateAvailableSpots();
     setTimeout(() => {
       this.updateTimeSlots(dayIndex);
     }, 0);
+  }
+
+  removeAllSpotsFromDay(dayIndex: number) {
+    const day = this.editedItinerary[dayIndex];
+    if (day && day.spots) {
+      this.availableSpots.push(...day.spots);
+      day.spots = [];
+      // Recalculate available spots after removing
+      this.calculateAvailableSpots();
+      setTimeout(() => {
+        this.updateTimeSlots(dayIndex);
+      }, 0);
+    }
   }
 
   updateTimeSlots(dayIndex: number) {
@@ -402,10 +591,6 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
   }
 
   private parseTime(time: string): Date {
-    // Handle ISO format strings (e.g., "1970-01-01T08:00")
-    if (time.includes('T')) {
-      return new Date(time);
-    }
     // Handle simple time strings (e.g., "08:00")
     const [h, m] = time.split(':').map(Number);
     const d = new Date();
@@ -417,6 +602,8 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
     return date.toTimeString().slice(0, 5);
   }
 
+  
+
   async saveChanges() {
     // Validate that all spots are assigned
     const totalAssignedSpots = this.editedItinerary.reduce((sum, day) => sum + day.spots.length, 0);
@@ -426,6 +613,9 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
       this.showAlert('No Spots Assigned', 'Please assign at least one spot to your itinerary.');
       return;
     }
+
+    // Update all dates before saving to ensure date changes are applied
+    this.updateAllDates();
 
     // Remove empty days
     this.editedItinerary = this.editedItinerary.filter(day => day.spots.length > 0);
@@ -585,5 +775,90 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
     // If in ISO or other, try to extract time
     const match = time.match(/(\d{2}:\d{2})/);
     return match ? match[1] : '08:00';
+  }
+
+  // Date editing methods
+  private initializeDateSettings() {
+    // Set start date from first day if available, otherwise use today
+    if (this.editedItinerary.length > 0 && this.editedItinerary[0].date) {
+      this.startDate = this.editedItinerary[0].date;
+    } else {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const date = String(today.getDate()).padStart(2, '0');
+      this.startDate = `${year}-${month}-${date}`;
+    }
+
+    // Set number of days
+    this.numberOfDays = this.editedItinerary.length;
+  }
+
+  updateAllDates() {
+    if (!this.startDate) {
+      return;
+    }
+
+    const startDate = new Date(this.startDate);
+    
+    this.editedItinerary.forEach((day, dayIndex) => {
+      if (day) {
+        // Calculate the date for this day (startDate + dayIndex)
+        const dayDate = new Date(startDate);
+        dayDate.setDate(startDate.getDate() + dayIndex);
+        
+        // Format as YYYY-MM-DD
+        const year = dayDate.getFullYear();
+        const month = String(dayDate.getMonth() + 1).padStart(2, '0');
+        const date = String(dayDate.getDate()).padStart(2, '0');
+        const newDate = `${year}-${month}-${date}`;
+        day.date = newDate;
+      }
+    });
+    
+    this.cdr.detectChanges();
+  }
+
+  updateNumberOfDays() {
+    const currentDays = this.editedItinerary.length;
+    const newDays = this.numberOfDays;
+
+    if (newDays > currentDays) {
+      // Add more days
+      for (let i = currentDays; i < newDays; i++) {
+        this.editedItinerary.push({
+          day: i + 1,
+          spots: [],
+          date: '',
+          routes: []
+        });
+      }
+    } else if (newDays < currentDays) {
+      // Remove days (move spots to available spots)
+      for (let i = currentDays - 1; i >= newDays; i--) {
+        const day = this.editedItinerary[i];
+        if (day && day.spots) {
+          this.availableSpots.push(...day.spots);
+        }
+      }
+      this.editedItinerary.splice(newDays);
+    }
+
+    // Recalculate available spots after changing number of days
+    this.calculateAvailableSpots();
+
+    // Update dates after changing number of days
+    this.updateAllDates();
+    this.cdr.detectChanges();
+  }
+
+  formatDateDisplay(dateString: string): string {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   }
 } 

@@ -60,6 +60,11 @@ const routes: Routes = [
     path: 'event-editor',
     loadChildren: () => import('./event-editor/event-editor.module').then( m => m.EventEditorPageModule),
     canActivate: [AdminGuard]
+  },
+  {
+    path: 'pending-spots',
+    loadChildren: () => import('./pending-spots/pending-spots.module').then( m => m.PendingSpotsPageModule),
+    canActivate: [AdminGuard]
   }
 
 ];

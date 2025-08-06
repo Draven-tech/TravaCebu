@@ -1,7 +1,7 @@
 <ion-content class="login-content" [scrollEvents]="true" (ionScroll)="onScroll($event)">
   <!-- Header -->
   <div class="header">
-    <ion-button fill="clear" routerLink="/welcome" class="back-btn">
+    <ion-button fill="clear" (click)="goBack()" class="back-btn">
       <ion-icon name="arrow-back"></ion-icon>
     </ion-button>
     <h1 class="header-title">TravaCebu Admin</h1>

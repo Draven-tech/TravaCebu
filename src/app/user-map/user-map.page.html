@@ -36,6 +36,15 @@
       <ion-icon [name]="isOnline ? 'refresh' : 'cloud-offline'"></ion-icon>
       {{ isOnline ? 'Refresh' : 'Offline' }}
     </ion-button>
+    <ion-button fill="clear" (click)="showUserLocation()" [color]="isRealLocation ? 'success' : 'warning'">
+      <ion-icon name="location"></ion-icon>
+      {{ locationStatusText }}
+    </ion-button>
+    <ion-button fill="clear" (click)="toggleLocationTracking()" 
+                [color]="isLocationTrackingActive ? 'danger' : 'primary'">
+      <ion-icon [name]="isLocationTrackingActive ? 'stop-circle' : 'play-circle'"></ion-icon>
+      {{ isLocationTrackingActive ? 'Stop Tracking' : 'Start Tracking' }}
+    </ion-button>
   </ion-toolbar>
   
   <!-- Directions & Routes Tab Controls -->
@@ -81,12 +90,29 @@
       </ion-select>
     </ion-item>
     
+    <ion-button fill="clear" (click)="showUserLocation()" [color]="isRealLocation ? 'success' : 'warning'" size="small">
+      <ion-icon name="location"></ion-icon>
+      {{ locationStatusText }}
+    </ion-button>
+    <ion-button fill="clear" (click)="toggleLocationTracking()" 
+                [color]="isLocationTrackingActive ? 'danger' : 'primary'" size="small">
+      <ion-icon [name]="isLocationTrackingActive ? 'stop-circle' : 'play-circle'"></ion-icon>
+      {{ isLocationTrackingActive ? 'Stop' : 'Track' }}
+    </ion-button>
 
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
   <div id="map"></div>
+  
+  <!-- Floating Location Button -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="showUserLocation()" (press)="toggleLocationTracking()" 
+                    [color]="isLocationTrackingActive ? 'danger' : (isRealLocation ? 'success' : 'warning')">
+      <ion-icon [name]="isLocationTrackingActive ? 'navigate' : 'location'"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
   
   <!-- Tourist Spots Tab Content -->
   <div *ngIf="selectedTab === 'spots'" class="map-controls">

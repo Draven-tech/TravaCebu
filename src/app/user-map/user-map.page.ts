@@ -51,12 +51,20 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   apiRouteInfo: any = null;
   isLoadingApiRoutes: boolean = false;
   
-  // Simulated user location for testing (Saint Anthony Hospital area)
-  simulatedUserLocation = {
-    lat: 10.28581218639497,
-    lng: 123.86912240945466,
-    name: 'Test Location'
+
+  
+  // Real user location from GPS
+  userLocation = {
+    lat: 10.3157, // Default to Cebu City center
+    lng: 123.8854,
+    name: 'Current Location',
+    isReal: false
   };
+  
+  // Location tracking
+  private locationWatcher?: string;
+  private isLocationTracking: boolean = false;
+  private locationUpdateInterval: number = 10000; // Update every 10 seconds
   
   // Jeepney routes loaded from Firebase
   jeepneyRoutes: any[] = [];
@@ -382,8 +390,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    // Use simulated user location
-    const userLocation = this.simulatedUserLocation;
+    // Use real user location
+    const userLocation = this.userLocation;
 
     // Clear existing markers
     this.apiMarkers.forEach(marker => {
@@ -513,7 +521,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         if (!spot || !spot.name) return;
         
         // Get jeepney route for this spot
-        const jeepneyRoute = this.findBestJeepneyRoute(this.simulatedUserLocation, spot);
+        const jeepneyRoute = this.findBestJeepneyRoute(this.userLocation, spot);
         
         if (jeepneyRoute && jeepneyRoute.segments) {
           // Use the detailed segments from multi-ride routing
@@ -589,6 +597,12 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.loadAvailableItineraries();
     this.loadJeepneyRoutes();
     
+    // Automatically get user location on startup
+    this.getUserLocation();
+    
+    // Start continuous location tracking
+    this.startLocationTracking();
+    
     // Show appropriate markers based on initial tab
     setTimeout(() => {
       if (this.selectedTab === 'directions') {
@@ -628,6 +642,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Stop location tracking
+    this.stopLocationTracking();
+    
     if (this.map) {
       this.map.remove();
     }
@@ -650,6 +667,24 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   // Getter to access window object in template
   get isOnline(): boolean {
     return window.navigator.onLine;
+  }
+
+  // Getter to check if user location is real GPS
+  get isRealLocation(): boolean {
+    return this.userLocation.isReal;
+  }
+
+  // Getter to get user location status text
+  get locationStatusText(): string {
+    if (this.isLocationTracking) {
+      return this.userLocation.isReal ? 'GPS Tracking' : 'Default Location';
+    }
+    return this.userLocation.isReal ? 'GPS Location' : 'Default Location';
+  }
+
+  // Getter to check if location tracking is active
+  get isLocationTrackingActive(): boolean {
+    return this.isLocationTracking;
   }
 
   private initMap(): void {
@@ -812,8 +847,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    // Use simulated user location (Saint Anthony Hospital area)
-    const userLocation = this.simulatedUserLocation;
+    // Use real user location
+    const userLocation = this.userLocation;
 
 
     // Add user location marker
@@ -1197,6 +1232,182 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     });
   }
 
+  async getUserLocation(): Promise<void> {
+    try {
+      const position = await Geolocation.getCurrentPosition();
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      
+      // Snap location to nearest road using OSRM
+      const snappedLocation = await this.snapLocationToRoad(lat, lng);
+      
+      // Update user location with real GPS coordinates
+      this.userLocation = {
+        lat: snappedLocation.lat,
+        lng: snappedLocation.lng,
+        name: 'Current Location',
+        isReal: true
+      };
+      
+      // Add or update user marker on map
+      if (this.userMarker) {
+        this.map.removeLayer(this.userMarker);
+      }
+      
+      this.userMarker = L.marker([snappedLocation.lat, snappedLocation.lng], {
+        icon: L.divIcon({
+          html: `<div style="
+            background: #1976d2;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          ">📍</div>`,
+          className: 'user-location-marker',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        })
+      }).addTo(this.map);
+      
+      // Center map on user location
+      this.map.setView([snappedLocation.lat, snappedLocation.lng], 15);
+      
+      console.log('✅ User location updated:', this.userLocation);
+    } catch (error) {
+      console.error('❌ Error getting user location:', error);
+      // Keep default location (Cebu City center)
+      this.userLocation = {
+        lat: 10.3157,
+        lng: 123.8854,
+        name: 'Cebu City Center (Default)',
+        isReal: false
+      };
+    }
+  }
+
+  // Start continuous location tracking
+  async startLocationTracking(): Promise<void> {
+    if (this.isLocationTracking) {
+      console.log('📍 Location tracking already active');
+      return;
+    }
+
+    try {
+      // Request permissions first
+      const permissionStatus = await Geolocation.checkPermissions();
+      if (permissionStatus.location !== 'granted') {
+        const requestResult = await Geolocation.requestPermissions();
+        if (requestResult.location !== 'granted') {
+          this.showToast('Location permission is required for tracking');
+          return;
+        }
+      }
+
+      // Start watching location
+      this.locationWatcher = await Geolocation.watchPosition(
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 5000
+        },
+        (position) => {
+          this.ngZone.run(() => {
+            this.updateUserLocationFromPosition(position);
+          });
+        }
+      );
+
+      this.isLocationTracking = true;
+      console.log('📍 Location tracking started');
+      this.showToast('Location tracking activated');
+    } catch (error) {
+      console.error('❌ Error starting location tracking:', error);
+      this.showToast('Could not start location tracking');
+    }
+  }
+
+  // Stop continuous location tracking
+  async stopLocationTracking(): Promise<void> {
+    if (!this.isLocationTracking || !this.locationWatcher) {
+      return;
+    }
+
+    try {
+      await Geolocation.clearWatch({ id: this.locationWatcher });
+      this.locationWatcher = undefined;
+      this.isLocationTracking = false;
+      console.log('📍 Location tracking stopped');
+      this.showToast('Location tracking deactivated');
+    } catch (error) {
+      console.error('❌ Error stopping location tracking:', error);
+    }
+  }
+
+  // Update user location from position update
+  private async updateUserLocationFromPosition(position: any): Promise<void> {
+    try {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      
+      // Snap location to nearest road using OSRM
+      const snappedLocation = await this.snapLocationToRoad(lat, lng);
+      
+      // Update user location with real GPS coordinates
+      this.userLocation = {
+        lat: snappedLocation.lat,
+        lng: snappedLocation.lng,
+        name: 'Current Location',
+        isReal: true
+      };
+      
+      // Update user marker on map
+      if (this.userMarker) {
+        this.userMarker.setLatLng([snappedLocation.lat, snappedLocation.lng]);
+      } else {
+        // Create marker if it doesn't exist
+        this.userMarker = L.marker([snappedLocation.lat, snappedLocation.lng], {
+          icon: L.divIcon({
+            html: `<div style="
+              background: #1976d2;
+              color: white;
+              border-radius: 50%;
+              width: 20px;
+              height: 20px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 12px;
+              border: 2px solid white;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            ">📍</div>`,
+            className: 'user-location-marker',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          })
+        }).addTo(this.map);
+      }
+      
+      console.log('📍 Location updated via tracking:', this.userLocation);
+    } catch (error) {
+      console.error('❌ Error updating location from tracking:', error);
+    }
+  }
+
+  // Toggle location tracking on/off
+  async toggleLocationTracking(): Promise<void> {
+    if (this.isLocationTracking) {
+      await this.stopLocationTracking();
+    } else {
+      await this.startLocationTracking();
+    }
+  }
+
   async showUserLocation() {
     try {
       const position = await Geolocation.getCurrentPosition();
@@ -1235,11 +1446,12 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       // Center map on snapped user location
       this.map.setView([snappedLocation.lat, snappedLocation.lng], 15);
       
-      // Update simulated user location for testing
-      this.simulatedUserLocation = {
+      // Update user location with real GPS coordinates
+      this.userLocation = {
         lat: snappedLocation.lat,
         lng: snappedLocation.lng,
-        name: 'Current Location'
+        name: 'Current Location',
+        isReal: true
       };
       
       this.showToast('Location updated and snapped to nearest road!');
@@ -1247,7 +1459,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     } catch (error) {
       console.error('Error getting location:', error);
       this.showToast('Could not get your location. Please check your GPS settings.');
-      return this.simulatedUserLocation;
+      return this.userLocation;
     }
   }
 
@@ -1465,7 +1677,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   private getJeepneyCodeForSpot(spot: any, order: number): string {
     // Find the best jeepney route for this spot
-    const bestRoute = this.findBestJeepneyRoute(this.simulatedUserLocation, spot);
+          const bestRoute = this.findBestJeepneyRoute(this.userLocation, spot);
     
     if (!bestRoute) {
       return '🚶‍♂️ Walk';
@@ -3020,8 +3232,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         throw new Error('No valid itinerary selected');
       }
 
-      // Use simulated user location
-      const userLocation = this.simulatedUserLocation;
+      // Use real user location
+      const userLocation = this.userLocation;
 
       // Extract spots from itinerary
       const spots: any[] = [];
@@ -3340,8 +3552,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    // Use simulated user location
-    const userLocation = this.simulatedUserLocation;
+    // Use real user location
+    const userLocation = this.userLocation;
 
     // Add user location marker for API routes
     const userMarker = L.marker([userLocation.lat, userLocation.lng], {

@@ -3,6 +3,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { DirectionsService } from './directions.service';
 import { ApiTrackerService } from './api-tracker.service';
 import { PlacesService } from './places.service';
+import { Geolocation } from '@capacitor/geolocation';
 
 export interface ItinerarySpot {
   id: string;
@@ -50,8 +51,12 @@ export class ItineraryService {
       return [];
     }
 
+    // Sort spots by location proximity for efficient routing
+    const sortedSpots = this.sortSpotsByProximity(spots);
+    console.log('📍 Spots sorted by proximity for optimal routing');
+    
     const days: any[] = Array.from({ length: numDays }, () => []);
-    spots.forEach((spot, i) => {
+    sortedSpots.forEach((spot, i) => {
       days[i % numDays].push(spot);
     });
     
@@ -97,7 +102,7 @@ export class ItineraryService {
         
         // Generate comprehensive route chain for the day
         if (i === daySpots.length - 1) { // Only generate routes once at the end of the day
-          await this.generateRouteChain(dayPlan);
+          await this.generateCompleteRouteChain(dayPlan);
         }
       }
       
@@ -332,6 +337,96 @@ export class ItineraryService {
     return degrees * Math.PI / 180;
   }
 
+  // Sort spots by proximity to create efficient routes
+  private sortSpotsByProximity(spots: any[]): any[] {
+    if (spots.length <= 1) {
+      return spots;
+    }
+
+    // Filter out spots without valid location data
+    const validSpots = spots.filter(spot => 
+      spot.location && 
+      typeof spot.location.lat === 'number' && 
+      typeof spot.location.lng === 'number' &&
+      !isNaN(spot.location.lat) && 
+      !isNaN(spot.location.lng)
+    );
+
+    if (validSpots.length <= 1) {
+      return spots; // Return original if no valid spots to sort
+    }
+
+    // Create a copy to avoid modifying the original array
+    const sortedSpots = [...validSpots];
+    
+    // Use a greedy nearest neighbor algorithm with optimization
+    const result: any[] = [];
+    const unvisited = new Set(sortedSpots.map((_, index) => index));
+    
+    // Start with the spot that has the most central location (closest to average)
+    const avgLat = sortedSpots.reduce((sum, spot) => sum + spot.location.lat, 0) / sortedSpots.length;
+    const avgLng = sortedSpots.reduce((sum, spot) => sum + spot.location.lng, 0) / sortedSpots.length;
+    
+    let currentIndex = 0;
+    let minDistanceToCenter = Infinity;
+    
+    // Find the spot closest to the center to start
+    for (let i = 0; i < sortedSpots.length; i++) {
+      const distance = this.getDistance(
+        sortedSpots[i].location,
+        { lat: avgLat, lng: avgLng }
+      );
+      if (distance < minDistanceToCenter) {
+        minDistanceToCenter = distance;
+        currentIndex = i;
+      }
+    }
+    
+    result.push(sortedSpots[currentIndex]);
+    unvisited.delete(currentIndex);
+    
+    // Find the nearest unvisited spot repeatedly
+    while (unvisited.size > 0) {
+      let nearestIndex = -1;
+      let minDistance = Infinity;
+      
+      for (const index of unvisited) {
+        const distance = this.getDistance(
+          sortedSpots[currentIndex].location,
+          sortedSpots[index].location
+        );
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearestIndex = index;
+        }
+      }
+      
+      if (nearestIndex !== -1) {
+        result.push(sortedSpots[nearestIndex]);
+        unvisited.delete(nearestIndex);
+        currentIndex = nearestIndex;
+      } else {
+        // Fallback: add remaining spots in original order
+        for (const index of unvisited) {
+          result.push(sortedSpots[index]);
+        }
+        break;
+      }
+    }
+    
+    // Add back any spots that were filtered out (invalid locations)
+    const invalidSpots = spots.filter(spot => 
+      !spot.location || 
+      typeof spot.location.lat !== 'number' || 
+      typeof spot.location.lng !== 'number' ||
+      isNaN(spot.location.lat) || 
+      isNaN(spot.location.lng)
+    );
+    
+    return [...result, ...invalidSpots];
+  }
+
   // Calculate estimated jeepney travel time
   private calculateJeepneyTime(routePoints: any[], startPoint: any, endPoint: any): string {
     // Find the indices of start and end points in the route
@@ -354,11 +449,11 @@ export class ItineraryService {
     return `${timeMinutes} min`;
   }
 
-  // Generate comprehensive route chain for a day
-  private async generateRouteChain(dayPlan: ItineraryDay): Promise<void> {
+  // Enhanced route generation with complete chain including user location
+  async generateCompleteRouteChain(dayPlan: ItineraryDay): Promise<void> {
     const routeChain: any[] = [];
     
-    // Get user's current location (you can enhance this to get actual user location)
+    // Get user's current location
     const userLocation = await this.getUserLocation();
     
     // Start from user location to first spot
@@ -377,7 +472,8 @@ export class ItineraryService {
           startPoint: routeToFirst.startPoint,
           endPoint: routeToFirst.endPoint,
           estimatedTime: routeToFirst.estimatedTime || '15-30 min',
-          type: 'user_to_spot'
+          type: 'user_to_spot',
+          description: 'From your current location to the first tourist spot'
         });
       }
     }
@@ -406,7 +502,8 @@ export class ItineraryService {
             endPoint: routeToRestaurant.endPoint,
             estimatedTime: routeToRestaurant.estimatedTime || '5-15 min',
             type: 'spot_to_restaurant',
-            mealType: currentSpot.mealType
+            mealType: currentSpot.mealType,
+            description: `From ${currentSpot.name} to ${currentSpot.chosenRestaurant.name} for ${currentSpot.mealType}`
           });
         }
         
@@ -428,7 +525,8 @@ export class ItineraryService {
               startPoint: routeFromRestaurant.startPoint,
               endPoint: routeFromRestaurant.endPoint,
               estimatedTime: routeFromRestaurant.estimatedTime || '15-30 min',
-              type: 'restaurant_to_spot'
+              type: 'restaurant_to_spot',
+              description: `From ${currentSpot.chosenRestaurant.name} to ${nextSpot.name}`
             });
           }
         }
@@ -444,7 +542,8 @@ export class ItineraryService {
             startPoint: routeToNext.startPoint,
             endPoint: routeToNext.endPoint,
             estimatedTime: routeToNext.estimatedTime || '15-30 min',
-            type: 'spot_to_spot'
+            type: 'spot_to_spot',
+            description: `From ${currentSpot.name} to ${nextSpot.name}`
           });
         }
       }
@@ -469,7 +568,8 @@ export class ItineraryService {
           startPoint: routeToHotel.startPoint,
           endPoint: routeToHotel.endPoint,
           estimatedTime: routeToHotel.estimatedTime || '15-30 min',
-          type: 'spot_to_hotel'
+          type: 'spot_to_hotel',
+          description: `From ${lastSpot.name} to ${dayPlan.chosenHotel.name} for check-in`
         });
       }
     }
@@ -478,10 +578,99 @@ export class ItineraryService {
     dayPlan.routes = routeChain;
   }
 
-  // Get user's current location (placeholder - enhance with actual location service)
+  // Get user's current location using Capacitor Geolocation
   private async getUserLocation(): Promise<{ lat: number; lng: number }> {
-    // For now, return a default location in Cebu City
-    // You can enhance this to use Geolocation API or get from user profile
-    return { lat: 10.3157, lng: 123.8854 }; // Cebu City center
+    try {
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes cache
+      });
+      
+      return {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      };
+    } catch (error) {
+      console.warn('Could not get user location, using default Cebu City center:', error);
+      // Fallback to Cebu City center
+      return { lat: 10.3157, lng: 123.8854 };
+    }
+  }
+
+  // Get Google Directions for a specific route segment
+  async getGoogleDirectionsForRoute(fromSpot: any, toSpot: any): Promise<any> {
+    const canCall = await this.apiTracker.canCallApiToday('directions', 100);
+    if (!canCall) {
+      return { type: 'limit', message: 'API limit reached' };
+    }
+    
+    this.apiTracker.logApiCall('directions', 'route', { 
+      from: fromSpot.location, 
+      to: toSpot.location 
+    });
+    
+    try {
+      const result: any = await this.directionsService.getTransitRoute(
+        `${fromSpot.location.lat},${fromSpot.location.lng}`,
+        `${toSpot.location.lat},${toSpot.location.lng}`
+      ).toPromise();
+      
+      if (result.status === 'OK' && result.routes && result.routes.length > 0) {
+        const route = result.routes[0];
+        const leg = route.legs[0];
+        
+        return {
+          type: 'success',
+          duration: leg.duration.text,
+          distance: leg.distance.text,
+          steps: leg.steps.map((step: any) => ({
+            instruction: step.html_instructions.replace(/<[^>]*>/g, ''), // Remove HTML tags
+            distance: step.distance.text,
+            duration: step.duration.text,
+            mode: step.travel_mode,
+            transit_details: step.transit_details ? {
+              line: step.transit_details.line,
+              vehicle: step.transit_details.line?.vehicle,
+              departure_stop: step.transit_details.departure_stop,
+              arrival_stop: step.transit_details.arrival_stop
+            } : null
+          })),
+          polyline: route.overview_polyline.points
+        };
+      } else {
+        return { type: 'none', message: 'No route found' };
+      }
+    } catch (error) {
+      console.error('Error fetching Google directions:', error);
+      return { type: 'error', message: 'Failed to fetch directions' };
+    }
+  }
+
+  // Generate complete route information for a day (both jeepney and Google directions)
+  async generateCompleteRouteInfo(dayPlan: ItineraryDay): Promise<void> {
+    // First generate jeepney routes
+    await this.generateCompleteRouteChain(dayPlan);
+    
+    // Then add Google directions for each route segment
+    for (let i = 0; i < dayPlan.routes.length; i++) {
+      const route = dayPlan.routes[i];
+      
+      // Create spot objects for the route
+      const fromSpot = { 
+        name: route.from, 
+        location: route.startPoint 
+      };
+      const toSpot = { 
+        name: route.to, 
+        location: route.endPoint 
+      };
+      
+      // Get Google directions for this segment
+      const googleDirections = await this.getGoogleDirectionsForRoute(fromSpot, toSpot);
+      
+      // Add Google directions to the route
+      route.googleDirections = googleDirections;
+    }
   }
 } 

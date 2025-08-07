@@ -75,9 +75,13 @@ interface PlaceSuggestion {
                       <div class="route-direction">
                         From: <strong>{{ route.from }}</strong> → To: <strong>{{ route.to }}</strong>
                       </div>
-                      <div class="route-note">
+                      <div class="route-description">
                         <ion-icon name="information-circle-outline" color="primary"></ion-icon>
-                        <span>{{ getRouteDescription(route.type) }}</span>
+                        <span>{{ route.description }}</span>
+                      </div>
+                      <div *ngIf="route.mealType" class="meal-info">
+                        <ion-icon name="restaurant" color="warning"></ion-icon>
+                        <span>{{ route.mealType }} time</span>
                       </div>
                     </div>
                   </div>
@@ -102,6 +106,9 @@ interface PlaceSuggestion {
                       <div *ngFor="let step of getGoogleDirections(day, i).steps" class="direction-step">
                         <ion-icon [name]="getTransportIcon(step.mode)" [color]="getTransportColor(step.mode)"></ion-icon>
                         <span>{{ step.instruction }}</span>
+                        <div class="step-details">
+                          <small>{{ step.distance }} • {{ step.duration }}</small>
+                        </div>
                       </div>
                     </div>
                     <div class="route-note">
@@ -510,6 +517,158 @@ interface PlaceSuggestion {
       --width: 90%;
       --max-width: 800px;
     }
+
+    /* Route Information Styles */
+    .route-chain {
+      margin-top: 12px;
+    }
+
+    .jeepney-route-info {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border-left: 4px solid;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .route-user-to-spot {
+      border-left-color: #28a745;
+      background: linear-gradient(135deg, #f8fff9, #ffffff);
+    }
+
+    .route-spot-to-restaurant {
+      border-left-color: #ffc107;
+      background: linear-gradient(135deg, #fffbf0, #ffffff);
+    }
+
+    .route-restaurant-to-spot {
+      border-left-color: #007bff;
+      background: linear-gradient(135deg, #f0f8ff, #ffffff);
+    }
+
+    .route-spot-to-spot {
+      border-left-color: #007bff;
+      background: linear-gradient(135deg, #f0f8ff, #ffffff);
+    }
+
+    .route-spot-to-hotel {
+      border-left-color: #6c757d;
+      background: linear-gradient(135deg, #f8f9fa, #ffffff);
+    }
+
+    .route-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .route-title {
+      font-weight: 600;
+      color: #2D3748;
+      font-size: 0.9rem;
+    }
+
+    .route-details {
+      font-size: 0.85rem;
+    }
+
+    .route-code {
+      color: #e74c3c;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .route-time {
+      color: #28a745;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .route-direction {
+      color: #495057;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .route-description {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      color: #6c757d;
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .meal-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #ffc107;
+      font-weight: 500;
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+
+    .google-directions-info {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      border: 1px solid #e9ecef;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .route-steps {
+      margin-top: 8px;
+    }
+
+    .direction-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #f8f9fa;
+    }
+
+    .direction-step:last-child {
+      border-bottom: none;
+    }
+
+    .direction-step ion-icon {
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .direction-step span {
+      flex: 1;
+      font-size: 0.85rem;
+      line-height: 1.3;
+    }
+
+    .step-details {
+      margin-top: 2px;
+      color: #6c757d;
+      font-size: 0.75rem;
+    }
+
+    .no-local-route, .no-google-directions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      color: #6c757d;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .no-local-route ion-icon, .no-google-directions ion-icon {
+      font-size: 2rem;
+      opacity: 0.5;
+    }
   `],
   standalone: false
 })
@@ -573,21 +732,25 @@ export class ItineraryModalComponent {
   }
 
   async saveItinerary() {
-    // Validate that all restaurants and hotels are either chosen or skipped
-    const validationResult = this.validateItineraryChoices();
-    if (!validationResult.isValid) {
-      this.showAlert('Incomplete Choices', validationResult.message);
+    const validation = this.validateItineraryChoices();
+    if (!validation.isValid) {
+      this.showAlert('Incomplete Itinerary', validation.message);
       return;
     }
 
     this.saving = true;
     
     try {
-      // Save itinerary to calendar/calendar service
+      // Generate complete route information for each day
+      for (const day of this.itinerary) {
+        await this.itineraryService.generateCompleteRouteInfo(day);
+      }
+      
+      // Save to calendar
       await this.saveItineraryToCalendar();
       
-      // Show success message
-      this.showAlert('Success', 'Itinerary saved to calendar! You can now view it in the calendar page.');
+      this.showAlert('Success', 'Itinerary saved successfully! Your complete route information has been generated.');
+      this.modalCtrl.dismiss({ saved: true });
       
     } catch (error) {
       console.error('Error saving itinerary:', error);
@@ -974,65 +1137,59 @@ export class ItineraryModalComponent {
     return day.routes[spotIndex - 1] || null;
   }
 
-  // Get route chain for a specific spot
+  // Enhanced method to get route chain for a specific spot
   getRouteChain(day: ItineraryDay, spotIndex: number): any[] {
-    // Return all routes that involve this spot
     if (!day.routes || !Array.isArray(day.routes)) {
       return [];
     }
-    return day.routes.filter(route => {
-      const spotName = day.spots[spotIndex]?.name;
-      return route.from === spotName || route.to === spotName;
-    });
+    
+    // For the first spot, return the route from user location
+    if (spotIndex === 0) {
+      return day.routes.filter(route => route.type === 'user_to_spot');
+    }
+    
+    // For other spots, return routes that end at this spot
+    const currentSpot = day.spots[spotIndex];
+    return day.routes.filter(route => 
+      route.to === currentSpot.name || 
+      (route.type === 'restaurant_to_spot' && route.to === currentSpot.name)
+    );
   }
 
-  // Get Google directions for a specific spot
+  // Get Google Directions for a specific route
   getGoogleDirections(day: ItineraryDay, spotIndex: number): any {
-    if (spotIndex === 0) return null; // First spot has no previous route
-    const key = `${day.day}-${spotIndex}`;
-    return this.googleDirections[key] || null;
+    const routes = this.getRouteChain(day, spotIndex);
+    if (routes.length === 0) return null;
+    
+    // Return Google directions from the first route (most relevant)
+    return routes[0].googleDirections || null;
   }
 
   // Fetch Google directions for a specific route
   async fetchGoogleDirections(day: ItineraryDay, spotIndex: number) {
-    if (spotIndex === 0) return; // First spot has no previous route
+    const routes = this.getRouteChain(day, spotIndex);
+    if (routes.length === 0) return;
     
-    const key = `${day.day}-${spotIndex}`;
-    this.fetchingDirections[key] = true;
+    const route = routes[0];
     
-    try {
-      const prevSpot = day.spots[spotIndex - 1];
-      const currentSpot = day.spots[spotIndex];
-      
-      if (!prevSpot || !currentSpot) {
-        console.warn('Missing spot data for directions:', { prevSpot, currentSpot });
-        return;
-      }
-      
-      const directions = await this.itineraryService.getDirectionsRoute(prevSpot, currentSpot);
-      
-      if (directions.type === 'transit' && directions.details) {
-        this.googleDirections[key] = {
-          duration: this.calculateTotalDuration(directions.details),
-          distance: this.calculateTotalDistance(directions.details),
-          steps: this.formatDirectionSteps(directions.details)
-        };
-      } else {
-        this.googleDirections[key] = {
-          duration: 'Route not available',
-          distance: 'N/A',
-          steps: [{ mode: 'walk', instruction: 'No public transport route found' }]
-        };
-      }
-      
-      this.cdr.detectChanges();
-      
-    } catch (error) {
-      console.error('Error fetching Google directions:', error);
-      this.showAlert('Error', 'Failed to fetch directions. Please try again.');
-    } finally {
-      this.fetchingDirections[key] = false;
-    }
+    // Create spot objects for the route
+    const fromSpot = { 
+      name: route.from, 
+      location: route.startPoint 
+    };
+    const toSpot = { 
+      name: route.to, 
+      location: route.endPoint 
+    };
+    
+    // Get Google directions
+    const googleDirections = await this.itineraryService.getGoogleDirectionsForRoute(fromSpot, toSpot);
+    
+    // Update the route with Google directions
+    route.googleDirections = googleDirections;
+    
+    // Force change detection
+    this.cdr.detectChanges();
   }
 
   // Calculate total duration from direction steps
@@ -1061,24 +1218,23 @@ export class ItineraryModalComponent {
     }));
   }
 
-  // Get transport icon based on mode
+  // Enhanced transport icon and color methods
   getTransportIcon(mode: string): string {
     switch (mode.toLowerCase()) {
-      case 'bus': return 'bus-outline';
-      case 'train': return 'train-outline';
-      case 'subway': return 'subway-outline';
-      case 'walk': return 'walk-outline';
-      default: return 'car-outline';
+      case 'transit': return 'car';
+      case 'walking': return 'walk';
+      case 'driving': return 'car';
+      case 'bicycling': return 'bicycle';
+      default: return 'car';
     }
   }
 
-  // Get transport color based on mode
   getTransportColor(mode: string): string {
     switch (mode.toLowerCase()) {
-      case 'bus': return 'warning';
-      case 'train': return 'primary';
-      case 'subway': return 'secondary';
-      case 'walk': return 'success';
+      case 'transit': return 'primary';
+      case 'walking': return 'success';
+      case 'driving': return 'warning';
+      case 'bicycling': return 'secondary';
       default: return 'medium';
     }
   }
@@ -1104,15 +1260,15 @@ export class ItineraryModalComponent {
 
 
 
-  // Route display helper methods
+  // Enhanced route display methods
   getRouteIcon(type: string): string {
     switch (type) {
-      case 'user_to_spot': return 'navigate-outline';
-      case 'spot_to_restaurant': return 'restaurant-outline';
-      case 'restaurant_to_spot': return 'car-outline';
-      case 'spot_to_spot': return 'car-outline';
-      case 'spot_to_hotel': return 'bed-outline';
-      default: return 'car-outline';
+      case 'user_to_spot': return 'navigate';
+      case 'spot_to_restaurant': return 'restaurant';
+      case 'restaurant_to_spot': return 'car';
+      case 'spot_to_spot': return 'car';
+      case 'spot_to_hotel': return 'bed';
+      default: return 'car';
     }
   }
 
@@ -1121,9 +1277,9 @@ export class ItineraryModalComponent {
       case 'user_to_spot': return 'success';
       case 'spot_to_restaurant': return 'warning';
       case 'restaurant_to_spot': return 'primary';
-      case 'spot_to_spot': return 'warning';
-      case 'spot_to_hotel': return 'primary';
-      default: return 'warning';
+      case 'spot_to_spot': return 'primary';
+      case 'spot_to_hotel': return 'secondary';
+      default: return 'medium';
     }
   }
 
@@ -1134,30 +1290,23 @@ export class ItineraryModalComponent {
       case 'restaurant_to_spot': return 'From Restaurant';
       case 'spot_to_spot': return 'To Next Spot';
       case 'spot_to_hotel': return 'To Hotel';
-      default: return 'Jeepney Route';
+      default: return 'Route';
     }
   }
 
   getRouteDescription(type: string): string {
     switch (type) {
-      case 'user_to_spot': return 'Route from your current location';
-      case 'spot_to_restaurant': return 'Route to your chosen restaurant';
-      case 'restaurant_to_spot': return 'Route from restaurant to next destination';
-      case 'spot_to_spot': return 'Direct route to next tourist spot';
-      case 'spot_to_hotel': return 'Route to your hotel for the night';
-      default: return 'Curated local route from our database';
+      case 'user_to_spot': return 'Start your journey from your current location';
+      case 'spot_to_restaurant': return 'Head to the selected restaurant for your meal';
+      case 'restaurant_to_spot': return 'Continue your tour after dining';
+      case 'spot_to_spot': return 'Travel to the next tourist spot';
+      case 'spot_to_hotel': return 'End your day at the selected hotel';
+      default: return 'Travel route';
     }
   }
 
   getRouteClass(type: string): string {
-    switch (type) {
-      case 'user_to_spot': return 'route-user-location';
-      case 'spot_to_restaurant': return 'route-restaurant';
-      case 'restaurant_to_spot': return 'route-restaurant-return';
-      case 'spot_to_spot': return 'route-spot-to-spot';
-      case 'spot_to_hotel': return 'route-hotel';
-      default: return '';
-    }
+    return `route-${type.replace(/_/g, '-')}`;
   }
 
 } 

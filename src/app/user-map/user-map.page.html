@@ -1,22 +1,187 @@
 <ion-header>
   <ion-toolbar color="warning">
     <ion-title>Map</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="showRouteDetailsSheet()" style="--color: white; font-weight: bold; margin-right: 8px;">
+        <ion-icon name="list"></ion-icon>
+        📋 Route Info
+      </ion-button>
+      <ion-button (click)="goToHome()">
+        <ion-icon name="home"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
-  <ion-toolbar>
+  
+  <!-- Tab Navigation -->
+  <ion-segment [(ngModel)]="selectedTab" mode="ios" color="warning" (ionChange)="onTabChange()">
+    <ion-segment-button value="spots">
+      <ion-label>📍 Tourist Spots</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="directions">
+      <ion-label>🧭 Directions & Routes</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+  
+  <!-- Tourist Spots Tab Controls -->
+  <ion-toolbar *ngIf="selectedTab === 'spots'">
     <ion-searchbar [(ngModel)]="searchQuery" placeholder="Search tourist spots..."></ion-searchbar>
+    <ion-item lines="none">
+      <ion-label>Map Type:</ion-label>
+      <ion-select [(ngModel)]="selectedTile" (ionChange)="onTileChange()" interface="popover">
+        <ion-select-option value="esri">Satellite</ion-select-option>
+        <ion-select-option value="osm">Street View</ion-select-option>
+      </ion-select>
+    </ion-item>
+    <ion-button fill="clear" (click)="refreshTouristSpots()" [color]="isOnline ? 'primary' : 'medium'">
+      <ion-icon [name]="isOnline ? 'refresh' : 'cloud-offline'"></ion-icon>
+      {{ isOnline ? 'Refresh' : 'Offline' }}
+    </ion-button>
+  </ion-toolbar>
+  
+  <!-- Directions & Routes Tab Controls -->
+  <ion-toolbar *ngIf="selectedTab === 'directions'" style="--min-height: 30px; padding: 4px 16px;">
+    <!-- Loading indicator for jeepney routes -->
+    <ion-item *ngIf="isLoadingJeepneyRoutes" lines="none" style="--min-height: 24px;">
+      <ion-spinner name="crescent" style="width: 14px; height: 14px;"></ion-spinner>
+      <ion-label style="font-size: 11px;">Loading jeepney routes...</ion-label>
+    </ion-item>
+    
+    <!-- Route type selection prompt (compact) -->
+    <ion-item *ngIf="selectedItineraryIndex < 0" lines="none" style="--min-height: 24px;">
+      <ion-icon name="information-circle" color="warning" slot="start" style="font-size: 14px;"></ion-icon>
+      <ion-label style="font-size: 11px;">
+        <h3 style="font-size: 12px; margin: 0;">Select an Itinerary First</h3>
+        <p style="font-size: 10px; margin: 1px 0;">Choose an itinerary from the dropdown below</p>
+      </ion-label>
+    </ion-item>
+    
+
+    
+
+  </ion-toolbar>
+  
+  <!-- Itinerary and Route Type Selection (compact) -->
+  <ion-toolbar *ngIf="selectedTab === 'directions'" class="itinerary-toolbar" style="--min-height: 40px; padding: 4px 16px;">
+    <ion-item lines="none" class="itinerary-selector" style="--padding-start: 0; --padding-end: 0; --min-height: 32px;">
+      <ion-label class="itinerary-label" style="margin: 0; min-width: 60px; font-size: 14px;">Itinerary:</ion-label>
+      <ion-select 
+        [(ngModel)]="selectedItineraryIndex" 
+        (ionChange)="loadItineraryRoutes()" 
+        interface="action-sheet" 
+        [disabled]="availableItineraries.length === 0"
+        class="itinerary-dropdown"
+        style="--padding-start: 0; --padding-end: 0; font-size: 14px;"
+        placeholder="Select an itinerary...">
+        <ion-select-option value="-1" disabled>
+          Select an itinerary...
+        </ion-select-option>
+        <ion-select-option *ngFor="let itinerary of availableItineraries; let i = index" [value]="i">
+          {{ formatItineraryTitle(itinerary) }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+    
+
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
   <div id="map"></div>
-  <ion-button expand="block" color="primary" (click)="navigateNextItineraryStep()" [disabled]="navigating">
-    Navigate Next Itinerary Step
-  </ion-button>
-  <ion-list *ngIf="navigationInstructions.length > 0">
-    <ion-item *ngFor="let instr of navigationInstructions">
-      <div [innerHTML]="instr"></div>
-    </ion-item>
-  </ion-list>
-</ion-content>
+  
+  <!-- Tourist Spots Tab Content -->
+  <div *ngIf="selectedTab === 'spots'" class="map-controls">
+    <ion-button expand="block" color="primary" (click)="navigateNextItineraryStep()" [disabled]="navigating">
+      Navigate Next Itinerary Step
+    </ion-button>
+    <ion-list *ngIf="navigationInstructions.length > 0">
+      <ion-item *ngFor="let instr of navigationInstructions">
+        <div [innerHTML]="instr"></div>
+      </ion-item>
+    </ion-list>
+  </div>
+  
+  <!-- Directions & Routes Tab Content -->
+  <div *ngIf="selectedTab === 'directions'" class="directions-controls">
+    
 
-<app-bottom-nav></app-bottom-nav>
+    
+
+    
+    <!-- API Routes Tab Content -->
+    <div>
+      <ion-card *ngIf="apiRouteInfo">
+        <ion-card-header>
+          <ion-card-title>{{ formatItineraryTitle(availableItineraries[selectedItineraryIndex]) }} - API Routes</ion-card-title>
+          <ion-card-subtitle>
+            Total: {{ apiRouteInfo.totalDuration }} • {{ apiRouteInfo.totalDistance }}
+          </ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-list>
+            <ion-item *ngFor="let segment of apiRouteInfo.segments" class="route-segment">
+              <ion-icon [name]="getApiRouteIcon(segment.mode)" [color]="getApiRouteColor(segment.mode)" slot="start"></ion-icon>
+              <ion-label>
+                <h3>{{ segment.from }} → {{ segment.to }}</h3>
+                <p *ngIf="segment.transitDetails">🚌 {{ segment.transitDetails }}</p>
+                <p>⏱️ {{ segment.duration }}</p>
+                <p>📏 {{ segment.distance }}</p>
+                <p>{{ segment.instructions }}</p>
+              </ion-label>
+              <ion-button slot="end" size="small" fill="outline" (click)="showApiRouteOnMap(segment)">
+                <ion-icon name="map"></ion-icon>
+              </ion-button>
+            </ion-item>
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
+      
+      <ion-card *ngIf="!apiRouteInfo && !isLoadingApiRoutes">
+        <ion-card-content>
+          <ion-text color="medium">
+            <p>Click "Fetch API Routes" to get real-time directions from Google</p>
+            <p><small>Note: API routes use Google Directions API through our proxy server</small></p>
+          </ion-text>
+        </ion-card-content>
+      </ion-card>
+      
+      <ion-button expand="block" color="primary" (click)="fetchApiRoutes()" [disabled]="isLoadingApiRoutes">
+        <ion-spinner *ngIf="isLoadingApiRoutes" name="crescent"></ion-spinner>
+        <ion-icon *ngIf="!isLoadingApiRoutes" name="refresh"></ion-icon>
+        {{ isLoadingApiRoutes ? 'Fetching Routes...' : 'Fetch API Routes' }}
+      </ion-button>
+      
+
+      
+      <ion-button expand="block" color="success" (click)="showApiRoutesOnMap()" [disabled]="!apiRouteInfo">
+        <ion-icon name="map"></ion-icon>
+        Show API Routes
+      </ion-button>
+      
+      <ion-button expand="block" color="primary" (click)="showApiRouteDetailsSheet()" [disabled]="!apiRouteInfo" style="margin: 10px 0; font-size: 18px; font-weight: bold; --background: #0066cc; --color: white; height: 60px;">
+        <ion-icon name="list" style="font-size: 20px;"></ion-icon>
+        📋 VIEW API ROUTE DETAILS 📋
+      </ion-button>
+      
+      <!-- Debug Info for API Routes -->
+      <ion-card *ngIf="!apiRouteInfo" style="margin: 10px 0; background: #fff3cd; border: 1px solid #ffeaa7;">
+        <ion-card-content>
+          <ion-text color="warning">
+            <p><strong>Debug Info:</strong></p>
+            <p>• API Route Info: {{ apiRouteInfo ? 'Available' : 'Not Available' }}</p>
+            <p>• Selected Itinerary: {{ selectedItineraryIndex >= 0 ? 'Yes' : 'No' }}</p>
+            <p>• Available Itineraries: {{ availableItineraries.length || 0 }}</p>
+            <p><small>Click "Fetch API Routes" to load route data</small></p>
+          </ion-text>
+        </ion-card-content>
+      </ion-card>
+    </div>
+    
+    <ion-card *ngIf="!currentRouteInfo && !apiRouteInfo">
+      <ion-card-content>
+        <ion-text color="medium">
+          <p>Select an itinerary to view routes</p>
+        </ion-text>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

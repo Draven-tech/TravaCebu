@@ -49,6 +49,51 @@ app.get('/api/place/details', async (req, res) => {
   }
 });
 
+// Add Google Directions API endpoint
+app.get('/api/directions', async (req, res) => {
+  try {
+    const { origin, destination, waypoints, mode, key } = req.query;
+    const response = await axios.get('https://maps.googleapis.com/maps/api/directions/json', {
+      params: { origin, destination, waypoints, mode, key }
+    });
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch directions', message: error.message });
+  }
+});
+
+// Add Google Routes API endpoint
+app.post('/api/routes', async (req, res) => {
+  try {
+    const { key } = req.query;
+    const requestBody = req.body;
+    
+    const response = await axios.post('https://routes.googleapis.com/directions/v2:computeRoutes', requestBody, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': key,
+        'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs.steps,routes.legs.staticDuration,routes.legs.polyline,routes.legs.startLocation,routes.legs.endLocation,routes.legs.steps.transitDetails,routes.legs.steps.travelMode'
+      }
+    });
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to compute routes', message: error.message });
+  }
+});
+
+// Add OSRM endpoint for road snapping (backup)
+app.get('/api/osrm', async (req, res) => {
+  try {
+    const { coordinates, profile } = req.query;
+    const response = await axios.get(`https://router.project-osrm.org/route/v1/${profile || 'driving'}/${coordinates}`, {
+      params: { overview: 'full', geometries: 'geojson' }
+    });
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch OSRM route', message: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Proxy server running on http://localhost:${PORT}`);
   console.log('Available endpoints:');
@@ -56,4 +101,7 @@ app.listen(PORT, () => {
   console.log('  - GET /api/places (Nearby Search)');
   console.log('  - GET /api/place/textsearch (Text Search)');
   console.log('  - GET /api/place/details (Place Details)');
+  console.log('  - GET /api/directions (Google Directions API)');
+  console.log('  - POST /api/routes (Google Routes API)');
+  console.log('  - GET /api/osrm (OSRM Routing)');
 }); 

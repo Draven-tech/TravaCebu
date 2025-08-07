@@ -192,32 +192,53 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
     }, 200);
 
     // Add global functions for popup buttons
-    (window as any).addRestaurantToItinerary = (placeId: string, restaurantData: string) => {
-      console.log('addRestaurantToItinerary called with:', placeId, restaurantData);
-      try {
-        const restaurant = JSON.parse(restaurantData);
-        console.log('Parsed restaurant data:', restaurant);
-        this.ngZone.run(() => {
+    (window as any).addRestaurantToItinerary = (placeId: string) => {
+      console.log('addRestaurantToItinerary called with placeId:', placeId);
+      this.ngZone.run(() => {
+        // Find the restaurant data from the itinerary
+        let restaurant: any = null;
+        for (const day of this.itinerary) {
+          for (const spot of day.spots) {
+            if (spot.restaurantSuggestions) {
+              const found = spot.restaurantSuggestions.find((r: any) => r.place_id === placeId);
+              if (found) {
+                restaurant = found;
+                break;
+              }
+            }
+          }
+          if (restaurant) break;
+        }
+        
+        if (restaurant) {
           this.addToItinerary(restaurant, 'restaurant');
-        });
-      } catch (error) {
-        console.error('Error parsing restaurant data:', error);
-        console.error('Raw restaurant data:', restaurantData);
-      }
+        } else {
+          console.error('Restaurant not found for placeId:', placeId);
+        }
+      });
     };
 
-    (window as any).addHotelToItinerary = (placeId: string, hotelData: string) => {
-      console.log('addHotelToItinerary called with:', placeId, hotelData);
-      try {
-        const hotel = JSON.parse(hotelData);
-        console.log('Parsed hotel data:', hotel);
-        this.ngZone.run(() => {
+    (window as any).addHotelToItinerary = (placeId: string) => {
+      console.log('addHotelToItinerary called with placeId:', placeId);
+      this.ngZone.run(() => {
+        // Find the hotel data from the itinerary
+        let hotel: any = null;
+        for (const day of this.itinerary) {
+          if (day.hotelSuggestions) {
+            const found = day.hotelSuggestions.find((h: any) => h.place_id === placeId);
+            if (found) {
+              hotel = found;
+              break;
+            }
+          }
+        }
+        
+        if (hotel) {
           this.addToItinerary(hotel, 'hotel');
-        });
-      } catch (error) {
-        console.error('Error parsing hotel data:', error);
-        console.error('Raw hotel data:', hotelData);
-      }
+        } else {
+          console.error('Hotel not found for placeId:', placeId);
+        }
+      });
     };
   }
 
@@ -360,7 +381,6 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
             const hotelRating = hotel.rating ? `${hotel.rating}★` : 'Not Available';
             const hotelLocation = hotel.vicinity || 'Location Not Available';
             const placeId = hotel.place_id || '';
-            const safeHotelData = JSON.stringify(hotel).replace(/'/g, "\\'");
 
             const popup = L.popup({
               maxWidth: 250,
@@ -375,7 +395,7 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
                 </p>
                 <div style="margin-top: 10px;">
                   <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <button onclick="window.addHotelToItinerary('${placeId}', '${safeHotelData}')" 
+                    <button onclick="window.addHotelToItinerary('${placeId}')" 
                             style="background: #667eea; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
                       📅 Add to Itinerary
                     </button>
@@ -437,7 +457,6 @@ private addRestaurantMarkers() {
               const restaurantRating = restaurant.rating ? `${restaurant.rating}★` : 'Not Available';
               const restaurantLocation = restaurant.vicinity || 'Location Not Available';
               const placeId = restaurant.place_id || '';
-              const safeRestaurantData = JSON.stringify(restaurant).replace(/'/g, "\\'");
               const mealType = spot.mealType || 'meal';
 
               const popup = L.popup({
@@ -454,7 +473,7 @@ private addRestaurantMarkers() {
                   </p>
                   <div style="margin-top: 10px;">
                     <div style="display: flex; flex-direction: column; gap: 6px;">
-                      <button onclick="window.addRestaurantToItinerary('${placeId}', '${safeRestaurantData}')" 
+                      <button onclick="window.addRestaurantToItinerary('${placeId}')" 
                               style="background: #667eea; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
                         📅 Add to Itinerary
                       </button>

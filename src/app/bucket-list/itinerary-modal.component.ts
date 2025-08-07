@@ -50,83 +50,6 @@ interface PlaceSuggestion {
             </div>
             <div class="spot-category">📍 {{ spot.category }}</div>
             
-            <!-- Transportation Options -->
-            <div class="transport-section">
-              <ion-segment [(ngModel)]="transportTabs[day.day + '-' + i]" mode="ios" color="warning">
-                <ion-segment-button value="local">
-                  <ion-label>🚌 Local Routes</ion-label>
-                </ion-segment-button>
-                <ion-segment-button value="google">
-                  <ion-label>🗺️ Google Directions</ion-label>
-                </ion-segment-button>
-              </ion-segment>
-
-              <!-- Local Jeepney Routes Tab -->
-              <div *ngIf="transportTabs[day.day + '-' + i] === 'local'">
-                <div *ngIf="getRouteChain(day, i).length > 0" class="route-chain">
-                  <div *ngFor="let route of getRouteChain(day, i)" class="jeepney-route-info" [ngClass]="getRouteClass(route.type)">
-                    <div class="route-header">
-                      <ion-icon [name]="getRouteIcon(route.type)" [color]="getRouteColor(route.type)"></ion-icon>
-                      <span class="route-title">{{ getRouteTitle(route.type) }}</span>
-                    </div>
-                    <div class="route-details">
-                      <div class="route-code">🚌 Code: <strong>{{ route.jeepneyCode }}</strong></div>
-                      <div class="route-time">⏱️ {{ route.estimatedTime }}</div>
-                      <div class="route-direction">
-                        From: <strong>{{ route.from }}</strong> → To: <strong>{{ route.to }}</strong>
-                      </div>
-                      <div class="route-description">
-                        <ion-icon name="information-circle-outline" color="primary"></ion-icon>
-                        <span>{{ route.description }}</span>
-                      </div>
-                      <div *ngIf="route.mealType" class="meal-info">
-                        <ion-icon name="restaurant" color="warning"></ion-icon>
-                        <span>{{ route.mealType }} time</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div *ngIf="getRouteChain(day, i).length === 0" class="no-local-route">
-                  <ion-icon name="car-outline" color="medium"></ion-icon>
-                  <span>No local jeepney routes found. Try Google Directions tab.</span>
-                </div>
-              </div>
-
-              <!-- Google Directions Tab -->
-              <div *ngIf="transportTabs[day.day + '-' + i] === 'google'">
-                <div *ngIf="getGoogleDirections(day, i)" class="google-directions-info">
-                  <div class="route-header">
-                    <ion-icon name="map-outline" color="primary"></ion-icon>
-                    <span class="route-title">Google Directions</span>
-                  </div>
-                  <div class="route-details">
-                    <div class="route-time">⏱️ {{ getGoogleDirections(day, i).duration }}</div>
-                    <div class="route-distance">📏 {{ getGoogleDirections(day, i).distance }}</div>
-                    <div class="route-steps">
-                      <div *ngFor="let step of getGoogleDirections(day, i).steps" class="direction-step">
-                        <ion-icon [name]="getTransportIcon(step.mode)" [color]="getTransportColor(step.mode)"></ion-icon>
-                        <span>{{ step.instruction }}</span>
-                        <div class="step-details">
-                          <small>{{ step.distance }} • {{ step.duration }}</small>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="route-note">
-                      <ion-icon name="information-circle-outline" color="primary"></ion-icon>
-                      <span>Real-time directions from Google</span>
-                    </div>
-                  </div>
-                </div>
-                <div *ngIf="!getGoogleDirections(day, i)" class="no-google-directions">
-                  <ion-icon name="map-outline" color="medium"></ion-icon>
-                  <span>Click "Fetch Directions" to get Google directions.</span>
-                  <ion-button size="small" fill="outline" color="primary" (click)="fetchGoogleDirections(day, i)">
-                    <ion-icon name="refresh"></ion-icon> Fetch Directions
-                  </ion-button>
-                </div>
-              </div>
-            </div>
-            
             <!-- Selected Restaurant Card -->
             <div *ngIf="spot.mealType && spot.chosenRestaurant" class="selected-card restaurant-card">
               <div class="card-header">
@@ -683,9 +606,6 @@ export class ItineraryModalComponent {
 
   fetchingSuggestions = false;
   saving = false;
-  transportTabs: { [key: string]: string } = {};
-  googleDirections: { [key: string]: any } = {};
-  fetchingDirections: { [key: string]: boolean } = {};
 
 
   constructor(
@@ -819,8 +739,7 @@ export class ItineraryModalComponent {
             restaurantRating: spot.chosenRestaurant?.rating || null,
             restaurantVicinity: spot.chosenRestaurant?.vicinity || null,
             mealType: spot.mealType || null,
-            jeepneyRoute: this.getJeepneyRoute(day, day.spots.indexOf(spot)) || null,
-            googleDirections: this.getGoogleDirections(day, day.spots.indexOf(spot)) || null,
+
             originalStartTime: this.originalStartTime,
             originalEndTime: this.originalEndTime
           }
@@ -1006,18 +925,7 @@ export class ItineraryModalComponent {
           notes += `   Restaurant: ${spot.chosenRestaurant.name}\n`;
         }
         
-        // Add transportation information
-        const jeepneyRoute = this.getJeepneyRoute(day, index);
-        const googleDirections = this.getGoogleDirections(day, index);
-        
-        if (jeepneyRoute) {
-          notes += `   🚌 Local Jeepney: Code ${jeepneyRoute.jeepneyCode} (${jeepneyRoute.estimatedTime})\n`;
-          notes += `   Route: ${jeepneyRoute.from} → ${jeepneyRoute.to}\n`;
-        }
-        
-        if (googleDirections) {
-          notes += `   🗺️ Google Directions: ${googleDirections.duration} (${googleDirections.distance})\n`;
-        }
+
         
         notes += '\n';
       });
@@ -1128,185 +1036,8 @@ export class ItineraryModalComponent {
     }, 3000);
   }
 
-  // Get jeepney route for a specific spot (legacy method)
-  getJeepneyRoute(day: ItineraryDay, spotIndex: number): any {
-    if (spotIndex === 0) return null; // First spot has no previous route
-    if (!day.routes || !Array.isArray(day.routes)) {
-      return null;
-    }
-    return day.routes[spotIndex - 1] || null;
-  }
-
-  // Enhanced method to get route chain for a specific spot
-  getRouteChain(day: ItineraryDay, spotIndex: number): any[] {
-    if (!day.routes || !Array.isArray(day.routes)) {
-      return [];
-    }
-    
-    // For the first spot, return the route from user location
-    if (spotIndex === 0) {
-      return day.routes.filter(route => route.type === 'user_to_spot');
-    }
-    
-    // For other spots, return routes that end at this spot
-    const currentSpot = day.spots[spotIndex];
-    return day.routes.filter(route => 
-      route.to === currentSpot.name || 
-      (route.type === 'restaurant_to_spot' && route.to === currentSpot.name)
-    );
-  }
-
-  // Get Google Directions for a specific route
-  getGoogleDirections(day: ItineraryDay, spotIndex: number): any {
-    const routes = this.getRouteChain(day, spotIndex);
-    if (routes.length === 0) return null;
-    
-    // Return Google directions from the first route (most relevant)
-    return routes[0].googleDirections || null;
-  }
-
-  // Fetch Google directions for a specific route
-  async fetchGoogleDirections(day: ItineraryDay, spotIndex: number) {
-    const routes = this.getRouteChain(day, spotIndex);
-    if (routes.length === 0) return;
-    
-    const route = routes[0];
-    
-    // Create spot objects for the route
-    const fromSpot = { 
-      name: route.from, 
-      location: route.startPoint 
-    };
-    const toSpot = { 
-      name: route.to, 
-      location: route.endPoint 
-    };
-    
-    // Get Google directions
-    const googleDirections = await this.itineraryService.getGoogleDirectionsForRoute(fromSpot, toSpot);
-    
-    // Update the route with Google directions
-    route.googleDirections = googleDirections;
-    
-    // Force change detection
-    this.cdr.detectChanges();
-  }
-
-  // Calculate total duration from direction steps
-  private calculateTotalDuration(steps: any[]): string {
-    if (!steps || steps.length === 0) return 'Unknown';
-    
-    // Estimate duration based on number of steps
-    const estimatedMinutes = steps.length * 5; // Rough estimate: 5 min per step
-    return `${Math.max(10, estimatedMinutes)} min`;
-  }
-
-  // Calculate total distance from direction steps
-  private calculateTotalDistance(steps: any[]): string {
-    if (!steps || steps.length === 0) return 'Unknown';
-    
-    // Estimate distance based on number of steps
-    const estimatedKm = steps.length * 0.5; // Rough estimate: 0.5 km per step
-    return `${Math.max(1, estimatedKm).toFixed(1)} km`;
-  }
-
-  // Format direction steps for display
-  private formatDirectionSteps(steps: any[]): any[] {
-    return steps.map(step => ({
-      mode: step.vehicle || 'walk',
-      instruction: step.instructions || 'Continue on route'
-    }));
-  }
-
-  // Enhanced transport icon and color methods
-  getTransportIcon(mode: string): string {
-    switch (mode.toLowerCase()) {
-      case 'transit': return 'car';
-      case 'walking': return 'walk';
-      case 'driving': return 'car';
-      case 'bicycling': return 'bicycle';
-      default: return 'car';
-    }
-  }
-
-  getTransportColor(mode: string): string {
-    switch (mode.toLowerCase()) {
-      case 'transit': return 'primary';
-      case 'walking': return 'success';
-      case 'driving': return 'warning';
-      case 'bicycling': return 'secondary';
-      default: return 'medium';
-    }
-  }
-
-  // Initialize transport tabs when itinerary is set
   ngOnInit() {
-    this.initializeTransportTabs();
-  }
-
-  private initializeTransportTabs() {
-    this.transportTabs = {};
-    this.googleDirections = {};
-    this.fetchingDirections = {};
-    
-    // Set default tab to 'local' for all routes
-    this.itinerary.forEach(day => {
-      day.spots.forEach((spot, index) => {
-        const key = `${day.day}-${index}`;
-        this.transportTabs[key] = 'local';
-      });
-    });
-  }
-
-
-
-  // Enhanced route display methods
-  getRouteIcon(type: string): string {
-    switch (type) {
-      case 'user_to_spot': return 'navigate';
-      case 'spot_to_restaurant': return 'restaurant';
-      case 'restaurant_to_spot': return 'car';
-      case 'spot_to_spot': return 'car';
-      case 'spot_to_hotel': return 'bed';
-      default: return 'car';
-    }
-  }
-
-  getRouteColor(type: string): string {
-    switch (type) {
-      case 'user_to_spot': return 'success';
-      case 'spot_to_restaurant': return 'warning';
-      case 'restaurant_to_spot': return 'primary';
-      case 'spot_to_spot': return 'primary';
-      case 'spot_to_hotel': return 'secondary';
-      default: return 'medium';
-    }
-  }
-
-  getRouteTitle(type: string): string {
-    switch (type) {
-      case 'user_to_spot': return 'From Your Location';
-      case 'spot_to_restaurant': return 'To Restaurant';
-      case 'restaurant_to_spot': return 'From Restaurant';
-      case 'spot_to_spot': return 'To Next Spot';
-      case 'spot_to_hotel': return 'To Hotel';
-      default: return 'Route';
-    }
-  }
-
-  getRouteDescription(type: string): string {
-    switch (type) {
-      case 'user_to_spot': return 'Start your journey from your current location';
-      case 'spot_to_restaurant': return 'Head to the selected restaurant for your meal';
-      case 'restaurant_to_spot': return 'Continue your tour after dining';
-      case 'spot_to_spot': return 'Travel to the next tourist spot';
-      case 'spot_to_hotel': return 'End your day at the selected hotel';
-      default: return 'Travel route';
-    }
-  }
-
-  getRouteClass(type: string): string {
-    return `route-${type.replace(/_/g, '-')}`;
+    // Component initialization
   }
 
 } 

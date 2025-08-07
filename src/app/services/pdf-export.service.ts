@@ -27,18 +27,6 @@ export class PdfExportService {
     const url = await getDownloadURL(storageRef);
     return url;
   }
-  // ⬇️ Called to directly download PDF
-  generateItineraryPDF(itinerary: any): void {
-    const docDefinition = this.buildSingleItineraryDocDefinition(itinerary);
-    pdfMake.createPdf(docDefinition).download(`${itinerary.title}.pdf`);
-  }
-
-  // ⬇️ Called to directly download full PDF of multiple itineraries
-  generateFullItineraryPDF(itineraries: any[]): void {
-    const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
-    pdfMake.createPdf(docDefinition).download(`Full-Itinerary.pdf`);
-  }
-
   // ⬇️ Called to get a Blob for sharing (instead of direct download)
   async generateFullItineraryBlob(itineraries: any[]): Promise<Blob> {
     const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
@@ -49,52 +37,6 @@ export class PdfExportService {
         resolve(blob);
       });
     });
-  }
-
-  // ⬇️ Private: builds PDF layout for a single itinerary
-  private buildSingleItineraryDocDefinition(itinerary: any): any {
-    const itineraryData = itinerary.events.map((event: any, i: number) => {
-      const lines = [
-        `Date: ${event.start.split('T')[0]}`,
-        `Time: ${event.start.split('T')[1]?.substring(0, 5) || ''}`,
-        `Category: ${event.extendedProps?.category || 'N/A'}`,
-        `Description: ${event.extendedProps?.description || 'N/A'}`,
-      ];
-
-      if (event.extendedProps?.mealType) {
-        lines.push(`Meal Type: ${capitalizeFirstLetter(event.extendedProps.mealType)}`);
-      }
-
-      if (event.extendedProps?.restaurant) {
-        lines.push(`Chosen Restaurant: ${event.extendedProps.restaurant}`);
-        if (event.extendedProps.restaurantRating) {
-          lines.push(`Rating: ${event.extendedProps.restaurantRating}`);
-        }
-        if (event.extendedProps.restaurantVicinity) {
-          lines.push(`Vicinity: ${event.extendedProps.restaurantVicinity}`);
-        }
-      }
-
-      return [
-        { text: `${i + 1}. ${event.title}`, style: 'itemTitle' },
-        { ul: lines },
-        { text: '\n' }
-      ];
-    });
-
-    return {
-      content: [
-        { text: itinerary.title, style: 'header' },
-        { text: `Date: ${itinerary.date}`, style: 'subheader' },
-        { text: '\n' },
-        ...itineraryData
-      ],
-      styles: {
-        header: { fontSize: 20, bold: true },
-        subheader: { fontSize: 14, margin: [0, 10, 0, 10] },
-        itemTitle: { fontSize: 12, bold: true }
-      }
-    };
   }
 
   // ⬇️ Private: builds layout for multiple itineraries
@@ -146,9 +88,27 @@ export class PdfExportService {
       }
     };
   }
-}
+  async generateFullItineraryPDFMobile(itineraries: any[]): Promise<void> {
+    const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
+    const pdfDocGenerator = pdfMake.createPdf(docDefinition);
 
-// ✅ Utility function
-function capitalizeFirstLetter(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+    const blob: Blob = await new Promise((resolve) =>
+      pdfDocGenerator.getBlob((b: Blob) => resolve(b))
+    );
+
+    const file = new File([blob], 'Full-Itinerary.pdf', { type: 'application/pdf' });
+
+    // Try native mobile share
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: 'My Travel Itinerary',
+        text: 'Here is my travel itinerary as a PDF!',
+        files: [file],
+      });
+    } else {
+      // Fallback: Open the PDF in a new browser tab
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    }
+  }
 }

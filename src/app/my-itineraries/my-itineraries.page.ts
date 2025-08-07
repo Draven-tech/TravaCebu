@@ -7,7 +7,6 @@ import { ViewItineraryModalComponent } from './view-itinerary-modal.component';
 import { ItineraryModalComponent } from '../bucket-list/itinerary-modal.component';
 import { PdfExportService } from '../services/pdf-export.service';
 import { Clipboard } from '@capacitor/clipboard';
-import { Share } from '@capacitor/share';
 import { ActivatedRoute } from '@angular/router';
 
 @Component({
@@ -20,6 +19,7 @@ export class MyItinerariesPage implements OnInit {
   itineraries: any[] = [];
   isLoading = true;
   userId: string | null = null;
+  downloadUrl: string = '';
 
   constructor(
     private firestore: AngularFirestore,
@@ -38,15 +38,15 @@ export class MyItinerariesPage implements OnInit {
     const user = await this.afAuth.currentUser;
     this.userId = user?.uid || null;
     await this.loadItineraries();
-      const itineraryId = this.route.snapshot.paramMap.get('id');
-  if (itineraryId) {
-    this.firestore
-      .collection('user_itinerary_events', ref => ref.where('id', '==', itineraryId))
-      .get()
-      .subscribe(snapshot => {
-        // Process and display the itinerary
-      });
-  }
+    const itineraryId = this.route.snapshot.paramMap.get('id');
+    if (itineraryId) {
+      this.firestore
+        .collection('user_itinerary_events', ref => ref.where('id', '==', itineraryId))
+        .get()
+        .subscribe(snapshot => {
+          // Process and display the itinerary
+        });
+    }
   }
 
   async ionViewWillEnter() {
@@ -56,6 +56,7 @@ export class MyItinerariesPage implements OnInit {
   }
 
   async loadItineraries() {
+
     try {
       this.isLoading = true;
 
@@ -416,49 +417,26 @@ export class MyItinerariesPage implements OnInit {
     await toast.present();
   }
 
-  exportPDF(itinerary: any) {
-    this.pdfExportService.generateItineraryPDF(itinerary);
-  }
-  exportFullItinerary() {
-    if (this.itineraries.length > 0) {
-      this.pdfExportService.generateFullItineraryPDF(this.itineraries);
-    } else {
-      this.showToast('No itineraries to export', 'warning');
-    }
-  }
-
-async shareItinerary() {
-  await this.loadItineraries(); // ensures this.itineraries is populated
-
-  if (!this.itineraries || this.itineraries.length === 0) {
-    this.showToast('No itineraries to share', 'warning');
-    return;
-  }
-
-  const url = await this.pdfExportService.generateAndUploadPDF(this.itineraries);
-
-  if (navigator.share) {
-    await navigator.share({
-      title: 'My Itinerary',
-      text: 'Check out my travel plan!',
-      url, // this is a string like a Firebase Storage link
+  async presentToast(message: string) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2000,
+      position: 'bottom',
+      color: 'success'
     });
-  } else {
-    console.log('Share API not supported. Link:', url);
-    alert(`Here's your shareable link:\n${url}`);
+    await toast.present();
   }
-}
 
+  async copyToClipboard(text: string) {
+    await Clipboard.write({ string: text });
+    this.presentToast('Link copied to clipboard!');
+  }
 
-private convertBlobToBase64(blob: Blob): Promise<string | ArrayBuffer | null> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
-      resolve(reader.result);
-    };
-    reader.readAsDataURL(blob);
-  });
-}
+  async shareUrl() {
+    const url = await this.pdfExportService.generateAndUploadPDF(this.itineraries);
+    await Clipboard.write({ string: url });
+    this.downloadUrl = url;
+
+  }
 
 } 

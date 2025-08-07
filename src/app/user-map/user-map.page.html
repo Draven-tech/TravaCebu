@@ -32,19 +32,6 @@
         <ion-select-option value="osm">Street View</ion-select-option>
       </ion-select>
     </ion-item>
-    <ion-button fill="clear" (click)="refreshTouristSpots()" [color]="isOnline ? 'primary' : 'medium'">
-      <ion-icon [name]="isOnline ? 'refresh' : 'cloud-offline'"></ion-icon>
-      {{ isOnline ? 'Refresh' : 'Offline' }}
-    </ion-button>
-    <ion-button fill="clear" (click)="showUserLocation()" [color]="isRealLocation ? 'success' : 'warning'">
-      <ion-icon name="location"></ion-icon>
-      {{ locationStatusText }}
-    </ion-button>
-    <ion-button fill="clear" (click)="toggleLocationTracking()" 
-                [color]="isLocationTrackingActive ? 'danger' : 'primary'">
-      <ion-icon [name]="isLocationTrackingActive ? 'stop-circle' : 'play-circle'"></ion-icon>
-      {{ isLocationTrackingActive ? 'Stop Tracking' : 'Start Tracking' }}
-    </ion-button>
   </ion-toolbar>
   
   <!-- Directions & Routes Tab Controls -->

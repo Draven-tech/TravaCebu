@@ -16,6 +16,10 @@
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
+  <ion-item *ngIf="downloadUrl" (click)="copyToClipboard(downloadUrl)">
+    <ion-label>{{ downloadUrl }}</ion-label>
+    <ion-icon name="copy-outline" slot="end"></ion-icon>
+  </ion-item>
 
   <!-- Loading State -->
   <div class="loading-container" *ngIf="isLoading">
@@ -36,12 +40,12 @@
 
   <!-- Itineraries List -->
   <div *ngIf="!isLoading && itineraries.length > 0">
-    <ion-button expand="block" color="tertiary" (click)="exportFullItinerary()">
-  Export Full Itinerary
-</ion-button>
-<ion-button expand="block" color="success" (click)="shareItinerary()">
-  Share Itinerary
-</ion-button>
+
+    <ion-button expand="block" color="success" (click)="shareUrl()">
+      <ion-icon name="share-outline" slot="start"></ion-icon>
+      Get Shareable Link For Your Itinerary
+    </ion-button>
+
 
 
     <ion-card *ngFor="let itinerary of itineraries" class="itinerary-card">
@@ -97,14 +101,12 @@
             <ion-icon name="trash-outline" slot="start"></ion-icon>
             Delete
           </ion-button>
-          <ion-button fill="outline" size="small" (click)="exportPDF(itinerary)">
-            Export PDF
-          </ion-button>
+
         </div>
       </ion-card-content>
     </ion-card>
   </div>
-  
+
 </ion-content>
 
 <app-bottom-nav></app-bottom-nav>

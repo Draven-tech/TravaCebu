@@ -69,6 +69,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   // Jeepney routes loaded from Firebase
   jeepneyRoutes: any[] = [];
   isLoadingJeepneyRoutes: boolean = false;
+  
+  // Fullscreen mode
+  isFullscreen: boolean = false;
 
   constructor(
     private navCtrl: NavController,
@@ -1177,18 +1180,30 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     await modal.present();
   }
 
-  async goToHome() {
-    const user = await this.afAuth.currentUser;
-    if (user) {
-      this.navCtrl.navigateForward(`/user-dashboard/${user.uid}`);
-    } else {
-      this.navCtrl.navigateRoot('/login');
-    }
-  }
+
 
   goBack() {
     this.navCtrl.back();
   }
+
+  toggleFullscreen() {
+    this.isFullscreen = !this.isFullscreen;
+    
+    // Force map to resize when toggling fullscreen
+    setTimeout(() => {
+      if (this.map) {
+        this.map.invalidateSize();
+      }
+    }, 100);
+  }
+
+  toggleMapType() {
+    // Toggle between satellite and street view
+    this.selectedTile = this.selectedTile === 'esri' ? 'osm' : 'esri';
+    this.onTileChange();
+  }
+
+
 
   // Fetch and display a transit route from current location to a tourist spot
   async showRouteToSpot(spot: any) {

@@ -237,3 +237,36 @@ ion-select-option {
   --color: white;
   border-radius: 20px 20px 0 0;
 }
+
+/* Fullscreen mode styles */
+.fullscreen-mode {
+  ion-content {
+    --padding-bottom: 0 !important;
+  }
+  
+  #map {
+    height: 100vh !important;
+    width: 100vw !important;
+  }
+  
+  .map-controls,
+  .directions-controls {
+    display: none !important;
+  }
+}
+
+/* Fullscreen button positioning */
+ion-fab[vertical="bottom"][horizontal="center"] {
+  z-index: 9999;
+}
+
+/* Ensure fullscreen button is above bottom nav */
+ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button {
+  --background: #007bff;
+  --color: white;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button[color="danger"] {
+  --background: var(--ion-color-danger);
+}

@@ -4,12 +4,14 @@
     <ion-buttons slot="end">
       <ion-button (click)="showRouteDetailsSheet()" style="--color: white; font-weight: bold; margin-right: 8px;">
         <ion-icon name="list"></ion-icon>
-        📋 Route Info
-      </ion-button>
-      <ion-button (click)="goToHome()">
-        <ion-icon name="home"></ion-icon>
+        Route Info
       </ion-button>
     </ion-buttons>
+  </ion-toolbar>
+  
+  <!-- Search Bar -->
+  <ion-toolbar>
+    <ion-searchbar [(ngModel)]="searchQuery" placeholder="Search tourist spots..."></ion-searchbar>
   </ion-toolbar>
   
   <!-- Tab Navigation -->
@@ -21,18 +23,6 @@
       <ion-label>🧭 Directions & Routes</ion-label>
     </ion-segment-button>
   </ion-segment>
-  
-  <!-- Tourist Spots Tab Controls -->
-  <ion-toolbar *ngIf="selectedTab === 'spots'">
-    <ion-searchbar [(ngModel)]="searchQuery" placeholder="Search tourist spots..."></ion-searchbar>
-    <ion-item lines="none">
-      <ion-label>Map Type:</ion-label>
-      <ion-select [(ngModel)]="selectedTile" (ionChange)="onTileChange()" interface="popover">
-        <ion-select-option value="esri">Satellite</ion-select-option>
-        <ion-select-option value="osm">Street View</ion-select-option>
-      </ion-select>
-    </ion-item>
-  </ion-toolbar>
   
   <!-- Directions & Routes Tab Controls -->
   <ion-toolbar *ngIf="selectedTab === 'directions'" style="--min-height: 30px; padding: 4px 16px;">
@@ -90,7 +80,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
+<ion-content [class.fullscreen-mode]="isFullscreen">
   <div id="map"></div>
   
   <!-- Floating Location Button -->
@@ -197,4 +187,16 @@
       </ion-card-content>
     </ion-card>
   </div>
+  
+  <!-- Map Type Toggle Button -->
+  <div [style.bottom]="isFullscreen ? '90px' : '170px'" style="position: fixed; right: 16px; z-index: 9999; background: #ffc107; padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease;" (click)="toggleMapType()">
+    <ion-icon [name]="selectedTile === 'esri' ? 'earth' : 'map'" style="color: white; font-size: 24px;"></ion-icon>
+  </div>
+  
+  <!-- Fullscreen Button -->
+  <div [style.bottom]="isFullscreen ? '20px' : '100px'" style="position: fixed; right: 16px; z-index: 9999; background: #ffc107; padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease;" (click)="toggleFullscreen()">
+    <ion-icon [name]="isFullscreen ? 'contract' : 'expand'" style="color: white; font-size: 24px;"></ion-icon>
+  </div>
+  
+  <app-bottom-nav *ngIf="!isFullscreen"></app-bottom-nav>
 </ion-content>

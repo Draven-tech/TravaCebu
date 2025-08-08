@@ -14,6 +14,7 @@ import { DaySpotPickerComponent } from './day-spot-picker.component';
 import { CalendarService, CalendarEvent } from '../services/calendar.service';
 import { environment } from '../../environments/environment';
 import { RouteDetailsOverlayComponent } from './route-details-overlay.component';
+import { BadgeService } from '../services/badge.service';
 
 @Component({
   selector: 'app-user-map',
@@ -88,7 +89,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private calendarService: CalendarService,
     private componentFactoryResolver: ComponentFactoryResolver,
     private viewContainerRef: ViewContainerRef,
-    private injector: Injector
+    private injector: Injector,
+    private badgeService: BadgeService
   ) {
     this.bucketService = bucketService;
   }
@@ -1409,6 +1411,16 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       }
       
       console.log('📍 Location updated via tracking:', this.userLocation);
+      
+      // Check proximity to tourist spots and record visits
+      try {
+        const currentUser = await this.afAuth.currentUser;
+        if (currentUser) {
+          await this.badgeService.checkProximityAndRecordVisit(currentUser.uid, this.userLocation);
+        }
+      } catch (error) {
+        console.error('❌ Error checking proximity for badges:', error);
+      }
     } catch (error) {
       console.error('❌ Error updating location from tracking:', error);
     }
@@ -1470,6 +1482,17 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       };
       
       this.showToast('Location updated and snapped to nearest road!');
+      
+      // Check proximity to tourist spots and record visits
+      try {
+        const currentUser = await this.afAuth.currentUser;
+        if (currentUser) {
+          await this.badgeService.checkProximityAndRecordVisit(currentUser.uid, this.userLocation);
+        }
+      } catch (error) {
+        console.error('❌ Error checking proximity for badges:', error);
+      }
+      
       return { lat: snappedLocation.lat, lng: snappedLocation.lng };
     } catch (error) {
       console.error('Error getting location:', error);

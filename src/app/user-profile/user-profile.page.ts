@@ -22,7 +22,6 @@ interface Post {
   userPhotoURL: string;
   content?: string;
   imageUrl?: string;
-  touristSpotId?: string;
   touristSpotName?: string;
   touristSpotLocation?: any;
   likes?: string[];
@@ -223,6 +222,20 @@ export class UserProfilePage implements OnInit {
       await postRef.update({ likes: updatedLikes });
       post.likes = updatedLikes;
       post.liked = true;
+    }
+    
+    // Evaluate social butterfly badge for the post owner when their post gets liked/unliked
+    if (post.userId !== currentUserId) {
+      try {
+        const postOwnerDoc = await this.firestore.collection('users').doc(post.userId).get().toPromise();
+        const postOwnerData = postOwnerDoc?.data();
+        
+        if (postOwnerData) {
+          await this.badgeService.evaluateSocialButterflyBadge(post.userId, postOwnerData);
+        }
+      } catch (error) {
+        console.error('Error evaluating social butterfly badge for post owner:', error);
+      }
     }
   }
 
@@ -485,7 +498,51 @@ async viewProfilePicture() {
   }
 
   getBadgeIcon(badge: Badge): string {
-    return badge.isUnlocked ? badge.icon : badge.lockedIcon;
+    if (!badge.isUnlocked) {
+      return badge.lockedIcon;
+    }
+    
+    // For bucket list badge, use the appropriate tier icon
+    if (badge.id === 'bucket_list') {
+      switch (badge.tier) {
+        case 'bronze': return 'assets/badges/bronzeBucketListBadge.png';
+        case 'silver': return 'assets/badges/silverBucketListBadge.png';
+        case 'gold': return 'assets/badges/goldBucketListBadge.png';
+        default: return 'assets/badges/lockedBucketListBadge.png';
+      }
+    }
+    
+    // For photo enthusiast badge, use the appropriate tier icon
+    if (badge.id === 'photo_enthusiast') {
+      switch (badge.tier) {
+        case 'bronze': return 'assets/badges/bronzePhotoEnthusiastBadge.png';
+        case 'silver': return 'assets/badges/silverPhotoEnthusiastBadge.png';
+        case 'gold': return 'assets/badges/goldPhotoEnthusiastBadge.png';
+        default: return 'assets/badges/lockedPhotoEnthusiastBadge.png';
+      }
+    }
+    
+    // For social butterfly badge, use the appropriate tier icon
+    if (badge.id === 'social_butterfly') {
+      switch (badge.tier) {
+        case 'bronze': return 'assets/badges/bronzeSocialButterflyBadge.png';
+        case 'silver': return 'assets/badges/silverSocialButterflyBadge.png';
+        case 'gold': return 'assets/badges/goldSocialButterflyBadge.png';
+        default: return 'assets/badges/lockedSocialButterflyBadge.png';
+      }
+    }
+    
+    // For explorer badge, use the appropriate tier icon
+    if (badge.id === 'explorer') {
+      switch (badge.tier) {
+        case 'bronze': return 'assets/badges/bronzeExplorerBadge.png';
+        case 'silver': return 'assets/badges/silverExplorerBadge.png';
+        case 'gold': return 'assets/badges/goldExplorerBadge.png';
+        default: return 'assets/badges/lockedExplorerBadge.png';
+      }
+    }
+    
+    return badge.icon;
   }
 
   getBadgeTierClass(badge: Badge): string {

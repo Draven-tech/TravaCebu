@@ -30,7 +30,37 @@ export class BadgeDetailModalComponent {
         case 'bronze': return 'assets/badges/bronzeBucketListBadge.png';
         case 'silver': return 'assets/badges/silverBucketListBadge.png';
         case 'gold': return 'assets/badges/goldBucketListBadge.png';
-                 default: return 'assets/badges/lockedBucketListBadge.png';
+        default: return 'assets/badges/lockedBucketListBadge.png';
+      }
+    }
+    
+    // For photo enthusiast badge, use the appropriate tier icon
+    if (this.badge.id === 'photo_enthusiast') {
+      switch (this.badge.tier) {
+        case 'bronze': return 'assets/badges/bronzePhotoEnthusiastBadge.png';
+        case 'silver': return 'assets/badges/silverPhotoEnthusiastBadge.png';
+        case 'gold': return 'assets/badges/goldPhotoEnthusiastBadge.png';
+        default: return 'assets/badges/lockedPhotoEnthusiastBadge.png';
+      }
+    }
+    
+    // For social butterfly badge, use the appropriate tier icon
+    if (this.badge.id === 'social_butterfly') {
+      switch (this.badge.tier) {
+        case 'bronze': return 'assets/badges/bronzeSocialButterflyBadge.png';
+        case 'silver': return 'assets/badges/silverSocialButterflyBadge.png';
+        case 'gold': return 'assets/badges/goldSocialButterflyBadge.png';
+        default: return 'assets/badges/lockedSocialButterflyBadge.png';
+      }
+    }
+    
+    // For explorer badge, use the appropriate tier icon
+    if (this.badge.id === 'explorer') {
+      switch (this.badge.tier) {
+        case 'bronze': return 'assets/badges/bronzeExplorerBadge.png';
+        case 'silver': return 'assets/badges/silverExplorerBadge.png';
+        case 'gold': return 'assets/badges/goldExplorerBadge.png';
+        default: return 'assets/badges/lockedExplorerBadge.png';
       }
     }
     

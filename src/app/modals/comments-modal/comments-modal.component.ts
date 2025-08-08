@@ -2,6 +2,7 @@ import { Component, Input } from '@angular/core';
 import { ModalController, AlertController } from '@ionic/angular';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
+import { BadgeService } from '../../services/badge.service';
 
 @Component({
   selector: 'app-comments-modal',
@@ -20,7 +21,8 @@ export class CommentsModalComponent {
     private modalCtrl: ModalController,
     private firestore: AngularFirestore,
     private afAuth: AngularFireAuth,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private badgeService: BadgeService
   ) {
     this.loadUserData();
   }
@@ -56,6 +58,18 @@ export class CommentsModalComponent {
       await this.firestore.collection('posts').doc(this.post.id).update({
         comments: updatedComments
       });
+      
+      // Evaluate social butterfly badge for the commenter
+      try {
+        const userDoc = await this.firestore.collection('users').doc(currentUser.uid).get().toPromise();
+        const userData = userDoc?.data();
+        
+        if (userData) {
+          await this.badgeService.evaluateSocialButterflyBadge(currentUser.uid, userData);
+        }
+      } catch (error) {
+        console.error('Error evaluating social butterfly badge:', error);
+      }
       
       this.newComment = '';
       this.showAlert('Success', 'Comment added successfully!');

@@ -3,6 +3,7 @@ import { ModalController, AlertController, LoadingController } from '@ionic/angu
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { StorageService } from '../../services/storage.service';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
+import { BadgeService } from '../../services/badge.service';
 
 @Component({
   selector: 'app-create-post-modal',
@@ -32,7 +33,8 @@ export class CreatePostModalComponent {
     private storageService: StorageService,
     private afAuth: AngularFireAuth,
     private alertCtrl: AlertController,
-    private loadingCtrl: LoadingController
+    private loadingCtrl: LoadingController,
+    private badgeService: BadgeService
   ) {
     this.loadTouristSpots();
     if (this.isEditing && this.post) {
@@ -144,6 +146,37 @@ export class CreatePostModalComponent {
 
       await loading.dismiss();
       await this.modalCtrl.dismiss({ success: true });
+      
+      // Evaluate badges if post contains an image
+      if (imageUrl && imageUrl !== this.imagePreview) {
+        try {
+          // Get current user data for badge evaluation
+          const userDoc = await this.firestore.collection('users').doc(currentUser.uid).get().toPromise();
+          const userData = userDoc?.data();
+          
+          if (userData) {
+            await this.badgeService.evaluatePhotoEnthusiastBadge(currentUser.uid, userData);
+          }
+        } catch (error) {
+          console.error('Error evaluating photo enthusiast badge:', error);
+        }
+      }
+      
+      // Evaluate social butterfly badge for any post creation
+      try {
+        // Get current user data for badge evaluation
+        const userDoc = await this.firestore.collection('users').doc(currentUser.uid).get().toPromise();
+        const userData = userDoc?.data();
+        
+        if (userData) {
+          await this.badgeService.evaluateSocialButterflyBadge(currentUser.uid, userData);
+        }
+      } catch (error) {
+        console.error('Error evaluating social butterfly badge:', error);
+      }
+      
+
+      
       this.showAlert('Success', this.isEditing ? 'Post updated successfully!' : 'Post created successfully!');
 
     } catch (error: any) {

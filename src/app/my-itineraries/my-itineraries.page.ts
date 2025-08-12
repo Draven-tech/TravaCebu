@@ -436,7 +436,9 @@ export class MyItinerariesPage implements OnInit {
     const url = await this.pdfExportService.generateAndUploadPDF(this.itineraries);
     await Clipboard.write({ string: url });
     this.downloadUrl = url;
-
   }
+  async downloadPdf() {
+  await this.pdfExportService.generateAndSavePDF(this.itineraries);
+}
 
 } 

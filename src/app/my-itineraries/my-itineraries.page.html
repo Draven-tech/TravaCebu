@@ -45,7 +45,10 @@
       <ion-icon name="share-outline" slot="start"></ion-icon>
       Get Shareable Link For Your Itinerary
     </ion-button>
-
+    <ion-button expand="block" color="success" (click)="downloadPdf()">
+      <ion-icon name="share-outline" slot="start"></ion-icon>
+      Download PDF
+    </ion-button>
 
 
     <ion-card *ngFor="let itinerary of itineraries" class="itinerary-card">

@@ -54,11 +54,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   
 
   
-  // Real user location from GPS
+  // Simulated user location for PC development
   userLocation = {
-    lat: 10.3157, // Default to Cebu City center
-    lng: 123.8854,
-    name: 'Current Location',
+    lat: 10.28538157993902, // Simulated location for PC development
+    lng: 123.869115789095,
+    name: 'Simulated Location (PC Development)',
     isReal: false
   };
   
@@ -438,19 +438,35 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
     this.apiMarkers.push(userMarker);
 
+    // Create a map to track unique locations and prevent duplicates
+    const locationMap = new Map<string, any>();
+    let spotIndex = 1;
+
     // Add markers for each spot
     itinerary.days.forEach((day: any) => {
       if (day.spots) {
         const daySpotsArray = Array.isArray(day.spots) ? day.spots : Object.values(day.spots);
-        daySpotsArray.forEach((spot: any, index: number) => {
+        daySpotsArray.forEach((spot: any) => {
           if (spot && spot.location && spot.location.lat && spot.location.lng) {
+            // Create a unique key for this location (rounded to 4 decimal places to handle slight variations)
+            const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
+            
+            // Check if we already have a marker at this location
+            if (locationMap.has(locationKey)) {
+              return; // Skip creating duplicate marker
+            }
+            
+            // Add to location map to prevent duplicates
+            locationMap.set(locationKey, spot);
+            
             const spotMarker = L.marker([spot.location.lat, spot.location.lng], {
-              icon: this.getApiRouteMarkerIcon(spot, index + 1)
+              icon: this.getApiRouteMarkerIcon(spot, spotIndex)
             }).addTo(this.map);
 
             // Add popup for spot marker
-            spotMarker.bindPopup(this.createDirectionSpotPopup(spot, index + 1));
+            spotMarker.bindPopup(this.createDirectionSpotPopup(spot, spotIndex));
             this.apiMarkers.push(spotMarker);
+            spotIndex++;
           }
         });
       }
@@ -607,6 +623,14 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     
     // Start continuous location tracking
     this.startLocationTracking();
+    
+    // Add global function for popup buttons
+    (window as any).openSpotDetails = (spotName: string) => {
+      const spot = this.touristSpots.find(s => s.name === spotName);
+      if (spot) {
+        this.openSpotSheet(spot);
+      }
+    };
     
     // Show appropriate markers based on initial tab
     setTimeout(() => {
@@ -802,11 +826,30 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       !this.searchQuery || spot.name?.toLowerCase().includes(this.searchQuery.toLowerCase())
     );
     
+    // Create a map to track unique locations and prevent duplicates
+    const locationMap = new Map<string, any>();
+    
     let validSpots = 0;
     filtered.forEach((spot: any, index: number) => {
       if (!spot.location || !spot.location.lat || !spot.location.lng) {
         return;
       }
+      
+      // Create a unique key for this location (rounded to 4 decimal places to handle slight variations)
+      const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
+      
+      // Check if we already have a marker at this location
+      if (locationMap.has(locationKey)) {
+        const existingSpot = locationMap.get(locationKey);
+        // If this spot has more information or is a different type, update it
+        if (spot.category && !existingSpot.category) {
+          locationMap.set(locationKey, spot);
+        }
+        return; // Skip creating duplicate marker
+      }
+      
+      // Add to location map to prevent duplicates
+      locationMap.set(locationKey, spot);
       
       const marker = L.marker([spot.location.lat, spot.location.lng], {
         icon: L.icon({
@@ -819,6 +862,21 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           popupAnchor: [1, -34]
         })
       }).addTo(this.map);
+      
+      // Add custom popup to prevent default popup with "Rating" and "Location"
+      marker.bindPopup(`
+        <div style="min-width: 200px;">
+          <h4 style="margin: 0 0 8px 0; color: #333;">${spot.name}</h4>
+          <p style="margin: 4px 0; color: #666;">
+            <strong>Type:</strong> ${spot.category || 'Tourist Spot'}
+          </p>
+          <button onclick="window.openSpotDetails('${spot.name}')" 
+                  style="background: #ff6b35; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 8px;">
+            View Details
+          </button>
+        </div>
+      `);
+      
       marker.on('click', () => {
         this.ngZone.run(() => {
           this.openSpotSheet(spot);
@@ -928,8 +986,22 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
 
     
+    // Create a map to track unique locations and prevent duplicates
+    const locationMap = new Map<string, any>();
+    let spotIndex = 1;
+
     // Create markers for each itinerary spot
-    itinerarySpots.forEach((spot: any, index: number) => {
+    itinerarySpots.forEach((spot: any) => {
+      // Create a unique key for this location (rounded to 4 decimal places to handle slight variations)
+      const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
+      
+      // Check if we already have a marker at this location
+      if (locationMap.has(locationKey)) {
+        return; // Skip creating duplicate marker
+      }
+      
+      // Add to location map to prevent duplicates
+      locationMap.set(locationKey, spot);
       
       const markerIcon = this.getMarkerIconForSpot(spot);
       
@@ -938,7 +1010,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       }).addTo(this.map);
 
       // Create popup content with direction info
-      const popupContent = this.createDirectionSpotPopup(spot, index + 1);
+      const popupContent = this.createDirectionSpotPopup(spot, spotIndex);
       marker.bindPopup(popupContent);
 
       marker.on('click', () => {
@@ -948,6 +1020,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       });
 
       this.markers.push(marker);
+      spotIndex++;
     });
 
     // Draw complete route from user location through all spots
@@ -1250,62 +1323,44 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   async getUserLocation(): Promise<void> {
-    try {
-      const position = await Geolocation.getCurrentPosition();
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      
-      // Snap location to nearest road using OSRM
-      const snappedLocation = await this.snapLocationToRoad(lat, lng);
-      
-      // Update user location with real GPS coordinates
-      this.userLocation = {
-        lat: snappedLocation.lat,
-        lng: snappedLocation.lng,
-        name: 'Current Location',
-        isReal: true
-      };
-      
-      // Add or update user marker on map
-      if (this.userMarker) {
-        this.map.removeLayer(this.userMarker);
-      }
-      
-      this.userMarker = L.marker([snappedLocation.lat, snappedLocation.lng], {
-        icon: L.divIcon({
-          html: `<div style="
-            background: #1976d2;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          ">📍</div>`,
-          className: 'user-location-marker',
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
-        })
-      }).addTo(this.map);
-      
-      // Center map on user location
-      this.map.setView([snappedLocation.lat, snappedLocation.lng], 15);
-      
-      console.log('✅ User location updated:', this.userLocation);
-    } catch (error) {
-      console.error('❌ Error getting user location:', error);
-      // Keep default location (Cebu City center)
-      this.userLocation = {
-        lat: 10.3157,
-        lng: 123.8854,
-        name: 'Cebu City Center (Default)',
-        isReal: false
-      };
+    // For PC development, use simulated location instead of real GPS
+    this.userLocation = {
+      lat: 10.28538157993902, // Simulated location for PC development
+      lng: 123.869115789095,
+      name: 'Simulated Location (PC Development)',
+      isReal: false
+    };
+    
+    // Add or update user marker on map
+    if (this.userMarker) {
+      this.map.removeLayer(this.userMarker);
     }
+    
+    this.userMarker = L.marker([this.userLocation.lat, this.userLocation.lng], {
+      icon: L.divIcon({
+        html: `<div style="
+          background: #1976d2;
+          color: white;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        ">📍</div>`,
+        className: 'user-location-marker',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      })
+    }).addTo(this.map);
+    
+    // Center map on user location
+    this.map.setView([this.userLocation.lat, this.userLocation.lng], 15);
+    
+    console.log('✅ Simulated user location set:', this.userLocation);
   }
 
   // Start continuous location tracking
@@ -2489,52 +2544,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       this.apiRouteLines.push(walkFromLabelMarker);
       
-      // Add walking markers
-      const walkToMarker = L.marker(routePath[1], {
-        icon: L.divIcon({
-          html: `<div style="
-            background: #28a745;
-            color: white;
-            border-radius: 50%;
-            width: 12px;
-            height: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 6px;
-            font-weight: bold;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          ">🚶</div>`,
-          className: 'walking-marker',
-          iconSize: [12, 12],
-          iconAnchor: [6, 6]
-        })
-      }).addTo(this.map);
-      
-      const walkFromMarker = L.marker(routePath[routePath.length - 2], {
-        icon: L.divIcon({
-          html: `<div style="
-            background: #28a745;
-            color: white;
-            border-radius: 50%;
-            width: 12px;
-            height: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 6px;
-            font-weight: bold;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          ">🚶</div>`,
-          className: 'walking-marker',
-          iconSize: [12, 12],
-          iconAnchor: [6, 6]
-        })
-      }).addTo(this.map);
-      
-      this.apiRouteLines.push(walkToMarker, walkFromMarker);
+      // Walking markers removed - no longer showing circle pins for walking segments
 
     }
 
@@ -3628,16 +3638,32 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // Add tourist spot markers for API routes
     const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
     if (selectedItinerary && selectedItinerary.days) {
+      // Create a map to track unique locations and prevent duplicates
+      const locationMap = new Map<string, any>();
+      let spotIndex = 1;
+      
       selectedItinerary.days.forEach((day: any) => {
         if (day.spots) {
           const daySpotsArray = Array.isArray(day.spots) ? day.spots : Object.values(day.spots);
-          daySpotsArray.forEach((spot: any, index: number) => {
+          daySpotsArray.forEach((spot: any) => {
             if (spot && spot.location && spot.location.lat && spot.location.lng) {
+              // Create a unique key for this location (rounded to 4 decimal places to handle slight variations)
+              const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
+              
+              // Check if we already have a marker at this location
+              if (locationMap.has(locationKey)) {
+                return; // Skip creating duplicate marker
+              }
+              
+              // Add to location map to prevent duplicates
+              locationMap.set(locationKey, spot);
+              
               const spotMarker = L.marker([spot.location.lat, spot.location.lng], {
-                icon: this.getApiRouteMarkerIcon(spot, index + 1)
+                icon: this.getApiRouteMarkerIcon(spot, spotIndex)
               }).addTo(this.map);
-              spotMarker.bindPopup(this.createDirectionSpotPopup(spot, index + 1));
+              spotMarker.bindPopup(this.createDirectionSpotPopup(spot, spotIndex));
               this.apiMarkers.push(spotMarker);
+              spotIndex++;
             }
           });
         }
@@ -4179,6 +4205,10 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
     this.apiMarkers.push(userMarker);
 
+    // Create a map to track unique locations and prevent duplicates
+    const locationMap = new Map<string, any>();
+    let spotIndex = 1;
+
     // Process each segment individually to show different line styles like Google Maps
     for (let i = 0; i < spots.length; i++) {
       const fromLocation = i === 0 ? userLocation : spots[i - 1];
@@ -4198,14 +4228,26 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         continue;
       }
 
+      // Create a unique key for this location (rounded to 4 decimal places to handle slight variations)
+      const locationKey = `${toCoords.lat.toFixed(4)},${toCoords.lng.toFixed(4)}`;
+      
+      // Check if we already have a marker at this location
+      if (locationMap.has(locationKey)) {
+        continue; // Skip creating duplicate marker
+      }
+      
+      // Add to location map to prevent duplicates
+      locationMap.set(locationKey, toLocation);
+
       // Create API marker for destination
       const curatedMarker = L.marker([toCoords.lat, toCoords.lng], {
-        icon: this.getApiRouteMarkerIcon(toLocation, i + 1)
+        icon: this.getApiRouteMarkerIcon(toLocation, spotIndex)
       }).addTo(this.map);
 
       // Add popup for API marker
-      curatedMarker.bindPopup(this.createDirectionSpotPopup(toLocation, i + 1));
+      curatedMarker.bindPopup(this.createDirectionSpotPopup(toLocation, spotIndex));
       this.apiMarkers.push(curatedMarker);
+      spotIndex++;
 
       // Find multiple jeepney routes for this segment
       const jeepneyRoutes = this.findMultipleJeepneyRoutesWithWaypoints(fromCoords, toCoords);
@@ -4333,4 +4375,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       console.log('⚠️ Error clearing route cache:', error);
     }
   }
+
+
 }

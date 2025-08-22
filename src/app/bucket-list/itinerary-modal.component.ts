@@ -852,7 +852,20 @@ export class ItineraryModalComponent {
   }
 
   chooseRestaurant(spot: ItinerarySpot, restaurant: any) {
-    spot.chosenRestaurant = restaurant;
+    // Ensure restaurant has lat/lng coordinates for pin utilization
+    if (restaurant.geometry && restaurant.geometry.location) {
+      spot.chosenRestaurant = {
+        ...restaurant,
+        location: {
+          lat: restaurant.geometry.location.lat,
+          lng: restaurant.geometry.location.lng
+        }
+      };
+      console.log('✅ Restaurant saved with coordinates:', spot.chosenRestaurant.location);
+    } else {
+      spot.chosenRestaurant = restaurant;
+      console.log('⚠️ Restaurant saved without coordinates (no geometry data)');
+    }
   }
   
   skipRestaurant(spot: ItinerarySpot) {
@@ -864,7 +877,20 @@ export class ItineraryModalComponent {
   }
 
   chooseHotel(day: ItineraryDay, hotel: any) {
-    day.chosenHotel = hotel;
+    // Ensure hotel has lat/lng coordinates for pin utilization
+    if (hotel.geometry && hotel.geometry.location) {
+      day.chosenHotel = {
+        ...hotel,
+        location: {
+          lat: hotel.geometry.location.lat,
+          lng: hotel.geometry.location.lng
+        }
+      };
+      console.log('✅ Hotel saved with coordinates:', day.chosenHotel.location);
+    } else {
+      day.chosenHotel = hotel;
+      console.log('⚠️ Hotel saved without coordinates (no geometry data)');
+    }
   }
   
   skipHotel(day: ItineraryDay) {

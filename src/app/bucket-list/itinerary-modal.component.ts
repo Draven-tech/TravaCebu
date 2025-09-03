@@ -796,6 +796,11 @@ export class ItineraryModalComponent {
               isItineraryEvent: true
             }
           };
+          
+          // Add location coordinates if available
+          if (spot.chosenRestaurant.location && spot.chosenRestaurant.location.lat && spot.chosenRestaurant.location.lng) {
+            restaurantEvent.extendedProps.location = spot.chosenRestaurant.location;
+          }
           events.push(restaurantEvent);
         }
       }
@@ -820,6 +825,11 @@ export class ItineraryModalComponent {
             isItineraryEvent: true
           }
         };
+        
+        // Add location coordinates if available
+        if (day.chosenHotel.location && day.chosenHotel.location.lat && day.chosenHotel.location.lng) {
+          hotelEvent.extendedProps.location = day.chosenHotel.location;
+        }
         events.push(hotelEvent);
 
       }

@@ -2,7 +2,7 @@
   <ion-toolbar color="warning">
     <ion-title>Map</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="showRouteDetailsSheet()" style="--color: white; font-weight: bold; margin-right: 8px;">
+      <ion-button (click)="showCuratedRouteDetailsSheet()" style="--color: white; font-weight: bold; margin-right: 8px;">
         <ion-icon name="list"></ion-icon>
         Route Info
       </ion-button>
@@ -105,84 +105,49 @@
   
   <!-- Directions & Routes Tab Content -->
   <div *ngIf="selectedTab === 'directions'" class="directions-controls">
-    
+    <!-- Route Suggestions Button -->
+    <ion-button 
+      *ngIf="selectedItineraryIndex >= 0 && availableItineraries.length > 0"
+      expand="block" 
+      color="warning" 
+      (click)="loadRouteSuggestions()" 
+      style="margin: 16px;">
+      <ion-icon name="map" slot="start"></ion-icon>
+      Get Route Suggestions
+    </ion-button>
 
-    
-
-    
-    <!-- API Routes Tab Content -->
-    <div>
-      <ion-card *ngIf="apiRouteInfo">
+    <!-- Route Suggestions Display -->
+    <div *ngIf="currentRouteInfo && currentRouteInfo.suggestedRoutes" class="route-suggestions">
+      <ion-card>
         <ion-card-header>
-          <ion-card-title>{{ formatItineraryTitle(availableItineraries[selectedItineraryIndex]) }} - API Routes</ion-card-title>
+          <ion-card-title>Route Suggestions</ion-card-title>
           <ion-card-subtitle>
-            Total: {{ apiRouteInfo.totalDuration }} • {{ apiRouteInfo.totalDistance }}
+            {{ currentRouteInfo.totalDuration }} • {{ currentRouteInfo.totalDistance }} • {{ currentRouteInfo.totalFare }}
           </ion-card-subtitle>
         </ion-card-header>
+        
         <ion-card-content>
           <ion-list>
-            <ion-item *ngFor="let segment of apiRouteInfo.segments" class="route-segment">
-              <ion-icon [name]="getApiRouteIcon(segment.mode)" [color]="getApiRouteColor(segment.mode)" slot="start"></ion-icon>
+            <ion-item *ngFor="let route of currentRouteInfo.suggestedRoutes; let i = index" 
+                      [class.selected-route]="i === currentRouteInfo.selectedRouteIndex"
+                      (click)="selectRoute(i)">
               <ion-label>
-                <h3>{{ segment.from }} → {{ segment.to }}</h3>
-                <p *ngIf="segment.transitDetails">🚌 {{ segment.transitDetails }}</p>
-                <p>⏱️ {{ segment.duration }}</p>
-                <p>📏 {{ segment.distance }}</p>
-                <p>{{ segment.instructions }}</p>
+                <h3>{{ route.title }}</h3>
+                <p>{{ route.summary }}</p>
+                <p>{{ route.totalDuration }} • {{ route.totalDistance }} • {{ route.totalFare }}</p>
               </ion-label>
-              <ion-button slot="end" size="small" fill="outline" (click)="showApiRouteOnMap(segment)">
-                <ion-icon name="map"></ion-icon>
-              </ion-button>
+              <ion-badge *ngIf="route.isRecommended" color="success" slot="end">Recommended</ion-badge>
             </ion-item>
           </ion-list>
         </ion-card-content>
       </ion-card>
-      
-      <ion-card *ngIf="!apiRouteInfo && !isLoadingApiRoutes">
-        <ion-card-content>
-          <ion-text color="medium">
-            <p>Click "Fetch API Routes" to get real-time directions from Google</p>
-            <p><small>Note: API routes use Google Directions API through our proxy server</small></p>
-          </ion-text>
-        </ion-card-content>
-      </ion-card>
-      
-      <ion-button expand="block" color="primary" (click)="fetchApiRoutes()" [disabled]="isLoadingApiRoutes">
-        <ion-spinner *ngIf="isLoadingApiRoutes" name="crescent"></ion-spinner>
-        <ion-icon *ngIf="!isLoadingApiRoutes" name="refresh"></ion-icon>
-        {{ isLoadingApiRoutes ? 'Fetching Routes...' : 'Fetch API Routes' }}
-      </ion-button>
-      
-
-      
-      <ion-button expand="block" color="success" (click)="showApiRoutesOnMap()" [disabled]="!apiRouteInfo">
-        <ion-icon name="map"></ion-icon>
-        Show API Routes
-      </ion-button>
-      
-      <ion-button expand="block" color="primary" (click)="showApiRouteDetailsSheet()" [disabled]="!apiRouteInfo" style="margin: 10px 0; font-size: 18px; font-weight: bold; --background: #0066cc; --color: white; height: 60px;">
-        <ion-icon name="list" style="font-size: 20px;"></ion-icon>
-        📋 VIEW API ROUTE DETAILS 📋
-      </ion-button>
-      
-      <!-- Debug Info for API Routes -->
-      <ion-card *ngIf="!apiRouteInfo" style="margin: 10px 0; background: #fff3cd; border: 1px solid #ffeaa7;">
-        <ion-card-content>
-          <ion-text color="warning">
-            <p><strong>Debug Info:</strong></p>
-            <p>• API Route Info: {{ apiRouteInfo ? 'Available' : 'Not Available' }}</p>
-            <p>• Selected Itinerary: {{ selectedItineraryIndex >= 0 ? 'Yes' : 'No' }}</p>
-            <p>• Available Itineraries: {{ availableItineraries.length || 0 }}</p>
-            <p><small>Click "Fetch API Routes" to load route data</small></p>
-          </ion-text>
-        </ion-card-content>
-      </ion-card>
     </div>
-    
-    <ion-card *ngIf="!currentRouteInfo && !apiRouteInfo">
+
+    <!-- No Route Info Message -->
+    <ion-card *ngIf="!currentRouteInfo">
       <ion-card-content>
         <ion-text color="medium">
-          <p>Select an itinerary to view routes</p>
+          <p>Select an itinerary and click "Get Route Suggestions" to view routes</p>
         </ion-text>
       </ion-card-content>
     </ion-card>

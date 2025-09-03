@@ -12,6 +12,5 @@ export const environment = {
     appId: "your-app-id"
   },
   googleMapsApiKey: 'your-google-maps-api-key',
-  openRouteServiceApiKey: 'your-openroute-service-api-key',
-  proxyUrl: 'https://google-places-proxy-ftxx.onrender.com' // Your existing working proxy URL
+  openRouteServiceApiKey: 'your-openroute-service-api-key'
 }; 

@@ -35,9 +35,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   private routeLine?: L.Polyline;
   private routeLines: (L.Polyline | L.Marker)[] = [];
   
-  // Pin system for API routes
-  private apiMarkers: L.Marker[] = [];
-  private apiRouteLines: (L.Polyline | L.Marker)[] = [];
+  // Pin system for route markers
+  private routeMarkers: L.Marker[] = [];
   itinerary: ItineraryDay[] = [];
   navigationInstructions: string[] = [];
   navigating: boolean = false;
@@ -48,19 +47,13 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   selectedItineraryIndex: number = -1; // Start with no selection
   availableItineraries: any[] = [];
   currentRouteInfo: any = null;
-  routeType: string = 'api'; // Focus purely on API routes
-  apiRouteInfo: any = null;
-  isLoadingApiRoutes: boolean = false;
   
 
   
-  // Simulated user location for PC development
-  userLocation = {
-    lat: 10.28538157993902, // Simulated location for PC development
-    lng: 123.869115789095,
-    name: 'Simulated Location (PC Development)',
-    isReal: false
-  };
+
+  
+  // User location (will be set dynamically)
+  userLocation: any = null;
   
   // Location tracking
   private locationWatcher?: string;
@@ -106,9 +99,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     
     // Reset all marker arrays and references
     this.markers = [];
-    this.apiMarkers = [];
+    this.routeMarkers = [];
     this.routeLines = [];
-    this.apiRouteLines = [];
     this.userMarker = undefined;
     this.stopMarker = undefined;
     this.walkLine = undefined;
@@ -129,16 +121,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
   }
 
-  async onRouteTypeChange() {
-    if (this.selectedTab === 'directions') {
-      // Clear all existing routes and markers
-      this.clearAllRouteLines();
-      this.clearAllMarkers();
-      
-      // Always use API routes
-      await this.fetchApiRoutes();
-    }
-  }
+
 
   onTileChange() {
     if (this.map) {
@@ -309,17 +292,37 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
                 }
               }
               
+              // Determine the type of event (tourist spot, restaurant, or hotel)
+              const eventType = event.extendedProps?.type || 'tourist_spot';
+              let category = event.extendedProps?.category || 'GENERAL';
+              let img = event.extendedProps?.img || 'assets/img/default.png';
+              
+              // Set appropriate category and image based on event type
+              if (eventType === 'restaurant') {
+                category = 'Restaurant';
+                img = 'assets/img/restaurant-icon.png'; // You can add this icon or use default
+              } else if (eventType === 'hotel') {
+                category = 'Hotel';
+                img = 'assets/img/hotel-icon.png'; // You can add this icon or use default
+              }
+              
               return {
                 id: event.extendedProps?.spotId || event.id || '',
                 name: event.title || 'Unknown Spot',
                 description: event.extendedProps?.description || '',
-                category: event.extendedProps?.category || 'GENERAL',
+                category: category,
                 timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
                 estimatedDuration: event.extendedProps?.duration || '2 hours',
                 durationMinutes: event.extendedProps?.durationMinutes || 120,
                 location: location,
-                img: event.extendedProps?.img || 'assets/img/default.png',
-                mealType: event.extendedProps?.mealType || null
+                img: img,
+                mealType: event.extendedProps?.mealType || null,
+                eventType: eventType, // Add event type for marker styling
+                // Add restaurant/hotel specific properties
+                restaurant: event.extendedProps?.restaurant || null,
+                hotel: event.extendedProps?.hotel || null,
+                rating: event.extendedProps?.rating || null,
+                vicinity: event.extendedProps?.vicinity || null
               };
             })
           }]
@@ -350,7 +353,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     if (this.selectedItineraryIndex < 0 || this.selectedItineraryIndex >= this.availableItineraries.length) {
       // Clear any existing route data when no itinerary is selected
       this.currentRouteInfo = null;
-      this.apiRouteInfo = null;
       this.clearAllRouteLines();
       this.clearAllMarkers();
       return;
@@ -363,16 +365,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.clearAllRouteLines();
       this.clearAllMarkers();
       this.currentRouteInfo = null;
-      this.apiRouteInfo = null;
       
       // Show markers immediately when itinerary is selected
       this.showItineraryMarkersOnly(selectedItinerary);
-      
-      // Automatically fetch API routes
-      this.fetchApiRoutes();
     } else {
       this.currentRouteInfo = null;
-      this.apiRouteInfo = null;
     }
   }
 
@@ -399,44 +396,48 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     const userLocation = this.userLocation;
 
     // Clear existing markers
-    this.apiMarkers.forEach(marker => {
+    this.routeMarkers.forEach(marker => {
       if (this.map.hasLayer(marker)) {
         this.map.removeLayer(marker);
       }
     });
-    this.apiMarkers = [];
+    this.routeMarkers = [];
 
-    // Add user location marker
-    const userMarker = L.marker([userLocation.lat, userLocation.lng], {
-      icon: L.divIcon({
-        html: `<div style="
-          background: #28a745;
-          color: white;
-          border-radius: 50%;
-          width: 25px;
-          height: 25px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          border: 2px solid white;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        ">📍</div>`,
-        className: 'user-location-marker',
-        iconSize: [25, 25],
-        iconAnchor: [12, 12]
-      })
-    }).addTo(this.map);
+    // Add user location marker only if userLocation has valid coordinates
+    if (userLocation && userLocation.lat && userLocation.lng) {
+      const userMarker = L.marker([userLocation.lat, userLocation.lng], {
+        icon: L.divIcon({
+          html: `<div style="
+            background: #28a745;
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          ">📍</div>`,
+          className: 'user-location-marker',
+          iconSize: [25, 25],
+          iconAnchor: [12, 12]
+        })
+      }).addTo(this.map);
 
-    // Add popup for user location
-    userMarker.bindPopup(`
-      <div style="min-width: 150px;">
-        <h4 style="margin: 0 0 8px 0; color: #333;">Your Location</h4>
-        <p style="margin: 4px 0; color: #666;">${userLocation.name}</p>
-      </div>
-    `);
+      // Add popup for user location
+      userMarker.bindPopup(`
+        <div style="min-width: 150px;">
+          <h4 style="margin: 0 0 8px 0; color: #333;">Your Location</h4>
+          <p style="margin: 4px 0; color: #666;">${userLocation.name}</p>
+        </div>
+      `);
 
-    this.apiMarkers.push(userMarker);
+      this.routeMarkers.push(userMarker);
+    } else {
+      console.warn('⚠️ User location not available for route display');
+    }
 
     // Create a map to track unique locations and prevent duplicates
     const locationMap = new Map<string, any>();
@@ -460,12 +461,12 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
             locationMap.set(locationKey, spot);
             
             const spotMarker = L.marker([spot.location.lat, spot.location.lng], {
-              icon: this.getApiRouteMarkerIcon(spot, spotIndex)
+              icon: this.getRouteMarkerIcon(spot, spotIndex)
             }).addTo(this.map);
 
             // Add popup for spot marker
             spotMarker.bindPopup(this.createDirectionSpotPopup(spot, spotIndex));
-            this.apiMarkers.push(spotMarker);
+            this.routeMarkers.push(spotMarker);
             spotIndex++;
           }
         });
@@ -473,8 +474,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     });
 
     // Fit map to show all markers
-    if (this.apiMarkers.length > 0) {
-      const group = L.featureGroup(this.apiMarkers);
+    if (this.routeMarkers.length > 0) {
+      const group = L.featureGroup(this.routeMarkers);
       this.map.fitBounds(group.getBounds().pad(0.1));
     }
   }
@@ -608,21 +609,37 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
+    // Ensure DOM is fully ready before initializing map
     setTimeout(() => {
-      this.initMap();
-      setTimeout(() => {
-        if (this.map) this.map.invalidateSize();
-      }, 500);
-    }, 200);
+      try {
+        this.initMap();
+        console.log('✅ Map initialized successfully');
+        
+        // Wait for map to be fully rendered before invalidating size
+        setTimeout(() => {
+          if (this.map) {
+            this.map.invalidateSize();
+            console.log('✅ Map size invalidated');
+          }
+        }, 500);
+      } catch (error) {
+        console.error('❌ Error initializing map:', error);
+      }
+    }, 500); // Increased delay to ensure DOM is ready
+    
     this.loadItinerary();
     this.loadAvailableItineraries();
     this.loadJeepneyRoutes();
     
     // Automatically get user location on startup
-    this.getUserLocation();
+    setTimeout(() => {
+      this.getUserLocation();
+    }, 1000); // Delay user location to ensure map is ready
     
     // Start continuous location tracking
-    this.startLocationTracking();
+    setTimeout(() => {
+      this.startLocationTracking();
+    }, 1500);
     
     // Add global function for popup buttons
     (window as any).openSpotDetails = (spotName: string) => {
@@ -639,7 +656,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       } else {
         this.showTouristSpots();
       }
-    }, 1000);
+    }, 2000); // Increased delay to ensure everything is loaded
     
     // Monitor network status changes
     window.addEventListener('online', () => {
@@ -700,15 +717,15 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   // Getter to check if user location is real GPS
   get isRealLocation(): boolean {
-    return this.userLocation.isReal;
+    return this.userLocation?.isReal || false;
   }
 
   // Getter to get user location status text
   get locationStatusText(): string {
     if (this.isLocationTracking) {
-      return this.userLocation.isReal ? 'GPS Tracking' : 'Default Location';
+      return this.userLocation?.isReal ? 'GPS Tracking' : 'Default Location';
     }
-    return this.userLocation.isReal ? 'GPS Location' : 'Default Location';
+    return this.userLocation?.isReal ? 'GPS Location' : 'Default Location';
   }
 
   // Getter to check if location tracking is active
@@ -717,33 +734,69 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   private initMap(): void {
-    if (this.map) {
-      this.map.remove();
+    try {
+      if (this.map) {
+        this.map.remove();
+      }
+      
+      const mapElement = document.getElementById('map');
+      if (!mapElement) {
+        console.error('❌ Map element not found in DOM');
+        return;
+      }
+      
+      console.log('🗺️ Initializing map...');
+      
+      this.map = L.map('map', {
+        center: [10.3157, 123.8854],
+        zoom: 12,
+        zoomControl: true,
+        attributionControl: true,
+        dragging: true,
+        scrollWheelZoom: true,
+        doubleClickZoom: true,
+        boxZoom: true,
+        keyboard: true
+      });
+      
+      console.log('🗺️ Map created, adding tile layer...');
+      
+      // Try OpenStreetMap first, with fallback to CartoDB
+      const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18,
+      });
+      
+      const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© CartoDB',
+        maxZoom: 18,
+      });
+      
+      // Add OSM layer first
+      osmLayer.addTo(this.map);
+      
+      // Add fallback layer
+      cartoLayer.addTo(this.map);
+      
+      // Set OSM as default
+      this.map.addLayer(osmLayer);
+      
+      console.log('🗺️ Tile layer added, loading tourist spots...');
+      
+      this.loadTouristSpots();
+      
+      // Ensure map is properly sized
+      setTimeout(() => {
+        if (this.map) {
+          this.map.invalidateSize();
+          console.log('✅ Map initialization complete');
+        }
+      }, 300);
+      
+    } catch (error) {
+      console.error('❌ Error in initMap:', error);
+      throw error;
     }
-    
-    const mapElement = document.getElementById('map');
-    
-    this.map = L.map('map', {
-      center: [10.3157, 123.8854],
-      zoom: 12,
-      zoomControl: true,
-      attributionControl: true,
-      dragging: true,
-      scrollWheelZoom: true,
-      doubleClickZoom: true,
-      boxZoom: true,
-      keyboard: true
-    });
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 18,
-    }).addTo(this.map);
-    
-    this.loadTouristSpots();
-    setTimeout(() => {
-      this.map.invalidateSize();
-    }, 300);
   }
 
   private async loadTouristSpots(): Promise<void> {
@@ -935,18 +988,23 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       iconAnchor: [10, 10]
     });
 
-    const userMarker = L.marker([userLocation.lat, userLocation.lng], {
-      icon: userMarkerIcon
-    }).addTo(this.map);
+    // Only add user marker if userLocation has valid coordinates
+    if (userLocation && userLocation.lat && userLocation.lng) {
+      const userMarker = L.marker([userLocation.lat, userLocation.lng], {
+        icon: userMarkerIcon
+      }).addTo(this.map);
 
-    userMarker.bindPopup(`
-      <div style="text-align: center; min-width: 150px;">
-        <h4 style="margin: 0 0 8px 0; color: #333;">📍 Your Location</h4>
-        <p style="margin: 4px 0; color: #666; font-size: 0.9em;">Starting point</p>
-      </div>
-    `);
+      userMarker.bindPopup(`
+        <div style="text-align: center; min-width: 150px;">
+          <h4 style="margin: 0 0 8px 0; color: #333;">📍 Your Location</h4>
+          <p style="margin: 4px 0; color: #666; font-size: 0.9em;">Starting point</p>
+        </div>
+      `);
 
-    this.markers.push(userMarker);
+      this.markers.push(userMarker);
+    } else {
+      console.warn('⚠️ User location not available for directions display');
+    }
 
     const itinerarySpots: any[] = [];
     
@@ -969,17 +1027,45 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       
       spots.forEach((spot: any, spotIndex: number) => {
+        // Check if spot has valid location coordinates
+        let hasValidLocation = false;
+        let location = null;
         
         if (spot && spot.location && spot.location.lat && spot.location.lng) {
+          // Direct location property
+          hasValidLocation = true;
+          location = spot.location;
+        } else if (spot && spot.extendedProps && spot.extendedProps.location && 
+                   spot.extendedProps.location.lat && spot.extendedProps.location.lng) {
+          // Location stored in extendedProps (for restaurants/hotels)
+          hasValidLocation = true;
+          location = spot.extendedProps.location;
+        }
+        
+        if (hasValidLocation) {
           itinerarySpots.push({
             ...spot,
+            location: location, // Use the found location
             day: day.day,
             timeSlot: spot.timeSlot,
             order: spotIndex
           });
-          
         } else {
-  
+          // For spots without location, try to find matching tourist spot
+          if (spot.extendedProps?.type === 'tourist_spot') {
+            const matchingSpot = this.touristSpots.find(ts => 
+              ts.name === spot.title || ts.id === spot.extendedProps?.spotId
+            );
+            if (matchingSpot && matchingSpot.location) {
+              itinerarySpots.push({
+                ...spot,
+                location: matchingSpot.location,
+                day: day.day,
+                timeSlot: spot.timeSlot,
+                order: spotIndex
+              });
+            }
+          }
         }
       });
     });
@@ -1049,23 +1135,23 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     });
     this.markers = [];
 
-    // Clear API markers
-    this.apiMarkers.forEach(marker => {
+    // Clear route markers
+    this.routeMarkers.forEach(marker => {
       if (this.map.hasLayer(marker)) {
         this.map.removeLayer(marker);
       }
     });
-    this.apiMarkers = [];
+    this.routeMarkers = [];
   }
 
-  private clearApiMarkers(): void {
-    // Clear only API markers
-    this.apiMarkers.forEach(marker => {
+  private clearRouteMarkers(): void {
+    // Clear only route markers
+    this.routeMarkers.forEach(marker => {
       if (this.map.hasLayer(marker)) {
         this.map.removeLayer(marker);
       }
     });
-    this.apiMarkers = [];
+    this.routeMarkers = [];
   }
 
   private clearAllRouteLines(): void {
@@ -1077,54 +1163,212 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     });
     this.routeLines = [];
 
-    // Clear API route lines
-    this.apiRouteLines.forEach(layer => {
+    // Clear route lines
+    this.routeLines.forEach(layer => {
       if (this.map.hasLayer(layer)) {
         this.map.removeLayer(layer);
       }
     });
-    this.apiRouteLines = [];
+    this.routeLines = [];
   }
 
   private getMarkerIconForSpot(spot: any): L.DivIcon {
     let iconColor = '#3388ff'; // Default blue for tourist spots
     let iconName = 'location';
+    let markerStyle = 'default';
 
-    // Determine icon based on spot type
-    if (spot.mealType) {
-      iconColor = '#ff6b35'; // Orange for restaurants
+    // Use the new eventType property for better categorization
+    if (spot.eventType === 'restaurant') {
+      iconColor = '#ff6b35'; // Vibrant orange for restaurants
       iconName = 'restaurant';
+      markerStyle = 'restaurant';
+    } else if (spot.eventType === 'hotel') {
+      iconColor = '#1976d2'; // Blue for hotels
+      iconName = 'bed';
+      markerStyle = 'hotel';
     } else if (spot.category === 'HOTEL' || spot.name.toLowerCase().includes('hotel')) {
       iconColor = '#1976d2'; // Blue for hotels
       iconName = 'bed';
+      markerStyle = 'hotel';
     } else if (spot.category === 'RESTAURANT' || spot.name.toLowerCase().includes('restaurant')) {
-      iconColor = '#ff6b35'; // Orange for restaurants
+      iconColor = '#ff6b35'; // Vibrant orange for restaurants
       iconName = 'restaurant';
+      markerStyle = 'restaurant';
     } else {
+      // This is a tourist spot (default case)
       iconColor = '#4caf50'; // Green for tourist spots
       iconName = 'location';
+      markerStyle = 'default';
     }
 
     return L.divIcon({
       className: 'custom-marker',
-      html: `<div style="
-        background-color: ${iconColor};
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 16px;
-        font-weight: bold;
-      ">${this.getIconSymbol(iconName)}</div>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 15],
-      popupAnchor: [0, -15]
+      html: this.createCustomMarkerHTML(iconColor, iconName, markerStyle),
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
+      popupAnchor: [0, -18]
     } as L.DivIconOptions);
+  }
+
+  private createCustomMarkerHTML(iconColor: string, iconName: string, markerStyle: string): string {
+    const iconSymbol = this.getIconSymbol(iconName);
+    
+    switch (markerStyle) {
+      case 'restaurant':
+        return `
+          <div data-type="restaurant" style="
+            position: relative;
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, ${iconColor}, #e65100);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+          ">
+            <div style="
+              transform: rotate(45deg);
+              color: white;
+              font-size: 18px;
+              font-weight: bold;
+              text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            ">${iconSymbol}</div>
+            <div style="
+              position: absolute;
+              top: -8px;
+              right: -8px;
+              width: 16px;
+              height: 16px;
+              background: #ffeb3b;
+              border-radius: 50%;
+              border: 2px solid white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 10px;
+              color: #333;
+              font-weight: bold;
+            ">🍽️</div>
+          </div>
+          <style>
+            @keyframes pulse {
+              0% { transform: rotate(-45deg) scale(1); }
+              50% { transform: rotate(-45deg) scale(1.1); }
+              100% { transform: rotate(-45deg) scale(1); }
+            }
+          </style>
+        `;
+        
+      case 'hotel':
+        return `
+          <div data-type="hotel" style="
+            position: relative;
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, ${iconColor}, #1565c0);
+            border-radius: 8px;
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: float 3s ease-in-out infinite;
+          ">
+            <div style="
+              color: white;
+              font-size: 18px;
+              font-weight: bold;
+              text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            ">${iconSymbol}</div>
+            <div style="
+              position: absolute;
+              top: -6px;
+              right: -6px;
+              width: 14px;
+              height: 14px;
+              background: #4caf50;
+              border-radius: 50%;
+              border: 2px solid white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 8px;
+              color: white;
+              font-weight: bold;
+            ">⭐</div>
+            <div style="
+              position: absolute;
+              bottom: -4px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 0;
+              height: 0;
+              border-left: 8px solid transparent;
+              border-right: 8px solid transparent;
+              border-top: 8px solid ${iconColor};
+            "></div>
+          </div>
+          <style>
+            @keyframes float {
+              0%, 100% { transform: translateY(0px); }
+              50% { transform: translateY(-5px); }
+            }
+          </style>
+        `;
+        
+      default:
+        return `
+          <div data-type="default" style="
+            position: relative;
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, ${iconColor}, #388e3c);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(45deg);
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: touristBounce 2.5s ease-in-out infinite;
+          ">
+            <div style="
+              transform: rotate(-45deg);
+              color: white;
+              font-size: 18px;
+              font-weight: bold;
+              text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            ">${iconSymbol}</div>
+            <div style="
+              position: absolute;
+              top: -6px;
+              right: -6px;
+              width: 16px;
+              height: 16px;
+              background: #ffeb3b;
+              border-radius: 50%;
+              border: 2px solid white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 10px;
+              color: #333;
+              font-weight: bold;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            ">🎯</div>
+          </div>
+          <style>
+            @keyframes touristBounce {
+              0%, 100% { transform: rotate(45deg) scale(1); }
+              50% { transform: rotate(45deg) scale(1.08); }
+            }
+          </style>
+        `;
+    }
   }
 
   private getIconSymbol(iconName: string): string {
@@ -1138,32 +1382,205 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
 
 
-  private getApiRouteMarkerIcon(spot: any, order: number): L.DivIcon {
+  private getRouteMarkerIcon(spot: any, order: number): L.DivIcon {
+    // Determine marker style based on spot type
+    let markerStyle = 'default';
+    let iconColor = '#007bff';
+    let iconSymbol = '🗺️';
+    
+    if (spot.eventType === 'restaurant') {
+      markerStyle = 'restaurant';
+      iconColor = '#ff6b35';
+      iconSymbol = '🍽️';
+    } else if (spot.eventType === 'hotel' || spot.category === 'HOTEL' || spot.name.toLowerCase().includes('hotel')) {
+      markerStyle = 'hotel';
+      iconColor = '#1976d2';
+      iconSymbol = '🛏️';
+    } else {
+      // This is a tourist spot (default case)
+      markerStyle = 'default';
+      iconColor = '#4caf50';
+      iconSymbol = '📍';
+    }
+    
     return L.divIcon({
-      html: `<div style="
-        background: #007bff;
-        color: white;
-        border-radius: 50%;
-        width: 35px;
-        height: 35px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: bold;
-        border: 3px solid white;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-        position: relative;
-      ">
-        <div style="position: absolute; top: -5px; right: -5px; background: #007bff; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border: 2px solid white;">
-          A
-        </div>
-        🗺️
-      </div>`,
-      className: 'api-route-marker',
-      iconSize: [35, 35],
-      iconAnchor: [17, 17]
+      html: this.createRouteMarkerHTML(iconColor, iconSymbol, markerStyle, order),
+      className: 'route-marker',
+      iconSize: [40, 40],
+      iconAnchor: [20, 20]
     });
+  }
+
+  private createRouteMarkerHTML(iconColor: string, iconSymbol: string, markerStyle: string, order: number): string {
+    switch (markerStyle) {
+      case 'restaurant':
+        return `
+          <div data-type="restaurant" style="
+            position: relative;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, ${iconColor}, #e65100);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: routePulse 2s infinite;
+          ">
+            <div style="
+              transform: rotate(45deg);
+              color: white;
+              font-size: 20px;
+              font-weight: bold;
+              text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            ">${iconSymbol}</div>
+            <div style="
+              position: absolute;
+              top: -10px;
+              right: -10px;
+              width: 22px;
+              height: 22px;
+              background: #ffeb3b;
+              border-radius: 50%;
+              border: 2px solid white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 12px;
+              color: #333;
+              font-weight: bold;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            ">${order}</div>
+          </div>
+          <style>
+            @keyframes routePulse {
+              0% { transform: rotate(-45deg) scale(1); }
+              50% { transform: rotate(-45deg) scale(1.05); }
+              100% { transform: rotate(-45deg) scale(1); }
+            }
+          </style>
+        `;
+        
+      case 'hotel':
+        return `
+          <div data-type="hotel" style="
+            position: relative;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, ${iconColor}, #1565c0);
+            border-radius: 10px;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: routeFloat 3s ease-in-out infinite;
+          ">
+            <div style="
+              color: white;
+              font-size: 20px;
+              font-weight: bold;
+              text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            ">${iconSymbol}</div>
+            <div style="
+              position: absolute;
+              top: -8px;
+              right: -8px;
+              width: 22px;
+              height: 22px;
+              background: #4caf50;
+              border-radius: 50%;
+              border: 2px solid white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 12px;
+              color: white;
+              font-weight: bold;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            ">${order}</div>
+            <div style="
+              position: absolute;
+              bottom: -6px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 0;
+              height: 0;
+              border-left: 10px solid transparent;
+              border-right: 10px solid transparent;
+              border-top: 10px solid ${iconColor};
+            "></div>
+          </div>
+          <style>
+            @keyframes routeFloat {
+              0%, 100% { transform: translateY(0px); }
+              50% { transform: translateY(-3px); }
+            }
+          </style>
+        `;
+        
+      default:
+        return `
+          <div data-type="default" style="
+            position: relative;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, ${iconColor}, #388e3c);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(45deg);
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: routeTouristBounce 2.5s ease-in-out infinite;
+          ">
+            <div style="
+              transform: rotate(-45deg);
+              color: white;
+              font-size: 20px;
+              font-weight: bold;
+              text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            ">${iconSymbol}</div>
+            <div style="
+              position: absolute;
+              top: -8px;
+              right: -8px;
+              width: 22px;
+              height: 22px;
+              background: #ffeb3b;
+              border-radius: 50%;
+              border: 2px solid white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 12px;
+              color: #333;
+              font-weight: bold;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            ">🎯</div>
+            <div style="
+              position: absolute;
+              bottom: -6px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 0;
+              height: 0;
+              border-left: 10px solid transparent;
+              border-right: 10px solid transparent;
+              border-top: 10px solid ${iconColor};
+            "></div>
+          </div>
+          <style>
+            @keyframes routeTouristBounce {
+              0%, 100% { transform: rotate(45deg) scale(1); }
+              50% { transform: rotate(45deg) scale(1.05); }
+            }
+          </style>
+        `;
+    }
   }
 
   private createItinerarySpotPopup(spot: any, order: number): string {
@@ -1188,6 +1605,27 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   private createDirectionSpotPopup(spot: any, order: number): string {
     const jeepneyCode = this.getJeepneyCodeForSpot(spot, order);
+    
+    // Add restaurant-specific information
+    let restaurantInfo = '';
+    if (spot.eventType === 'restaurant' && spot.restaurant) {
+      restaurantInfo = `
+        <p style="margin: 4px 0; color: #ff9800;"><strong>🍽️ Restaurant:</strong> ${spot.restaurant}</p>
+        ${spot.rating ? `<p style="margin: 4px 0; color: #ff9800;"><strong>⭐ Rating:</strong> ${spot.rating}★</p>` : ''}
+        ${spot.vicinity ? `<p style="margin: 4px 0; color: #ff9800;"><strong>📍 Location:</strong> ${spot.vicinity}</p>` : ''}
+      `;
+    }
+    
+    // Add hotel-specific information
+    let hotelInfo = '';
+    if (spot.eventType === 'hotel' && spot.hotel) {
+      hotelInfo = `
+        <p style="margin: 4px 0; color: #1976d2;"><strong>🏨 Hotel:</strong> ${spot.hotel}</p>
+        ${spot.rating ? `<p style="margin: 4px 0; color: #1976d2;"><strong>⭐ Rating:</strong> ${spot.rating}★</p>` : ''}
+        ${spot.vicinity ? `<p style="margin: 4px 0; color: #1976d2;"><strong>📍 Location:</strong> ${spot.vicinity}</p>` : ''}
+      `;
+    }
+    
     return `
       <div style="min-width: 250px;">
         <h4 style="margin: 0 0 8px 0; color: #333;">${order}. ${spot.name}</h4>
@@ -1199,6 +1637,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         </p>
         ${spot.mealType ? `<p style="margin: 4px 0; color: #ff6b35;"><strong>Meal:</strong> ${spot.mealType}</p>` : ''}
         ${spot.category ? `<p style="margin: 4px 0; color: #666;"><strong>Type:</strong> ${spot.category}</p>` : ''}
+        ${restaurantInfo}
+        ${hotelInfo}
         ${jeepneyCode ? 
           jeepneyCode.includes('🚶') ? 
             `<p style="margin: 4px 0; color: #ff6b35; font-weight: bold;"><strong>🚶 Transport:</strong> Walking only - No public transport available</p>` :
@@ -1323,44 +1763,68 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   async getUserLocation(): Promise<void> {
-    // For PC development, use simulated location instead of real GPS
-    this.userLocation = {
-      lat: 10.28538157993902, // Simulated location for PC development
-      lng: 123.869115789095,
-      name: 'Simulated Location (PC Development)',
-      isReal: false
-    };
+    try {
+      // Try to get real GPS location first
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes cache
+      });
+      
+      this.userLocation = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        name: 'Your Location',
+        isReal: true
+      };
+      
+      console.log('✅ Real GPS location obtained:', this.userLocation);
+    } catch (error) {
+      console.warn('⚠️ Could not get GPS location, using default Cebu City center:', error);
+      // Fallback to Cebu City center if GPS fails
+      this.userLocation = {
+        lat: 10.3157, // Cebu City center
+        lng: 123.8854,
+        name: 'Cebu City Center',
+        isReal: false
+      };
+    }
     
     // Add or update user marker on map
     if (this.userMarker) {
       this.map.removeLayer(this.userMarker);
     }
     
-    this.userMarker = L.marker([this.userLocation.lat, this.userLocation.lng], {
-      icon: L.divIcon({
-        html: `<div style="
-          background: #1976d2;
-          color: white;
-          border-radius: 50%;
-          width: 20px;
-          height: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 12px;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        ">📍</div>`,
-        className: 'user-location-marker',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      })
-    }).addTo(this.map);
-    
-    // Center map on user location
-    this.map.setView([this.userLocation.lat, this.userLocation.lng], 15);
-    
-    console.log('✅ Simulated user location set:', this.userLocation);
+    // Only add marker and center map if userLocation has valid coordinates
+    if (this.userLocation && this.userLocation.lat && this.userLocation.lng) {
+      this.userMarker = L.marker([this.userLocation.lat, this.userLocation.lng], {
+        icon: L.divIcon({
+          html: `<div style="
+            background: #1976d2;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          ">📍</div>`,
+          className: 'user-location-marker',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        })
+      }).addTo(this.map);
+      
+      // Center map on user location
+      this.map.setView([this.userLocation.lat, this.userLocation.lng], 15);
+      
+      console.log('✅ User location set:', this.userLocation);
+    } else {
+      console.warn('⚠️ User location not available, map will use default center');
+    }
   }
 
   // Start continuous location tracking
@@ -1740,33 +2204,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return R * c;
   }
 
-  // Polyline decoder (Google encoded polyline algorithm)
-  decodePolyline(encoded: string): L.LatLng[] {
-    let points: L.LatLng[] = [];
-    let index = 0, len = encoded.length;
-    let lat = 0, lng = 0;
-    while (index < len) {
-      let b, shift = 0, result = 0;
-      do {
-        b = encoded.charCodeAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.charCodeAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-      points.push(L.latLng(lat / 1e5, lng / 1e5));
-    }
-    return points;
-  }
+
 
   private getJeepneyCodeForSpot(spot: any, order: number): string {
     // Find the best jeepney route for this spot
@@ -2473,7 +2911,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         opacity: 0.8,
         dashArray: '10, 5'
       }).addTo(this.map);
-      this.apiRouteLines.push(walkToStart);
+      this.routeLines.push(walkToStart);
 
       // Add label to walking segment
       const walkToMidPoint = L.latLng(
@@ -2503,7 +2941,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         icon: walkToLabel
       }).addTo(this.map);
       
-      this.apiRouteLines.push(walkToLabelMarker);
+      this.routeLines.push(walkToLabelMarker);
 
       // Walking from last waypoint to destination
       const walkToEnd = L.polyline([routePath[routePath.length - 2], routePath[routePath.length - 1]], {
@@ -2512,7 +2950,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         opacity: 0.8,
         dashArray: '10, 5'
       }).addTo(this.map);
-      this.apiRouteLines.push(walkToEnd);
+      this.routeLines.push(walkToEnd);
       
       // Add label to walking segment
       const walkFromMidPoint = L.latLng(
@@ -2542,7 +2980,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         icon: walkFromLabel
       }).addTo(this.map);
       
-      this.apiRouteLines.push(walkFromLabelMarker);
+      this.routeLines.push(walkFromLabelMarker);
       
       // Walking markers removed - no longer showing circle pins for walking segments
 
@@ -2586,7 +3024,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           opacity: 0.8,
           dashArray: '0'
         }).addTo(this.map);
-        this.apiRouteLines.push(jeepneyLine);
+        this.routeLines.push(jeepneyLine);
         
         // Add label to jeepney segment
         if (smoothedSegment.length > 0) {
@@ -2614,7 +3052,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
             icon: jeepneyLabel
           }).addTo(this.map);
           
-          this.apiRouteLines.push(jeepneyLabelMarker);
+          this.routeLines.push(jeepneyLabelMarker);
         }
       }
     }
@@ -2645,7 +3083,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
             iconAnchor: [14, 14]
           })
         }).addTo(this.map);
-        this.apiRouteLines.push(jeepneyMarker);
+        this.routeLines.push(jeepneyMarker);
       }
     }
   }
@@ -2710,7 +3148,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       icon: jeepneyLabel
     }).addTo(this.map);
     
-    this.apiRouteLines.push(jeepneyLine, jeepneyMarker, jeepneyLabelMarker);
+    this.routeLines.push(jeepneyLine, jeepneyMarker, jeepneyLabelMarker);
   }
 
   private async drawAlternativeJeepneyRoute(from: any, to: any, jeepneyRoute: any, routeIndex: number): Promise<void> {
@@ -2777,7 +3215,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         opacity: 0.5,
         dashArray: '5, 5'
       }).addTo(this.map);
-      this.apiRouteLines.push(walkToStart);
+      this.routeLines.push(walkToStart);
       
       // Walking from last waypoint to destination
       const walkToEnd = L.polyline([routePath[routePath.length - 2], routePath[routePath.length - 1]], {
@@ -2786,7 +3224,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         opacity: 0.5,
         dashArray: '5, 5'
       }).addTo(this.map);
-      this.apiRouteLines.push(walkToEnd);
+      this.routeLines.push(walkToEnd);
     }
     
     // Draw jeepney route (solid colored line)
@@ -2799,7 +3237,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           opacity: 0.6,
           dashArray: '10, 5' // Dashed line for alternatives
         }).addTo(this.map);
-        this.apiRouteLines.push(jeepneyLine);
+        this.routeLines.push(jeepneyLine);
       }
     }
     
@@ -2830,7 +3268,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           })
         }).addTo(this.map);
         
-        this.apiRouteLines.push(jeepneyMarker);
+        this.routeLines.push(jeepneyMarker);
       }
     }
   }
@@ -2848,7 +3286,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       dashArray: '10, 5' // Dashed line for alternatives
             }).addTo(this.map);
         
-        this.apiRouteLines.push(jeepneyLine);
+        this.routeLines.push(jeepneyLine);
     
     // Add jeepney code marker at midpoint
     const midLat = (from.lat + to.lat) / 2;
@@ -2874,7 +3312,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       })
     }).addTo(this.map);
     
-    this.apiRouteLines.push(jeepneyMarker);
+    this.routeLines.push(jeepneyMarker);
   }
 
   private findTransferRoute(fromStop: any, toStop: any): any {
@@ -2998,8 +3436,13 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // Create complete route coordinates starting from user location
     const routeCoordinates: L.LatLng[] = [];
     
-    // Start with user location
-    routeCoordinates.push(L.latLng(userLocation.lat, userLocation.lng));
+    // Start with user location only if it has valid coordinates
+    if (userLocation && userLocation.lat && userLocation.lng) {
+      routeCoordinates.push(L.latLng(userLocation.lat, userLocation.lng));
+    } else {
+      console.warn('⚠️ User location not available for route drawing');
+      return;
+    }
     
     // Add all spots in sequence
     spots.forEach(spot => {
@@ -3267,264 +3710,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     };
   }
 
-  async fetchApiRoutes(): Promise<void> {
-    this.isLoadingApiRoutes = true;
-    
-    try {
-      if (this.availableItineraries.length === 0) {
-        throw new Error('No itineraries available');
-      }
 
-      const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
-      if (!selectedItinerary || !selectedItinerary.days) {
-        throw new Error('No valid itinerary selected');
-      }
 
-      // Use real user location
-      const userLocation = this.userLocation;
 
-      // Extract spots from itinerary
-      const spots: any[] = [];
-      selectedItinerary.days.forEach((day: any) => {
-        if (day.spots) {
-          const daySpotsArray = Array.isArray(day.spots) ? day.spots : Object.values(day.spots);
-          daySpotsArray.forEach((spot: any) => {
-            if (spot && spot.location && spot.location.lat && spot.location.lng) {
-              spots.push(spot);
-            }
-          });
-        }
-      });
-
-      if (spots.length === 0) {
-        throw new Error('No valid spots found in itinerary');
-      }
-
-      // Show loading message
-      await this.showToast(`Fetching API routes for ${spots.length} spots...`);
-
-      // Fetch routes using Google Directions API
-      const apiRoutes = await this.fetchGoogleDirections(userLocation, spots);
-      this.apiRouteInfo = apiRoutes;
-      
-      // Show success message
-      await this.showToast(`✅ API routes loaded successfully!`);
-      
-      // Automatically show the routes on map
-      await this.showApiRoutesOnMap();
-      
-    } catch (error) {
-      console.error('Error fetching API routes:', error);
-      
-      // Show specific error message
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      await this.showToast(`❌ API Error: ${errorMessage}`);
-    } finally {
-      this.isLoadingApiRoutes = false;
-    }
-  }
-
-  private async fetchGoogleDirections(userLocation: any, spots: any[]): Promise<any> {
-    const segments: any[] = [];
-    let totalDuration = 0;
-    let totalDistance = 0;
-    let totalFare = 0;
-    let routePolylines: any[] = []; // Store polyline data for drawing
-
-    // Create route sequence: user → spot1 → spot2 → ... → spotN
-    const routeSequence = [userLocation, ...spots];
-
-    // Generate cache key for this route
-    const cacheKey = this.generateRouteCacheKey(routeSequence);
-    
-    // Check cache first
-    const cachedResult = this.getCachedRoute(cacheKey);
-    if (cachedResult) {
-      return cachedResult;
-    }
-
-    try {
-      // Check API limit for multiple calls
-      const canCall = await this.apiTracker.canCallApiToday('directions', routeSequence.length * 50);
-      if (!canCall) {
-        throw new Error('API limit reached for today');
-      }
-
-      // Fetch directions for each segment individually
-      for (let i = 0; i < routeSequence.length - 1; i++) {
-        const from = routeSequence[i];
-        const to = routeSequence[i + 1];
-        
-        const origin = `${from.lat || from.location.lat},${from.lng || from.location.lng}`;
-        const destination = `${to.location.lat},${to.location.lng}`;
-
-        // Log API call for this segment
-        this.apiTracker.logApiCall('directions', 'segment', { origin, destination, segmentIndex: i });
-
-        // Fetch directions for this segment
-        const result: any = await this.directionsService.getDirections(origin, destination, '', 'transit', true).toPromise();
-        
-        if (result && result.routes && result.routes.length > 0) {
-          const route = result.routes[0];
-          const leg = route.legs[0]; // Single leg for point-to-point
-          
-          // Parse steps to get transportation details
-          const steps = leg.steps || [];
-          const transitSteps = steps.filter((step: any) => step.travel_mode === 'TRANSIT');
-          
-          let transitDetails = '';
-          let transitType = 'unknown';
-          if (transitSteps.length > 0) {
-            const transit = transitSteps[0].transit_details;
-            const lineName = transit.line.name.toLowerCase();
-            const vehicleType = transit.line.vehicle?.type || '';
-            
-            // Determine transit type based on line name and vehicle type
-            if (lineName.includes('jeepney') || lineName.includes('jeep') || 
-                vehicleType === 'BUS' || lineName.includes('bus')) {
-              transitType = 'bus';
-            } else if (lineName.includes('jeepney') || lineName.includes('jeep')) {
-              transitType = 'jeepney';
-            } else {
-              // Default to bus for most transit
-              transitType = 'bus';
-            }
-            
-            transitDetails = `${transit.line.name} (${transit.line.short_name})`;
-          }
-
-          // Extract fare information if available
-          let segmentFare = 0;
-          
-          // Check multiple possible fare structures from Google Directions API
-          if (result.fare) {
-            if (result.fare.value) {
-              segmentFare = result.fare.value;
-            } else if (result.fare.amount) {
-              segmentFare = result.fare.amount;
-            } else if (typeof result.fare === 'number') {
-              segmentFare = result.fare;
-            }
-          }
-          
-          // If no fare from API, estimate based on transit type and distance
-          if (segmentFare === 0 && transitSteps.length > 0) {
-            const distanceKm = leg.distance.value / 1000; // Convert to km
-            if (transitType === 'jeepney') {
-              // Jeepney fare: ₱13-15 base fare
-              segmentFare = 1400; // 14 pesos in cents
-            } else if (transitType === 'bus') {
-              // Bus fare: ₱15-25 depending on distance
-              segmentFare = distanceKm > 10 ? 2500 : 1500; // 15-25 pesos in cents
-            }
-          }
-
-          // Define a color palette for different segments
-          const segmentColors = [
-            '#ff6b35', // Orange
-            '#4ecdc4', // Teal
-            '#45b7d1', // Blue
-            '#96ceb4', // Mint
-            '#feca57', // Yellow
-            '#ff9ff3', // Pink
-            '#54a0ff', // Light Blue
-            '#5f27cd', // Purple
-            '#00d2d3', // Cyan
-            '#ff9f43'  // Light Orange
-          ];
-
-          // Extract polyline data from steps with segment-specific styling
-          const legPolylines: any[] = [];
-          steps.forEach((step: any, stepIndex: number) => {
-            if (step.polyline && step.polyline.points) {
-              const decodedPoints = this.decodePolyline(step.polyline.points);
-              const segmentColor = segmentColors[i % segmentColors.length]; // Cycle through colors
-              const isWalking = step.travel_mode === 'WALKING';
-              
-              legPolylines.push({
-                points: decodedPoints,
-                mode: step.travel_mode,
-                segmentIndex: i,
-                from: from.name || 'User Location',
-                to: to.name,
-                color: isWalking ? '#28a745' : segmentColor, // Green for walking, segment color for transit
-                weight: isWalking ? 3 : 6, // Thinner for walking, thicker for transit
-                dashArray: isWalking ? '10, 5' : '0', // Dashed for walking, solid for transit
-                instructions: step.html_instructions,
-                segmentColor: segmentColor, // Store the segment color for reference
-                transitDetails: step.travel_mode === 'TRANSIT' ? transitDetails : null // Add transit details for transit steps
-              });
-
-            }
-          });
-
-          const segment = {
-            from: from.name || 'User Location',
-            to: to.name,
-            mode: transitSteps.length > 0 ? 'transit' : 'walking',
-            transitType: transitType,
-            duration: leg.duration.text,
-            distance: leg.distance.text,
-            instructions: leg.end_address,
-            transitDetails: transitDetails,
-            polylines: legPolylines,
-            segmentIndex: i,
-            segmentColor: segmentColors[i % segmentColors.length], // Add segment color
-            fare: segmentFare > 0 ? this.formatFare(segmentFare) : null // Add fare information
-          };
-          
-          segments.push(segment);
-          routePolylines.push(...legPolylines);
-
-          totalDuration += leg.duration.value;
-          totalDistance += leg.distance.value;
-          totalFare += segmentFare;
-        }
-              }
-
-      // Check if any public transport is available
-      const hasPublicTransport = segments.some(segment => 
-        segment.mode === 'transit' || 
-        segment.transitDetails || 
-        segment.transitType === 'jeepney' || 
-        segment.transitType === 'bus'
-      );
-
-      if (!hasPublicTransport && segments.length > 0) {
-        const noTransportResult = {
-          segments: [],
-          totalDuration: '0m',
-          totalDistance: '0m',
-          totalFare: '₱0.00',
-          routePolylines: [],
-          noTransportAvailable: true,
-          message: "Can't seem to find a way there"
-        };
-        
-        // Cache the no transport result
-        this.setCachedRoute(cacheKey, noTransportResult);
-        
-        return noTransportResult;
-      }
-
-      const result = {
-        segments: segments,
-        totalDuration: this.formatDuration(totalDuration),
-        totalDistance: this.formatDistance(totalDistance),
-        totalFare: this.formatFare(totalFare),
-        routePolylines: routePolylines, // Include polyline data for drawing
-        noTransportAvailable: false
-      };
-
-      // Cache the successful result
-      this.setCachedRoute(cacheKey, result);
-
-      return result;
-    } catch (error) {
-      console.error('Error fetching Google Directions:', error);
-      throw error;
-    }
-  }
 
   private formatDuration(seconds: number): string {
     const hours = Math.floor(seconds / 3600);
@@ -3542,388 +3730,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return `₱${pesos.toFixed(2)}`;
   }
 
-  private parseJeepneyLabel(transitDetails: string): string {
-    // Parse transit details in format "Jeepney Name (Short Code)"
-    // Example: "Inayawan-Colon (11A)" -> "🚌 Inayawan-Colon (11A)"
-    
-    if (!transitDetails) {
-      return '🚌'; // Just show jeepney icon, no "Transit" text
-    }
-    
-    // Check if it's in the expected format "Name (Code)"
-    const match = transitDetails.match(/^(.+?)\s*\((.+?)\)$/);
-    if (match) {
-      const jeepneyName = match[1].trim();
-      const jeepneyCode = match[2].trim();
-      return `🚌 ${jeepneyName} (${jeepneyCode})`;
-    }
-    
-    // Fallback: just return the transit details with jeepney icon
-    return `🚌 ${transitDetails}`;
-  }
 
-  async showApiRoutesOnMap(): Promise<void> {
-    // Clear existing API routes and markers only
-    this.clearAllRouteLines();
-    this.clearApiMarkers();
-    
-    // Keep tourist spot markers and user location markers
-    
-    if (!this.apiRouteInfo) {
-      return;
-    }
 
-    // Check if no transport is available
-    if (this.apiRouteInfo.noTransportAvailable) {
-      // Show tourist spot markers only
-      const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
-      if (selectedItinerary && selectedItinerary.days) {
-        selectedItinerary.days.forEach((day: any) => {
-          if (day.spots) {
-            const daySpotsArray = Array.isArray(day.spots) ? day.spots : Object.values(day.spots);
-            daySpotsArray.forEach((spot: any, index: number) => {
-              if (spot && spot.location && spot.location.lat && spot.location.lng) {
-                const spotMarker = L.marker([spot.location.lat, spot.location.lng], {
-                  icon: this.getApiRouteMarkerIcon(spot, index + 1)
-                }).addTo(this.map);
-                
-                spotMarker.bindPopup(this.createDirectionSpotPopup(spot, index + 1));
-                this.apiMarkers.push(spotMarker);
-              }
-            });
-          }
-        });
-      }
 
-      // Show a toast message
-      await this.showToast(this.apiRouteInfo.message || "Can't seem to find a way there");
-      return;
-    }
 
-    // Use real user location
-    const userLocation = this.userLocation;
-
-    // Add user location marker for API routes
-    const userMarker = L.marker([userLocation.lat, userLocation.lng], {
-      icon: L.divIcon({
-        html: `<div style="
-          background: #28a745;
-          color: white;
-          border-radius: 50%;
-          width: 25px;
-          height: 25px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          border: 2px solid white;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        ">📍</div>`,
-        className: 'user-location-marker',
-        iconSize: [25, 25],
-        iconAnchor: [12, 12]
-      })
-    }).addTo(this.map);
-
-    // Add popup for user location
-    userMarker.bindPopup(`
-      <div style="min-width: 150px;">
-        <h4 style="margin: 0 0 8px 0; color: #333;">Your Location</h4>
-        <p style="margin: 4px 0; color: #666;">${userLocation.name}</p>
-      </div>
-    `);
-
-    this.apiMarkers.push(userMarker);
-
-    // Add tourist spot markers for API routes
-    const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
-    if (selectedItinerary && selectedItinerary.days) {
-      // Create a map to track unique locations and prevent duplicates
-      const locationMap = new Map<string, any>();
-      let spotIndex = 1;
-      
-      selectedItinerary.days.forEach((day: any) => {
-        if (day.spots) {
-          const daySpotsArray = Array.isArray(day.spots) ? day.spots : Object.values(day.spots);
-          daySpotsArray.forEach((spot: any) => {
-            if (spot && spot.location && spot.location.lat && spot.location.lng) {
-              // Create a unique key for this location (rounded to 4 decimal places to handle slight variations)
-              const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
-              
-              // Check if we already have a marker at this location
-              if (locationMap.has(locationKey)) {
-                return; // Skip creating duplicate marker
-              }
-              
-              // Add to location map to prevent duplicates
-              locationMap.set(locationKey, spot);
-              
-              const spotMarker = L.marker([spot.location.lat, spot.location.lng], {
-                icon: this.getApiRouteMarkerIcon(spot, spotIndex)
-              }).addTo(this.map);
-              spotMarker.bindPopup(this.createDirectionSpotPopup(spot, spotIndex));
-              this.apiMarkers.push(spotMarker);
-              spotIndex++;
-            }
-          });
-        }
-      });
-    }
-
-    // Draw API routes on map
-    await this.drawApiRoutesOnMap(userLocation, this.apiRouteInfo);
-  }
-
-  private async drawApiRoutesOnMap(userLocation: any, apiRouteInfo: any): Promise<void> {
-    // Check if we have polyline data from Google Directions
-    if (apiRouteInfo.routePolylines && apiRouteInfo.routePolylines.length > 0) {
-      
-      // Draw each polyline segment from Google Directions with enhanced styling
-      apiRouteInfo.routePolylines.forEach((polylineData: any, index: number) => {
-        if (polylineData.points && polylineData.points.length > 0) {
-          const routeLine = L.polyline(polylineData.points, {
-            color: polylineData.color || '#2196f3',
-            weight: polylineData.weight || (polylineData.mode === 'walking' ? 3 : 6),
-            opacity: 0.8,
-            dashArray: polylineData.dashArray || (polylineData.mode === 'walking' ? '10, 5' : '0')
-          }).addTo(this.map);
-          
-          this.apiRouteLines.push(routeLine);
-          
-          // Add label to the route line
-          if (polylineData.points.length > 1) {
-            const midPoint = polylineData.points[Math.floor(polylineData.points.length / 2)];
-            const labelText = polylineData.mode === 'TRANSIT' ? 
-              (polylineData.transitDetails ? this.parseJeepneyLabel(polylineData.transitDetails) : '🚌') : 
-              '🚶 Walk';
-            
-            const routeLabel = L.divIcon({
-              html: `<div style="
-                background: ${polylineData.color || (polylineData.mode === 'TRANSIT' ? '#ff6b35' : '#28a745')};
-                color: white;
-                border-radius: 4px;
-                padding: 2px 6px;
-                font-size: 10px;
-                font-weight: bold;
-                border: 1px solid white;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                white-space: nowrap;
-                text-align: center;
-              ">${labelText}</div>`,
-              className: 'route-label',
-              iconSize: [180, 20],
-              iconAnchor: [90, 10]
-            });
-            
-            const labelMarker = L.marker(midPoint, {
-              icon: routeLabel
-            }).addTo(this.map);
-            
-            this.apiRouteLines.push(labelMarker);
-          }
-          
-          // Add start and end markers for each segment
-          if (polylineData.points.length > 0) {
-            const startPoint = polylineData.points[0];
-            const endPoint = polylineData.points[polylineData.points.length - 1];
-            
-            // Start marker with segment-specific styling
-            const startMarker = L.marker(startPoint, {
-              icon: L.divIcon({
-                html: `<div style="
-                  background: ${polylineData.color || (polylineData.mode === 'TRANSIT' ? '#ff6b35' : '#28a745')};
-                  color: white;
-                  border-radius: 50%;
-                  width: 24px;
-                  height: 24px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-size: 14px;
-                  font-weight: bold;
-                  border: 2px solid white;
-                  box-shadow: 0 3px 6px rgba(0,0,0,0.4);
-                ">${polylineData.mode === 'TRANSIT' ? '🚌' : '🚶'}</div>`,
-                className: 'segment-marker',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-              })
-            }).addTo(this.map);
-            
-            // End marker with segment-specific styling
-            const endMarker = L.marker(endPoint, {
-              icon: L.divIcon({
-                html: `<div style="
-                  background: ${polylineData.color || (polylineData.mode === 'TRANSIT' ? '#ff6b35' : '#28a745')};
-                  color: white;
-                  border-radius: 50%;
-                  width: 24px;
-                  height: 24px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-size: 14px;
-                  font-weight: bold;
-                  border: 2px solid white;
-                  box-shadow: 0 3px 6px rgba(0,0,0,0.4);
-                ">${polylineData.mode === 'TRANSIT' ? '🚌' : '🚶'}</div>`,
-                className: 'segment-marker',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-              })
-            }).addTo(this.map);
-            
-            this.apiRouteLines.push(startMarker, endMarker);
-          }
-        }
-      });
-    } else {
-      // Fallback to simplified route (current behavior)
-      const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
-      const spots: any[] = [];
-      
-      selectedItinerary.days.forEach((day: any) => {
-        if (day.spots) {
-          const daySpotsArray = Array.isArray(day.spots) ? day.spots : Object.values(day.spots);
-          daySpotsArray.forEach((spot: any) => {
-            if (spot && spot.location && spot.location.lat && spot.location.lng) {
-              spots.push(spot);
-            }
-          });
-        }
-      });
-
-      // Create route coordinates
-      const routeCoordinates: L.LatLng[] = [];
-      routeCoordinates.push(L.latLng(userLocation.lat, userLocation.lng));
-      spots.forEach(spot => {
-        routeCoordinates.push(L.latLng(spot.location.lat, spot.location.lng));
-      });
-
-      // Get snapped route path using OSRM for API routes too
-      const snappedRoutePath = await this.getSnappedRoutePath(routeCoordinates);
-
-      // Draw API route with different colors for different segments
-      const apiSegmentColors = [
-        '#9c27b0', // Purple
-        '#2196f3', // Blue
-        '#4caf50', // Green
-        '#ff9800', // Orange
-        '#f44336', // Red
-        '#00bcd4', // Cyan
-        '#795548', // Brown
-        '#607d8b'  // Blue Grey
-      ];
-
-      // Draw each segment with different colors
-      for (let i = 0; i < snappedRoutePath.length - 1; i++) {
-        const segmentColor = apiSegmentColors[i % apiSegmentColors.length];
-        const segmentLine = L.polyline([snappedRoutePath[i], snappedRoutePath[i + 1]], {
-          color: segmentColor,
-          weight: 4,
-          opacity: 0.8,
-          dashArray: '15, 10'
-        }).addTo(this.map);
-        
-        this.apiRouteLines.push(segmentLine);
-        
-        // Add label to the segment
-        const midPoint = L.latLng(
-          (snappedRoutePath[i].lat + snappedRoutePath[i + 1].lat) / 2,
-          (snappedRoutePath[i].lng + snappedRoutePath[i + 1].lng) / 2
-        );
-        
-        const segmentLabel = L.divIcon({
-          html: `<div style="
-            background: ${segmentColor};
-            color: white;
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-size: 10px;
-            font-weight: bold;
-            border: 1px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            white-space: nowrap;
-            text-align: center;
-          ">🚌 Route ${i + 1}</div>`,
-          className: 'route-label',
-          iconSize: [90, 20],
-          iconAnchor: [45, 10]
-        });
-        
-        const labelMarker = L.marker(midPoint, {
-          icon: segmentLabel
-        }).addTo(this.map);
-        
-        this.apiRouteLines.push(labelMarker);
-      }
-
-      // Add API route markers
-      apiRouteInfo.segments.forEach((segment: any, index: number) => {
-        const spot = spots[index];
-        if (spot) {
-          const markerIcon = L.divIcon({
-            className: 'api-route-marker',
-            html: `<div style="
-              background: ${segment.mode === 'transit' ? '#9c27b0' : '#4caf50'};
-              color: white;
-              border-radius: 50%;
-              width: 32px;
-              height: 32px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 16px;
-              border: 2px solid white;
-              box-shadow: 0 3px 6px rgba(0,0,0,0.4);
-            ">${segment.mode === 'transit' ? '🚌' : '🚶'}</div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-          });
-
-          const marker = L.marker([spot.location.lat, spot.location.lng], {
-            icon: markerIcon
-          }).addTo(this.map);
-
-          const popupContent = `
-            <div style="text-align: center; min-width: 200px;">
-              <h4 style="margin: 0 0 8px 0; color: #333;">${segment.from} → ${segment.to}</h4>
-              ${segment.transitDetails ? `<p style="margin: 4px 0; color: #9c27b0; font-weight: bold;">🚌 ${segment.transitDetails}</p>` : ''}
-              <p style="margin: 4px 0; color: #666; font-size: 0.9em;">⏱️ ${segment.duration}</p>
-              <p style="margin: 4px 0; color: #666; font-size: 0.9em;">📏 ${segment.distance}</p>
-            </div>
-          `;
-          
-          marker.bindPopup(popupContent);
-        }
-      });
-    }
-  }
-
-  getApiRouteIcon(mode: string): string {
-    switch (mode) {
-      case 'transit': return 'car';
-      case 'walking': return 'walk';
-      case 'driving': return 'car';
-      default: return 'location';
-    }
-  }
-
-  getApiRouteColor(mode: string): string {
-    switch (mode) {
-      case 'transit': return 'primary';
-      case 'walking': return 'success';
-      case 'driving': return 'warning';
-      default: return 'medium';
-    }
-  }
-
-  showApiRouteOnMap(segment: any): void {
-
-    // Implementation for showing individual API route segment
-  }
-
-  // Method to display jeepney routes on map for reference
+  ////////////////// Method to display jeepney routes on map for reference
   private showJeepneyRoutesOnMap(): void {
     // Check if jeepney routes are loaded
     if (!this.jeepneyRoutes || this.jeepneyRoutes.length === 0) {
@@ -3994,7 +3805,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     });
   }
 
-  // Enhanced route finding with walking directions to nearest jeepney stop
+  ///////////// Enhanced route finding with walking directions to nearest jeepney stop
+
   private async findRouteWithWalkingDirections(from: any, to: any): Promise<any> {
     const nearestJeepney = this.getNearestJeepneyStop(from);
     const bestRoute = this.findBestJeepneyRoute(from, to);
@@ -4029,7 +3841,471 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     };
   }
 
-  // Test proxy connection
+  ///////////////////////// Route Suggestions using Proxy Server
+
+  /**
+   * Fetch route suggestions from the proxy server using Google Routes API
+   */
+  private async fetchRouteSuggestions(origin: any, destination: any, waypoints?: any[]): Promise<any[]> {
+    try {
+      if (!origin || !destination || !origin.location || !destination.location) {
+        console.warn('Invalid origin or destination for route suggestions');
+        return [];
+      }
+
+      const requestBody: any = {
+        origin: {
+          location: {
+            latLng: {
+              latitude: origin.location.lat,
+              longitude: origin.location.lng
+            }
+          }
+        },
+        destination: {
+          location: {
+            latLng: {
+              latitude: destination.location.lat,
+              longitude: destination.location.lng
+            }
+          }
+        },
+        travelMode: 'TRANSIT',
+        routingPreference: 'TRAFFIC_AWARE',
+        computeAlternativeRoutes: true,
+        routeModifiers: {
+          avoidTolls: false,
+          avoidHighways: false
+        },
+        departureTime: new Date().toISOString(),
+        polylineEncoding: 'ENCODED_POLYLINE'
+      };
+
+      // Add waypoints if provided
+      if (waypoints && waypoints.length > 0) {
+        requestBody.waypoints = waypoints.map(waypoint => ({
+          location: {
+            latLng: {
+              latitude: waypoint.location.lat,
+              longitude: waypoint.location.lng
+            }
+          }
+        }));
+      }
+
+      console.log('🚗 Fetching route suggestions from proxy server...');
+      const response: any = await this.directionsService.computeRoutes(requestBody).toPromise();
+      
+      if (response && response.routes && response.routes.length > 0) {
+        console.log(`✅ Found ${response.routes.length} route suggestions`);
+        return this.processRouteSuggestions(response.routes, origin, destination);
+      } else {
+        console.log('⚠️ No route suggestions found');
+        return [];
+      }
+    } catch (error) {
+      console.error('❌ Error fetching route suggestions:', error);
+      // Fallback to basic route calculation
+      return this.generateFallbackRoutes(origin, destination);
+    }
+  }
+
+  /**
+   * Process route suggestions from Google Routes API response
+   */
+  private processRouteSuggestions(routes: any[], origin: any, destination: any): any[] {
+    return routes.map((route, index) => {
+      const routeInfo = {
+        id: `route_${index}`,
+        title: `Route ${index + 1}`,
+        summary: this.generateRouteSummary(route),
+        totalDuration: this.formatDuration(route.duration),
+        totalDistance: this.formatDistance(route.distanceMeters),
+        totalFare: this.estimateFare(route),
+        segments: this.extractRouteSegments(route),
+        polyline: route.polyline?.encodedPolyline,
+        routeIndex: index,
+        isRecommended: index === 0 // First route is usually the best
+      };
+
+      console.log(`🛣️ Processed route ${index + 1}:`, routeInfo.summary);
+      return routeInfo;
+    });
+  }
+
+  /**
+   * Generate a human-readable summary of the route
+   */
+  private generateRouteSummary(route: any): string {
+    if (!route.legs || route.legs.length === 0) {
+      return 'Direct route';
+    }
+
+    const modes = new Set<string>();
+    route.legs.forEach((leg: any) => {
+      if (leg.steps) {
+        leg.steps.forEach((step: any) => {
+          if (step.travelMode) {
+            modes.add(step.travelMode.toLowerCase());
+          }
+        });
+      }
+    });
+
+    const modeList = Array.from(modes);
+    if (modeList.length === 1) {
+      return `${modeList[0].charAt(0).toUpperCase() + modeList[0].slice(1)} only`;
+    } else if (modeList.length === 2) {
+      return `${modeList[0].charAt(0).toUpperCase() + modeList[0].slice(1)} + ${modeList[1]}`;
+    } else {
+      return 'Mixed transport';
+    }
+  }
+
+  /**
+   * Extract route segments from Google Routes API response
+   */
+  private extractRouteSegments(route: any): any[] {
+    if (!route.legs || route.legs.length === 0) {
+      return [];
+    }
+
+    return route.legs.map((leg: any, index: number) => {
+      const segment = {
+        from: leg.startLocation?.latLng ? 
+          `${leg.startLocation.latLng.latitude.toFixed(4)}, ${leg.startLocation.latLng.longitude.toFixed(4)}` : 
+          'Unknown',
+        to: leg.endLocation?.latLng ? 
+          `${leg.endLocation.latLng.latitude.toFixed(4)}, ${leg.endLocation.latLng.longitude.toFixed(4)}` : 
+          'Unknown',
+        duration: this.formatDuration(leg.staticDuration || leg.duration),
+        distance: this.formatDistance(leg.distanceMeters),
+        mode: this.determineTransportMode(leg),
+        instructions: this.generateSegmentInstructions(leg),
+        polyline: leg.polyline?.encodedPolyline,
+        transitDetails: this.extractTransitDetails(leg)
+      };
+
+      return segment;
+    });
+  }
+
+  /**
+   * Determine the primary transport mode for a route leg
+   */
+  private determineTransportMode(leg: any): string {
+    if (!leg.steps || leg.steps.length === 0) {
+      return 'unknown';
+    }
+
+    // Count different transport modes
+    const modeCounts: { [key: string]: number } = {};
+    leg.steps.forEach((step: any) => {
+      const mode = step.travelMode?.toLowerCase() || 'unknown';
+      modeCounts[mode] = (modeCounts[mode] || 0) + 1;
+    });
+
+    // Return the most common mode
+    return Object.keys(modeCounts).reduce((a, b) => 
+      modeCounts[a] > modeCounts[b] ? a : b
+    );
+  }
+
+  /**
+   * Generate human-readable instructions for a route segment
+   */
+  private generateSegmentInstructions(leg: any): string {
+    if (!leg.steps || leg.steps.length === 0) {
+      return 'Follow the route';
+    }
+
+    const instructions = leg.steps.map((step: any) => {
+      if (step.travelMode === 'WALKING') {
+        return `Walk ${step.staticDuration ? this.formatDuration(step.staticDuration) : ''}`;
+      } else if (step.travelMode === 'TRANSIT') {
+        return `Take transit ${step.staticDuration ? this.formatDuration(step.staticDuration) : ''}`;
+      } else if (step.travelMode === 'DRIVING') {
+        return `Drive ${step.staticDuration ? this.formatDuration(step.staticDuration) : ''}`;
+      }
+      return 'Continue';
+    });
+
+    return instructions.join(', ');
+  }
+
+  /**
+   * Extract transit details from route leg
+   */
+  private extractTransitDetails(leg: any): any {
+    if (!leg.steps) return null;
+
+    const transitSteps = leg.steps.filter((step: any) => step.travelMode === 'TRANSIT');
+    if (transitSteps.length === 0) return null;
+
+    // Return details of the first transit step
+    const transitStep = transitSteps[0];
+    return {
+      line: transitStep.transitDetails?.line?.name || 'Transit',
+      vehicle: transitStep.transitDetails?.line?.vehicle?.type || 'Bus',
+      headsign: transitStep.transitDetails?.headsign || 'Unknown destination'
+    };
+  }
+
+
+
+  /**
+   * Estimate fare for the route (basic estimation)
+   */
+  private estimateFare(route: any): string {
+    if (!route.legs) return 'Unknown';
+    
+    let totalFare = 0;
+    route.legs.forEach((leg: any) => {
+      if (leg.steps) {
+        leg.steps.forEach((step: any) => {
+          if (step.travelMode === 'TRANSIT') {
+            // Basic fare estimation for Cebu
+            totalFare += 15; // ₱15 per transit segment
+          }
+        });
+      }
+    });
+    
+    return totalFare > 0 ? `₱${totalFare}` : 'Free';
+  }
+
+  /**
+   * Generate fallback routes when API fails
+   */
+  private generateFallbackRoutes(origin: any, destination: any): any[] {
+    const distance = this.getDistance(origin, destination);
+    const estimatedTime = Math.round(distance / 0.0011); // Walking speed
+    
+    return [{
+      id: 'fallback_route',
+      title: 'Fallback Route',
+      summary: 'Walking route (API unavailable)',
+      totalDuration: `${estimatedTime} min`,
+      totalDistance: `${(distance / 1000).toFixed(1)}km`,
+      totalFare: 'Free',
+      segments: [{
+        from: origin.name || 'Origin',
+        to: destination.name || 'Destination',
+        duration: `${estimatedTime} min`,
+        distance: `${(distance / 1000).toFixed(1)}km`,
+        mode: 'walking',
+        instructions: `Walk from ${origin.name || 'origin'} to ${destination.name || 'destination'}`,
+        polyline: null,
+        transitDetails: null
+      }],
+      polyline: null,
+      routeIndex: 0,
+      isRecommended: true
+    }];
+  }
+
+  /**
+   * Load and display route suggestions for the selected itinerary
+   */
+  async loadRouteSuggestions(): Promise<void> {
+    if (this.selectedItineraryIndex < 0 || !this.availableItineraries[this.selectedItineraryIndex]) {
+      await this.showToast('Please select an itinerary first');
+      return;
+    }
+
+    const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
+    if (!selectedItinerary.days || selectedItinerary.days.length === 0) {
+      await this.showToast('Selected itinerary has no spots');
+      return;
+    }
+
+    // Get user location
+    const userLocation = this.userLocation || { 
+      location: { lat: 10.3157, lng: 123.8854 }, 
+      name: 'Cebu City Center' 
+    };
+
+    // Get first and last spots from itinerary
+    const firstDay = selectedItinerary.days[0];
+    const lastDay = selectedItinerary.days[selectedItinerary.days.length - 1];
+    
+    let firstSpot = null;
+    let lastSpot = null;
+
+    if (firstDay && firstDay.spots) {
+      const spots = Array.isArray(firstDay.spots) ? firstDay.spots : Object.values(firstDay.spots);
+      firstSpot = spots[0];
+    }
+
+    if (lastDay && lastDay.spots) {
+      const spots = Array.isArray(lastDay.spots) ? lastDay.spots : Object.values(lastDay.spots);
+      lastSpot = spots[spots.length - 1];
+    }
+
+    if (!firstSpot || !lastSpot) {
+      await this.showToast('Could not determine route start and end points');
+      return;
+    }
+
+    // Fetch route suggestions
+    const routeSuggestions = await this.fetchRouteSuggestions(userLocation, lastSpot, [firstSpot]);
+    
+    if (routeSuggestions.length > 0) {
+      // Update current route info with suggestions
+      this.currentRouteInfo = {
+        totalDuration: routeSuggestions[0].totalDuration,
+        totalDistance: routeSuggestions[0].totalDistance,
+        totalFare: routeSuggestions[0].totalFare,
+        segments: routeSuggestions[0].segments,
+        suggestedRoutes: routeSuggestions,
+        selectedRouteIndex: 0
+      };
+
+      // Display route on map
+      this.displayRouteOnMap(routeSuggestions[0]);
+      
+      await this.showToast(`Found ${routeSuggestions.length} route suggestions`);
+    } else {
+      await this.showToast('No route suggestions available');
+    }
+  }
+
+  /**
+   * Select a specific route from the suggestions
+   */
+  selectRoute(routeIndex: number): void {
+    if (!this.currentRouteInfo || !this.currentRouteInfo.suggestedRoutes) {
+      return;
+    }
+
+    const selectedRoute = this.currentRouteInfo.suggestedRoutes[routeIndex];
+    if (selectedRoute) {
+      this.currentRouteInfo.selectedRouteIndex = routeIndex;
+      
+      // Update the main route info
+      this.currentRouteInfo.totalDuration = selectedRoute.totalDuration;
+      this.currentRouteInfo.totalDistance = selectedRoute.totalDistance;
+      this.currentRouteInfo.totalFare = selectedRoute.totalFare;
+      this.currentRouteInfo.segments = selectedRoute.segments;
+
+      // Display the selected route on the map
+      this.displayRouteOnMap(selectedRoute);
+      
+      console.log(`🛣️ Selected route ${routeIndex + 1}:`, selectedRoute.title);
+    }
+  }
+
+  /**
+   * Display the selected route on the map
+   */
+  private displayRouteOnMap(route: any): void {
+    // Clear existing route lines
+    this.clearAllRouteLines();
+
+    if (route.polyline) {
+      try {
+        // Decode polyline and create route line
+        const decodedPolyline = this.decodePolyline(route.polyline);
+        if (decodedPolyline.length > 1) {
+          const routeLine = L.polyline(decodedPolyline, {
+            color: '#ff6b35',
+            weight: 6,
+            opacity: 0.8
+          }).addTo(this.map);
+
+          this.routeLines.push(routeLine);
+          
+          // Fit map to route bounds
+          const bounds = L.latLngBounds(decodedPolyline);
+          this.map.fitBounds(bounds, { padding: [50, 50] });
+        }
+      } catch (error) {
+        console.error('Error displaying route on map:', error);
+      }
+    }
+
+    // Display route segments as markers
+    if (route.segments && route.segments.length > 0) {
+      route.segments.forEach((segment: any, index: number) => {
+        // Add start marker
+        if (segment.from && segment.from.includes(',')) {
+          const [lat, lng] = segment.from.split(',').map(Number);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            const marker = L.marker([lat, lng], {
+              icon: L.divIcon({
+                html: `<div style="
+                  background: #ff6b35;
+                  color: white;
+                  border-radius: 50%;
+                  width: 20px;
+                  height: 20px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 12px;
+                  font-weight: bold;
+                ">${index + 1}</div>`,
+                className: 'route-segment-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+              })
+            }).addTo(this.map);
+
+            marker.bindPopup(`
+              <div style="min-width: 150px;">
+                <h4 style="margin: 0 0 8px 0; color: #333;">Route Segment ${index + 1}</h4>
+                <p style="margin: 4px 0; color: #666;">${segment.instructions}</p>
+                <p style="margin: 4px 0; color: #666;">Duration: ${segment.duration}</p>
+                <p style="margin: 4px 0; color: #666;">Distance: ${segment.distance}</p>
+              </div>
+            `);
+
+            this.routeLines.push(marker);
+          }
+        }
+      });
+    }
+  }
+
+  /**
+   * Decode Google's encoded polyline format
+   */
+  private decodePolyline(encoded: string): [number, number][] {
+    const poly: [number, number][] = [];
+    let index = 0, len = encoded.length;
+    let lat = 0, lng = 0;
+
+    while (index < len) {
+      let shift = 0, result = 0;
+
+      do {
+        let b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (result >= 0x20);
+
+      let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+
+      do {
+        let b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (result >= 0x20);
+
+      let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      poly.push([lat / 1E5, lng / 1E5]);
+    }
+
+    return poly;
+  }
+
+  ///////////////////////// Test proxy connection
 
 
 
@@ -4075,306 +4351,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.viewContainerRef.insert(componentRef.hostView);
   }
 
-  async showRouteDetailsSheet(): Promise<void> {
-    let routeInfo;
-    
-    if (this.apiRouteInfo) {
-      // Check if no transport is available
-      if (this.apiRouteInfo.noTransportAvailable) {
-        await this.showToast(this.apiRouteInfo.message || "Can't seem to find a way there");
-        return;
-      }
-      
-      routeInfo = {
-        title: this.formatItineraryTitle(this.availableItineraries[this.selectedItineraryIndex]) + ' (API)',
-        totalDuration: this.apiRouteInfo.totalDuration,
-        totalDistance: this.apiRouteInfo.totalDistance,
-        totalFare: this.apiRouteInfo.totalFare,
-        segments: this.apiRouteInfo.segments
-      };
-    } else {
-      await this.showToast('No route information available. Please fetch API routes first.');
-      return;
-    }
-
-    // Create the overlay component dynamically
-    const componentFactory = this.componentFactoryResolver.resolveComponentFactory(RouteDetailsOverlayComponent);
-    const componentRef = componentFactory.create(this.injector);
-
-    // Set the inputs
-    componentRef.instance.routeInfo = routeInfo;
-
-    // Attach to the view container
-    this.viewContainerRef.insert(componentRef.hostView);
-  }
-
-  async showApiRouteDetailsSheet(): Promise<void> {
-    if (this.selectedItineraryIndex < 0) {
-      await this.showToast('Please select an itinerary first.');
-      return;
-    }
-    
-    if (!this.apiRouteInfo) {
-      await this.showToast('No API route information available');
-      return;
-    }
-
-    // Check if no transport is available
-    if (this.apiRouteInfo.noTransportAvailable) {
-      await this.showToast(this.apiRouteInfo.message || "Can't seem to find a way there");
-      return;
-    }
-
-    const routeInfo = {
-      title: this.formatItineraryTitle(this.availableItineraries[this.selectedItineraryIndex]) + ' (API)',
-      totalDuration: this.apiRouteInfo.totalDuration,
-      totalDistance: this.apiRouteInfo.totalDistance,
-      segments: this.apiRouteInfo.segments
-    };
-
-    // Create the overlay component dynamically
-    const componentFactory = this.componentFactoryResolver.resolveComponentFactory(RouteDetailsOverlayComponent);
-    const componentRef = componentFactory.create(this.injector);
-    
-    // Set the inputs
-    componentRef.instance.routeInfo = routeInfo;
-    
-    
-    // Attach to the view container
-    this.viewContainerRef.insert(componentRef.hostView);
-    
-
-  }
-
-  // New Google Maps-style route drawing method
-  private async drawCuratedRouteWithMarkers(userLocation: any, spots: any[]): Promise<void> {
-    console.log(`🎯 drawCuratedRouteWithMarkers called with ${spots.length} spots`);
-    console.log(`🎯 Spots:`, spots.map(spot => ({ name: spot.name, lat: spot.location?.lat || spot.lat, lng: spot.location?.lng || spot.lng })));
-    
-    if (spots.length === 0) {
-      console.log(`⚠️ No spots to draw`);
-      return;
-    }
-
-    // Clear existing API routes and markers
-    this.apiRouteLines.forEach(line => {
-      if (this.map.hasLayer(line)) {
-        this.map.removeLayer(line);
-      }
-    });
-    this.apiRouteLines = [];
-
-    this.apiMarkers.forEach(marker => {
-      if (this.map.hasLayer(marker)) {
-        this.map.removeLayer(marker);
-      }
-    });
-    this.apiMarkers = [];
-    
 
 
-    // Add user location marker
-    const userMarker = L.marker([userLocation.lat, userLocation.lng], {
-      icon: L.divIcon({
-        html: `<div style="
-          background: #28a745;
-          color: white;
-          border-radius: 50%;
-          width: 25px;
-          height: 25px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          border: 2px solid white;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        ">📍</div>`,
-        className: 'user-location-marker',
-        iconSize: [25, 25],
-        iconAnchor: [12, 12]
-      })
-    }).addTo(this.map);
 
-    // Add popup for user location
-    userMarker.bindPopup(`
-      <div style="min-width: 150px;">
-        <h4 style="margin: 0 0 8px 0; color: #333;">Your Location</h4>
-        <p style="margin: 4px 0; color: #666;">${userLocation.name}</p>
-      </div>
-    `);
 
-    this.apiMarkers.push(userMarker);
-
-    // Create a map to track unique locations and prevent duplicates
-    const locationMap = new Map<string, any>();
-    let spotIndex = 1;
-
-    // Process each segment individually to show different line styles like Google Maps
-    for (let i = 0; i < spots.length; i++) {
-      const fromLocation = i === 0 ? userLocation : spots[i - 1];
-      const toLocation = spots[i];
-      
-      if (!fromLocation.location && !fromLocation.lat) {
-        fromLocation.location = { lat: fromLocation.lat, lng: fromLocation.lng };
-      }
-      if (!toLocation.location && !toLocation.lat) {
-        toLocation.location = { lat: toLocation.lat, lng: toLocation.lng };
-      }
-
-      const fromCoords = fromLocation.location || fromLocation;
-      const toCoords = toLocation.location || toLocation;
-
-      if (!fromCoords.lat || !fromCoords.lng || !toCoords.lat || !toCoords.lng) {
-        continue;
-      }
-
-      // Create a unique key for this location (rounded to 4 decimal places to handle slight variations)
-      const locationKey = `${toCoords.lat.toFixed(4)},${toCoords.lng.toFixed(4)}`;
-      
-      // Check if we already have a marker at this location
-      if (locationMap.has(locationKey)) {
-        continue; // Skip creating duplicate marker
-      }
-      
-      // Add to location map to prevent duplicates
-      locationMap.set(locationKey, toLocation);
-
-      // Create API marker for destination
-      const curatedMarker = L.marker([toCoords.lat, toCoords.lng], {
-        icon: this.getApiRouteMarkerIcon(toLocation, spotIndex)
-      }).addTo(this.map);
-
-      // Add popup for API marker
-      curatedMarker.bindPopup(this.createDirectionSpotPopup(toLocation, spotIndex));
-      this.apiMarkers.push(curatedMarker);
-      spotIndex++;
-
-      // Find multiple jeepney routes for this segment
-      const jeepneyRoutes = this.findMultipleJeepneyRoutesWithWaypoints(fromCoords, toCoords);
-      
-      if (jeepneyRoutes.length > 0) {
-        // Draw the best route as the main route
-        const bestRoute = jeepneyRoutes[0];
-        await this.drawJeepneyRouteWithWaypoints(fromCoords, toCoords, bestRoute);
-        
-        // Draw alternative routes with different colors
-        for (let j = 1; j < Math.min(jeepneyRoutes.length, 3); j++) {
-          const altRoute = jeepneyRoutes[j];
-          await this.drawAlternativeJeepneyRoute(fromCoords, toCoords, altRoute, j);
-        }
-      } else {
-        // Draw walking route (light grey line like Google Maps)
-        const walkLine = L.polyline([fromCoords, toCoords], {
-          color: '#9e9e9e', // Light grey like Google Maps
-          weight: 4,
-          opacity: 0.7,
-          dashArray: '5, 5' // Dashed line for walking
-        }).addTo(this.map);
-        
-        this.apiRouteLines.push(walkLine);
-      }
-    }
-
-    // Fit map to show all markers
-    if (this.apiMarkers.length > 0) {
-      const group = L.featureGroup(this.apiMarkers);
-      this.map.fitBounds(group.getBounds().pad(0.1));
-    }
-  }
-
-  // Cache methods for route suggestions
-  private generateRouteCacheKey(routeSequence: any[]): string {
-    const coordinates = routeSequence.map(point => {
-      const lat = point.lat || point.location?.lat;
-      const lng = point.lng || point.location?.lng;
-      return `${lat.toFixed(4)},${lng.toFixed(4)}`;
-    });
-    return `route_${coordinates.join('_')}`;
-  }
-
-  private getCachedRoute(cacheKey: string): any | null {
-    try {
-      const cached = localStorage.getItem(`route_cache_${cacheKey}`);
-      if (cached) {
-        const data = JSON.parse(cached);
-        // Check if cache is still valid (24 hours)
-        const now = Date.now();
-        if (now - data.timestamp < 24 * 60 * 60 * 1000) {
-          return data.route;
-        } else {
-          // Remove expired cache
-          localStorage.removeItem(`route_cache_${cacheKey}`);
-        }
-      }
-    } catch (error) {
-      // If cache is corrupted, remove it
-      localStorage.removeItem(`route_cache_${cacheKey}`);
-    }
-    return null;
-  }
-
-  private setCachedRoute(cacheKey: string, routeData: any): void {
-    try {
-      const cacheData = {
-        route: routeData,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(`route_cache_${cacheKey}`, JSON.stringify(cacheData));
-    } catch (error) {
-      // If localStorage is full, clear old cache entries
-      this.clearOldRouteCache();
-      try {
-        const cacheData = {
-          route: routeData,
-          timestamp: Date.now()
-        };
-        localStorage.setItem(`route_cache_${cacheKey}`, JSON.stringify(cacheData));
-      } catch (e) {
-        // If still fails, skip caching
-      }
-    }
-  }
-
-  private clearOldRouteCache(): void {
-    try {
-      const keys = Object.keys(localStorage);
-      const routeKeys = keys.filter(key => key.startsWith('route_cache_'));
-      
-      // Sort by timestamp and remove oldest entries
-      const cacheEntries = routeKeys.map(key => {
-        try {
-          const data = JSON.parse(localStorage.getItem(key) || '{}');
-          return { key, timestamp: data.timestamp || 0 };
-        } catch {
-          return { key, timestamp: 0 };
-        }
-      }).sort((a, b) => a.timestamp - b.timestamp);
-
-      // Remove oldest 50% of entries
-      const toRemove = Math.floor(cacheEntries.length / 2);
-      for (let i = 0; i < toRemove; i++) {
-        localStorage.removeItem(cacheEntries[i].key);
-      }
-    } catch (error) {
-      // If clearing fails, continue without caching
-    }
-  }
-
-  // Method to clear all route cache (for testing)
-  public clearAllRouteCache(): void {
-    try {
-      const keys = Object.keys(localStorage);
-      const routeKeys = keys.filter(key => key.startsWith('route_cache_'));
-      
-      routeKeys.forEach(key => {
-        localStorage.removeItem(key);
-      });
-      
-      console.log('🗑️ All route cache cleared');
-    } catch (error) {
-      console.log('⚠️ Error clearing route cache:', error);
-    }
-  }
+  
 
 
 }

@@ -29,6 +29,12 @@
   object-fit: cover;
   border-radius: 18px 18px 0 0;
   margin-bottom: 12px;
+  transition: opacity 0.3s ease;
+
+  &.error-image {
+    opacity: 0.3;
+    filter: grayscale(100%);
+  }
 }
 
 .back-btn {
@@ -132,6 +138,74 @@
   overflow: hidden;
 }
 
+// Image Error Overlay
+.image-error-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 2;
+
+  ion-icon {
+    font-size: 2em;
+    margin-bottom: 8px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9em;
+    text-align: center;
+  }
+}
+
+// Refresh Button
+.refresh-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  z-index: 3;
+  transition: background 0.2s;
+
+  &:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.9);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  ion-icon {
+    font-size: 1.1em;
+
+    &.spinning {
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .image-nav {
   position: absolute;
   top: 50%;
@@ -177,6 +251,11 @@
   border-radius: 12px;
   font-size: 0.8em;
   font-weight: 500;
+
+  .error-indicator {
+    color: #ff6b6b;
+    font-size: 0.75em;
+  }
 }
 
 .thumbnail-gallery {
@@ -201,15 +280,39 @@
   cursor: pointer;
   border: 2px solid transparent;
   transition: border-color 0.2s;
+  position: relative;
 
   &.active {
     border-color: #3880ff;
+  }
+
+  &.error-thumbnail {
+    border-color: #ff6b6b;
+    opacity: 0.6;
   }
 
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  .thumbnail-error {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(255, 107, 107, 0.9);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    ion-icon {
+      font-size: 0.7em;
+      color: white;
+    }
   }
 }
 

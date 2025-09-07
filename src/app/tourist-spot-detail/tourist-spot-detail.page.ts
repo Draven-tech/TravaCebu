@@ -2,9 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { AlertController } from '@ionic/angular';
+import { AlertController, ToastController } from '@ionic/angular';
 import { StorageService } from '../services/storage.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { PlacesImageService } from '../services/places-image.service';
 
 
 @Component({
@@ -26,6 +27,10 @@ export class TouristSpotDetailPage implements OnInit {
   uploadProgress: number = 0;
   reviewForm!: FormGroup;
   imageUrl: string = '';
+  
+  // Image refresh properties
+  isRefreshingImages = false;
+  enhancedSpot: any = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -34,7 +39,8 @@ export class TouristSpotDetailPage implements OnInit {
     private storageService: StorageService,
     private fb: FormBuilder,
     private alertCtrl: AlertController,
-
+    private toastCtrl: ToastController,
+    private placesImageService: PlacesImageService
   ) { }
 
   ngOnInit() {
@@ -52,6 +58,28 @@ export class TouristSpotDetailPage implements OnInit {
   loadSpot() {
     this.firestore.collection('tourist_spots').doc(this.spotId!).valueChanges().subscribe(data => {
       this.spotData = data;
+      if (data) {
+        // Try to enhance the spot with Google Places images
+        this.enhanceSpotWithGoogleImages();
+      }
+    });
+  }
+
+  // Enhance spot with Google Places images
+  private enhanceSpotWithGoogleImages() {
+    if (!this.spotData) return;
+    
+    this.placesImageService.enhanceTouristSpot(this.spotData).subscribe({
+      next: (enhancedSpot) => {
+        this.enhancedSpot = enhancedSpot;
+        // Update the spot data with Google images if available
+        if (enhancedSpot.googleImages && enhancedSpot.googleImages.length > 0 && !this.spotData.img) {
+          this.spotData.img = enhancedSpot.googleImages[0].url;
+        }
+      },
+      error: (error) => {
+        console.error('Error enhancing spot with Google images:', error);
+      }
     });
   }
 
@@ -223,4 +251,94 @@ export class TouristSpotDetailPage implements OnInit {
     this.showAlert('Error', 'Failed to mark as visited.');
   }
 }
+
+  // Refresh images from Google Places
+  async refreshImages() {
+    if (!this.spotData || this.isRefreshingImages) return;
+    
+    this.isRefreshingImages = true;
+    
+    try {
+      // Show loading toast
+      const loadingToast = await this.toastCtrl.create({
+        message: `Refreshing images for ${this.spotData.name}...`,
+        duration: 2000,
+        position: 'bottom'
+      });
+      loadingToast.present();
+
+      // Try to enhance the spot with fresh Google Places images
+      this.placesImageService.retryFetchImages(this.spotData).subscribe({
+        next: async (enhancedSpot) => {
+          this.enhancedSpot = enhancedSpot;
+          
+          // Update the spot data with new image if available
+          if (enhancedSpot.googleImages && enhancedSpot.googleImages.length > 0) {
+            const newImageUrl = enhancedSpot.googleImages[0].url;
+            this.spotData.img = newImageUrl;
+            
+            // Update the Firestore document with the new image
+            try {
+              await this.firestore.collection('tourist_spots').doc(this.spotId!).update({
+                img: newImageUrl
+              });
+              
+              // Show success toast
+              const successToast = await this.toastCtrl.create({
+                message: `Images refreshed and saved for ${this.spotData.name}!`,
+                duration: 2000,
+                color: 'success',
+                position: 'bottom'
+              });
+              successToast.present();
+              
+            } catch (firestoreError) {
+              console.error('Error updating Firestore document:', firestoreError);
+              
+              // Show error toast for Firestore update failure
+              const errorToast = await this.toastCtrl.create({
+                message: `Image refreshed but failed to save. Please try again.`,
+                duration: 3000,
+                color: 'warning',
+                position: 'bottom'
+              });
+              errorToast.present();
+            }
+          } else {
+            // Show no images found toast
+            const noImagesToast = await this.toastCtrl.create({
+              message: `No new images found for ${this.spotData.name}`,
+              duration: 2000,
+              color: 'warning',
+              position: 'bottom'
+            });
+            noImagesToast.present();
+          }
+        },
+        error: async (error) => {
+          console.error('Error refreshing images:', error);
+          
+          // Show error toast
+          const errorToast = await this.toastCtrl.create({
+            message: `Failed to refresh images for ${this.spotData.name}`,
+            duration: 3000,
+            color: 'danger',
+            position: 'bottom'
+          });
+          errorToast.present();
+        },
+        complete: () => {
+          this.isRefreshingImages = false;
+        }
+      });
+    } catch (error) {
+      console.error('Error refreshing spot images:', error);
+      this.isRefreshingImages = false;
+    }
+  }
+
+  // Check if spot has Google Places data
+  hasGoogleImages(): boolean {
+    return !!(this.enhancedSpot?.googleImages && this.enhancedSpot.googleImages.length > 0);
+  }
 }

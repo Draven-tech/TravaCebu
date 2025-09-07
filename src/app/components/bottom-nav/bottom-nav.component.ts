@@ -53,6 +53,10 @@ export class BottomNavComponent implements OnInit, OnDestroy {
       this.currentPage = 'user-calendar';
     } else if (url.includes('user-profile')) {
       this.currentPage = 'user-profile';
+    } else if (url.includes('tourist-spot-detail')) {
+      // For tourist spot detail pages, keep the previous page active or default to dashboard
+      // Don't change currentPage to avoid navigation issues
+      return;
     }
   }
 

@@ -9,6 +9,8 @@ export interface PlaceImage {
   height: number;
   photoReference: string;
   isGooglePlace: boolean;
+  isBroken?: boolean;
+  lastChecked?: Date;
 }
 
 export interface EnhancedTouristSpot {
@@ -32,6 +34,8 @@ export interface EnhancedTouristSpot {
 @Injectable({ providedIn: 'root' })
 export class PlacesImageService {
   private imageCache = new Map<string, PlaceImage[]>();
+  private brokenImageCache = new Set<string>(); // Cache of known broken photo references
+  private readonly CACHE_EXPIRY_HOURS = 24; // Cache expires after 24 hours
 
   constructor(private placesService: PlacesService) {}
 
@@ -78,10 +82,21 @@ export class PlacesImageService {
       googleImages: []
     };
 
-    // If we already have Google images cached, return them
+    // If we already have Google images cached, check if they're still valid
     if (this.imageCache.has(spot.id)) {
-      enhancedSpot.googleImages = this.imageCache.get(spot.id) || [];
-      return of(enhancedSpot);
+      const cachedImages = this.imageCache.get(spot.id) || [];
+      
+      // Check if cache is expired or has broken images
+      if (!this.isCacheExpired(cachedImages)) {
+        const validImages = this.filterBrokenImages(cachedImages);
+        if (validImages.length > 0) {
+          enhancedSpot.googleImages = validImages;
+          return of(enhancedSpot);
+        }
+      }
+      
+      // Cache is expired or all images are broken, clear it
+      this.clearSpotCache(spot.id);
     }
 
     // Try to find Google Places data for this spot
@@ -102,7 +117,9 @@ export class PlacesImageService {
                   width: photo.width || 400,
                   height: photo.height || 300,
                   photoReference: photo.photo_reference,
-                  isGooglePlace: true
+                  isGooglePlace: true,
+                  isBroken: false,
+                  lastChecked: new Date()
                 }));
                 
                 enhancedSpot.googleImages = googleImages;
@@ -293,5 +310,101 @@ export class PlacesImageService {
   // Clear specific spot cache
   clearSpotCache(spotId: string): void {
     this.imageCache.delete(spotId);
+  }
+
+  // Validate if an image URL is accessible
+  validateImageUrl(url: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+      
+      // Timeout after 5 seconds
+      setTimeout(() => resolve(false), 5000);
+    });
+  }
+
+  // Check if cache is expired
+  private isCacheExpired(images: PlaceImage[]): boolean {
+    if (!images || images.length === 0) return true;
+    
+    const firstImage = images[0];
+    if (!firstImage.lastChecked) return true;
+    
+    const now = new Date();
+    const cacheTime = new Date(firstImage.lastChecked);
+    const hoursDiff = (now.getTime() - cacheTime.getTime()) / (1000 * 60 * 60);
+    
+    return hoursDiff > this.CACHE_EXPIRY_HOURS;
+  }
+
+  // Filter out broken images from cache
+  private filterBrokenImages(images: PlaceImage[]): PlaceImage[] {
+    return images.filter(img => {
+      // Skip if we know this photo reference is broken
+      if (img.isGooglePlace && this.brokenImageCache.has(img.photoReference)) {
+        return false;
+      }
+      
+      // Skip if marked as broken
+      if (img.isBroken) {
+        return false;
+      }
+      
+      return true;
+    });
+  }
+
+  // Mark a photo reference as broken
+  markImageAsBroken(photoReference: string): void {
+    this.brokenImageCache.add(photoReference);
+    console.warn(`Marked photo reference as broken: ${photoReference}`);
+  }
+
+  // Retry fetching images for a spot with fresh Google Places data
+  retryFetchImages(spot: any): Observable<EnhancedTouristSpot> {
+    console.log(`Retrying image fetch for spot: ${spot.name}`);
+    
+    // Clear cache for this spot
+    this.clearSpotCache(spot.id);
+    
+    // Try to enhance the spot again
+    return this.enhanceTouristSpot(spot);
+  }
+
+  // Get images with validation
+  async getValidatedImages(spot: EnhancedTouristSpot): Promise<PlaceImage[]> {
+    const allImages = this.getAllImages(spot);
+    const validatedImages: PlaceImage[] = [];
+    
+    for (const image of allImages) {
+      if (image.isGooglePlace && this.brokenImageCache.has(image.photoReference)) {
+        continue; // Skip known broken images
+      }
+      
+      if (image.isBroken) {
+        continue; // Skip already marked broken images
+      }
+      
+      // For Google Places images, validate the URL
+      if (image.isGooglePlace) {
+        const isValid = await this.validateImageUrl(image.url);
+        if (isValid) {
+          validatedImages.push({
+            ...image,
+            lastChecked: new Date()
+          });
+        } else {
+          this.markImageAsBroken(image.photoReference);
+          console.warn(`Image validation failed for: ${image.url}`);
+        }
+      } else {
+        // For custom images, assume they're valid
+        validatedImages.push(image);
+      }
+    }
+    
+    return validatedImages;
   }
 } 

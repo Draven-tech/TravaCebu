@@ -4,13 +4,35 @@
       <ion-back-button defaultHref="/user-dashboard"></ion-back-button>
     </ion-buttons>
     <ion-title>Tourist Spot Details</ion-title>
+    <ion-buttons slot="end">
+      <ion-button 
+        (click)="refreshImages()"
+        [disabled]="isRefreshingImages"
+        fill="clear"
+        title="Refresh image from Google Places"
+      >
+        <ion-icon 
+          [name]="isRefreshingImages ? 'refresh' : 'refresh-outline'"
+          [class.spinning]="isRefreshingImages"
+        ></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content *ngIf="spotData" class="spot-detail-content">
   <!-- Header Image -->
   <div class="spot-header-img">
-    <img [src]="spotData.img || 'assets/placeholder.jpg'" />
+    <img 
+      [src]="spotData.img || 'assets/placeholder.jpg'" 
+      [alt]="spotData.name" 
+    />
+    
+    <!-- Image Help Overlay -->
+    <div class="image-help-overlay">
+      <ion-icon name="information-circle-outline" color="light"></ion-icon>
+      <p>Tap refresh button in header to update image</p>
+    </div>
   </div>
 
   <!-- Spot Info -->
@@ -92,3 +114,6 @@
     </ng-template>
   </div>
 </ion-content>
+
+<!-- Bottom Navigation -->
+<app-bottom-nav></app-bottom-nav>

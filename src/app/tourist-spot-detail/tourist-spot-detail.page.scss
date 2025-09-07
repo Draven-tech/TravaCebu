@@ -1,15 +1,80 @@
 .spot-detail-content {
   --padding-start: 0;
   --padding-end: 0;
+  --padding-bottom: 100px; // Extra space for bottom navigation
   background-color: #121212;
   color: #fff;
+  position: relative;
+  z-index: 1; // Ensure content doesn't overlap navigation
 }
 
-.spot-header-img img {
+.spot-header-img {
+  position: relative;
   width: 100%;
   height: 200px;
-  object-fit: cover;
-  border-bottom: 4px solid #f1c40f;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-bottom: 4px solid #f1c40f;
+    transition: opacity 0.3s ease;
+  }
+
+  // Image Help Overlay
+  .image-help-overlay {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    z-index: 1;
+    backdrop-filter: blur(4px);
+
+    ion-icon {
+      font-size: 1.2em;
+      color: #f1c40f;
+      flex-shrink: 0;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.8em;
+      text-align: left;
+      opacity: 0.9;
+      line-height: 1.2;
+    }
+  }
+}
+
+// Spin animation for refresh button
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// Header refresh button animation
+ion-toolbar {
+  ion-icon.spinning {
+    animation: spin 1s linear infinite;
+  }
+}
+
+// Ensure bottom navigation is visible
+ion-page {
+  position: relative;
+}
+
+// Make sure content doesn't interfere with bottom nav
+ion-content {
+  --overflow: hidden;
 }
 
 .spot-info-card {

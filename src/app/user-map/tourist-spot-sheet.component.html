@@ -10,7 +10,32 @@
     <!-- Image Gallery -->
     <div class="image-gallery" *ngIf="!isLoading">
       <div class="main-image-container">
-        <img [src]="getCurrentImage()" alt="Spot image" class="sheet-image" />
+        <img 
+          [src]="getCurrentImage()" 
+          alt="Spot image" 
+          class="sheet-image"
+          [class.error-image]="isCurrentImageError()"
+          (error)="onImageError(currentImageIndex)"
+        />
+        
+        <!-- Image Error Overlay -->
+        <div class="image-error-overlay" *ngIf="isCurrentImageError()">
+          <ion-icon name="image-outline" color="medium"></ion-icon>
+          <p>Image failed to load</p>
+        </div>
+        
+        <!-- Refresh Button -->
+        <button 
+          class="refresh-btn" 
+          (click)="refreshImages()" 
+          [disabled]="isRefreshing"
+          *ngIf="hasGoogleImages()"
+        >
+          <ion-icon 
+            [name]="isRefreshing ? 'refresh' : 'refresh-outline'" 
+            [class.spinning]="isRefreshing"
+          ></ion-icon>
+        </button>
         
         <!-- Image Navigation -->
         <div class="image-nav" *ngIf="hasMultipleImages()">
@@ -25,6 +50,9 @@
         <!-- Image Counter -->
         <div class="image-counter" *ngIf="hasMultipleImages()">
           {{ currentImageIndex + 1 }} / {{ allImages.length }}
+          <span class="error-indicator" *ngIf="hasImageErrors()">
+            ({{ getWorkingImagesCount() }} working)
+          </span>
         </div>
       </div>
       
@@ -34,9 +62,17 @@
           *ngFor="let image of allImages; let i = index" 
           class="thumbnail"
           [class.active]="i === currentImageIndex"
+          [class.error-thumbnail]="imageErrors.has(i)"
           (click)="selectImage(i)"
         >
-          <img [src]="image.url" [alt]="'Image ' + (i + 1)" />
+          <img 
+            [src]="image.url" 
+            [alt]="'Image ' + (i + 1)"
+            (error)="onImageError(i)"
+          />
+          <div class="thumbnail-error" *ngIf="imageErrors.has(i)">
+            <ion-icon name="warning-outline" color="danger"></ion-icon>
+          </div>
         </div>
       </div>
     </div>

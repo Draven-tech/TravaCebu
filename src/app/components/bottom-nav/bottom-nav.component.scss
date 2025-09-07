@@ -6,6 +6,7 @@
     z-index: 9999;
     width: auto;
     pointer-events: none; /* Important: allow touch through except on buttons */
+    display: block !important; /* Ensure it's always visible */
   }
   
   .bottom-nav {

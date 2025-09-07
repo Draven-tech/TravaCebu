@@ -473,15 +473,15 @@ showOfflineAlert = async () => {
   await alert.present();
 };
 
-showOnlineToast = async () => {
-  const toast = await this.toastCtrl.create({
-    message: 'You are back online!',
-    duration: 2000,
-    color: 'success',
-    position: 'bottom'
-  });
-  toast.present();
-};
+  showOnlineToast = async () => {
+    const toast = await this.toastCtrl.create({
+      message: 'You are back online!',
+      duration: 2000,
+      color: 'success',
+      position: 'bottom'
+    });
+    toast.present();
+  };
 
 }
 

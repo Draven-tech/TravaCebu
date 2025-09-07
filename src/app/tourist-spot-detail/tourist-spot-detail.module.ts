@@ -7,13 +7,15 @@ import { IonicModule } from '@ionic/angular';
 import { TouristSpotDetailPageRoutingModule } from './tourist-spot-detail-routing.module';
 
 import { TouristSpotDetailPage } from './tourist-spot-detail.page';
+import { ComponentsModule } from '../components/components.module';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    TouristSpotDetailPageRoutingModule
+    TouristSpotDetailPageRoutingModule,
+    ComponentsModule
   ],
   declarations: [TouristSpotDetailPage]
 })

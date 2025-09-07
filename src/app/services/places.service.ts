@@ -58,7 +58,6 @@ export class PlacesService {
     return this.http.get(apiUrl, { params }).pipe(
       // Debug log the response
       tap((resp: any) => {
-        console.log('✅ Places API response:', resp);
       }),
       catchError(error => {
         console.error('❌ Error fetching places:', error);
@@ -90,7 +89,6 @@ export class PlacesService {
     
     return this.http.get(detailsUrl, { params }).pipe(
       tap((resp: any) => {
-        console.log('✅ Place details response:', resp);
       }),
       catchError(error => {
         console.error('❌ Error fetching place details:', error);
@@ -119,7 +117,6 @@ export class PlacesService {
     
     return this.http.get(photosUrl, { params }).pipe(
       tap((resp: any) => {
-        console.log('✅ Place photos response:', resp);
       }),
       catchError(error => {
         console.error('❌ Error fetching place photos:', error);
@@ -153,7 +150,6 @@ export class PlacesService {
     
     return this.http.get(searchUrl, { params }).pipe(
       tap((searchResult: any) => {
-        console.log('✅ Place search response:', searchResult);
       }),
       map((searchResult: any) => {
         // Filter results to only include Cebu locations
@@ -192,7 +188,6 @@ export class PlacesService {
     return this.searchPlaceByName(spotName, lat, lng).pipe(
       tap((searchResult: any) => {
         if (searchResult.results && searchResult.results.length > 0) {
-          console.log('✅ Found matching Google Place:', searchResult.results[0]);
         } else {
           console.log('❌ No exact match found, trying nearby search');
         }

@@ -45,8 +45,13 @@ service cloud.firestore {
       // Allow authenticated users to create new tourist spots
       allow create: if request.auth != null;
       
-      // Only admins can update/delete tourist spots
-      allow update, delete: if isAdmin();
+      // Allow authenticated users to update only the img field (for image refresh)
+      allow update: if request.auth != null && 
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['img']);
+      
+      // Only admins can update other fields or delete tourist spots
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
       
       // allow writing reviews if authenticated
       match /reviews/{reviewId} {

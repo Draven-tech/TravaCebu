@@ -33,7 +33,7 @@ import { FormsModule } from '@angular/forms';
                 <p class="route-stats">
                   <ion-icon name="time"></ion-icon> {{ routeInfo?.totalDuration }}
                   <ion-icon name="location"></ion-icon> {{ routeInfo?.totalDistance }}
-                  <ion-icon name="card" *ngIf="routeInfo?.totalFare"></ion-icon> {{ routeInfo?.totalFare }}
+                  <ion-icon name="card"></ion-icon> {{ getEstimatedFare() }}
                 </p>
               </div>
             </div>
@@ -57,24 +57,6 @@ import { FormsModule } from '@angular/forms';
             </div>
           </div>
 
-          <!-- Route Options -->
-          <div class="route-options">
-            <ion-item>
-              <ion-icon name="time" slot="start"></ion-icon>
-              <ion-label>Leave at: {{ getCurrentTime() }}</ion-label>
-              <ion-button fill="clear" slot="end">
-                <ion-icon name="chevron-down"></ion-icon>
-              </ion-button>
-            </ion-item>
-            
-            <ion-item>
-              <ion-icon name="options" slot="start"></ion-icon>
-              <ion-label>Filter by: Fastest</ion-label>
-              <ion-button fill="clear" slot="end">
-                <ion-icon name="chevron-down"></ion-icon>
-              </ion-button>
-            </ion-item>
-          </div>
 
           <!-- Detailed Route Segments -->
           <div class="route-segments">
@@ -110,7 +92,7 @@ import { FormsModule } from '@angular/forms';
                  <!-- Segment Info -->
                  <div class="segment-info">
                    <div class="segment-header">
-                     <h3>{{ segment.from }} → {{ segment.to }}</h3>
+                     <h3>{{ segment.fromName || segment.from }} → {{ segment.toName || segment.to }}</h3>
                      <div class="segment-time-range">
                        <ion-icon name="time"></ion-icon>
                        {{ segment.estimatedTime || segment.duration }}
@@ -286,16 +268,6 @@ import { FormsModule } from '@angular/forms';
       font-style: italic;
     }
 
-    .route-options {
-      background: white;
-      border-bottom: 1px solid #e9ecef;
-    }
-
-    .route-options ion-item {
-      --padding-start: 20px;
-      --padding-end: 20px;
-      --inner-padding-end: 0;
-    }
 
     .route-segments {
       padding: 10px 20px;
@@ -528,6 +500,29 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
     const hours = now.getHours().toString().padStart(2, '0');
     const minutes = now.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;
+  }
+
+  getEstimatedFare(): string {
+    if (!this.routeInfo?.segments) {
+      return '₱0';
+    }
+
+    let totalFare = 0;
+    let jeepneyCount = 0;
+
+    // Count jeepney segments and calculate fare
+    this.routeInfo.segments.forEach((segment: any) => {
+      if (segment.type === 'jeepney' && segment.jeepneyCode) {
+        jeepneyCount++;
+      }
+    });
+
+    // Standard jeepney fare in Cebu is ₱12-15 per ride
+    // Using ₱13 as average fare
+    const jeepneyFare = 13;
+    totalFare = jeepneyCount * jeepneyFare;
+
+    return `₱${totalFare}`;
   }
 
   getRouteAlternatives(): any[] {

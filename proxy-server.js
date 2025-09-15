@@ -52,12 +52,22 @@ app.get('/api/place/details', async (req, res) => {
 // Add Google Directions API endpoint
 app.get('/api/directions', async (req, res) => {
   try {
-    const { origin, destination, waypoints, mode, key } = req.query;
+    const { origin, destination, waypoints, mode, alternatives, transit_mode, key } = req.query;
+    const params = { origin, destination, key };
+    
+    if (waypoints) params.waypoints = waypoints;
+    if (mode) params.mode = mode;
+    if (alternatives) params.alternatives = alternatives;
+    if (transit_mode) params.transit_mode = transit_mode;
+    
+    console.log('Directions API request params:', params);
     const response = await axios.get('https://maps.googleapis.com/maps/api/directions/json', {
-      params: { origin, destination, waypoints, mode, key }
+      params
     });
+    console.log('Directions API response status:', response.status);
     res.json(response.data);
   } catch (error) {
+    console.error('Directions API error:', error.message);
     res.status(500).json({ error: 'Failed to fetch directions', message: error.message });
   }
 });

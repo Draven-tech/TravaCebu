@@ -10,10 +10,13 @@ export class DirectionsService {
   constructor(private http: HttpClient) {}
 
   getTransitRoute(origin: string, destination: string) {
+    // Use Google Directions API (more reliable than Routes API)
     const params = {
       origin,
       destination,
       mode: 'transit',
+      alternatives: 'true',  // Get multiple route options
+      transit_mode: 'bus',   // Specify bus/jeepney mode
       key: this.apiKey
     };
     return this.http.get(`${this.proxyUrl}/api/directions`, { params });
@@ -46,7 +49,14 @@ export class DirectionsService {
     const params = {
       key: this.apiKey
     };
-    return this.http.post(`${this.proxyUrl}/api/routes`, requestBody, { params });
+    
+    // Add error handling and proper headers
+    return this.http.post(`${this.proxyUrl}/api/routes`, requestBody, { 
+      params,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   }
 
   // Method for OSRM routing (backup)

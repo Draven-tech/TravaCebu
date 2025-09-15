@@ -2,6 +2,10 @@
   <ion-toolbar color="warning">
     <ion-title>Map</ion-title>
     <ion-buttons slot="end">
+      <ion-button (click)="testProxyServerManually()" style="--color: white; font-weight: bold; margin-right: 8px;">
+        <ion-icon name="wifi"></ion-icon>
+        Test Proxy
+      </ion-button>
       <ion-button (click)="showCuratedRouteDetailsSheet()" style="--color: white; font-weight: bold; margin-right: 8px;">
         <ion-icon name="list"></ion-icon>
         Route Info
@@ -105,19 +109,103 @@
   
   <!-- Directions & Routes Tab Content -->
   <div *ngIf="selectedTab === 'directions'" class="directions-controls">
-    <!-- Route Suggestions Button -->
-    <ion-button 
-      *ngIf="selectedItineraryIndex >= 0 && availableItineraries.length > 0"
-      expand="block" 
-      color="warning" 
-      (click)="loadRouteSuggestions()" 
-      style="margin: 16px;">
-      <ion-icon name="map" slot="start"></ion-icon>
-      Get Route Suggestions
-    </ion-button>
+    <!-- Auto-loading indicator for jeepney route suggestions -->
+    <ion-item *ngIf="selectedItineraryIndex >= 0 && availableItineraries.length > 0 && isLoadingJeepneyRoutes" lines="none" style="margin: 16px;">
+      <ion-spinner name="crescent" slot="start"></ion-spinner>
+      <ion-label>
+        <h3>Loading jeepney routes...</h3>
+        <p>Finding jeepney codes and walking directions for your itinerary</p>
+      </ion-label>
+    </ion-item>
 
-    <!-- Route Suggestions Display -->
-    <div *ngIf="currentRouteInfo && currentRouteInfo.suggestedRoutes" class="route-suggestions">
+    <!-- Loading indicator for route generation -->
+    <ion-item *ngIf="selectedItineraryIndex >= 0 && availableItineraries.length > 0 && isGeneratingRoute" lines="none" style="margin: 16px;">
+      <ion-spinner name="crescent" slot="start" color="warning"></ion-spinner>
+      <ion-label>
+        <h3>Generating Stage Routes...</h3>
+        <p>Fetching jeepney routes from Google Maps API via proxy server</p>
+      </ion-label>
+    </ion-item>
+
+    <!-- Route Information Display -->
+    <div *ngIf="currentRouteInfo" class="route-suggestions">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Stage-Based Route</ion-card-title>
+          <ion-card-subtitle>
+            {{ currentRouteInfo.totalDuration }} • {{ currentRouteInfo.totalDistance }}
+          </ion-card-subtitle>
+        </ion-card-header>
+        
+        <ion-card-content>
+          <!-- Direct segments display -->
+          <ion-list *ngIf="currentRouteInfo.segments && currentRouteInfo.segments.length > 0">
+            <ion-item *ngFor="let segment of currentRouteInfo.segments; let i = index">
+              <ion-icon [name]="segment.type === 'jeepney' ? 'bus' : 'walk'" 
+                        [color]="segment.type === 'jeepney' ? 'primary' : 'medium'" 
+                        slot="start"></ion-icon>
+              <ion-label>
+                <h3>{{ segment.description }}</h3>
+                <p *ngIf="segment.jeepneyCode">Jeepney Code: {{ segment.jeepneyCode }}</p>
+                <p>{{ segment.estimatedTime }} • Stage {{ segment.stage }}</p>
+              </ion-label>
+              <ion-button *ngIf="stageRouteOptions[segment.stage - 1] && stageRouteOptions[segment.stage - 1].length > 1" 
+                          fill="clear" size="small" slot="end" 
+                          (click)="showStageRouteOptions(segment.stage - 1)">
+                <ion-icon name="options" slot="icon-only"></ion-icon>
+              </ion-button>
+            </ion-item>
+          </ion-list>
+          
+          <!-- Alternative Routes for Each Stage -->
+          <div *ngIf="selectedStageForOptions >= 0 && stageRouteOptions[selectedStageForOptions]" class="stage-route-options">
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Stage {{ selectedStageForOptions + 1 }} - Alternative Routes</ion-card-title>
+                <ion-card-subtitle>Choose from {{ stageRouteOptions[selectedStageForOptions].length }} available options</ion-card-subtitle>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-list>
+                  <ion-item *ngFor="let route of stageRouteOptions[selectedStageForOptions]; let i = index" 
+                            [class.selected-route]="i === 0"
+                            (click)="selectStageRoute(selectedStageForOptions, i)">
+                    <ion-icon [name]="hasJeepneySegments(route) ? 'bus' : 'walk'" 
+                              [color]="hasJeepneySegments(route) ? 'primary' : 'medium'" 
+                              slot="start"></ion-icon>
+                    <ion-label>
+                      <h3>Option {{ i + 1 }}</h3>
+                      <p *ngFor="let segment of route.segments">
+                        <span *ngIf="segment.type === 'jeepney'">🚌 {{ segment.jeepneyCode }} - {{ segment.description }}</span>
+                        <span *ngIf="segment.type === 'walk'">🚶‍♂️ {{ segment.description }}</span>
+                      </p>
+                      <p>{{ formatDuration(route.totalDuration) }} • {{ (route.totalDistance / 1000).toFixed(1) }} km</p>
+                    </ion-label>
+                    <ion-badge *ngIf="i === 0" color="success" slot="end">Recommended</ion-badge>
+                  </ion-item>
+                </ion-list>
+              </ion-card-content>
+            </ion-card>
+          </div>
+          
+          <!-- Suggested routes display (if available) -->
+          <ion-list *ngIf="currentRouteInfo.suggestedRoutes && currentRouteInfo.suggestedRoutes.length > 0">
+            <ion-item *ngFor="let route of currentRouteInfo.suggestedRoutes; let i = index" 
+                      [class.selected-route]="i === currentRouteInfo.selectedRouteIndex"
+                      (click)="selectRoute(i)">
+              <ion-label>
+                <h3>{{ route.title }}</h3>
+                <p>{{ route.summary }}</p>
+                <p>{{ route.totalDuration }} • {{ route.totalDistance }} • {{ route.totalFare }}</p>
+              </ion-label>
+              <ion-badge *ngIf="route.isRecommended" color="success" slot="end">Recommended</ion-badge>
+            </ion-item>
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Legacy Route Suggestions Display -->
+    <div *ngIf="currentRouteInfo && currentRouteInfo.suggestedRoutes && !currentRouteInfo.segments" class="route-suggestions">
       <ion-card>
         <ion-card-header>
           <ion-card-title>Route Suggestions</ion-card-title>
@@ -144,10 +232,10 @@
     </div>
 
     <!-- No Route Info Message -->
-    <ion-card *ngIf="!currentRouteInfo">
+    <ion-card *ngIf="selectedItineraryIndex < 0">
       <ion-card-content>
         <ion-text color="medium">
-          <p>Select an itinerary and click "Get Route Suggestions" to view routes</p>
+          <p>Select an itinerary to automatically show jeepney route suggestions</p>
         </ion-text>
       </ion-card-content>
     </ion-card>

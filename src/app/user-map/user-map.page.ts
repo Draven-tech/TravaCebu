@@ -47,6 +47,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   selectedItineraryIndex: number = -1; // Start with no selection
   availableItineraries: any[] = [];
   currentRouteInfo: any = null;
+  stageRouteOptions: any[] = []; // Store multiple route options for each stage
+  selectedStageForOptions: number = -1; // Track which stage's options are being shown
   
 
   
@@ -63,6 +65,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   // Jeepney routes loaded from Firebase
   jeepneyRoutes: any[] = [];
   isLoadingJeepneyRoutes: boolean = false;
+  isGeneratingRoute: boolean = false;
   
   // Fullscreen mode
   isFullscreen: boolean = false;
@@ -196,54 +199,18 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         // Cache the routes
         localStorage.setItem('jeepney_routes_cache', JSON.stringify(this.jeepneyRoutes));
       } else {
-        // Fallback to default routes if Firebase is empty
-        this.jeepneyRoutes = this.getDefaultJeepneyRoutes();
+        // No local jeepney routes - using Google Maps API only
+        this.jeepneyRoutes = [];
       }
     } catch (error) {
       console.error('Error loading jeepney routes:', error);
-      // Fallback to default routes
-      this.jeepneyRoutes = this.getDefaultJeepneyRoutes();
+      // No fallback routes - using Google Maps API only
+      this.jeepneyRoutes = [];
     } finally {
       this.isLoadingJeepneyRoutes = false;
     }
   }
 
-  private getDefaultJeepneyRoutes(): any[] {
-    return [
-      {
-        code: '12C',
-        name: 'Cebu City - Mandaue City',
-        color: '#FF5722',
-        stops: [
-          { name: 'Saint Anthony Hospital', lat: 10.3157, lng: 123.8854 },
-          { name: 'Sto Nino Church', lat: 10.2957, lng: 123.8814 },
-          { name: 'Carbon Market', lat: 10.2857, lng: 123.8754 },
-          { name: 'Colon Street', lat: 10.2757, lng: 123.8694 }
-        ]
-      },
-      {
-        code: '01A',
-        name: 'Cebu City - Talisay City',
-        color: '#2196F3',
-        stops: [
-          { name: 'Sto Nino Church', lat: 10.2957, lng: 123.8814 },
-          { name: 'Fuente Osmeña', lat: 10.3057, lng: 123.8914 },
-          { name: 'Ayala Center Cebu', lat: 10.3257, lng: 123.9014 },
-          { name: 'Talisay City', lat: 10.2557, lng: 123.8514 }
-        ]
-      },
-      {
-        code: '04C',
-        name: 'Cebu City - Mactan Airport',
-        color: '#4CAF50',
-        stops: [
-          { name: 'Fuente Osmeña', lat: 10.3057, lng: 123.8914 },
-          { name: 'SM City Cebu', lat: 10.3357, lng: 123.9114 },
-          { name: 'Mactan Airport', lat: 10.3157, lng: 123.9814 }
-        ]
-      }
-    ];
-  }
 
   private groupEventsIntoItineraries(events: any[]): any[] {
     const itineraries: any[] = [];
@@ -349,7 +316,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
 
 
-  loadItineraryRoutes() {
+  async loadItineraryRoutes() {
     if (this.selectedItineraryIndex < 0 || this.selectedItineraryIndex >= this.availableItineraries.length) {
       // Clear any existing route data when no itinerary is selected
       this.currentRouteInfo = null;
@@ -367,7 +334,21 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.currentRouteInfo = null;
       
       // Show markers immediately when itinerary is selected
-      this.showItineraryMarkersOnly(selectedItinerary);
+      await this.showItineraryMarkersOnly(selectedItinerary);
+      
+      // Generate route information for the selected itinerary
+      const routeInfo = await this.generateRouteInfo(selectedItinerary);
+      if (routeInfo) {
+        this.currentRouteInfo = routeInfo;
+        console.log('✅ Route info generated and set:', this.currentRouteInfo);
+        
+      // Display the route on the map
+      // Always display the route on the map using the full routeInfo object
+      // which contains all processed segments (walking and jeepney).
+      this.displayRouteOnMap(routeInfo);
+      } else {
+        console.log('⚠️ No route info generated');
+      }
     } else {
       this.currentRouteInfo = null;
     }
@@ -387,7 +368,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return `Day ${1} Itinerary - ${spotCount} spots`;
   }
 
-  private showItineraryMarkersOnly(itinerary: any): void {
+  private async showItineraryMarkersOnly(itinerary: any): Promise<void> {
     if (!itinerary || !itinerary.days) {
       return;
     }
@@ -444,17 +425,17 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     let spotIndex = 1;
 
     // Add markers for each spot
-    itinerary.days.forEach((day: any) => {
+    for (const day of itinerary.days) {
       if (day.spots) {
         const daySpotsArray = Array.isArray(day.spots) ? day.spots : Object.values(day.spots);
-        daySpotsArray.forEach((spot: any) => {
+        for (const spot of daySpotsArray) {
           if (spot && spot.location && spot.location.lat && spot.location.lng) {
             // Create a unique key for this location (rounded to 4 decimal places to handle slight variations)
             const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
             
             // Check if we already have a marker at this location
             if (locationMap.has(locationKey)) {
-              return; // Skip creating duplicate marker
+              continue; // Skip creating duplicate marker
             }
             
             // Add to location map to prevent duplicates
@@ -465,13 +446,14 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
             }).addTo(this.map);
 
             // Add popup for spot marker
-            spotMarker.bindPopup(this.createDirectionSpotPopup(spot, spotIndex));
+            const popupContent = await this.createDirectionSpotPopup(spot, spotIndex);
+            spotMarker.bindPopup(popupContent);
             this.routeMarkers.push(spotMarker);
             spotIndex++;
           }
-        });
+        }
       }
-    });
+    }
 
     // Fit map to show all markers
     if (this.routeMarkers.length > 0) {
@@ -517,15 +499,94 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
   }
 
-  generateRouteInfo(itinerary: any): any {
-    // Generate route information from itinerary using multi-ride jeepney routing
-    if (!itinerary || !itinerary.days) return null;
+  /**
+   * Show alternative route options for a specific stage
+   */
+  showStageRouteOptions(stageIndex: number): void {
+    if (this.stageRouteOptions[stageIndex] && this.stageRouteOptions[stageIndex].length > 1) {
+      this.selectedStageForOptions = stageIndex;
+      console.log(`Showing ${this.stageRouteOptions[stageIndex].length} route options for stage ${stageIndex + 1}`);
+    }
+  }
 
+  /**
+   * Select a specific route option for a stage
+   */
+  selectStageRoute(stageIndex: number, routeIndex: number): void {
+    if (this.stageRouteOptions[stageIndex] && this.stageRouteOptions[stageIndex][routeIndex]) {
+      const selectedRoute = this.stageRouteOptions[stageIndex][routeIndex];
+      console.log(`Selected route option ${routeIndex + 1} for stage ${stageIndex + 1}:`, selectedRoute);
+      
+      // Update the current route info with the selected route
+      if (this.currentRouteInfo && this.currentRouteInfo.segments) {
+        // Find and replace the segments for this stage
+        const stageSegments = this.currentRouteInfo.segments.filter((s: any) => s.stage === stageIndex + 1);
+        const otherSegments = this.currentRouteInfo.segments.filter((s: any) => s.stage !== stageIndex + 1);
+        
+        // Convert the selected route segments to the format expected by the UI
+        const newStageSegments = selectedRoute.segments.map((segment: any) => ({
+          type: segment.type,
+          from: segment.from,
+          to: segment.to,
+          fromName: stageIndex === 0 ? 'Your Location' : 'Previous Location',
+          toName: 'Destination',
+          estimatedTime: this.formatDuration(segment.duration || 0),
+          description: segment.description,
+          jeepneyCode: segment.jeepneyCode || null,
+          mealType: null,
+          distance: segment.distance || 0,
+          duration: segment.duration || 0,
+          stage: stageIndex + 1,
+          polyline: segment.polyline
+        }));
+        
+        // Rebuild the segments array
+        this.currentRouteInfo.segments = [...otherSegments, ...newStageSegments].sort((a, b) => a.stage - b.stage);
+        
+        // Recalculate totals
+        let totalDuration = 0;
+        let totalDistance = 0;
+        this.currentRouteInfo.segments.forEach((segment: any) => {
+          if (segment.distance) {
+            totalDistance += segment.distance / 1000; // Convert to km
+          }
+          if (segment.duration) {
+            totalDuration += segment.duration / 60; // Convert to minutes
+          }
+        });
+        
+        this.currentRouteInfo.totalDuration = this.formatDuration(totalDuration * 60);
+        this.currentRouteInfo.totalDistance = `${totalDistance.toFixed(1)} km`;
+        
+        // Redraw the route on the map
+        this.displayRouteOnMap(this.currentRouteInfo);
+        
+        // Hide the options panel
+        this.selectedStageForOptions = -1;
+        
+        this.showToast(`✅ Updated Stage ${stageIndex + 1} route`);
+      }
+    }
+  }
+
+  async generateRouteInfo(itinerary: any): Promise<any> {
+    // Generate route information from itinerary using stage-based Google Maps API routing
+    if (!itinerary || !itinerary.days) {
+      return null;
+    }
+
+    // Set loading state
+    this.isGeneratingRoute = true;
+    
+    // Show toast notification
+    this.showToast('🚀 Generating stage-based routes...');
+
+    try {
     const segments: any[] = [];
     let totalDuration = 0;
     let totalDistance = 0;
 
-    itinerary.days.forEach((day: any, dayIndex: number) => {
+    for (const day of itinerary.days) {
       // Handle different spot data structures
       let spots = [];
       if (day.spots) {
@@ -539,50 +600,100 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         }
       }
       
-      spots.forEach((spot: any, spotIndex: number) => {
-        if (!spot || !spot.name) return;
+      // Create stages for consecutive spots
+      for (let spotIndex = 0; spotIndex < spots.length; spotIndex++) {
+        const spot = spots[spotIndex];
+        if (!spot || !spot.name) continue;
         
-        // Get jeepney route for this spot
-        const jeepneyRoute = this.findBestJeepneyRoute(this.userLocation, spot);
+        // Determine the starting point for this stage
+        let fromPoint;
+        if (spotIndex === 0) {
+          // First spot: start from user location
+          fromPoint = this.userLocation;
+        } else {
+          // Subsequent spots: start from previous spot
+          fromPoint = spots[spotIndex - 1];
+        }
         
-        if (jeepneyRoute && jeepneyRoute.segments) {
-          // Use the detailed segments from multi-ride routing
-          jeepneyRoute.segments.forEach((segment: any) => {
-            segments.push({
+        // Validate fromPoint has coordinates (handle both user location and spot objects)
+        const fromLat = fromPoint?.lat || fromPoint?.location?.lat;
+        const fromLng = fromPoint?.lng || fromPoint?.location?.lng;
+        if (!fromPoint || !fromLat || !fromLng) {
+          console.warn(`⚠️ Stage ${spotIndex + 1}: Invalid fromPoint coordinates:`, fromPoint);
+          continue;
+        }
+        
+        // Validate spot has coordinates
+        if (!spot.location || !spot.location.lat || !spot.location.lng) {
+          console.warn(`⚠️ Stage ${spotIndex + 1}: Invalid spot coordinates:`, spot);
+          continue;
+        }
+        
+        // Get all available jeepney routes for this stage using Google Maps API
+        const allRoutes = await this.findAllJeepneyRoutes(fromPoint, spot);
+        
+        if (allRoutes && allRoutes.length > 0) {
+          // Sort routes by duration to ensure consistency
+          allRoutes.sort((a: any, b: any) => a.totalDuration - b.totalDuration);
+          
+          // Use the first (best) route for the main segments display
+          const bestRoute = allRoutes[0];
+          // Add segments from the best route
+          bestRoute.segments.forEach((segment: any) => {
+            const segmentToAdd = {
               type: segment.type,
-              from: segment.from,
-              to: segment.to,
-              estimatedTime: segment.estimatedTime,
+              from: segment.from, // Keep original coordinate object
+              to: segment.to, // Keep original coordinate object
+              fromName: spotIndex === 0 ? 'Your Location' : spots[spotIndex - 1]?.name || 'Previous Location',
+              toName: spot.name,
+              estimatedTime: this.formatDuration(segment.duration || 0),
               description: segment.description,
               jeepneyCode: segment.jeepneyCode || null,
               mealType: null,
-              distance: segment.distance
-            });
+              distance: segment.distance || 0,
+              duration: segment.duration || 0,
+              stage: spotIndex + 1,
+              polyline: segment.polyline // Preserve polyline for accurate map drawing
+            };
+            segments.push(segmentToAdd);
             
             // Add to totals
             if (segment.distance) {
               totalDistance += segment.distance / 1000; // Convert to km
             }
-            if (segment.estimatedTime) {
-              const timeMatch = segment.estimatedTime.match(/(\d+)/);
-              if (timeMatch) {
-                totalDuration += parseInt(timeMatch[1]);
-              }
+            if (segment.duration) {
+              totalDuration += segment.duration / 60; // Convert to minutes
             }
           });
+          
+          // Store all route options for this stage
+          this.stageRouteOptions[spotIndex] = allRoutes;
         } else {
-          // Fallback to simple walking segment
+          // No jeepney route found - create walking segment
+          console.log(`⚠️ Stage ${spotIndex + 1}: No jeepney route found, creating walking segment`);
+          
+          // Create a walking segment from the previous location to current spot
+          const fromCoords = spotIndex === 0 ? fromPoint : spots[spotIndex - 1];
+          const toCoords = spot;
+          
           segments.push({
             type: 'walk',
-            from: spotIndex === 0 ? 'Your Location' : spots[spotIndex - 1]?.name || 'Previous Location',
-            to: spot.name,
-            estimatedTime: '15 min walk',
-            description: `Walk to ${spot.name}`,
+            from: fromCoords,
+            to: toCoords,
+            fromName: spotIndex === 0 ? 'Your Location' : spots[spotIndex - 1]?.name || 'Previous Location',
+            toName: spot.name,
+            estimatedTime: '30 min', // Default walking time
+            description: `Walk from ${spotIndex === 0 ? 'your location' : spots[spotIndex - 1]?.name || 'previous location'} to ${spot.name}`,
             jeepneyCode: null,
-            mealType: null
+            mealType: null,
+            distance: 1000, // Default 1km walking distance
+            duration: 1800, // Default 30 minutes
+            stage: spotIndex + 1
           });
-          totalDuration += 15;
-          totalDistance += 0.5;
+          
+          // Add to totals
+          totalDistance += 1; // 1km
+          totalDuration += 30; // 30 minutes
         }
 
         // Add meal segment if specified
@@ -594,18 +705,83 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
             estimatedTime: '1 hour',
             description: `Enjoy ${spot.mealType} at ${spot.name}`,
             jeepneyCode: null,
-            mealType: spot.mealType
+            mealType: spot.mealType,
+            stage: spotIndex + 1
           });
           totalDuration += 60;
         }
-      });
-    });
+      }
+    }
 
-    return {
+    const result = {
       segments,
-      totalDuration: `${Math.floor(totalDuration / 60)}h ${totalDuration % 60}m`,
-      totalDistance: `${totalDistance.toFixed(1)} km`
+      totalDuration: `${Math.round(totalDuration)} min`,
+      totalDistance: `${totalDistance.toFixed(1)} km`,
+      suggestedRoutes: this.generateSuggestedRoutes(segments),
+      source: 'google_maps_stages'
     };
+    
+      // Reset loading state
+      this.isGeneratingRoute = false;
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Error generating route info:', error);
+      this.isGeneratingRoute = false;
+      return null;
+    }
+  }
+
+  /**
+   * Format duration from seconds to readable format
+   */
+  formatDuration(seconds: number): string {
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) {
+      return `${minutes} min`;
+    } else {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
+    }
+  }
+
+  /**
+   * Check if route has jeepney segments
+   */
+  hasJeepneySegments(route: any): boolean {
+    return route.segments && route.segments.some((s: any) => s.type === 'jeepney');
+  }
+
+  /**
+   * Generate suggested routes from segments
+   */
+  private generateSuggestedRoutes(segments: any[]): any[] {
+    const routes = [];
+    const jeepneySegments = segments.filter(seg => seg.type === 'jeepney');
+    
+    if (jeepneySegments.length > 0) {
+      routes.push({
+        id: 'jeepney_route',
+        name: 'Jeepney Route',
+        description: 'Public transportation route using jeepneys',
+        segments: jeepneySegments,
+        type: 'jeepney'
+      });
+    }
+    
+    const walkSegments = segments.filter(seg => seg.type === 'walk');
+    if (walkSegments.length > 0) {
+      routes.push({
+        id: 'walking_route',
+        name: 'Walking Route',
+        description: 'Walking route to destinations',
+        segments: walkSegments,
+        type: 'walking'
+      });
+    }
+    
+    return routes;
   }
 
   ngAfterViewInit(): void {
@@ -614,6 +790,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       try {
         this.initMap();
         console.log('✅ Map initialized successfully');
+        
+        // Test proxy server connection
+        this.testProxyServer();
         
         // Wait for map to be fully rendered before invalidating size
         setTimeout(() => {
@@ -759,27 +938,16 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         keyboard: true
       });
       
-      console.log('🗺️ Map created, adding tile layer...');
+      console.log('🗺️ Map created, adding OpenStreetMap tile layer...');
       
-      // Try OpenStreetMap first, with fallback to CartoDB
+      // Add OpenStreetMap tile layer
       const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 18,
       });
       
-      const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© CartoDB',
-        maxZoom: 18,
-      });
-      
-      // Add OSM layer first
+      // Add OSM layer
       osmLayer.addTo(this.map);
-      
-      // Add fallback layer
-      cartoLayer.addTo(this.map);
-      
-      // Set OSM as default
-      this.map.addLayer(osmLayer);
       
       console.log('🗺️ Tile layer added, loading tourist spots...');
       
@@ -1009,9 +1177,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     const itinerarySpots: any[] = [];
     
     // Collect all spots from the selected itinerary
-    selectedItinerary.days.forEach((day: any) => {
-
-      
+    for (const day of selectedItinerary.days) {
       // Handle different spot data structures
       let spots = [];
       if (day.spots) {
@@ -1024,9 +1190,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         }
       }
       
-      
-      
-      spots.forEach((spot: any, spotIndex: number) => {
+      for (let spotIndex = 0; spotIndex < spots.length; spotIndex++) {
+        const spot = spots[spotIndex];
         // Check if spot has valid location coordinates
         let hasValidLocation = false;
         let location = null;
@@ -1067,8 +1232,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
             }
           }
         }
-      });
-    });
+      }
+    }
 
 
     
@@ -1077,13 +1242,13 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     let spotIndex = 1;
 
     // Create markers for each itinerary spot
-    itinerarySpots.forEach((spot: any) => {
+    for (const spot of itinerarySpots) {
       // Create a unique key for this location (rounded to 4 decimal places to handle slight variations)
       const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
       
       // Check if we already have a marker at this location
       if (locationMap.has(locationKey)) {
-        return; // Skip creating duplicate marker
+        continue; // Skip creating duplicate marker
       }
       
       // Add to location map to prevent duplicates
@@ -1096,7 +1261,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       }).addTo(this.map);
 
       // Create popup content with direction info
-      const popupContent = this.createDirectionSpotPopup(spot, spotIndex);
+      const popupContent = await this.createDirectionSpotPopup(spot, spotIndex);
       marker.bindPopup(popupContent);
 
       marker.on('click', () => {
@@ -1107,7 +1272,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
       this.markers.push(marker);
       spotIndex++;
-    });
+    }
 
     // Draw complete route from user location through all spots
     if (itinerarySpots.length > 0) {
@@ -1603,8 +1768,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     `;
   }
 
-  private createDirectionSpotPopup(spot: any, order: number): string {
-    const jeepneyCode = this.getJeepneyCodeForSpot(spot, order);
+  private async createDirectionSpotPopup(spot: any, order: number): Promise<string> {
+    const jeepneyCode = await this.getJeepneyCodeForSpot(spot, order);
     
     // Add restaurant-specific information
     let restaurantInfo = '';
@@ -1763,32 +1928,15 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   async getUserLocation(): Promise<void> {
-    try {
-      // Try to get real GPS location first
-      const position = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000 // 5 minutes cache
-      });
-      
+    // Use simulated location for testing (PC doesn't have GPS)
       this.userLocation = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        name: 'Your Location',
-        isReal: true
-      };
-      
-      console.log('✅ Real GPS location obtained:', this.userLocation);
-    } catch (error) {
-      console.warn('⚠️ Could not get GPS location, using default Cebu City center:', error);
-      // Fallback to Cebu City center if GPS fails
-      this.userLocation = {
-        lat: 10.3157, // Cebu City center
-        lng: 123.8854,
-        name: 'Cebu City Center',
+      lat: 10.285382385444201,
+      lng: 123.8691153312774,
+      name: 'Simulated Test Location',
         isReal: false
       };
-    }
+    
+    console.log('🎯 Using simulated location for testing:', this.userLocation);
     
     // Add or update user marker on map
     if (this.userMarker) {
@@ -1827,62 +1975,40 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
   }
 
-  // Start continuous location tracking
+  // Start continuous location tracking (disabled for testing - using simulated location)
   async startLocationTracking(): Promise<void> {
     if (this.isLocationTracking) {
-      console.log('📍 Location tracking already active');
+      console.log('📍 Location tracking already active (simulated)');
       return;
     }
 
-    try {
-      // Request permissions first
-      const permissionStatus = await Geolocation.checkPermissions();
-      if (permissionStatus.location !== 'granted') {
-        const requestResult = await Geolocation.requestPermissions();
-        if (requestResult.location !== 'granted') {
-          this.showToast('Location permission is required for tracking');
-          return;
-        }
-      }
-
-      // Start watching location
-      this.locationWatcher = await Geolocation.watchPosition(
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 5000
-        },
-        (position) => {
-          this.ngZone.run(() => {
-            this.updateUserLocationFromPosition(position);
-          });
-        }
-      );
-
-      this.isLocationTracking = true;
-      console.log('📍 Location tracking started');
-      this.showToast('Location tracking activated');
-    } catch (error) {
-      console.error('❌ Error starting location tracking:', error);
-      this.showToast('Could not start location tracking');
-    }
+    // Use simulated location for testing instead of real GPS
+    this.isLocationTracking = true;
+    console.log('🎯 Location tracking started with simulated location');
+    this.showToast('Location tracking activated (simulated)');
+    
+    // Set simulated location as current
+    this.userLocation = {
+      lat: 10.285382385444201,
+      lng: 123.8691153312774,
+      name: 'Simulated Test Location',
+      isReal: false
+    };
+    
+    console.log('🎯 Simulated location set for tracking:', this.userLocation);
   }
 
-  // Stop continuous location tracking
+  // Stop continuous location tracking (simulated)
   async stopLocationTracking(): Promise<void> {
-    if (!this.isLocationTracking || !this.locationWatcher) {
+    if (!this.isLocationTracking) {
       return;
     }
 
-    try {
-      await Geolocation.clearWatch({ id: this.locationWatcher });
+    // For simulated location, just stop the tracking flag
       this.locationWatcher = undefined;
       this.isLocationTracking = false;
-      console.log('📍 Location tracking stopped');
+    console.log('📍 Location tracking stopped (simulated)');
       this.showToast('Location tracking deactivated');
-    } catch (error) {
-      console.error('❌ Error stopping location tracking:', error);
-    }
   }
 
   // Update user location from position update
@@ -1956,9 +2082,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   async showUserLocation() {
     try {
-      const position = await Geolocation.getCurrentPosition();
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
+      // Use simulated location for testing
+      const lat = 10.285382385444201;
+      const lng = 123.8691153312774;
+      
+      console.log('🎯 Using simulated location for showUserLocation:', { lat, lng });
       
       // Snap location to nearest road using OSRM
       const snappedLocation = await this.snapLocationToRoad(lat, lng);
@@ -1992,12 +2120,12 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       // Center map on snapped user location
       this.map.setView([snappedLocation.lat, snappedLocation.lng], 15);
       
-      // Update user location with real GPS coordinates
+      // Update user location with simulated coordinates
       this.userLocation = {
         lat: snappedLocation.lat,
         lng: snappedLocation.lng,
-        name: 'Current Location',
-        isReal: true
+        name: 'Simulated Test Location',
+        isReal: false
       };
       
       this.showToast('Location updated and snapped to nearest road!');
@@ -2206,9 +2334,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
 
 
-  private getJeepneyCodeForSpot(spot: any, order: number): string {
+  private async getJeepneyCodeForSpot(spot: any, order: number): Promise<string> {
     // Find the best jeepney route for this spot
-          const bestRoute = this.findBestJeepneyRoute(this.userLocation, spot);
+          const bestRoute = await this.findBestJeepneyRoute(this.userLocation, spot);
     
     if (!bestRoute) {
       return '🚶‍♂️ Walk';
@@ -2233,7 +2361,356 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return '🚶‍♂️ Walk';
   }
 
-  private findBestJeepneyRoute(from: any, to: any): any {
+  private async findBestJeepneyRoute(from: any, to: any): Promise<any> {
+    // Use Google Maps API for stage-based jeepney routing
+    return await this.findJeepneyRouteWithGoogleMaps(from, to);
+  }
+
+  /**
+   * Find all available jeepney routes using Google Maps API
+   * Returns multiple route options like Google Maps does
+   */
+  private async findAllJeepneyRoutes(from: any, to: any): Promise<any[]> {
+    try {
+      // Handle different coordinate structures
+      const fromLat = from.lat || from.location?.lat;
+      const fromLng = from.lng || from.location?.lng;
+      const toLat = to.lat || to.location?.lat;
+      const toLng = to.lng || to.location?.lng;
+      
+      // Validate coordinates
+      if (!fromLat || !fromLng || !toLat || !toLng) {
+        console.error('❌ Invalid coordinates:', { from, to });
+        return [];
+      }
+      
+      // Check if coordinates are within Cebu bounds
+      if (!this.isWithinCebu(fromLat, fromLng) || !this.isWithinCebu(toLat, toLng)) {
+        console.log(`⚠️ Coordinates outside Cebu bounds, skipping`);
+        return [];
+      }
+      
+      const origin = `${fromLat},${fromLng}`;
+      const destination = `${toLat},${toLng}`;
+      
+      // Use Google Maps Directions API with transit mode to get jeepney routes
+      const response: any = await this.directionsService.getTransitRoute(origin, destination).toPromise();
+      
+      if (response && response.routes && response.routes.length > 0) {
+        
+        const allRoutes = [];
+        
+        // Process all routes from Google Maps
+        for (let i = 0; i < response.routes.length; i++) {
+          const route = response.routes[i];
+          // Check if this route has any transit steps (jeepney routes)
+          const hasTransitSteps = this.hasTransitSteps(route);
+          
+          if (hasTransitSteps) {
+            // Process the route to check if it actually contains jeepney segments
+            const processedRoute = this.processGoogleMapsTransitRoute(route, from, to);
+            const hasJeepneySegments = processedRoute.segments.some((segment: any) => segment.type === 'jeepney');
+            
+            allRoutes.push(processedRoute);
+          } else {
+            const processedRoute = this.processGoogleMapsTransitRoute(route, from, to);
+            allRoutes.push(processedRoute);
+          }
+        }
+        
+        return allRoutes;
+      }
+      
+      console.log(`⚠️ No routes found from Google Maps`);
+      return [];
+      
+    } catch (error) {
+      console.error('❌ Error fetching Cebu jeepney routes from Google Maps:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Find jeepney route using Google Maps API for point-to-point routing
+   * This replaces the local jeepney route data system
+   */
+  private async findJeepneyRouteWithGoogleMaps(from: any, to: any): Promise<any> {
+    try {
+      // Handle different coordinate structures
+      const fromLat = from.lat || from.location?.lat;
+      const fromLng = from.lng || from.location?.lng;
+      const toLat = to.lat || to.location?.lat;
+      const toLng = to.lng || to.location?.lng;
+      
+      // Validate coordinates
+      if (!fromLat || !fromLng || !toLat || !toLng) {
+        console.error('❌ Invalid coordinates:', { from, to });
+        return null;
+      }
+      
+      // Check if coordinates are within Cebu bounds
+      if (!this.isWithinCebu(fromLat, fromLng) || !this.isWithinCebu(toLat, toLng)) {
+        console.log(`⚠️ Coordinates outside Cebu bounds, skipping`);
+        return null;
+      }
+      
+      const origin = `${fromLat},${fromLng}`;
+      const destination = `${toLat},${toLng}`;
+      
+      // Use Google Maps Directions API with transit mode to get jeepney routes
+      const response: any = await this.directionsService.getTransitRoute(origin, destination).toPromise();
+      
+      if (response && response.routes && response.routes.length > 0) {
+        // Process all routes and find the best one with jeepney codes
+        let bestRoute = null;
+        let bestJeepneyRoute = null;
+        
+        for (let i = 0; i < response.routes.length; i++) {
+          const route = response.routes[i];
+          // Check if this route has any transit steps (jeepney routes)
+          const hasTransitSteps = this.hasTransitSteps(route);
+          
+          if (hasTransitSteps) {
+            // Process the route to check if it actually contains jeepney segments
+            const processedRoute = this.processGoogleMapsTransitRoute(route, from, to);
+            const hasJeepneySegments = processedRoute.segments.some((segment: any) => segment.type === 'jeepney');
+            
+            if (hasJeepneySegments) {
+              if (!bestJeepneyRoute) {
+                bestJeepneyRoute = processedRoute;
+              }
+            } else {
+              if (!bestRoute) {
+                bestRoute = processedRoute;
+              }
+            }
+          } else {
+            if (!bestRoute) {
+              bestRoute = this.processGoogleMapsTransitRoute(route, from, to);
+              console.log('Processed walking route:', bestRoute);
+            }
+          }
+        }
+        
+        // Prefer jeepney route over walking route
+        const finalResult = bestJeepneyRoute || bestRoute;
+        if (finalResult && finalResult.segments) {
+        }
+        return finalResult;
+      }
+      
+      console.log(`⚠️ No routes found from Google Maps`);
+      return null; // No fallback to walking
+      
+    } catch (error) {
+      console.error('❌ Error fetching Cebu jeepney route from Google Maps:', error);
+      return null; // No fallback to walking
+    }
+  }
+
+  /**
+   * Check if coordinates are within Cebu bounds
+   */
+  private isWithinCebu(lat: number, lng: number): boolean {
+    // Cebu City bounds (can be expanded for Cebu Province if needed)
+    const cebuBounds = {
+      north: 10.40,  // Northern boundary
+      south: 10.25,  // Southern boundary  
+      east: 123.95,  // Eastern boundary
+      west: 123.85   // Western boundary
+    };
+    
+    return lat >= cebuBounds.south && lat <= cebuBounds.north &&
+           lng >= cebuBounds.west && lng <= cebuBounds.east;
+  }
+
+  /**
+   * Check if a route has transit steps (jeepney routes)
+   */
+  private hasTransitSteps(route: any): boolean {
+    if (route.legs && route.legs.length > 0) {
+      const leg = route.legs[0];
+      if (leg.steps) {
+        // Look for transit steps that might be jeepney routes (Google Directions API format)
+        const transitSteps = leg.steps.filter((step: any) => 
+          step.travel_mode === 'TRANSIT' && 
+          step.transit_details && 
+          step.transit_details.line &&
+          step.transit_details.line.vehicle?.type === 'BUS' // Focus on bus/jeepney routes
+        );
+        
+        if (transitSteps.length > 0) {
+          return true;
+        }
+        
+        // If no transit steps but route exists, it might be a valid walking route
+        // Let's check if it's a reasonable route (not too long)
+        const totalDistance = leg.distance?.value || 0; // in meters
+        const maxWalkingDistance = 5000; // 5km max for walking
+        
+        if (totalDistance <= maxWalkingDistance) {
+          return true; // Accept as valid route
+        }
+      }
+    }
+    
+    console.log(`❌ No valid route found`);
+    return false;
+  }
+
+  /**
+   * Process Google Maps transit route response into our internal format
+   */
+  private processGoogleMapsTransitRoute(route: any, from: any, to: any): any {
+    const segments: any[] = [];
+    let totalDuration = 0;
+    let totalDistance = 0;
+    let hasJeepneySegment = false;
+
+    if (route.legs && route.legs.length > 0) {
+      const leg = route.legs[0];
+      
+      if (leg.steps) {
+        leg.steps.forEach((step: any, index: number) => {
+          const segment = this.processTransitStep(step);
+          if (segment) {
+            segments.push(segment);
+            totalDuration += segment.duration || 0;
+            totalDistance += segment.distance || 0;
+            
+            // Check if this is a jeepney segment
+            if (segment.type === 'jeepney') {
+              hasJeepneySegment = true;
+            }
+          }
+        });
+      }
+    }
+
+    const result = {
+      segments,
+      totalDuration,
+      totalDistance,
+      from,
+      to,
+      source: 'google_maps'
+    };
+    
+    return result;
+  }
+
+  /**
+   * Process individual transit step from Google Maps
+   */
+  private processTransitStep(step: any): any {
+    const travelMode = step.travel_mode; // Google Directions API uses snake_case
+    
+    if (travelMode === 'WALKING') {
+      const segment = {
+        type: 'walk',
+        description: step.html_instructions || 'Walk to jeepney stop',
+        duration: step.duration?.value || 0,
+        distance: step.distance?.value || 0,
+        from: {
+          lat: step.start_location.lat,
+          lng: step.start_location.lng
+        },
+        to: {
+          lat: step.end_location.lat,
+          lng: step.end_location.lng
+        },
+        jeepneyCode: null,
+        polyline: step.polyline // Preserve polyline data for accurate route visualization
+      };
+      return segment;
+    } else if (travelMode === 'TRANSIT') {
+      const transit = step.transit_details; // Google Directions API uses snake_case
+      
+      if (transit && transit.line) {
+        // Extract jeepney code from line information
+        const jeepneyCode = this.extractCebuJeepneyCode(transit.line);
+        
+        // Check if this is a bus/jeepney (not train or other transit)
+        const isJeepney = transit.line.vehicle?.type === 'BUS' || 
+                         transit.line.name?.toLowerCase().includes('jeepney') ||
+                         jeepneyCode; // If we found a jeepney code, it's likely a jeepney
+        
+        if (isJeepney) {
+          const segment = {
+          type: 'jeepney',
+            description: `Take jeepney ${jeepneyCode || transit.line.short_name || transit.line.name}`,
+          duration: step.duration?.value || 0,
+          distance: step.distance?.value || 0,
+            jeepneyCode: jeepneyCode || transit.line.short_name,
+            from: {
+              lat: step.start_location.lat,
+              lng: step.start_location.lng
+            },
+            to: {
+              lat: step.end_location.lat,
+              lng: step.end_location.lng
+            },
+          departureStop: transit.departure_stop?.name,
+            arrivalStop: transit.arrival_stop?.name,
+            lineName: transit.line.name,
+            lineShortName: transit.line.short_name,
+            polyline: step.polyline // Preserve polyline data for accurate route visualization
+        };
+          return segment;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Extract Cebu jeepney code from Google Routes API transit line data
+   */
+  private extractCebuJeepneyCodeFromRoutesAPI(transitLine: any): string {
+    // Try to extract jeepney code from various line properties
+    let jeepneyCode = 'Unknown';
+    
+    if (transitLine.shortName) {
+      jeepneyCode = transitLine.shortName;
+    } else if (transitLine.name) {
+      // Try to extract code from name (e.g., "Route 12A" -> "12A")
+      const match = transitLine.name.match(/(\d+[A-Z]?)/);
+      if (match) {
+        jeepneyCode = match[1];
+      } else {
+        jeepneyCode = transitLine.name;
+      }
+    }
+    
+    return jeepneyCode;
+  }
+
+  /**
+   * Extract Cebu jeepney code from Google Maps transit line data (legacy)
+   */
+  private extractCebuJeepneyCode(line: any): string {
+    // Try to extract jeepney code from various line properties
+    let jeepneyCode = 'Unknown';
+    
+    if (line.short_name) {
+      jeepneyCode = line.short_name;
+    } else if (line.name) {
+      // Try to extract code from name (e.g., "Jeepney 04L" -> "04L")
+      const codeMatch = line.name.match(/(\d+[A-Z]?)/);
+      if (codeMatch) {
+        jeepneyCode = codeMatch[1];
+      } else {
+        jeepneyCode = line.name;
+      }
+    }
+    
+    return jeepneyCode;
+  }
+
+
+  // Legacy method for backward compatibility - now uses Google Maps
+  private async findBestJeepneyRouteLegacy(from: any, to: any): Promise<any> {
     if (!this.jeepneyRoutes || this.jeepneyRoutes.length === 0) {
       return null;
     }
@@ -3483,7 +3960,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
       if (i === 0) {
         // First segment: User location to first spot
-        const jeepneyRoute = this.findBestJeepneyRoute(userLocation, spots[0]);
+        const jeepneyRoute = await this.findBestJeepneyRoute(userLocation, spots[0]);
         if (jeepneyRoute && this.jeepneyRoutes.length > 0) {
           routeType = 'jeepney';
           jeepneyCode = jeepneyRoute.code;
@@ -3506,7 +3983,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           routeType = 'walk';
           routeDescription = `Walk from ${currentSpot.name} to ${nextSpot.name}`;
         } else {
-          const jeepneyRoute = this.findBestJeepneyRoute(currentSpot, nextSpot);
+          const jeepneyRoute = await this.findBestJeepneyRoute(currentSpot, nextSpot);
           if (jeepneyRoute && this.jeepneyRoutes.length > 0) {
             routeType = 'jeepney';
             jeepneyCode = jeepneyRoute.code;
@@ -3714,11 +4191,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
 
 
-  private formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  }
 
   private formatDistance(meters: number): string {
     const km = meters / 1000;
@@ -3809,7 +4281,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   private async findRouteWithWalkingDirections(from: any, to: any): Promise<any> {
     const nearestJeepney = this.getNearestJeepneyStop(from);
-    const bestRoute = this.findBestJeepneyRoute(from, to);
+    const bestRoute = await this.findBestJeepneyRoute(from, to);
     
     if (!bestRoute) {
       return {
@@ -4202,9 +4674,42 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // Clear existing route lines
     this.clearAllRouteLines();
 
-    if (route.polyline) {
+    // Display route segments with proper jeepney codes and polylines
+    if (route.segments && route.segments.length > 0) {
+      let allBounds: L.LatLng[] = [];
+      
+      route.segments.forEach((segment: any, index: number) => {
+        // Draw segment based on type
+        if (segment.type === 'jeepney' && segment.jeepneyCode) {
+          // Draw jeepney route with code
+          this.drawJeepneySegment(segment, index);
+        } else if (segment.type === 'walk') {
+          // Draw walking segment
+          this.drawWalkingSegment(segment, index);
+        }
+        
+        // Collect bounds for map fitting
+        if (segment.from && segment.to) {
+          const fromLat = segment.from.lat || segment.from.location?.lat;
+          const fromLng = segment.from.lng || segment.from.location?.lng;
+          const toLat = segment.to.lat || segment.to.location?.lat;
+          const toLng = segment.to.lng || segment.to.location?.lng;
+          
+          if (fromLat && fromLng && toLat && toLng) {
+            allBounds.push(L.latLng(fromLat, fromLng));
+            allBounds.push(L.latLng(toLat, toLng));
+          }
+        }
+      });
+      
+      // Fit map to show all segments
+      if (allBounds.length > 0) {
+        const bounds = L.latLngBounds(allBounds);
+        this.map.fitBounds(bounds, { padding: [50, 50] });
+      }
+    } else if (route.polyline) {
+      // Fallback to main polyline if no segments
       try {
-        // Decode polyline and create route line
         const decodedPolyline = this.decodePolyline(route.polyline);
         if (decodedPolyline.length > 1) {
           const routeLine = L.polyline(decodedPolyline, {
@@ -4215,7 +4720,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
           this.routeLines.push(routeLine);
           
-          // Fit map to route bounds
           const bounds = L.latLngBounds(decodedPolyline);
           this.map.fitBounds(bounds, { padding: [50, 50] });
         }
@@ -4228,9 +4732,10 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     if (route.segments && route.segments.length > 0) {
       route.segments.forEach((segment: any, index: number) => {
         // Add start marker
-        if (segment.from && segment.from.includes(',')) {
-          const [lat, lng] = segment.from.split(',').map(Number);
-          if (!isNaN(lat) && !isNaN(lng)) {
+        if (segment.from && (segment.from.lat || segment.from.location?.lat)) {
+          const lat = segment.from.lat || segment.from.location?.lat;
+          const lng = segment.from.lng || segment.from.location?.lng;
+          if (lat && lng) {
             const marker = L.marker([lat, lng], {
               icon: L.divIcon({
                 html: `<div style="
@@ -4268,42 +4773,245 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Decode Google's encoded polyline format
+   * Decode Google Maps encoded polyline
    */
   private decodePolyline(encoded: string): [number, number][] {
-    const poly: [number, number][] = [];
-    let index = 0, len = encoded.length;
-    let lat = 0, lng = 0;
+    const poly = [];
+    let index = 0;
+    const len = encoded.length;
+    let lat = 0;
+    let lng = 0;
 
     while (index < len) {
-      let shift = 0, result = 0;
-
+      let b, shift = 0, result = 0;
       do {
-        let b = encoded.charCodeAt(index++) - 63;
+        b = encoded.charCodeAt(index++) - 63;
         result |= (b & 0x1f) << shift;
         shift += 5;
-      } while (result >= 0x20);
-
-      let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      } while (b >= 0x20);
+      const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
       lat += dlat;
 
       shift = 0;
       result = 0;
-
       do {
-        let b = encoded.charCodeAt(index++) - 63;
+        b = encoded.charCodeAt(index++) - 63;
         result |= (b & 0x1f) << shift;
         shift += 5;
-      } while (result >= 0x20);
-
-      let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      } while (b >= 0x20);
+      const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
       lng += dlng;
 
-      poly.push([lat / 1E5, lng / 1E5]);
+      poly.push([lat / 1e5, lng / 1e5] as [number, number]);
     }
-
     return poly;
   }
+
+  /**
+   * Draw a jeepney segment on the map with route code
+   */
+  private drawJeepneySegment(segment: any, index: number): void {
+    if (!segment.from || !segment.to) {
+      return;
+    }
+    
+    // Extract coordinates from different possible formats
+    const fromLat = segment.from.lat || segment.from.location?.lat;
+    const fromLng = segment.from.lng || segment.from.location?.lng;
+    const toLat = segment.to.lat || segment.to.location?.lat;
+    const toLng = segment.to.lng || segment.to.location?.lng;
+    
+    if (!fromLat || !fromLng || !toLat || !toLng) {
+      return;
+    }
+    
+    // Check if we have polyline data from Google Maps
+    let polylinePoints: [number, number][];
+    
+    if (segment.polyline && segment.polyline.points) {
+      // Use Google Maps encoded polyline for accurate route path
+      try {
+        polylinePoints = this.decodePolyline(segment.polyline.points);
+      } catch (error) {
+        // Fallback to straight line
+        polylinePoints = [[fromLat, fromLng], [toLat, toLng]] as [number, number][];
+      }
+    } else {
+      // Fallback to straight line if no polyline data
+      polylinePoints = [[fromLat, fromLng], [toLat, toLng]] as [number, number][];
+    }
+    
+    // Draw jeepney route line
+    const jeepneyLine = L.polyline(polylinePoints, {
+      color: '#FF5722', // Orange color for jeepney routes
+      weight: 6,
+      opacity: 0.8,
+      dashArray: '0' // Solid line for jeepney routes
+    }).addTo(this.map);
+    
+    this.routeLines.push(jeepneyLine);
+    
+    // Add jeepney code marker at the midpoint of the polyline
+    const midIndex = Math.floor(polylinePoints.length / 2);
+    const midPoint = polylinePoints[midIndex];
+    const midLat = midPoint[0];
+    const midLng = midPoint[1];
+    
+    const jeepneyMarker = L.marker([midLat, midLng], {
+      icon: L.divIcon({
+        html: `<div style="
+          background: #FF5722;
+          color: white;
+          border: 2px solid white;
+          border-radius: 8px;
+          padding: 4px 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: bold;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+          min-width: 40px;
+          text-align: center;
+        ">${segment.jeepneyCode || '🚌'}</div>`,
+        className: 'jeepney-route-marker',
+        iconSize: [50, 30],
+        iconAnchor: [25, 15]
+      })
+    }).addTo(this.map);
+    
+    // Add popup with jeepney code and details
+    jeepneyMarker.bindPopup(`
+      <div style="text-align: center;">
+        <strong>🚌 Jeepney ${segment.jeepneyCode}</strong><br>
+        <small>${segment.description || 'Jeepney Route'}</small><br>
+        <small>Distance: ${this.formatDistance(segment.distance || 0)}</small><br>
+        <small>Duration: ${this.formatDuration(segment.duration || 0)}</small>
+      </div>
+    `);
+    
+    this.routeLines.push(jeepneyMarker);
+  }
+  
+  /**
+   * Draw a walking segment on the map
+   */
+  private drawWalkingSegment(segment: any, index: number): void {
+      if (!segment.from || !segment.to) {
+        return;
+      }
+      
+      // Extract coordinates from different possible formats
+      const fromLat = segment.from.lat || segment.from.location?.lat;
+      const fromLng = segment.from.lng || segment.from.location?.lng;
+      const toLat = segment.to.lat || segment.to.location?.lat;
+      const toLng = segment.to.lng || segment.to.location?.lng;
+      
+      if (!fromLat || !fromLng || !toLat || !toLng) {
+        return;
+      }
+    
+    // Check if we have polyline data from Google Maps
+    let polylinePoints: [number, number][];
+    
+    if (segment.polyline && segment.polyline.points) {
+      // Use Google Maps encoded polyline for accurate route path
+      try {
+        polylinePoints = this.decodePolyline(segment.polyline.points);
+      } catch (error) {
+        // Fallback to straight line
+        polylinePoints = [[fromLat, fromLng], [toLat, toLng]] as [number, number][];
+      }
+    } else {
+      // Fallback to straight line if no polyline data
+      polylinePoints = [[fromLat, fromLng], [toLat, toLng]] as [number, number][];
+    }
+    
+    // Draw walking route line
+    const walkLine = L.polyline(polylinePoints, {
+      color: '#4CAF50', // Green color for walking
+      weight: 5,
+      opacity: 0.8,
+      dashArray: '15, 10' // Dashed line for walking
+    }).addTo(this.map);
+    
+    this.routeLines.push(walkLine);
+    
+    // Add walking marker at the midpoint of the polyline
+    const midIndex = Math.floor(polylinePoints.length / 2);
+    const midPoint = polylinePoints[midIndex];
+    const midLat = midPoint[0];
+    const midLng = midPoint[1];
+    
+    const walkMarker = L.marker([midLat, midLng], {
+      icon: L.divIcon({
+        html: `<div style="
+          background: #4CAF50;
+          color: white;
+          border: 1px solid white;
+          border-radius: 4px;
+          padding: 2px 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 8px;
+          font-weight: bold;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+          min-width: 25px;
+          text-align: center;
+        ">🚶</div>`,
+        className: 'walking-route-marker',
+        iconSize: [35, 15],
+        iconAnchor: [17, 7]
+      })
+    }).addTo(this.map);
+    
+    // Add popup with walking details
+    walkMarker.bindPopup(`
+      <div style="text-align: center;">
+        <strong>🚶 Walking</strong><br>
+        <small>${segment.description || 'Walk to destination'}</small><br>
+        <small>Distance: ${this.formatDistance(segment.distance || 0)}</small><br>
+        <small>Duration: ${this.formatDuration(segment.duration || 0)}</small>
+      </div>
+    `);
+    
+    this.routeLines.push(walkMarker);
+  }
+
+
+  /**
+   * Test proxy server connection (public method for manual testing)
+   */
+  async testProxyServerManually(): Promise<void> {
+    await this.testProxyServer();
+  }
+
+  /**
+   * Test proxy server connection
+   */
+  private async testProxyServer(): Promise<void> {
+    try {
+      console.log('🔍 Testing proxy server connection...');
+      
+      // Get the proxy server URL from environment or use default
+      const proxyUrl = 'https://google-places-proxy-ftxx.onrender.com'; // Your Render.com URL
+      
+      const response = await this.http.get(`${proxyUrl}/test`).toPromise();
+      
+      if (response && (response as any).message === 'Test route works!') {
+        console.log('✅ Proxy server is working! Response:', response);
+        await this.showToast('Proxy server connection successful');
+      } else {
+        console.warn('⚠️ Proxy server responded but with unexpected data:', response);
+        await this.showToast('Proxy server responded with unexpected data');
+      }
+    } catch (error) {
+      console.error('❌ Proxy server connection failed:', error);
+      await this.showToast('Proxy server connection failed - check console for details');
+    }
+  }
+
 
   ///////////////////////// Test proxy connection
 
@@ -4332,7 +5040,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
 
     const routeInfo = {
-      title: this.formatItineraryTitle(this.availableItineraries[this.selectedItineraryIndex]) + ' (Curated)',
+      title: this.formatItineraryTitle(this.availableItineraries[this.selectedItineraryIndex]),
       totalDuration: this.currentRouteInfo.totalDuration,
       totalDistance: this.currentRouteInfo.totalDistance,
       segments: this.currentRouteInfo.segments,
@@ -4350,12 +5058,4 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // Attach to the view container
     this.viewContainerRef.insert(componentRef.hostView);
   }
-
-
-
-
-
-  
-
-
 }

@@ -1,5 +1,5 @@
 import { Component, AfterViewInit, OnDestroy, NgZone, ComponentFactoryResolver, ViewContainerRef, Injector } from '@angular/core';
-import { NavController, ToastController, ModalController } from '@ionic/angular';
+import { NavController, ToastController, ModalController, LoadingController } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { HttpClient } from '@angular/common/http';
@@ -50,6 +50,10 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   stageRouteOptions: any[] = []; // Store multiple route options for each stage
   selectedStageForOptions: number = -1; // Track which stage's options are being shown
   
+  // Loading modal properties
+  loadingModal: any = null;
+  loadingProgress: string = '';
+  
 
   
 
@@ -79,6 +83,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private toastCtrl: ToastController,
     private ngZone: NgZone,
     private modalCtrl: ModalController,
+    private loadingCtrl: LoadingController,
     private directionsService: DirectionsService,
     private apiTracker: ApiTrackerService,
     private itineraryService: ItineraryService,
@@ -340,7 +345,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       const routeInfo = await this.generateRouteInfo(selectedItinerary);
       if (routeInfo) {
         this.currentRouteInfo = routeInfo;
-        console.log('✅ Route info generated and set:', this.currentRouteInfo);
         
       // Display the route on the map
       // Always display the route on the map using the full routeInfo object
@@ -578,13 +582,14 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // Set loading state
     this.isGeneratingRoute = true;
     
-    // Show toast notification
-    this.showToast('🚀 Generating stage-based routes...');
+    // Show loading modal for mobile users
+    await this.showLoadingModal('🚀 Starting route generation...');
 
     try {
     const segments: any[] = [];
     let totalDuration = 0;
     let totalDistance = 0;
+    let allSpots: any[] = []; // Collect all spots from all days
 
     for (const day of itinerary.days) {
       // Handle different spot data structures
@@ -599,6 +604,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           spots = [day.spots];
         }
       }
+      
+      // Add spots from this day to the collection
+      allSpots = allSpots.concat(spots);
       
       // Create stages for consecutive spots
       for (let spotIndex = 0; spotIndex < spots.length; spotIndex++) {
@@ -629,12 +637,16 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           continue;
         }
         
-        // Get all available jeepney routes for this stage using Google Maps API
+        // Update loading progress
+        await this.updateLoadingProgress(`🔍 Finding routes for Stage ${spotIndex + 1}: ${spot.name}`);
+        
+        // Get all available transit routes (jeepney and bus) for this stage using Google Maps API
         const allRoutes = await this.findAllJeepneyRoutes(fromPoint, spot);
         
         if (allRoutes && allRoutes.length > 0) {
           // Sort routes by duration to ensure consistency
           allRoutes.sort((a: any, b: any) => a.totalDuration - b.totalDuration);
+          
           
           // Use the first (best) route for the main segments display
           const bestRoute = allRoutes[0];
@@ -669,31 +681,31 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           // Store all route options for this stage
           this.stageRouteOptions[spotIndex] = allRoutes;
         } else {
-          // No jeepney route found - create walking segment
-          console.log(`⚠️ Stage ${spotIndex + 1}: No jeepney route found, creating walking segment`);
+          // No transit route found - add fallback message instead of creating walking segment
+          console.log(`⚠️ Stage ${spotIndex + 1}: No transit route found, no transportation data available`);
           
-          // Create a walking segment from the previous location to current spot
+          // Create a "no transport" segment to indicate lack of transportation data
           const fromCoords = spotIndex === 0 ? fromPoint : spots[spotIndex - 1];
           const toCoords = spot;
           
           segments.push({
-            type: 'walk',
+            type: 'no_transport',
             from: fromCoords,
             to: toCoords,
             fromName: spotIndex === 0 ? 'Your Location' : spots[spotIndex - 1]?.name || 'Previous Location',
             toName: spot.name,
-            estimatedTime: '30 min', // Default walking time
-            description: `Walk from ${spotIndex === 0 ? 'your location' : spots[spotIndex - 1]?.name || 'previous location'} to ${spot.name}`,
-            jeepneyCode: null,
+            estimatedTime: 'N/A',
+            description: `Sorry, we could not calculate and fetch transit directions from "${spotIndex === 0 ? 'your location' : spots[spotIndex - 1]?.name || 'previous location'}" to "${spot.name}"`,
+            jeepneyCode: '⚠️ No transit data',
             mealType: null,
-            distance: 1000, // Default 1km walking distance
-            duration: 1800, // Default 30 minutes
+            distance: 0,
+            duration: 0,
             stage: spotIndex + 1
           });
           
-          // Add to totals
-          totalDistance += 1; // 1km
-          totalDuration += 30; // 30 minutes
+          // Don't add to totals since no transport is available
+          // Skip alternative search to prevent spam when no transport data exists
+          console.log(`⚠️ Skipping alternative route search for Stage ${spotIndex + 1} to prevent spam`);
         }
 
         // Add meal segment if specified
@@ -717,17 +729,23 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       segments,
       totalDuration: `${Math.round(totalDuration)} min`,
       totalDistance: `${totalDistance.toFixed(1)} km`,
-      suggestedRoutes: this.generateSuggestedRoutes(segments),
+      suggestedRoutes: await this.generateSuggestedRoutes(segments, allSpots, this.userLocation),
       source: 'google_maps_stages'
     };
     
-      // Reset loading state
+      // Reset loading state and dismiss modal
       this.isGeneratingRoute = false;
+      await this.dismissLoadingModal();
+      
+      // Show success message
+      this.showToast('✅ Route generation completed!');
       
       return result;
     } catch (error) {
       console.error('❌ Error generating route info:', error);
       this.isGeneratingRoute = false;
+      await this.dismissLoadingModal();
+      this.showToast('❌ Error generating routes. Please try again.');
       return null;
     }
   }
@@ -754,9 +772,87 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * Generate walking alternatives using OSRM for when no transport data is available
+   */
+  private async generateWalkingAlternatives(spots: any[], fromPoint: any): Promise<any> {
+    try {
+      const walkingSegments = [];
+      let totalDistance = 0;
+      let totalDuration = 0;
+      
+      for (let spotIndex = 0; spotIndex < spots.length; spotIndex++) {
+        const spot = spots[spotIndex];
+        const fromCoords = spotIndex === 0 ? fromPoint : spots[spotIndex - 1];
+        
+        // Update progress for walking route generation
+        await this.updateLoadingProgress(`🚶 Creating walking route to ${spot.name}...`);
+        
+        // Create OSRM walking route for this segment
+        const walkingRoute = await this.createWalkingRouteWithOSRM(fromCoords, spot);
+        
+        if (walkingRoute && walkingRoute.segments && walkingRoute.segments[0]) {
+          const segment = walkingRoute.segments[0];
+          
+          // Add additional info for display
+          const walkingSegment = {
+            ...segment,
+            fromName: spotIndex === 0 ? 'Your Location' : spots[spotIndex - 1]?.name || 'Previous Location',
+            toName: spot.name,
+            estimatedTime: this.formatDuration(segment.duration),
+            stage: spotIndex + 1,
+            jeepneyCode: null,
+            mealType: null
+          };
+          
+          walkingSegments.push(walkingSegment);
+          totalDistance += segment.distance || 0;
+          totalDuration += segment.duration || 0;
+        } else {
+          // Fallback to straight line if OSRM fails
+          console.log(`⚠️ OSRM failed for stage ${spotIndex + 1}, using straight line`);
+          const straightLineDistance = this.calculateDistance(
+            fromCoords.lat, fromCoords.lng, 
+            spot.lat, spot.lng
+          ) * 1000; // Convert to meters
+          
+          walkingSegments.push({
+            type: 'walk',
+            from: fromCoords,
+            to: spot,
+            fromName: spotIndex === 0 ? 'Your Location' : spots[spotIndex - 1]?.name || 'Previous Location',
+            toName: spot.name,
+            estimatedTime: this.formatDuration(straightLineDistance / 1.1), // ~1.1 m/s walking speed
+            description: `Walk ${(straightLineDistance / 1000).toFixed(2)}km (straight line - no route data)`,
+            jeepneyCode: null,
+            mealType: null,
+            distance: straightLineDistance,
+            duration: straightLineDistance / 1.1,
+            stage: spotIndex + 1,
+            polyline: null // No polyline for straight line
+          });
+          
+          totalDistance += straightLineDistance;
+          totalDuration += straightLineDistance / 1.1;
+        }
+      }
+      
+      return {
+        segments: walkingSegments,
+        totalDistance,
+        totalDuration,
+        type: 'walking'
+      };
+      
+    } catch (error) {
+      console.error('❌ Error generating walking alternatives:', error);
+      return null;
+    }
+  }
+
+  /**
    * Generate suggested routes from segments
    */
-  private generateSuggestedRoutes(segments: any[]): any[] {
+  private async generateSuggestedRoutes(segments: any[], spots?: any[], fromPoint?: any): Promise<any[]> {
     const routes = [];
     const jeepneySegments = segments.filter(seg => seg.type === 'jeepney');
     
@@ -781,6 +877,26 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       });
     }
     
+      // Check for no_transport segments and offer walking as alternative
+    const noTransportSegments = segments.filter(seg => seg.type === 'no_transport');
+    if (noTransportSegments.length > 0 && jeepneySegments.length === 0 && spots && fromPoint) {
+      // Generate walking routes using OSRM for segments with no transport data
+      console.log('🚶 Generating walking alternatives for segments with no transport data...');
+      await this.updateLoadingProgress('🚶 Generating walking alternatives...');
+      const walkingAlternatives = await this.generateWalkingAlternatives(spots, fromPoint);
+      
+      if (walkingAlternatives && walkingAlternatives.segments.length > 0) {
+        routes.push({
+          id: 'walking_alternative',
+          name: 'Walking Route',
+          description: 'Walking route following streets (no public transport available)',
+          segments: walkingAlternatives.segments,
+          type: 'walking',
+          isAlternative: true
+        });
+      }
+    }
+    
     return routes;
   }
 
@@ -791,8 +907,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         this.initMap();
         console.log('✅ Map initialized successfully');
         
-        // Test proxy server connection
-        this.testProxyServer();
         
         // Wait for map to be fully rendered before invalidating size
         setTimeout(() => {
@@ -825,6 +939,101 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       const spot = this.touristSpots.find(s => s.name === spotName);
       if (spot) {
         this.openSpotSheet(spot);
+      }
+    };
+
+    // Add global function for walking directions
+    (window as any).getWalkingDirections = async (spotName: string) => {
+      const spot = this.touristSpots.find(s => s.name === spotName);
+      if (spot && this.userLocation) {
+        try {
+          await this.showLoadingModal('🚶 Generating walking route...');
+          
+          // Create OSRM walking route
+          const walkingRoute = await this.createWalkingRouteWithOSRM(this.userLocation, spot);
+          
+          await this.dismissLoadingModal();
+          
+          if (walkingRoute && walkingRoute.segments && walkingRoute.segments[0]) {
+            // Display the walking route on the map
+            this.displayWalkingRoute(walkingRoute.segments[0]);
+            this.showToast(`🚶 Walking route to ${spot.name} generated!`);
+          } else {
+            // Fallback to straight line if OSRM fails
+            this.displayStraightLineRoute(this.userLocation, spot);
+            this.showToast(`🚶 Showing direct walking path to ${spot.name}`);
+          }
+        } catch (error) {
+          await this.dismissLoadingModal();
+          this.showToast('❌ Could not generate walking route. Please try again.');
+          console.error('Error generating walking route:', error);
+        }
+      } else {
+        this.showToast('⚠️ Please enable location services to get walking directions.');
+      }
+    };
+
+    // Add global function for itinerary spot details
+    (window as any).openItinerarySpotDetails = (spotName: string) => {
+      const spot = this.touristSpots.find(s => s.name === spotName);
+      if (spot) {
+        this.openSpotSheet(spot);
+      }
+    };
+
+    // Add global function for walking directions from route segments
+    (window as any).getWalkingDirectionsForSegment = async (destinationName: string) => {
+      if (!this.userLocation) {
+        this.showToast('⚠️ Please enable location services to get walking directions.');
+        return;
+      }
+
+      // Find the destination spot
+      let destination = this.touristSpots.find(s => s.name === destinationName);
+      
+      // If not found in tourist spots, try to find in current route segments
+      if (!destination && this.currentRouteInfo && this.currentRouteInfo.segments) {
+        const segment = this.currentRouteInfo.segments.find((s: any) => 
+          s.toName === destinationName || s.to?.name === destinationName
+        );
+        
+        if (segment && segment.to) {
+          destination = {
+            name: destinationName,
+            location: {
+              lat: segment.to.lat || segment.to.location?.lat,
+              lng: segment.to.lng || segment.to.location?.lng
+            }
+          };
+        }
+      }
+
+      if (!destination || !destination.location) {
+        this.showToast('❌ Could not find destination location.');
+        return;
+      }
+
+      try {
+        await this.showLoadingModal('🚶 Generating walking route...');
+        
+        // Create OSRM walking route
+        const walkingRoute = await this.createWalkingRouteWithOSRM(this.userLocation, destination);
+        
+        await this.dismissLoadingModal();
+        
+        if (walkingRoute && walkingRoute.segments && walkingRoute.segments[0]) {
+          // Display the walking route on the map
+          this.displayWalkingRoute(walkingRoute.segments[0]);
+          this.showToast(`🚶 Walking route to ${destinationName} generated!`);
+        } else {
+          // Fallback to straight line if OSRM fails
+          this.displayStraightLineRoute(this.userLocation, destination);
+          this.showToast(`🚶 Showing direct walking path to ${destinationName}`);
+        }
+      } catch (error) {
+        await this.dismissLoadingModal();
+        this.showToast('❌ Could not generate walking route. Please try again.');
+        console.error('Error generating walking route for segment:', error);
       }
     };
     
@@ -1805,8 +2014,16 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         ${restaurantInfo}
         ${hotelInfo}
         ${jeepneyCode ? 
+          jeepneyCode.includes('⚠️ No transit data') ? 
+            `<div style="margin: 8px 0; padding: 12px; background: rgba(255, 152, 0, 0.1); border-radius: 8px; border-left: 4px solid #ff9800;">
+              <p style="margin: 0 0 8px 0; color: #ff9800; font-weight: bold;">Sorry, we could not calculate and fetch transit directions to this location.</p>
+              <button onclick="window.getWalkingDirections('${spot.name}')" 
+                      style="background: #4caf50; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
+                🚶 Get Walking Directions
+              </button>
+            </div>` :
           jeepneyCode.includes('🚶') ? 
-            `<p style="margin: 4px 0; color: #ff6b35; font-weight: bold;"><strong>🚶 Transport:</strong> Walking only - No public transport available</p>` :
+            `<p style="margin: 4px 0; color: #ff6b35; font-weight: bold;"><strong>🚶 Transport:</strong> Walking route available</p>` :
             `<p style="margin: 4px 0; color: #1976d2; font-weight: bold;"><strong>🚌 Jeepney:</strong> ${jeepneyCode}</p>`
           : ''
         }
@@ -1913,8 +2130,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         this.map.fitBounds(this.routeLine.getBounds(), { padding: [50, 50] });
       } else {
         this.toastCtrl.create({
-          message: 'No route found.',
-          duration: 2000,
+          message: 'Sorry, we could not calculate directions for this route.',
+          duration: 3000,
           color: 'warning'
         }).then(toast => toast.present());
       }
@@ -1928,27 +2145,38 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   async getUserLocation(): Promise<void> {
-    // Use simulated location for testing (PC doesn't have GPS)
+    try {
+      // Request real geolocation permission and get current position
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 300000 // 5 minutes
+      });
+
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      
+      // Snap location to nearest road using OSRM
+      const snappedLocation = await this.snapLocationToRoad(lat, lng);
+      
       this.userLocation = {
-      lat: 10.285382385444201,
-      lng: 123.8691153312774,
-      name: 'Simulated Test Location',
-        isReal: false
+        lat: snappedLocation.lat,
+        lng: snappedLocation.lng,
+        name: 'Current Location',
+        isReal: true
       };
-    
-    console.log('🎯 Using simulated location for testing:', this.userLocation);
-    
-    // Add or update user marker on map
-    if (this.userMarker) {
-      this.map.removeLayer(this.userMarker);
-    }
-    
-    // Only add marker and center map if userLocation has valid coordinates
-    if (this.userLocation && this.userLocation.lat && this.userLocation.lng) {
+      
+      console.log('📍 Real GPS location obtained:', this.userLocation);
+      
+      // Add or update user marker on map
+      if (this.userMarker) {
+        this.map.removeLayer(this.userMarker);
+      }
+
       this.userMarker = L.marker([this.userLocation.lat, this.userLocation.lng], {
         icon: L.divIcon({
           html: `<div style="
-            background: #1976d2;
+            background: #4CAF50;
             color: white;
             border-radius: 50%;
             width: 20px;
@@ -1969,46 +2197,98 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       // Center map on user location
       this.map.setView([this.userLocation.lat, this.userLocation.lng], 15);
       
-      console.log('✅ User location set:', this.userLocation);
-    } else {
-      console.warn('⚠️ User location not available, map will use default center');
+      console.log('✅ Real GPS location set:', this.userLocation);
+      
+    } catch (error) {
+      console.error('❌ Error getting real location:', error);
+      this.showToast('Could not get your location. Please enable location services.');
+      
+      // Fallback to Cebu City center if geolocation fails
+      const cebuCenter = { lat: 10.3157, lng: 123.8854 };
+      this.userLocation = {
+        lat: cebuCenter.lat,
+        lng: cebuCenter.lng,
+        name: 'Cebu City Center (Fallback)',
+        isReal: false
+      };
+      
+      // Add fallback marker
+      if (this.userMarker) {
+        this.map.removeLayer(this.userMarker);
+      }
+
+      this.userMarker = L.marker([cebuCenter.lat, cebuCenter.lng], {
+        icon: L.divIcon({
+          html: `<div style="
+            background: #ff9800;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          ">📍</div>`,
+          className: 'user-location-marker',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        })
+      }).addTo(this.map);
+      
+      this.map.setView([cebuCenter.lat, cebuCenter.lng], 13);
     }
   }
 
-  // Start continuous location tracking (disabled for testing - using simulated location)
+  // Start continuous location tracking with real GPS
   async startLocationTracking(): Promise<void> {
     if (this.isLocationTracking) {
-      console.log('📍 Location tracking already active (simulated)');
+      console.log('📍 Location tracking already active');
       return;
     }
 
-    // Use simulated location for testing instead of real GPS
-    this.isLocationTracking = true;
-    console.log('🎯 Location tracking started with simulated location');
-    this.showToast('Location tracking activated (simulated)');
-    
-    // Set simulated location as current
-    this.userLocation = {
-      lat: 10.285382385444201,
-      lng: 123.8691153312774,
-      name: 'Simulated Test Location',
-      isReal: false
-    };
-    
-    console.log('🎯 Simulated location set for tracking:', this.userLocation);
+    try {
+      // Start watching real GPS position
+      this.locationWatcher = await Geolocation.watchPosition({
+        enableHighAccuracy: true,
+        timeout: 30000,
+        maximumAge: 60000 // 1 minute
+      }, (position) => {
+        if (position) {
+          this.updateUserLocationFromPosition(position);
+        }
+      });
+
+      this.isLocationTracking = true;
+      console.log('📍 Real GPS location tracking started');
+      this.showToast('Location tracking activated');
+      
+      // Get initial position
+      await this.getUserLocation();
+      
+    } catch (error) {
+      console.error('❌ Error starting location tracking:', error);
+      this.showToast('Could not start location tracking. Please enable location services.');
+    }
   }
 
-  // Stop continuous location tracking (simulated)
+  // Stop continuous location tracking
   async stopLocationTracking(): Promise<void> {
     if (!this.isLocationTracking) {
       return;
     }
 
-    // For simulated location, just stop the tracking flag
+    // Stop watching GPS position
+    if (this.locationWatcher) {
+      await Geolocation.clearWatch({ id: this.locationWatcher });
       this.locationWatcher = undefined;
-      this.isLocationTracking = false;
-    console.log('📍 Location tracking stopped (simulated)');
-      this.showToast('Location tracking deactivated');
+    }
+    
+    this.isLocationTracking = false;
+    console.log('📍 GPS location tracking stopped');
+    this.showToast('Location tracking deactivated');
   }
 
   // Update user location from position update
@@ -2082,11 +2362,17 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   async showUserLocation() {
     try {
-      // Use simulated location for testing
-      const lat = 10.285382385444201;
-      const lng = 123.8691153312774;
+      // Get real GPS location
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 300000 // 5 minutes
+      });
+
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
       
-      console.log('🎯 Using simulated location for showUserLocation:', { lat, lng });
+      console.log('📍 Using real GPS location for showUserLocation:', { lat, lng });
       
       // Snap location to nearest road using OSRM
       const snappedLocation = await this.snapLocationToRoad(lat, lng);
@@ -2099,7 +2385,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.userMarker = L.marker([snappedLocation.lat, snappedLocation.lng], {
         icon: L.divIcon({
           html: `<div style="
-            background: #1976d2;
+            background: #4CAF50;
             color: white;
             border-radius: 50%;
             width: 20px;
@@ -2120,12 +2406,12 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       // Center map on snapped user location
       this.map.setView([snappedLocation.lat, snappedLocation.lng], 15);
       
-      // Update user location with simulated coordinates
+      // Update user location with real GPS coordinates
       this.userLocation = {
         lat: snappedLocation.lat,
         lng: snappedLocation.lng,
-        name: 'Simulated Test Location',
-        isReal: false
+        name: 'Current Location',
+        isReal: true
       };
       
       this.showToast('Location updated and snapped to nearest road!');
@@ -2142,9 +2428,22 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       return { lat: snappedLocation.lat, lng: snappedLocation.lng };
     } catch (error) {
-      console.error('Error getting location:', error);
-      this.showToast('Could not get your location. Please check your GPS settings.');
-      return this.userLocation;
+      console.error('Error getting real GPS location:', error);
+      this.showToast('Could not get your location. Please enable location services.');
+      
+      // Return current user location if available, otherwise return Cebu center
+      if (this.userLocation) {
+        return this.userLocation;
+      } else {
+        const cebuCenter = { lat: 10.3157, lng: 123.8854 };
+        this.userLocation = {
+          lat: cebuCenter.lat,
+          lng: cebuCenter.lng,
+          name: 'Cebu City Center (Fallback)',
+          isReal: false
+        };
+        return cebuCenter;
+      }
     }
   }
 
@@ -2163,6 +2462,116 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     
     // Fallback to original coordinates if snapping fails
     return { lat, lng };
+  }
+
+  /**
+   * Create a walking route using OSRM to follow streets instead of straight lines
+   */
+  private async createWalkingRouteWithOSRM(from: any, to: any): Promise<any> {
+    try {
+      // Handle different coordinate structures
+      const fromLat = from.lat || from.location?.lat;
+      const fromLng = from.lng || from.location?.lng;
+      const toLat = to.lat || to.location?.lat;
+      const toLng = to.lng || to.location?.lng;
+      
+      // Validate coordinates
+      if (!fromLat || !fromLng || !toLat || !toLng) {
+        console.error('❌ Invalid coordinates for walking route:', { from, to });
+        return null;
+      }
+
+      
+      // Use OSRM through the directions service for walking route
+      const coordinates = `${fromLng},${fromLat};${toLng},${toLat}`;
+      const response: any = await this.directionsService.getOsrmRoute(coordinates, 'foot').toPromise();
+      
+      if (response && response.routes && response.routes[0]) {
+        const route = response.routes[0];
+        const leg = route.legs[0];
+        
+        // Handle OSRM geometry (can be GeoJSON or encoded polyline)
+        let routePath: L.LatLng[] = [];
+        if (route.geometry) {
+          if (typeof route.geometry === 'string') {
+            // Encoded polyline5 format
+            routePath = this.decodeOSRMPolyline(route.geometry);
+          } else if (route.geometry.type === 'LineString' && route.geometry.coordinates) {
+            // GeoJSON format
+            routePath = route.geometry.coordinates.map((coord: number[]) => 
+              L.latLng(coord[1], coord[0]) // GeoJSON is [lng, lat], Leaflet expects [lat, lng]
+            );
+          }
+        }
+        
+        // Create walking segment with OSRM data
+        const walkingSegment = {
+          type: 'walk',
+          from: { lat: fromLat, lng: fromLng },
+          to: { lat: toLat, lng: toLng },
+          description: `Walk ${(route.distance / 1000).toFixed(2)}km (${Math.round(route.duration / 60)} min)`,
+          duration: route.duration, // in seconds
+          distance: route.distance, // in meters
+          polyline: routePath, // OSRM route path that follows streets
+          jeepneyCode: null
+        };
+        
+        
+        return {
+          segments: [walkingSegment],
+          totalDuration: route.duration,
+          totalDistance: route.distance,
+          type: 'walking'
+        };
+      } else {
+        return null;
+      }
+      
+    } catch (error) {
+      console.error('❌ Error creating OSRM walking route:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Decode polyline5 geometry from OSRM
+   */
+  private decodeOSRMPolyline(encoded: string): L.LatLng[] {
+    const points: L.LatLng[] = [];
+    let index = 0;
+    let lat = 0;
+    let lng = 0;
+    
+    while (index < encoded.length) {
+      let shift = 0;
+      let result = 0;
+      let byte: number;
+      
+      do {
+        byte = encoded.charCodeAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20);
+      
+      const deltaLat = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+      lat += deltaLat;
+      
+      shift = 0;
+      result = 0;
+      
+      do {
+        byte = encoded.charCodeAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20);
+      
+      const deltaLng = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+      lng += deltaLng;
+      
+      points.push(L.latLng(lat / 1e5, lng / 1e5));
+    }
+    
+    return points;
   }
 
   async navigateNextItineraryStep() {
@@ -2403,15 +2812,20 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         // Process all routes from Google Maps
         for (let i = 0; i < response.routes.length; i++) {
           const route = response.routes[i];
+          
           // Check if this route has any transit steps (jeepney routes)
           const hasTransitSteps = this.hasTransitSteps(route);
           
           if (hasTransitSteps) {
-            // Process the route to check if it actually contains jeepney segments
+            // Process the route to check if it actually contains transit segments (jeepney or bus)
             const processedRoute = this.processGoogleMapsTransitRoute(route, from, to);
-            const hasJeepneySegments = processedRoute.segments.some((segment: any) => segment.type === 'jeepney');
+            const hasTransitSegments = processedRoute.segments.some((segment: any) => 
+              segment.type === 'jeepney' || segment.type === 'bus'
+            );
             
-            allRoutes.push(processedRoute);
+            if (hasTransitSegments) {
+              allRoutes.push(processedRoute);
+            }
           } else {
             const processedRoute = this.processGoogleMapsTransitRoute(route, from, to);
             allRoutes.push(processedRoute);
@@ -2421,7 +2835,14 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         return allRoutes;
       }
       
-      console.log(`⚠️ No routes found from Google Maps`);
+      
+      // If we get ZERO_RESULTS, it means there's no public transport available
+      // Don't try alternative search to prevent spam logging
+      if (response?.status === 'ZERO_RESULTS') {
+        console.log(`⚠️ ZERO_RESULTS detected - no public transport available, skipping alternative search to prevent spam`);
+        return []; // Return empty array instead of triggering alternative search
+      }
+      
       return [];
       
     } catch (error) {
@@ -2471,11 +2892,13 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           const hasTransitSteps = this.hasTransitSteps(route);
           
           if (hasTransitSteps) {
-            // Process the route to check if it actually contains jeepney segments
+            // Process the route to check if it actually contains transit segments (jeepney or bus)
             const processedRoute = this.processGoogleMapsTransitRoute(route, from, to);
-            const hasJeepneySegments = processedRoute.segments.some((segment: any) => segment.type === 'jeepney');
+            const hasTransitSegments = processedRoute.segments.some((segment: any) => 
+              segment.type === 'jeepney' || segment.type === 'bus'
+            );
             
-            if (hasJeepneySegments) {
+            if (hasTransitSegments) {
               if (!bestJeepneyRoute) {
                 bestJeepneyRoute = processedRoute;
               }
@@ -2487,7 +2910,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           } else {
             if (!bestRoute) {
               bestRoute = this.processGoogleMapsTransitRoute(route, from, to);
-              console.log('Processed walking route:', bestRoute);
             }
           }
         }
@@ -2509,19 +2931,279 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * Try alternative routing when Google Maps returns ZERO_RESULTS
+   * This happens when the origin is too far from transit routes
+   */
+  private async tryAlternativeRouteForZeroResults(from: any, to: any): Promise<any[]> {
+    console.log(`🔄 Trying alternative routing approach...`);
+    
+    // Use radius-based search to find nearby jeepney routes
+    console.log(`🚶 Looking for nearby jeepney routes within walking distance...`);
+    return await this.createWalkingToTransitHubRoute(from, to);
+  }
+
+  /**
+   * Create a walking route to nearby jeepney stops when no direct transit is available
+   */
+  private async createWalkingToTransitHubRoute(from: any, to: any): Promise<any[]> {
+    console.log(`🚶 Looking for nearby jeepney routes within walking distance...`);
+    
+    const fromLat = from.lat || from.location?.lat;
+    const fromLng = from.lng || from.location?.lng;
+    
+    // Define search radius in kilometers (reduced to prevent spam)
+    const searchRadii = [1.0, 2.0]; // 1km, 2km only - reduced from 5 levels to prevent excessive searching
+    
+    for (const radius of searchRadii) {
+      
+      // Try to find transit routes from points around the user's location
+      const nearbyPoints = this.generateNearbyPoints(fromLat, fromLng, radius);
+      
+      // Test fewer points to reduce spam (reduced from 10 to 5)
+      const maxPointsToTest = 5;
+      const pointsToTest = nearbyPoints.slice(0, maxPointsToTest);
+      
+      
+      for (let pointIndex = 0; pointIndex < pointsToTest.length; pointIndex++) {
+        const point = pointsToTest[pointIndex];
+        try {
+          
+          // Use direct API call instead of findAllJeepneyRoutes to avoid recursion
+          const nearbyRoutes = await this.testDirectTransitRoute(point, to);
+          
+          if (nearbyRoutes && nearbyRoutes.length > 0) {
+            
+            // Calculate walking distance to this nearby point
+            const walkingDistance = this.calculateDistance(fromLat, fromLng, point.lat, point.lng);
+            
+            if (walkingDistance <= radius) {
+              
+              // Create walking segment to the nearby point
+              const walkingSegment = {
+                type: 'walk',
+                description: `Walk to jeepney route (${walkingDistance.toFixed(2)}km)`,
+                duration: Math.round(walkingDistance * 1000 / 1.1), // ~1.1 m/s walking speed
+                distance: walkingDistance * 1000, // Convert to meters
+                from: {
+                  lat: fromLat,
+                  lng: fromLng
+                },
+                to: {
+                  lat: point.lat,
+                  lng: point.lng
+                },
+                jeepneyCode: null,
+                polyline: null
+              };
+              
+              // Combine walking segment with transit routes
+              const combinedRoutes = nearbyRoutes.map(route => ({
+                ...route,
+                segments: [walkingSegment, ...route.segments],
+                totalDuration: walkingSegment.duration + route.totalDuration,
+                totalDistance: walkingSegment.distance + route.totalDistance
+              }));
+              
+              return combinedRoutes;
+            }
+          } else {
+            // Reduced logging to prevent spam
+          }
+        } catch (error) {
+          console.log(`❌ Error testing point:`, error);
+        }
+      }
+    }
+    
+    // If no nearby routes found, return empty array (no routes available)
+    console.log(`⚠️ No nearby jeepney routes found within walking distance - stopping search to prevent spam`);
+    return [];
+  }
+
+  /**
+   * Test direct transit route without triggering recursive loops
+   */
+  private async testDirectTransitRoute(from: any, to: any): Promise<any[]> {
+    try {
+      const fromLat = from.lat || from.location?.lat;
+      const fromLng = from.lng || from.location?.lng;
+      const toLat = to.lat || to.location?.lat;
+      const toLng = to.lng || to.location?.lng;
+      
+      // Validate coordinates
+      if (!fromLat || !fromLng || !toLat || !toLng) {
+        return [];
+      }
+      
+      // Check if coordinates are within Cebu bounds
+      if (!this.isWithinCebu(fromLat, fromLng) || !this.isWithinCebu(toLat, toLng)) {
+        return [];
+      }
+      
+      const origin = `${fromLat},${fromLng}`;
+      const destination = `${toLat},${toLng}`;
+      
+      // Use Google Maps Directions API with transit mode to get jeepney routes
+      const response: any = await this.directionsService.getTransitRoute(origin, destination).toPromise();
+      
+      if (response && response.routes && response.routes.length > 0) {
+        const allRoutes = [];
+        
+        // Process all routes from Google Maps
+        for (let i = 0; i < response.routes.length; i++) {
+          const route = response.routes[i];
+          // Check if this route has any transit steps (jeepney routes)
+          const hasTransitSteps = this.hasTransitSteps(route);
+          
+          if (hasTransitSteps) {
+            // Process the route to check if it actually contains transit segments (jeepney or bus)
+            const processedRoute = this.processGoogleMapsTransitRoute(route, from, to);
+            const hasTransitSegments = processedRoute.segments.some((segment: any) => 
+              segment.type === 'jeepney' || segment.type === 'bus'
+            );
+            
+            if (hasTransitSegments) {
+              allRoutes.push(processedRoute);
+            }
+          }
+        }
+        
+        return allRoutes;
+      }
+      
+      return [];
+      
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * Generate nearby points around a location for testing
+   */
+  private generateNearbyPoints(lat: number, lng: number, radiusKm: number): any[] {
+    const points = [];
+    const radiusDegrees = radiusKm / 111; // Approximate conversion from km to degrees
+    
+    // Generate points in a grid pattern around the location (reduced to avoid spam)
+    const steps = 4; // Reduced from 8 to 4 to generate fewer points
+    const stepSize = radiusDegrees / steps;
+    
+    for (let i = -steps; i <= steps; i++) {
+      for (let j = -steps; j <= steps; j++) {
+        const newLat = lat + (i * stepSize);
+        const newLng = lng + (j * stepSize);
+        
+        // Check if point is within the radius
+        const distance = this.calculateDistance(lat, lng, newLat, newLng);
+        if (distance <= radiusKm) {
+          points.push({ lat: newLat, lng: newLng });
+        }
+      }
+    }
+    
+    return points;
+  }
+
+
+  /**
+   * Calculate distance between two coordinates using Haversine formula
+   */
+  private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLng = this.deg2rad(lng2 - lng1);
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Distance in kilometers
+    return distance;
+  }
+
+  /**
+   * Convert degrees to radians
+   */
+  private deg2rad(deg: number): number {
+    return deg * (Math.PI/180);
+  }
+
+  /**
+   * Display a walking route on the map
+   */
+  private displayWalkingRoute(walkingSegment: any): void {
+    // Clear existing route lines
+    if (this.routeLine) {
+      this.map.removeLayer(this.routeLine);
+    }
+    
+    if (walkingSegment.polyline && walkingSegment.polyline.length > 0) {
+      // Use OSRM polyline data
+      this.routeLine = L.polyline(walkingSegment.polyline, {
+        color: '#4caf50',
+        weight: 4,
+        opacity: 0.8,
+        dashArray: '10, 5' // Dashed line for walking
+      }).addTo(this.map);
+      
+      // Fit map to route bounds
+      this.map.fitBounds(this.routeLine.getBounds(), { padding: [20, 20] });
+    } else {
+      // Fallback to straight line
+      this.displayStraightLineRoute(walkingSegment.from, walkingSegment.to);
+    }
+  }
+
+  /**
+   * Display a straight line route on the map (fallback)
+   */
+  private displayStraightLineRoute(from: any, to: any): void {
+    // Clear existing route lines
+    if (this.routeLine) {
+      this.map.removeLayer(this.routeLine);
+    }
+    
+    const fromLat = from.lat || from.location?.lat;
+    const fromLng = from.lng || from.location?.lng;
+    const toLat = to.lat || to.location?.lat;
+    const toLng = to.lng || to.location?.lng;
+    
+    if (fromLat && fromLng && toLat && toLng) {
+      this.routeLine = L.polyline([
+        [fromLat, fromLng],
+        [toLat, toLng]
+      ], {
+        color: '#ff9800',
+        weight: 3,
+        opacity: 0.7,
+        dashArray: '15, 10' // Different dash pattern for straight line
+      }).addTo(this.map);
+      
+      // Fit map to route bounds
+      this.map.fitBounds(this.routeLine.getBounds(), { padding: [50, 50] });
+    }
+  }
+
+  /**
    * Check if coordinates are within Cebu bounds
    */
   private isWithinCebu(lat: number, lng: number): boolean {
-    // Cebu City bounds (can be expanded for Cebu Province if needed)
+    // Cebu Province bounds (expanded to include more areas)
     const cebuBounds = {
-      north: 10.40,  // Northern boundary
-      south: 10.25,  // Southern boundary  
-      east: 123.95,  // Eastern boundary
-      west: 123.85   // Western boundary
+      north: 11.50,  // Northern boundary (includes Bantayan, Daanbantayan)
+      south: 9.50,   // Southern boundary (includes Oslob, Santander)
+      east: 124.50,  // Eastern boundary (includes Camotes, Bantayan)
+      west: 123.20   // Western boundary (includes Toledo, Balamban)
     };
     
-    return lat >= cebuBounds.south && lat <= cebuBounds.north &&
-           lng >= cebuBounds.west && lng <= cebuBounds.east;
+    const isWithin = lat >= cebuBounds.south && lat <= cebuBounds.north &&
+                     lng >= cebuBounds.west && lng <= cebuBounds.east;
+    
+    if (!isWithin) {
+    }
+    
+    return isWithin;
   }
 
   /**
@@ -2531,6 +3213,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     if (route.legs && route.legs.length > 0) {
       const leg = route.legs[0];
       if (leg.steps) {
+        
         // Look for transit steps that might be jeepney routes (Google Directions API format)
         const transitSteps = leg.steps.filter((step: any) => 
           step.travel_mode === 'TRANSIT' && 
@@ -2543,18 +3226,14 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           return true;
         }
         
-        // If no transit steps but route exists, it might be a valid walking route
-        // Let's check if it's a reasonable route (not too long)
-        const totalDistance = leg.distance?.value || 0; // in meters
-        const maxWalkingDistance = 5000; // 5km max for walking
-        
-        if (totalDistance <= maxWalkingDistance) {
-          return true; // Accept as valid route
+        // Check if ALL steps are walking (no transit at all)
+        const allWalkingSteps = leg.steps.every((step: any) => step.travel_mode === 'WALKING');
+        if (allWalkingSteps) {
+          return false; // This is a walking-only route, not a transit route
         }
       }
     }
     
-    console.log(`❌ No valid route found`);
     return false;
   }
 
@@ -2578,8 +3257,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
             totalDuration += segment.duration || 0;
             totalDistance += segment.distance || 0;
             
-            // Check if this is a jeepney segment
-            if (segment.type === 'jeepney') {
+            // Check if this is a transit segment (jeepney or bus)
+            if (segment.type === 'jeepney' || segment.type === 'bus') {
               hasJeepneySegment = true;
             }
           }
@@ -2635,10 +3314,16 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
                          transit.line.name?.toLowerCase().includes('jeepney') ||
                          jeepneyCode; // If we found a jeepney code, it's likely a jeepney
         
+        
         if (isJeepney) {
+          // Determine if this is a bus or jeepney based on additional criteria
+          const isActualBus = this.isActualBus(transit.line);
+          const segmentType = isActualBus ? 'bus' : 'jeepney';
+          const vehicleName = isActualBus ? 'bus' : 'jeepney';
+          
           const segment = {
-          type: 'jeepney',
-            description: `Take jeepney ${jeepneyCode || transit.line.short_name || transit.line.name}`,
+          type: segmentType,
+            description: `Take ${vehicleName} ${jeepneyCode || transit.line.short_name || transit.line.name}`,
           duration: step.duration?.value || 0,
           distance: step.distance?.value || 0,
             jeepneyCode: jeepneyCode || transit.line.short_name,
@@ -2684,6 +3369,30 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
     
     return jeepneyCode;
+  }
+
+  /**
+   * Determine if a transit line is an actual bus (vs jeepney)
+   */
+  private isActualBus(line: any): boolean {
+    const lineName = line.name?.toLowerCase() || '';
+    const agencyName = line.agencies?.[0]?.name?.toLowerCase() || '';
+    
+    // Check for known bus operators/agencies in Cebu
+    const busIndicators = [
+      'mybus', 'brt', 'bus rapid transit', 'cebu bus', 'city bus',
+      'public bus', 'transit bus', 'municipal bus'
+    ];
+    
+    // Check for bus-specific naming patterns
+    const hasBusIndicator = busIndicators.some(indicator => 
+      lineName.includes(indicator) || agencyName.includes(indicator)
+    );
+    
+    // If it has a jeepney code pattern (like 09G, 12D), it's likely a jeepney
+    const hasJeepneyCode = /^[0-9]{1,2}[A-Z]$/.test(line.short_name || '');
+    
+    return hasBusIndicator && !hasJeepneyCode;
   }
 
   /**
@@ -4638,7 +5347,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       await this.showToast(`Found ${routeSuggestions.length} route suggestions`);
     } else {
-      await this.showToast('No route suggestions available');
+      await this.showToast('Sorry, we could not calculate transit directions for this route.');
     }
   }
 
@@ -4680,8 +5389,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       route.segments.forEach((segment: any, index: number) => {
         // Draw segment based on type
-        if (segment.type === 'jeepney' && segment.jeepneyCode) {
-          // Draw jeepney route with code
+        if ((segment.type === 'jeepney' || segment.type === 'bus') && segment.jeepneyCode) {
+          // Draw jeepney/bus route with code
           this.drawJeepneySegment(segment, index);
         } else if (segment.type === 'walk') {
           // Draw walking segment
@@ -4710,7 +5419,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     } else if (route.polyline) {
       // Fallback to main polyline if no segments
       try {
-        const decodedPolyline = this.decodePolyline(route.polyline);
+        const decodedPoints = this.decodePolyline(route.polyline);
+        const decodedPolyline = decodedPoints.map(point => L.latLng(point[0], point[1]));
         if (decodedPolyline.length > 1) {
           const routeLine = L.polyline(decodedPolyline, {
             color: '#ff6b35',
@@ -4756,14 +5466,34 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
               })
             }).addTo(this.map);
 
-            marker.bindPopup(`
-              <div style="min-width: 150px;">
+            // Create popup content based on segment type
+            let popupContent = `
+              <div style="min-width: 200px;">
                 <h4 style="margin: 0 0 8px 0; color: #333;">Route Segment ${index + 1}</h4>
-                <p style="margin: 4px 0; color: #666;">${segment.instructions}</p>
-                <p style="margin: 4px 0; color: #666;">Duration: ${segment.duration}</p>
-                <p style="margin: 4px 0; color: #666;">Distance: ${segment.distance}</p>
-              </div>
-            `);
+                <p style="margin: 4px 0; color: #666;">${segment.description || 'Route segment'}</p>
+            `;
+            
+            if (segment.type === 'no_transport') {
+              // Add walking directions button for no transport segments
+              popupContent += `
+                <div style="margin: 8px 0; padding: 12px; background: rgba(255, 152, 0, 0.1); border-radius: 8px; border-left: 4px solid #ff9800;">
+                  <button onclick="window.getWalkingDirectionsForSegment('${segment.toName || segment.to?.name || 'destination'}')" 
+                          style="background: #4caf50; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; width: 100%;">
+                    🚶 Get Walking Directions
+                  </button>
+                </div>
+              `;
+            } else {
+              // Show duration and distance for normal segments
+              popupContent += `
+                <p style="margin: 4px 0; color: #666;">Duration: ${segment.duration || segment.estimatedTime || 'Unknown'}</p>
+                <p style="margin: 4px 0; color: #666;">Distance: ${segment.distance || 'Unknown'}</p>
+              `;
+            }
+            
+            popupContent += `</div>`;
+            
+            marker.bindPopup(popupContent);
 
             this.routeLines.push(marker);
           }
@@ -4980,40 +5710,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
 
-  /**
-   * Test proxy server connection (public method for manual testing)
-   */
-  async testProxyServerManually(): Promise<void> {
-    await this.testProxyServer();
-  }
-
-  /**
-   * Test proxy server connection
-   */
-  private async testProxyServer(): Promise<void> {
-    try {
-      console.log('🔍 Testing proxy server connection...');
-      
-      // Get the proxy server URL from environment or use default
-      const proxyUrl = 'https://google-places-proxy-ftxx.onrender.com'; // Your Render.com URL
-      
-      const response = await this.http.get(`${proxyUrl}/test`).toPromise();
-      
-      if (response && (response as any).message === 'Test route works!') {
-        console.log('✅ Proxy server is working! Response:', response);
-        await this.showToast('Proxy server connection successful');
-      } else {
-        console.warn('⚠️ Proxy server responded but with unexpected data:', response);
-        await this.showToast('Proxy server responded with unexpected data');
-      }
-    } catch (error) {
-      console.error('❌ Proxy server connection failed:', error);
-      await this.showToast('Proxy server connection failed - check console for details');
-    }
-  }
-
-
-  ///////////////////////// Test proxy connection
 
 
 
@@ -5026,6 +5722,54 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       color: 'warning'
     });
     toast.present();
+  }
+
+  /**
+   * Show loading modal with progress message
+   */
+  private async showLoadingModal(message: string): Promise<void> {
+    if (this.loadingModal) {
+      await this.dismissLoadingModal(); // Close existing modal first
+    }
+
+    this.loadingProgress = message;
+    
+    // Create a proper Ionic loading controller
+    this.loadingModal = await this.loadingCtrl.create({
+      message: message,
+      spinner: 'crescent',
+      translucent: true,
+      cssClass: 'route-loading-modal'
+    });
+    
+    await this.loadingModal.present();
+  }
+
+  /**
+   * Update loading modal progress message
+   */
+  private async updateLoadingProgress(message: string): Promise<void> {
+    this.loadingProgress = message;
+    
+    // Update the loading message
+    if (this.loadingModal) {
+      await this.dismissLoadingModal();
+      await this.showLoadingModal(message);
+    }
+  }
+
+  /**
+   * Dismiss loading modal
+   */
+  private async dismissLoadingModal(): Promise<void> {
+    if (this.loadingModal) {
+      try {
+        await this.loadingModal.dismiss();
+      } catch (error) {
+        console.log('Loading modal already dismissed');
+      }
+      this.loadingModal = null;
+    }
   }
 
     async showCuratedRouteDetailsSheet(): Promise<void> {

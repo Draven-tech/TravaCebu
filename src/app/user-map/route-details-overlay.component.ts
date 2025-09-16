@@ -510,9 +510,9 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
     let totalFare = 0;
     let jeepneyCount = 0;
 
-    // Count jeepney segments and calculate fare
+    // Count jeepney and bus segments and calculate fare
     this.routeInfo.segments.forEach((segment: any) => {
-      if (segment.type === 'jeepney' && segment.jeepneyCode) {
+      if ((segment.type === 'jeepney' || segment.type === 'bus') && segment.jeepneyCode) {
         jeepneyCount++;
       }
     });

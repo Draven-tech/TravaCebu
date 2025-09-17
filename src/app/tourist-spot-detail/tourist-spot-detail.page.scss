@@ -74,7 +74,7 @@ ion-page {
 
 // Make sure content doesn't interfere with bottom nav
 ion-content {
-  --overflow: hidden;
+  --overflow: auto;
 }
 
 .spot-info-card {

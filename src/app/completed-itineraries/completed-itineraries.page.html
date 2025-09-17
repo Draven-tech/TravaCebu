@@ -1,0 +1,127 @@
+<ion-header>
+  <ion-toolbar color="success">
+    <ion-buttons slot="start">
+      <ion-back-button (click)="goBack()"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Completed Itineraries</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <ion-spinner name="crescent" color="success"></ion-spinner>
+    <h3>Loading Your Travel History</h3>
+    <p>Fetching your completed trips and expense summaries...</p>
+  </div>
+
+  <!-- Completed Itineraries List -->
+  <div *ngIf="!isLoading && completedItineraries.length > 0" class="itineraries-container">
+    <div class="header-section">
+      <h2>Your Travel History</h2>
+      <p>View your completed trips with expense summaries</p>
+    </div>
+
+    <ion-card *ngFor="let itinerary of completedItineraries" class="itinerary-card">
+      <!-- Itinerary Header -->
+      <ion-card-header>
+        <div class="itinerary-header">
+          <div class="itinerary-info">
+            <ion-card-title>{{ itinerary.name }}</ion-card-title>
+            <ion-card-subtitle>
+              <ion-icon name="calendar"></ion-icon>
+              {{ getDateDisplay(itinerary.date) }}
+            </ion-card-subtitle>
+          </div>
+          <div class="completion-badge">
+            <ion-chip color="success">
+              <ion-icon name="checkmark-circle"></ion-icon>
+              <ion-label>Completed</ion-label>
+            </ion-chip>
+          </div>
+        </div>
+      </ion-card-header>
+
+      <!-- Expense Summary -->
+      <ion-card-content>
+        <div class="expense-summary">
+          <div class="total-expense">
+            <h3>Total Expenses</h3>
+            <div class="total-amount">₱{{ itinerary.totalExpenses | number:'1.0-0' }}</div>
+          </div>
+          
+          <div class="expense-breakdown">
+            <div class="expense-item transportation">
+              <ion-icon name="car" color="warning"></ion-icon>
+              <div class="expense-details">
+                <span class="expense-label">Transportation</span>
+                <span class="expense-amount">₱{{ itinerary.expenseBreakdown?.transportation | number:'1.0-0' }}</span>
+              </div>
+            </div>
+            
+            <div class="expense-item food">
+              <ion-icon name="restaurant" color="success"></ion-icon>
+              <div class="expense-details">
+                <span class="expense-label">Food</span>
+                <span class="expense-amount">₱{{ itinerary.expenseBreakdown?.food | number:'1.0-0' }}</span>
+              </div>
+            </div>
+            
+            <div class="expense-item accommodation">
+              <ion-icon name="bed" color="primary"></ion-icon>
+              <div class="expense-details">
+                <span class="expense-label">Accommodation</span>
+                <span class="expense-amount">₱{{ itinerary.expenseBreakdown?.accommodation | number:'1.0-0' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Itinerary Preview -->
+        <div class="itinerary-preview">
+          <h4>Trip Highlights</h4>
+          <div class="spots-preview">
+            <div *ngFor="let day of itinerary.days" class="day-preview">
+              <span class="day-label">Day {{ day.day }}:</span>
+              <div class="spots-list">
+                <span *ngFor="let spot of day.spots; let last = last" class="spot-name">
+                  {{ spot.name }}<span *ngIf="!last"> → </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <ion-button fill="outline" color="primary" (click)="viewItineraryDetails(itinerary)">
+            <ion-icon name="eye" slot="start"></ion-icon>
+            View Details
+          </ion-button>
+          
+          <ion-button fill="outline" color="success" (click)="exportItinerary(itinerary)">
+            <ion-icon name="share" slot="start"></ion-icon>
+            Export
+          </ion-button>
+          
+          <ion-button fill="outline" color="danger" (click)="deleteItinerary(itinerary)">
+            <ion-icon name="trash" slot="start"></ion-icon>
+            Delete
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && completedItineraries.length === 0" class="empty-state">
+    <ion-icon name="checkmark-done" color="medium"></ion-icon>
+    <h3>No Completed Itineraries</h3>
+    <p>Complete your first itinerary to see it here with expense summaries.</p>
+    <ion-button fill="outline" color="primary" (click)="goToMyItineraries()">
+      <ion-icon name="calendar" slot="start"></ion-icon>
+      View Active Itineraries
+    </ion-button>
+  </div>
+</ion-content>

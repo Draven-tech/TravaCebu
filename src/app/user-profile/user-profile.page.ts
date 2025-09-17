@@ -493,6 +493,10 @@ async viewProfilePicture() {
     this.navCtrl.navigateForward('/my-itineraries');
   }
 
+  goToCompletedItineraries() {
+    this.navCtrl.navigateForward('/completed-itineraries');
+  }
+
   goToMySubmissions() {
     this.navCtrl.navigateForward('/user-profile/my-submissions');
   }

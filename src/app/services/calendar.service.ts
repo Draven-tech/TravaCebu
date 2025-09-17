@@ -327,4 +327,107 @@ export class CalendarService {
       throw error;
     }
   }
+
+  /**
+   * Update event status (e.g., mark as completed)
+   */
+  async updateEventStatus(eventId: string, status: string): Promise<void> {
+    try {
+      const user = await this.afAuth.currentUser;
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Update in Firestore
+      await this.firestore
+        .collection('user_itinerary_events')
+        .doc(eventId)
+        .update({
+          status: status,
+          updatedAt: new Date()
+        });
+
+      // Update in localStorage - load all events first
+      const savedEvents = localStorage.getItem('user_itinerary_events');
+      if (savedEvents) {
+        const allEvents = JSON.parse(savedEvents) as CalendarEvent[];
+        const updatedEvents = allEvents.map(event => 
+          event.id === eventId ? { ...event, status } : event
+        );
+        localStorage.setItem('user_itinerary_events', JSON.stringify(updatedEvents));
+      }
+
+    } catch (error) {
+      console.error('Error updating event status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a specific event by ID
+   */
+  async deleteEvent(eventId: string): Promise<void> {
+    try {
+      const user = await this.afAuth.currentUser;
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Delete from Firestore
+      await this.firestore
+        .collection('user_itinerary_events')
+        .doc(eventId)
+        .delete();
+
+      // Remove from localStorage
+      const savedEvents = localStorage.getItem('user_itinerary_events');
+      if (savedEvents) {
+        const events = JSON.parse(savedEvents) as CalendarEvent[];
+        const filteredEvents = events.filter(event => event.id !== eventId);
+        localStorage.setItem('user_itinerary_events', JSON.stringify(filteredEvents));
+      }
+
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load ALL itinerary events (including completed ones) for admin/completed views
+   */
+  async loadAllItineraryEvents(): Promise<CalendarEvent[]> {
+    try {
+      const user = await this.afAuth.currentUser;
+      if (!user) {
+        return [];
+      }
+
+      // Load ALL events from Firestore (including completed)
+      const snapshot = await this.firestore
+        .collection('user_itinerary_events', ref => 
+          ref.where('userId', '==', user.uid)
+        )
+        .get()
+        .toPromise();
+
+      if (snapshot && !snapshot.empty) {
+        const events = snapshot.docs.map(doc => {
+          const data = doc.data() as any;
+          return {
+            id: doc.id,
+            ...data
+          };
+        }) as CalendarEvent[];
+       
+        return events; // Return ALL events, don't filter
+      }
+
+      return [];
+      
+    } catch (error) {
+      console.error('Error loading all itinerary events:', error);
+      return [];
+    }
+  }
 } 

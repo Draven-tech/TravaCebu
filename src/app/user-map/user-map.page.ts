@@ -15,6 +15,7 @@ import { CalendarService, CalendarEvent } from '../services/calendar.service';
 import { environment } from '../../environments/environment';
 import { RouteDetailsOverlayComponent } from './route-details-overlay.component';
 import { BadgeService } from '../services/badge.service';
+import { BudgetService } from '../services/budget.service';
 
 @Component({
   selector: 'app-user-map',
@@ -93,7 +94,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private componentFactoryResolver: ComponentFactoryResolver,
     private viewContainerRef: ViewContainerRef,
     private injector: Injector,
-    private badgeService: BadgeService
+    private badgeService: BadgeService,
+    private budgetService: BudgetService
   ) {
     this.bucketService = bucketService;
   }
@@ -159,7 +161,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   async loadAvailableItineraries() {
     try {
-      const events = await this.calendarService.forceRefreshFromFirestore();
+      // Load only active (non-completed) itineraries for the dropdown
+      const events = await this.calendarService.loadItineraryEvents();
       
       if (events && events.length > 0) {
         const itineraries = this.groupEventsIntoItineraries(events);
@@ -980,6 +983,16 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       const spot = this.touristSpots.find(s => s.name === spotName);
       if (spot) {
         this.openSpotSheet(spot);
+      }
+    };
+
+    // Add global function for marking itinerary as complete
+    (window as any).markItineraryComplete = async (itineraryId: string) => {
+      try {
+        await this.markItineraryAsComplete(itineraryId);
+      } catch (error) {
+        console.error('Error marking itinerary complete:', error);
+        this.showToast('❌ Failed to mark itinerary as complete');
       }
     };
 
@@ -1995,10 +2008,20 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // Add hotel-specific information
     let hotelInfo = '';
     if (spot.eventType === 'hotel' && spot.hotel) {
+      const isLastHotel = this.isLastHotelInItinerary(spot);
+      
       hotelInfo = `
         <p style="margin: 4px 0; color: #1976d2;"><strong>🏨 Hotel:</strong> ${spot.hotel}</p>
         ${spot.rating ? `<p style="margin: 4px 0; color: #1976d2;"><strong>⭐ Rating:</strong> ${spot.rating}★</p>` : ''}
         ${spot.vicinity ? `<p style="margin: 4px 0; color: #1976d2;"><strong>📍 Location:</strong> ${spot.vicinity}</p>` : ''}
+        ${isLastHotel ? `
+          <div style="margin: 12px 0; padding: 12px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; border-left: 4px solid #4caf50;">
+            <button onclick="window.markItineraryComplete('${this.getItineraryIdFromRoute()}')" 
+                    style="background: #4caf50; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; width: 100%;">
+              ✅ Mark Itinerary as Complete
+            </button>
+          </div>
+        ` : ''}
       `;
     }
     
@@ -5832,6 +5855,227 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       return this.availableItineraries[this.selectedItineraryIndex];
     }
     return null;
+  }
+
+  // Helper method to check if this is the last hotel in the itinerary
+  private isLastHotelInItinerary(currentHotelSpot: any): boolean {
+    if (!this.availableItineraries || this.selectedItineraryIndex < 0) {
+      return false;
+    }
+
+    const currentItinerary = this.availableItineraries[this.selectedItineraryIndex];
+    if (!currentItinerary || !currentItinerary.days) {
+      return false;
+    }
+
+    // Find all hotel spots in the itinerary
+    const allHotels: any[] = [];
+    currentItinerary.days.forEach((day: any) => {
+      day.spots?.forEach((spot: any) => {
+        if (spot.eventType === 'hotel') {
+          allHotels.push(spot);
+        }
+      });
+    });
+
+    // If no hotels or only one hotel, this is the last one
+    if (allHotels.length <= 1) {
+      return true;
+    }
+
+    // Check if this is the last hotel chronologically
+    allHotels.sort((a, b) => {
+      const timeA = new Date(a.timeSlot || '18:00').getTime();
+      const timeB = new Date(b.timeSlot || '18:00').getTime();
+      return timeA - timeB;
+    });
+
+    const lastHotel = allHotels[allHotels.length - 1];
+    return lastHotel.name === currentHotelSpot.name;
+  }
+
+  // Mark itinerary as complete
+  private async markItineraryAsComplete(itineraryId: string): Promise<void> {
+    const alert = await this.alertCtrl.create({
+      header: 'Complete Itinerary',
+      message: 'Are you sure you want to mark this itinerary as completed? This will move it to your completed itineraries list.',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Mark Complete',
+          handler: async () => {
+            try {
+              // Update all events in this itinerary to completed status
+              const allEvents = await this.calendarService.loadAllItineraryEvents();
+              console.log('All events for completion check:', allEvents.length);
+              console.log('Looking for itineraryId:', itineraryId);
+              console.log('Current selected itinerary:', this.availableItineraries[this.selectedItineraryIndex]);
+              
+              // Get the current itinerary to match against
+              const currentItinerary = this.availableItineraries[this.selectedItineraryIndex];
+              if (!currentItinerary) {
+                console.error('No current itinerary selected');
+                return;
+              }
+
+              // Collect all spot names from the current itinerary
+              const itinerarySpotNames = new Set<string>();
+              currentItinerary.days?.forEach((day: any) => {
+                day.spots?.forEach((spot: any) => {
+                  if (spot.name) itinerarySpotNames.add(spot.name);
+                  if (spot.restaurant) itinerarySpotNames.add(spot.restaurant);
+                  if (spot.hotel) itinerarySpotNames.add(spot.hotel);
+                });
+              });
+
+              console.log('Itinerary spot names to match:', Array.from(itinerarySpotNames));
+
+              const itineraryEvents = allEvents.filter(event => {
+                // Match events by checking if the event title matches any spot in the current itinerary
+                const eventTitle = event.title || '';
+                const matches = Array.from(itinerarySpotNames).some(spotName => 
+                  eventTitle.includes(spotName) || spotName.includes(eventTitle)
+                );
+                
+                if (matches) {
+                  // Event matches current itinerary
+                }
+                return matches;
+              });
+
+              // Update each event's status to completed
+              for (const event of itineraryEvents) {
+                await this.calendarService.updateEventStatus(event.id!, 'completed');
+              }
+
+              // Auto-save transportation estimates if no transport expenses logged
+              const autoSavedTransport = await this.autoSaveTransportEstimates(currentItinerary);
+
+              if (autoSavedTransport) {
+                this.showToast('🎉 Itinerary completed! Transportation costs auto-saved.');
+              } else {
+                this.showToast('🎉 Itinerary marked as completed!');
+              }
+              
+              // Refresh the available itineraries to remove completed ones
+              await this.loadAvailableItineraries();
+              
+              // Reset selection if current itinerary was completed
+              if (this.availableItineraries.length === 0) {
+                this.selectedItineraryIndex = -1;
+              } else if (this.selectedItineraryIndex >= this.availableItineraries.length) {
+                this.selectedItineraryIndex = 0;
+              }
+              
+            } catch (error) {
+              console.error('Error marking itinerary complete:', error);
+              this.showToast('❌ Failed to mark itinerary as complete');
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  /**
+   * Auto-save transportation cost estimates when marking itinerary complete
+   * if no transportation expenses have been logged by the user
+   * @returns true if transportation estimates were auto-saved, false otherwise
+   */
+  private async autoSaveTransportEstimates(itinerary: any): Promise<boolean> {
+    try {
+      // Check if there are any existing transportation expenses for this itinerary
+      const existingExpenses = await this.budgetService.getExpenses();
+      const transportExpenses = existingExpenses.filter((expense: any) => 
+        expense.category === 'transportation' && 
+        this.isExpenseForItinerary(expense, itinerary)
+      );
+
+      if (transportExpenses.length > 0) {
+        return false; // User has already logged transport expenses
+      }
+
+      // Get transportation estimates from current route info
+      if (!this.currentRouteInfo || !this.currentRouteInfo.segments) {
+        return false;
+      }
+
+      let totalEstimatedCost = 0;
+      const transportSegments: any[] = [];
+
+      // Collect all transportation segments with costs
+      for (const segment of this.currentRouteInfo.segments) {
+        if (segment.type === 'jeepney' || segment.type === 'bus') {
+          const cost = segment.cost || 15; // Default cost if not specified
+          totalEstimatedCost += cost;
+          transportSegments.push({
+            type: segment.type,
+            route: segment.jeepneyCode || `${segment.fromName} → ${segment.toName}`,
+            cost: cost
+          });
+        }
+      }
+
+      if (totalEstimatedCost > 0) {
+        // Create a consolidated transportation expense entry
+        const description = transportSegments.length > 1 
+          ? `Multiple routes: ${transportSegments.map(s => s.route).join(', ')}`
+          : `${transportSegments[0].type.toUpperCase()}: ${transportSegments[0].route}`;
+
+        // Generate consistent itinerary ID for expense tracking
+        const itineraryDate = itinerary.date || new Date().toISOString().split('T')[0];
+        const expenseItineraryId = `completed_itinerary_${itineraryDate}`;
+
+        await this.budgetService.addTransportationExpense(
+          totalEstimatedCost,
+          `Auto-saved estimate - ${description}`,
+          transportSegments[0].route, // jeepneyCode
+          expenseItineraryId, // itineraryId
+          undefined // dayNumber
+        );
+
+        return true; // Successfully auto-saved transportation estimates
+      }
+
+      return false; // No transportation costs to auto-save
+
+    } catch (error) {
+      console.error('Error auto-saving transportation estimates:', error);
+      // Don't throw error - this is a nice-to-have feature
+      return false;
+    }
+  }
+
+  /**
+   * Check if an expense belongs to the given itinerary
+   */
+  private isExpenseForItinerary(expense: any, itinerary: any): boolean {
+    // Check if expense matches itinerary by spot names or date
+    if (expense.itineraryId && expense.itineraryId.includes(itinerary.id)) {
+      return true;
+    }
+
+    // Check by spot names
+    const itinerarySpotNames = new Set<string>();
+    itinerary.days?.forEach((day: any) => {
+      day.spots?.forEach((spot: any) => {
+        if (spot.name) itinerarySpotNames.add(spot.name);
+        if (spot.restaurant) itinerarySpotNames.add(spot.restaurant);
+        if (spot.hotel) itinerarySpotNames.add(spot.hotel);
+      });
+    });
+
+    return Array.from(itinerarySpotNames).some(spotName => 
+      expense.spotName?.includes(spotName) || 
+      expense.description?.includes(spotName) ||
+      spotName.includes(expense.spotName || '') ||
+      spotName.includes(expense.description || '')
+    );
   }
 
   // Route Segment Navigation Methods

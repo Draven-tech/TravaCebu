@@ -65,6 +65,10 @@ const routes: Routes = [
     loadChildren: () => import('./user-calendar/user-calendar.module').then( m => m.UserCalendarPageModule)
   },
   {
+    path: 'completed-itineraries',
+    loadChildren: () => import('./completed-itineraries/completed-itineraries.module').then( m => m.CompletedItinerariesPageModule)
+  },
+  {
     path: 'my-itineraries',
     loadChildren: () => import('./my-itineraries/my-itineraries.module').then( m => m.MyItinerariesPageModule)
   },

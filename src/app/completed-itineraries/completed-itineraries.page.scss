@@ -1,0 +1,235 @@
+ion-content {
+  --background: #f8f9fa;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+  min-height: 50vh;
+}
+
+.loading-container ion-spinner {
+  margin-bottom: 20px;
+  --size: 40px;
+}
+
+.loading-container h3 {
+  color: #2D3748;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.loading-container p {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+  opacity: 0.8;
+}
+
+.header-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.header-section h2 {
+  color: #2D3748;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+
+.header-section p {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.itinerary-card {
+  margin-bottom: 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.itinerary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.itinerary-info {
+  flex: 1;
+}
+
+.itinerary-info ion-card-title {
+  color: #2D3748;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.itinerary-info ion-card-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.completion-badge {
+  margin-top: 4px;
+}
+
+.expense-summary {
+  margin-bottom: 20px;
+}
+
+.total-expense {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.total-expense h3 {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.total-amount {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.expense-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.expense-item {
+  background: white;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-left: 3px solid;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  min-width: 0; // Allow flex items to shrink
+}
+
+.expense-item.transportation {
+  border-left-color: #FF9800;
+}
+
+.expense-item.food {
+  border-left-color: #4CAF50;
+}
+
+.expense-item.accommodation {
+  border-left-color: #2196F3;
+}
+
+.expense-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0; // Allow text to wrap/shrink
+}
+
+.expense-label {
+  font-size: 0.65rem;
+  color: #666;
+  text-transform: uppercase;
+  font-weight: 600;
+  line-height: 1.1;
+  word-wrap: break-word;
+}
+
+.expense-amount {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #2D3748;
+}
+
+.itinerary-preview {
+  margin-bottom: 20px;
+}
+
+.itinerary-preview h4 {
+  color: #2D3748;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.day-preview {
+  margin-bottom: 8px;
+}
+
+.day-label {
+  font-weight: 600;
+  color: #e74c3c;
+  font-size: 0.9rem;
+}
+
+.spots-list {
+  margin-left: 8px;
+  font-size: 0.85rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+.spot-name {
+  color: #2D3748;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.action-buttons ion-button {
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+  color: #666;
+}
+
+.empty-state ion-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  color: #2D3748;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.empty-state p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 24px 0;
+}
+

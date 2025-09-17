@@ -386,6 +386,32 @@ export class BudgetService {
     return this.expensesSubject.value;
   }
 
+  // Ensure expenses are loaded and return them
+  async getExpenses(): Promise<BudgetExpense[]> {
+    // If no expenses are loaded yet, wait for them to load
+    if (this.expensesSubject.value.length === 0) {
+      return new Promise((resolve) => {
+        // Wait for the first emission of expenses
+        const subscription = this.expensesSubject.subscribe(expenses => {
+          if (expenses.length > 0 || subscription.closed) {
+            subscription.unsubscribe();
+            resolve(expenses);
+          }
+        });
+        
+        // Also set a timeout to resolve even if no expenses exist
+        setTimeout(() => {
+          if (!subscription.closed) {
+            subscription.unsubscribe();
+            resolve(this.expensesSubject.value);
+          }
+        }, 3000);
+      });
+    }
+    
+    return this.expensesSubject.value;
+  }
+
   // Get current budget limits
   getCurrentBudgetLimits(): BudgetLimits {
     return this.budgetLimitsSubject.value;

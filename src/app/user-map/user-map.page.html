@@ -9,8 +9,8 @@
     </ion-buttons>
   </ion-toolbar>
   
-  <!-- Search Bar -->
-  <ion-toolbar>
+  <!-- Search Bar (only show on Tourist Spots tab) -->
+  <ion-toolbar *ngIf="selectedTab === 'spots'">
     <ion-searchbar [(ngModel)]="searchQuery" placeholder="Search tourist spots..."></ion-searchbar>
   </ion-toolbar>
   
@@ -75,6 +75,26 @@
                 [color]="isLocationTrackingActive ? 'danger' : 'primary'" size="small">
       <ion-icon [name]="isLocationTrackingActive ? 'stop-circle' : 'play-circle'"></ion-icon>
       {{ isLocationTrackingActive ? 'Stop' : 'Track' }}
+    </ion-button>
+    
+    <!-- Route Segment Navigation Dropdown -->
+    <ion-button *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0"
+                fill="outline" 
+                size="small" 
+                color="secondary"
+                (click)="showSegmentSelector()">
+      <ion-icon name="list" slot="start"></ion-icon>
+      Segments ({{ currentRouteInfo.segments.length }})
+    </ion-button>
+    
+    <!-- Debug: Show when no segments -->
+    <ion-button *ngIf="!currentRouteInfo || !currentRouteInfo.segments || currentRouteInfo.segments.length === 0"
+                fill="clear" 
+                size="small" 
+                color="medium"
+                disabled="true">
+      <ion-icon name="alert-circle" slot="start"></ion-icon>
+      No Segments
     </ion-button>
 
   </ion-toolbar>

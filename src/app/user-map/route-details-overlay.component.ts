@@ -1,7 +1,10 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { IonicModule, ModalController, AlertController, ToastController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { BudgetService, BudgetSummary } from '../services/budget.service';
+import { PlacesService } from '../services/places.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-route-details-overlay',
@@ -57,6 +60,29 @@ import { FormsModule } from '@angular/forms';
             </div>
           </div>
 
+          <!-- Quick Expense Logging -->
+          <div class="expense-logging-section">
+            <div class="total-expenses-display">
+              <span class="total-label">Total Expenses</span>
+              <span class="total-amount">₱{{ (budgetSummary?.totalExpenses || 0) | number:'1.0-0' }}</span>
+            </div>
+            
+            <h3>Log Your Expenses</h3>
+            <div class="quick-expense-actions">
+              <ion-button fill="solid" color="warning" (click)="addQuickTransportExpense()">
+                <ion-icon name="add" slot="start"></ion-icon>
+                Transport
+              </ion-button>
+              <ion-button fill="solid" color="success" (click)="addQuickFoodExpense()">
+                <ion-icon name="add" slot="start"></ion-icon>
+                Food
+              </ion-button>
+              <ion-button fill="solid" color="primary" (click)="addQuickAccommodationExpense()">
+                <ion-icon name="add" slot="start"></ion-icon>
+                Accommodation
+              </ion-button>
+            </div>
+          </div>
 
           <!-- Detailed Route Segments -->
           <div class="route-segments">
@@ -269,6 +295,61 @@ import { FormsModule } from '@angular/forms';
     }
 
 
+    .expense-logging-section {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-top: 1px solid #dee2e6;
+    }
+
+    .total-expenses-display {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .total-label {
+      display: block;
+      font-size: 0.9rem;
+      opacity: 0.9;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .total-amount {
+      display: block;
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .expense-logging-section h3 {
+      margin: 0 0 15px 0;
+      color: #2D3748;
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .quick-expense-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .quick-expense-actions ion-button {
+      flex: 1;
+      font-size: 0.8rem;
+      min-width: 100px;
+      height: 44px;
+      font-weight: 600;
+      --border-radius: 8px;
+    }
+
     .route-segments {
       padding: 10px 20px;
     }
@@ -434,18 +515,122 @@ import { FormsModule } from '@angular/forms';
 })
 export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
   @Input() routeInfo: any;
+  @Input() itineraryId?: string;
+  @Input() currentItinerary?: any;
   selectedAlternativeIndex: number = -1; // -1 means main route, 0+ means alternative
+  budgetSummary?: BudgetSummary;
+  availableRestaurants: any[] = [];
+  availableHotels: any[] = [];
+  
+  private subscriptions: Subscription[] = [];
 
-  constructor() {}
+  constructor(
+    private budgetService: BudgetService,
+    private modalCtrl: ModalController,
+    private alertCtrl: AlertController,
+    private toastCtrl: ToastController,
+    private placesService: PlacesService
+  ) {}
 
   ngOnInit() {
     // Prevent body scroll when overlay is open
     document.body.style.overflow = 'hidden';
+    
+    // Load budget data if itineraryId is provided
+    if (this.itineraryId) {
+      this.loadBudgetData();
+    }
+    
+    // Load restaurants and hotels from itinerary for dropdowns
+    this.loadItineraryPlaces();
   }
 
   ngOnDestroy() {
     // Restore body scroll when overlay is closed
     document.body.style.overflow = '';
+    
+    // Clean up subscriptions
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
+  private loadBudgetData() {
+    const budgetSubscription = this.budgetService.getBudgetSummary(this.itineraryId)
+      .subscribe(summary => {
+        this.budgetSummary = summary;
+      });
+    this.subscriptions.push(budgetSubscription);
+  }
+
+  private loadItineraryPlaces() {
+    this.availableRestaurants = [];
+    this.availableHotels = [];
+
+    console.log('🔍 Current itinerary:', this.currentItinerary);
+
+    if (!this.currentItinerary) {
+      console.log('❌ No current itinerary found');
+      return;
+    }
+
+    // Extract restaurants and hotels from itinerary spots
+    if (this.currentItinerary.days) {
+      this.currentItinerary.days.forEach((day: any) => {
+        console.log(`📅 Day ${day.day || day.dayNumber}:`, day);
+        
+        // Get restaurants and hotels from spots (they are stored as separate events)
+        day.spots?.forEach((spot: any) => {
+          console.log('🎯 Spot:', spot.name, 'EventType:', spot.eventType);
+          
+          // Check if this spot is a restaurant
+          if (spot.eventType === 'restaurant') {
+            this.availableRestaurants.push({
+              name: spot.name,
+              rating: spot.rating,
+              vicinity: spot.vicinity
+            });
+          }
+          
+          // Check if this spot is a hotel
+          if (spot.eventType === 'hotel') {
+            this.availableHotels.push({
+              name: spot.name,
+              rating: spot.rating,
+              vicinity: spot.vicinity
+            });
+          }
+          
+          // Also check for traditional chosenRestaurant/chosenHotel structure (backup)
+          if (spot.chosenRestaurant) {
+            this.availableRestaurants.push(spot.chosenRestaurant);
+          }
+          if (spot.chosenHotel) {
+            this.availableHotels.push(spot.chosenHotel);
+          }
+        });
+      });
+    }
+
+    console.log('🍽️ Available restaurants:', this.availableRestaurants);
+    console.log('🏨 Available hotels:', this.availableHotels);
+
+    // Remove duplicates based on name
+    this.availableRestaurants = this.removeDuplicatePlaces(this.availableRestaurants);
+    this.availableHotels = this.removeDuplicatePlaces(this.availableHotels);
+    
+    console.log('🍽️ Final restaurants (after dedup):', this.availableRestaurants);
+    console.log('🏨 Final hotels (after dedup):', this.availableHotels);
+  }
+
+  private removeDuplicatePlaces(places: any[]): any[] {
+    const seen = new Set();
+    return places.filter(place => {
+      const name = place.name;
+      if (seen.has(name)) {
+        return false;
+      }
+      seen.add(name);
+      return true;
+    });
   }
 
   getRouteSteps(segment: any): any[] {
@@ -561,5 +746,225 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
     if (overlay) {
       overlay.remove();
     }
+  }
+
+  // Budget Tracking Methods (Quick logging only)
+
+  async addQuickTransportExpense() {
+    const estimatedFare = this.getEstimatedFare();
+    const fareAmount = parseFloat(estimatedFare.replace('₱', '')) || 13;
+
+    const alert = await this.alertCtrl.create({
+      header: 'Log Transportation Expense',
+      subHeader: 'How much did you actually pay for this route?',
+      message: `Estimated fare: ${estimatedFare} (You can adjust this amount)`,
+      inputs: [
+        {
+          name: 'amount',
+          type: 'number',
+          placeholder: 'Actual amount paid (₱)',
+          value: fareAmount,
+          min: 0
+        },
+        {
+          name: 'description',
+          type: 'text',
+          placeholder: 'Transportation details',
+          value: this.getTransportDescription()
+        }
+      ],
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Log Expense',
+          handler: async (data) => {
+            if (data.amount && parseFloat(data.amount) > 0) {
+              try {
+                await this.budgetService.addTransportationExpense(
+                  parseFloat(data.amount),
+                  data.description || 'Transportation expense',
+                  this.getJeepneyCodesFromRoute(),
+                  this.itineraryId,
+                  undefined // dayNumber is undefined for route-level expenses
+                );
+                await this.showToast('Transportation expense logged!', 'success');
+                // Refresh budget data to update total after a short delay
+                setTimeout(() => {
+                  this.loadBudgetData();
+                }, 500);
+              } catch (error) {
+                console.error('Error logging transport expense:', error);
+                await this.showToast('Failed to log expense', 'danger');
+              }
+            } else {
+              await this.showToast('Please enter a valid amount', 'warning');
+              return false;
+            }
+            return true;
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  async addQuickFoodExpense() {
+    if (this.availableRestaurants.length === 0) {
+      await this.showToast('No restaurants found in your itinerary', 'warning');
+      return;
+    }
+
+    // First, let user select restaurant
+    const restaurantAlert = await this.alertCtrl.create({
+      header: 'Select Restaurant',
+      inputs: this.availableRestaurants.map((restaurant, index) => ({
+        name: 'restaurant',
+        type: 'radio' as const,
+        label: restaurant.name,
+        value: restaurant.name,
+        checked: index === 0
+      })),
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Continue',
+          handler: (selectedRestaurant) => {
+            this.showAmountInput('food', selectedRestaurant);
+          }
+        }
+      ]
+    });
+
+    await restaurantAlert.present();
+  }
+
+  async addQuickAccommodationExpense() {
+    if (this.availableHotels.length === 0) {
+      await this.showToast('No hotels found in your itinerary', 'warning');
+      return;
+    }
+
+    // First, let user select hotel
+    const hotelAlert = await this.alertCtrl.create({
+      header: 'Select Hotel',
+      inputs: this.availableHotels.map((hotel, index) => ({
+        name: 'hotel',
+        type: 'radio' as const,
+        label: hotel.name,
+        value: hotel.name,
+        checked: index === 0
+      })),
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Continue',
+          handler: (selectedHotel) => {
+            this.showAmountInput('accommodation', selectedHotel);
+          }
+        }
+      ]
+    });
+
+    await hotelAlert.present();
+  }
+
+  private async showAmountInput(category: 'food' | 'accommodation', placeName: string) {
+    const alert = await this.alertCtrl.create({
+      header: `Log ${category.charAt(0).toUpperCase() + category.slice(1)} Expense`,
+      subHeader: `At ${placeName}`,
+      inputs: [
+        {
+          name: 'amount',
+          type: 'number' as const,
+          placeholder: 'Amount spent (₱)',
+          min: 0
+        }
+      ],
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Log Expense',
+          handler: async (data) => {
+            if (data.amount && parseFloat(data.amount) > 0) {
+              try {
+                if (category === 'food') {
+                  await this.budgetService.addFoodExpense(
+                    parseFloat(data.amount),
+                    placeName,
+                    'meal',
+                    this.itineraryId,
+                    undefined
+                  );
+                } else {
+                  await this.budgetService.addAccommodationExpense(
+                    parseFloat(data.amount),
+                    placeName,
+                    1,
+                    this.itineraryId,
+                    undefined
+                  );
+                }
+                await this.showToast(`${category.charAt(0).toUpperCase() + category.slice(1)} expense logged!`, 'success');
+                // Refresh budget data to update total after a short delay
+                setTimeout(() => {
+                  this.loadBudgetData();
+                }, 500);
+              } catch (error) {
+                console.error(`Error logging ${category} expense:`, error);
+                await this.showToast('Failed to log expense', 'danger');
+              }
+            } else {
+              await this.showToast('Please enter an amount', 'warning');
+              return false;
+            }
+            return true;
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  private getTransportDescription(): string {
+    const jeepneyCodes = this.getJeepneyCodesFromRoute();
+    if (jeepneyCodes) {
+      return `Jeepney ride (${jeepneyCodes})`;
+    }
+    return 'Transportation expense';
+  }
+
+  private getJeepneyCodesFromRoute(): string {
+    if (!this.routeInfo?.segments) return '';
+    
+    const codes = this.routeInfo.segments
+      .filter((segment: any) => segment.jeepneyCode)
+      .map((segment: any) => segment.jeepneyCode)
+      .join(', ');
+    
+    return codes;
+  }
+
+  private async showToast(message: string, color: 'success' | 'warning' | 'danger' = 'success') {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2000,
+      color,
+      position: 'bottom'
+    });
+    await toast.present();
   }
 } 

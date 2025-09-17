@@ -104,6 +104,21 @@ app.get('/api/osrm', async (req, res) => {
   }
 });
 
+// Add OSRM nearest endpoint for road snapping
+app.get('/api/osrm/nearest/:coordinates', async (req, res) => {
+  try {
+    const { coordinates } = req.params;
+    const { profile } = req.query;
+    const response = await axios.get(`https://router.project-osrm.org/nearest/v1/${profile || 'driving'}/${coordinates}`, {
+      params: { number: 1 }
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error('OSRM nearest error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch nearest road', message: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Proxy server running on http://localhost:${PORT}`);
   console.log('Available endpoints:');
@@ -114,4 +129,5 @@ app.listen(PORT, () => {
   console.log('  - GET /api/directions (Google Directions API)');
   console.log('  - POST /api/routes (Google Routes API)');
   console.log('  - GET /api/osrm (OSRM Routing)');
+  console.log('  - GET /api/osrm/nearest/:coordinates (OSRM Road Snapping)');
 }); 

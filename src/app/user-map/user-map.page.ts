@@ -1,5 +1,5 @@
 import { Component, AfterViewInit, OnDestroy, NgZone, ComponentFactoryResolver, ViewContainerRef, Injector } from '@angular/core';
-import { NavController, ToastController, ModalController, LoadingController } from '@ionic/angular';
+import { NavController, ToastController, ModalController, LoadingController, AlertController } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { HttpClient } from '@angular/common/http';
@@ -49,6 +49,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   currentRouteInfo: any = null;
   stageRouteOptions: any[] = []; // Store multiple route options for each stage
   selectedStageForOptions: number = -1; // Track which stage's options are being shown
+  selectedSegmentIndex: number = -1; // Track selected route segment for navigation
   
   // Loading modal properties
   loadingModal: any = null;
@@ -84,6 +85,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private ngZone: NgZone,
     private modalCtrl: ModalController,
     private loadingCtrl: LoadingController,
+    private alertCtrl: AlertController,
     private directionsService: DirectionsService,
     private apiTracker: ApiTrackerService,
     private itineraryService: ItineraryService,
@@ -2450,7 +2452,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   private async snapLocationToRoad(lat: number, lng: number): Promise<{lat: number, lng: number}> {
     try {
       // Use OSRM to snap location to nearest road
-      const response = await this.http.get(`http://localhost:3000/osrm/nearest/${lng},${lat}`).toPromise() as any;
+      const response = await this.http.get(`https://google-places-proxy-ftxx.onrender.com/api/osrm/nearest/${lng},${lat}?profile=driving`).toPromise() as any;
       
       if (response && response.waypoints && response.waypoints[0] && response.waypoints[0].location) {
         const [snappedLng, snappedLat] = response.waypoints[0].location;
@@ -5446,7 +5448,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           const lat = segment.from.lat || segment.from.location?.lat;
           const lng = segment.from.lng || segment.from.location?.lng;
           if (lat && lng) {
-            const marker = L.marker([lat, lng], {
+            // Offset the route segment marker slightly to avoid overlapping with tourist spot pins
+            const offsetLat = lat + 0.0005; // Small offset to the north
+            const offsetLng = lng + 0.0005; // Small offset to the east
+            
+            const marker = L.marker([offsetLat, offsetLng], {
               icon: L.divIcon({
                 html: `<div style="
                   background: #ff6b35;
@@ -5797,9 +5803,195 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
     // Set the inputs
     componentRef.instance.routeInfo = routeInfo;
+    componentRef.instance.itineraryId = this.getItineraryIdFromRoute();
+    componentRef.instance.currentItinerary = this.getCurrentItinerary();
     
 
     // Attach to the view container
     this.viewContainerRef.insert(componentRef.hostView);
+  }
+
+  private getItineraryIdFromRoute(): string {
+    // Generate itinerary ID based on selected itinerary
+    if (this.selectedItineraryIndex >= 0 && this.availableItineraries.length > 0) {
+      const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
+      if (selectedItinerary && selectedItinerary.days && selectedItinerary.days.length > 0) {
+        const spotNames = selectedItinerary.days
+          .map((day: any) => day.spots?.map((spot: any) => spot.name) || [])
+          .reduce((acc: any[], spots: any[]) => acc.concat(spots), [])
+          .join('_');
+        return `itinerary_${spotNames.substring(0, 50).replace(/\s+/g, '_')}`;
+      }
+    }
+    return `itinerary_${Date.now()}`;
+  }
+
+  private getCurrentItinerary(): any {
+    // Return the currently selected itinerary
+    if (this.selectedItineraryIndex >= 0 && this.availableItineraries.length > 0) {
+      return this.availableItineraries[this.selectedItineraryIndex];
+    }
+    return null;
+  }
+
+  // Route Segment Navigation Methods
+  getSegmentTitle(segment: any): string {
+    if (segment.type === 'jeepney' || segment.type === 'bus') {
+      return `${segment.jeepneyCode || 'Transit'} (${segment.fromName || segment.from} → ${segment.toName || segment.to})`;
+    } else if (segment.type === 'walk') {
+      return `Walk (${segment.fromName || segment.from} → ${segment.toName || segment.to})`;
+    } else {
+      return `${segment.fromName || segment.from} → ${segment.toName || segment.to}`;
+    }
+  }
+
+  async showSegmentSelector(): Promise<void> {
+    if (!this.currentRouteInfo || !this.currentRouteInfo.segments) {
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: 'Navigate to Route Segment',
+      subHeader: `Select a segment to view on the map`,
+      inputs: this.currentRouteInfo.segments.map((segment: any, index: number) => ({
+        name: 'segment',
+        type: 'radio' as const,
+        label: `Segment ${index + 1}: ${this.getSegmentTitle(segment)}`,
+        value: index,
+        checked: index === 0
+      })),
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Go to Segment',
+          handler: (selectedIndex: number) => {
+            this.navigateToSegment(selectedIndex);
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  navigateToSegment(segmentIndex: number): void {
+    if (!this.currentRouteInfo || !this.currentRouteInfo.segments || segmentIndex < 0) {
+      return;
+    }
+
+    const segment = this.currentRouteInfo.segments[segmentIndex];
+    if (!segment) return;
+
+    console.log(`🔍 Segment ${segmentIndex + 1} data:`, segment);
+
+    // Try multiple ways to get segment coordinates
+    let lat, lng;
+    
+    // Special handling for meal and accommodation segments
+    if (segment.type === 'meal' || segment.type === 'accommodation') {
+      // For meal/accommodation segments, try to find the restaurant/hotel location
+      const placeName = segment.from || segment.to || segment.placeName;
+      
+      // Try to find the place in tourist spots or itinerary
+      if (placeName && typeof placeName === 'string') {
+        // Remove emoji and extra text to get clean name
+        const cleanName = placeName.replace(/🍽️|🏨|🛏️/g, '').trim();
+        
+        // Search in tourist spots
+        const foundSpot = this.touristSpots.find(spot => 
+          spot.name.toLowerCase().includes(cleanName.toLowerCase()) ||
+          cleanName.toLowerCase().includes(spot.name.toLowerCase())
+        );
+        
+        if (foundSpot && foundSpot.location) {
+          lat = foundSpot.location.lat;
+          lng = foundSpot.location.lng;
+          console.log(`🍽️ Found meal/accommodation location in tourist spots:`, { lat, lng });
+        }
+        
+        // If not found in tourist spots, try itinerary data
+        if (!lat && this.availableItineraries && this.selectedItineraryIndex >= 0) {
+          const currentItinerary = this.availableItineraries[this.selectedItineraryIndex];
+          if (currentItinerary && currentItinerary.days) {
+            currentItinerary.days.forEach((day: any) => {
+              day.spots?.forEach((spot: any) => {
+                if (spot.name.toLowerCase().includes(cleanName.toLowerCase()) ||
+                    (spot.chosenRestaurant && spot.chosenRestaurant.name.toLowerCase().includes(cleanName.toLowerCase())) ||
+                    (spot.chosenHotel && spot.chosenHotel.name.toLowerCase().includes(cleanName.toLowerCase()))) {
+                  lat = spot.location?.lat;
+                  lng = spot.location?.lng;
+                  console.log(`🍽️ Found meal/accommodation location in itinerary:`, { lat, lng });
+                }
+              });
+            });
+          }
+        }
+      }
+    }
+    
+    // Regular coordinate extraction for transportation segments
+    if (!lat || !lng) {
+      // Method 1: from.lat/lng
+      if (segment.from && segment.from.lat && segment.from.lng) {
+        lat = segment.from.lat;
+        lng = segment.from.lng;
+      }
+      // Method 2: from.location.lat/lng
+      else if (segment.from && segment.from.location && segment.from.location.lat && segment.from.location.lng) {
+        lat = segment.from.location.lat;
+        lng = segment.from.location.lng;
+      }
+      // Method 3: fromLocation
+      else if (segment.fromLocation && segment.fromLocation.lat && segment.fromLocation.lng) {
+        lat = segment.fromLocation.lat;
+        lng = segment.fromLocation.lng;
+      }
+      // Method 4: to.lat/lng (use destination if from is missing)
+      else if (segment.to && segment.to.lat && segment.to.lng) {
+        lat = segment.to.lat;
+        lng = segment.to.lng;
+      }
+      // Method 5: to.location.lat/lng
+      else if (segment.to && segment.to.location && segment.to.location.lat && segment.to.location.lng) {
+        lat = segment.to.location.lat;
+        lng = segment.to.location.lng;
+      }
+      // Method 6: toLocation
+      else if (segment.toLocation && segment.toLocation.lat && segment.toLocation.lng) {
+        lat = segment.toLocation.lat;
+        lng = segment.toLocation.lng;
+      }
+      // Method 7: Try to find coordinates from polyline
+      else if (segment.polyline && segment.polyline.points) {
+        try {
+          const decodedPoints = this.decodePolyline(segment.polyline.points);
+          if (decodedPoints.length > 0) {
+            lat = decodedPoints[0][0];
+            lng = decodedPoints[0][1];
+          }
+        } catch (error) {
+          console.error('Error decoding polyline:', error);
+        }
+      }
+    }
+
+    console.log(`📍 Found coordinates for segment ${segmentIndex + 1}:`, { lat, lng });
+
+    if (lat && lng && lat !== 0 && lng !== 0) {
+      // Pan to the segment location with zoom
+      this.map.setView([lat, lng], 16, {
+        animate: true,
+        duration: 1
+      });
+
+      // Show toast with segment info
+      this.showToast(`📍 Navigated to Segment ${segmentIndex + 1}: ${this.getSegmentTitle(segment)}`);
+    } else {
+      console.error(`❌ No valid coordinates found for segment ${segmentIndex + 1}:`, segment);
+      this.showToast(`⚠️ Could not find coordinates for Segment ${segmentIndex + 1}`);
+    }
   }
 }

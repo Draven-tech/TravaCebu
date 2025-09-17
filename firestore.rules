@@ -126,6 +126,32 @@ service cloud.firestore {
                     request.auth.uid == resource.data.userId;
     }
 
+    // Budget tracking collections
+    match /budget_expenses/{expenseId} {
+      // Users can read their own expenses
+      allow read: if request.auth != null && 
+                  request.auth.uid == resource.data.userId;
+      
+      // Users can create their own expenses
+      allow create: if request.auth != null && 
+                    request.auth.uid == request.resource.data.userId;
+      
+      // Users can update their own expenses
+      allow update: if request.auth != null && 
+                    request.auth.uid == resource.data.userId;
+      
+      // Users can delete their own expenses
+      allow delete: if request.auth != null && 
+                    request.auth.uid == resource.data.userId;
+    }
+
+    // Budget limits collection
+    match /budget_limits/{userId} {
+      // Users can read and write their own budget limits
+      allow read, write: if request.auth != null && 
+                         request.auth.uid == userId;
+    }
+
     // Helper function
     function isAdmin() {
       return request.auth != null && 

@@ -1,10 +1,11 @@
 import { Component, Input } from '@angular/core';
-import { ModalController } from '@ionic/angular';
+import { ModalController, AlertController, ToastController } from '@ionic/angular';
 import { ItineraryEditorComponent } from './itinerary-editor.component';
 import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itinerary.service';
 import { ChangeDetectorRef } from '@angular/core';
 import { ItineraryMapComponent } from './itinerary-map.component';
 import { CalendarService, CalendarEvent } from '../services/calendar.service';
+import { BudgetService } from '../services/budget.service';
 
 interface PlaceSuggestion {
   name: string;
@@ -73,6 +74,9 @@ interface PlaceSuggestion {
                   <a [href]="getGoogleReviewsUrl(spot.chosenRestaurant)" target="_blank" class="booking-link">
                     <ion-icon name="star"></ion-icon> Reviews
                   </a>
+                  <ion-button size="small" fill="outline" color="success" (click)="addFoodExpense(spot, day.day)">
+                    <ion-icon name="wallet"></ion-icon> Log Expense
+                  </ion-button>
                 </div>
               </div>
             </div>
@@ -140,6 +144,9 @@ interface PlaceSuggestion {
                 </a>
                 <ion-button size="small" fill="outline" color="primary" (click)="viewHotelMap(day.chosenHotel)">
                   <ion-icon name="map"></ion-icon> View on Map
+                </ion-button>
+                <ion-button size="small" fill="outline" color="success" (click)="addAccommodationExpense(day)">
+                  <ion-icon name="wallet"></ion-icon> Log Expense
                 </ion-button>
               </div>
             </div>
@@ -612,7 +619,10 @@ export class ItineraryModalComponent {
     private modalCtrl: ModalController, 
     private itineraryService: ItineraryService, 
     private cdr: ChangeDetectorRef,
-    private calendarService: CalendarService
+    private calendarService: CalendarService,
+    private budgetService: BudgetService,
+    private alertCtrl: AlertController,
+    private toastCtrl: ToastController
   ) {}
 
   sortByTimeSlot(items: any[]): any[] {
@@ -1074,6 +1084,165 @@ export class ItineraryModalComponent {
 
   ngOnInit() {
     // Component initialization
+  }
+
+  // Budget Tracking Methods (Food and Accommodation only)
+
+  async addFoodExpense(spot: any, dayNumber: number) {
+    if (!spot.chosenRestaurant) {
+      this.showToast('Please select a restaurant first', 'warning');
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: `Log Food Expense`,
+      subHeader: `How much did you spend on ${spot.mealType} at ${spot.chosenRestaurant.name}?`,
+      message: 'Enter the actual amount you paid',
+      inputs: [
+        {
+          name: 'amount',
+          type: 'number',
+          placeholder: 'Amount you spent (₱)',
+          min: 0
+        },
+        {
+          name: 'notes',
+          type: 'text',
+          placeholder: 'What did you order? (optional)',
+          value: ''
+        }
+      ],
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Log Expense',
+          handler: async (data) => {
+            if (data.amount && parseFloat(data.amount) > 0) {
+              try {
+                const description = data.notes 
+                  ? `${spot.mealType} at ${spot.chosenRestaurant.name} - ${data.notes}`
+                  : `${spot.mealType} at ${spot.chosenRestaurant.name}`;
+                
+                await this.budgetService.addFoodExpense(
+                  parseFloat(data.amount),
+                  spot.chosenRestaurant.name,
+                  spot.mealType,
+                  this.getItineraryId(),
+                  dayNumber,
+                  spot.name
+                );
+                this.showToast('Food expense logged successfully!', 'success');
+              } catch (error) {
+                console.error('Error logging food expense:', error);
+                this.showToast('Failed to log expense', 'danger');
+              }
+            } else {
+              this.showToast('Please enter the amount you spent', 'warning');
+              return false;
+            }
+            return true;
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  async addAccommodationExpense(day: any) {
+    if (!day.chosenHotel) {
+      this.showToast('Please select a hotel first', 'warning');
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: `Log Accommodation Expense`,
+      subHeader: `How much did you pay at ${day.chosenHotel.name}?`,
+      message: 'Enter the actual amount you paid for your stay',
+      inputs: [
+        {
+          name: 'totalAmount',
+          type: 'number',
+          placeholder: 'Total amount paid (₱)',
+          min: 0
+        },
+        {
+          name: 'nights',
+          type: 'number',
+          placeholder: 'Number of nights stayed',
+          min: 1,
+          value: 1
+        },
+        {
+          name: 'notes',
+          type: 'text',
+          placeholder: 'Room type, amenities, etc. (optional)',
+          value: ''
+        }
+      ],
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Log Expense',
+          handler: async (data) => {
+            if (data.totalAmount && data.nights && parseFloat(data.totalAmount) > 0 && parseInt(data.nights) > 0) {
+              try {
+                const description = data.notes 
+                  ? `${parseInt(data.nights)} night${parseInt(data.nights) > 1 ? 's' : ''} at ${day.chosenHotel.name} - ${data.notes}`
+                  : `${parseInt(data.nights)} night${parseInt(data.nights) > 1 ? 's' : ''} at ${day.chosenHotel.name}`;
+                
+                await this.budgetService.addAccommodationExpense(
+                  parseFloat(data.totalAmount),
+                  day.chosenHotel.name,
+                  parseInt(data.nights),
+                  this.getItineraryId(),
+                  day.day
+                );
+                this.showToast(`Accommodation expense logged: ₱${parseFloat(data.totalAmount)}`, 'success');
+              } catch (error) {
+                console.error('Error logging accommodation expense:', error);
+                this.showToast('Failed to log expense', 'danger');
+              }
+            } else {
+              this.showToast('Please enter valid amounts', 'warning');
+              return false;
+            }
+            return true;
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+
+  private getItineraryId(): string {
+    // Generate a unique ID for this itinerary based on the spots
+    if (this.itinerary && this.itinerary.length > 0) {
+      const spotNames = this.itinerary
+        .map((day: any) => day.spots.map((spot: any) => spot.name))
+        .reduce((acc, spots) => acc.concat(spots), [])
+        .join('_');
+      return `itinerary_${spotNames.substring(0, 50).replace(/\s+/g, '_')}`;
+    }
+    return `itinerary_${Date.now()}`;
+  }
+
+  private async showToast(message: string, color: 'success' | 'warning' | 'danger' = 'success') {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 3000,
+      color,
+      position: 'bottom'
+    });
+    await toast.present();
   }
 
 } 

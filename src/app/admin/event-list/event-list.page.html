@@ -15,17 +15,15 @@
 </ion-header>
 
 <ion-content class="event-content">
-  <!-- Search Bar (like user dashboard) -->
-  <div class="search-section" *ngIf="activeTab === 'event-list'">
-    <ion-searchbar placeholder="Search events..." [(ngModel)]="searchQuery" (ionInput)="onSearchInput($event)"></ion-searchbar>
-  </div>
   
-  <!-- Profile-style Tabs -->
   <div class="profile-tabs">
     <button [class.active]="activeTab === 'event-list'" (click)="setActiveTab('event-list')">Event List</button>
     <button [class.active]="activeTab === 'calendar'" (click)="setActiveTab('calendar')">Calendar</button>
   </div>
   
+  <div class="search-section" *ngIf="activeTab === 'event-list'">
+    <ion-searchbar placeholder="Search events..." [(ngModel)]="searchQuery" (ionInput)="onSearchInput($event)"></ion-searchbar>
+  </div>
   <!-- Event List Tab Content -->
   <div *ngIf="activeTab === 'event-list'" class="tab-content">
     <!-- Previous Events Button (like CLEAR ALL) -->

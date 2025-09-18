@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { AlertController } from '@ionic/angular';
-import { CalendarService, CalendarEvent } from '../services/calendar.service';
+import { AlertController, ModalController } from '@ionic/angular';
+import { CalendarService, GlobalEvent } from '../services/calendar.service';
+import { EventDetailModalComponent } from '../modals/event-detail-modal/event-detail-modal.component';
 
 @Component({
   standalone: false,
@@ -9,17 +10,21 @@ import { CalendarService, CalendarEvent } from '../services/calendar.service';
   styleUrls: ['./user-calendar.page.scss'],
 })
 export class UserCalendarPage implements OnInit {
-  events: CalendarEvent[] = [];
+  events: GlobalEvent[] = [];
   isLoading = false;
   selectedDate: string = '';
   currentMonth = new Date();
-  showEventModal = false;
-  selectedEvent: CalendarEvent | null = null;
   viewMode: 'grid' | 'agenda' = 'grid';
+  // Cache for performance
+  private calendarDatesCache: Date[] = [];
+  private currentMonthCache: string = '';
+  private eventsCache: { [dateString: string]: GlobalEvent[] } = {};
+  isNavigating = false;
 
   constructor(
     private calendarService: CalendarService,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private modalCtrl: ModalController
   ) { }
 
   async ngOnInit() {
@@ -50,10 +55,21 @@ export class UserCalendarPage implements OnInit {
 
   loadEvents() {
     this.isLoading = true;
-    this.calendarService.loadItineraryEvents().then(events => {
+    this.calendarService.loadUserCalendarEvents().then(events => {
       this.events = events;
+      // Clear caches when events are reloaded
+      this.clearCalendarCaches();
+      this.isLoading = false;
+    }).catch(error => {
+      console.error('Error loading events in user calendar:', error);
       this.isLoading = false;
     });
+  }
+
+  private clearCalendarCaches() {
+    this.calendarDatesCache = [];
+    this.currentMonthCache = '';
+    this.eventsCache = {};
   }
 
   async refreshEvents() {
@@ -96,7 +112,7 @@ export class UserCalendarPage implements OnInit {
 
   // Debug method to add test events
   addTestEvents() {
-    const testEvents: CalendarEvent[] = [
+    const testEvents: any[] = [
       {
         id: '1',
         title: 'Kawasan Falls',
@@ -174,82 +190,85 @@ export class UserCalendarPage implements OnInit {
     await alert.present();
   }
 
-  getEventDate(event: CalendarEvent): string {
-    const date = new Date(event.start);
+  getEventDate(event: GlobalEvent): string {
+    const date = new Date(event.date);
     return date.toLocaleDateString();
   }
 
-  getEventTime(event: CalendarEvent): string {
-    const date = new Date(event.start);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  getEventTime(event: GlobalEvent): string {
+    return event.time;
   }
 
-  getEventEndTime(event: CalendarEvent): string {
-    if (!event.end) return '';
-    const date = new Date(event.end);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  getEventEndTime(event: GlobalEvent): string {
+    // For now, return the same time as start time
+    return event.time;
   }
 
-  isItineraryEvent(event: CalendarEvent): boolean {
-    return event.extendedProps?.isItineraryEvent === true;
-  }
-
-  getEventIcon(event: CalendarEvent): string {
-    if (this.isItineraryEvent(event)) {
-      const eventType = event.extendedProps?.type;
-      if (eventType === 'restaurant') {
-        return 'restaurant-outline'; // Use outline version for better rendering
-      } else if (eventType === 'hotel') {
-        return 'bed-outline'; // Use outline version for consistency
-      } else if (eventType === 'admin_event') {
-        return 'star-outline'; // Star icon for admin events
-      } else {
-        return 'location-outline'; // Use outline version for consistency
-      }
+  getEventIcon(event: GlobalEvent): string {
+    switch (event.eventType) {
+      case 'restaurant':
+        return 'restaurant-outline';
+      case 'hotel':
+        return 'bed-outline';
+      case 'tourist_spot':
+        return 'location-outline';
+      default:
+        return 'calendar-outline';
     }
-    return 'calendar-outline';
   }
 
-  getEventColor(event: CalendarEvent): string {
-    if (this.isItineraryEvent(event)) {
-      const eventType = event.extendedProps?.type;
-      if (eventType === 'restaurant') {
-        return 'warning'; // Orange for restaurants
-      } else if (eventType === 'hotel') {
+  getEventColor(event: GlobalEvent): string {
+    if (event.createdByType === 'admin') {
+      return 'warning'; // Yellow for admin events
+    }
+    
+    switch (event.eventType) {
+      case 'restaurant':
+        return 'warning'; // Yellow for restaurants
+      case 'hotel':
         return 'primary'; // Blue for hotels
-      } else if (eventType === 'admin_event') {
-        return 'warning'; // Orange for admin events (same as restaurants)
-      } else {
+      case 'tourist_spot':
         return 'success'; // Green for tourist spots
-      }
+      default:
+        return 'medium';
     }
-    return 'medium';
   }
 
-  getEventsForDate(date: Date): CalendarEvent[] {
+  getEventsForDate(date: Date): GlobalEvent[] {
     // Create date string for comparison without timezone issues
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
+
+    // Use cached events if available
+    if (this.eventsCache[dateStr]) {
+      return this.eventsCache[dateStr];
+    }
     
-    return this.events.filter(event => {
-      const eventDate = new Date(event.start);
-      const eventYear = eventDate.getFullYear();
-      const eventMonth = String(eventDate.getMonth() + 1).padStart(2, '0');
-      const eventDay = String(eventDate.getDate()).padStart(2, '0');
-      const eventDateStr = `${eventYear}-${eventMonth}-${eventDay}`;
-      
-      return eventDateStr === dateStr;
+    const eventsForDate = this.events.filter(event => {
+      return event.date === dateStr;
     });
+    
+    // Cache the result
+    this.eventsCache[dateStr] = eventsForDate;
+    
+    return eventsForDate;
   }
 
-  onDateSelected(date: Date) {
+  async onDateSelected(date: Date) {
     // Create a date string in YYYY-MM-DD format without timezone issues
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     this.selectedDate = `${year}-${month}-${day}`;
+    
+    // Check if this date has events
+    const eventsForDate = this.getEventsForDate(date);
+    if (eventsForDate.length > 0) {
+      // Show modal with the first event for this date
+      await this.showEventModal(eventsForDate[0]);
+    }
   }
 
   // Method to reset selected date to today
@@ -262,11 +281,21 @@ export class UserCalendarPage implements OnInit {
   }
 
   previousMonth() {
-    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+    this.isNavigating = true;
+    setTimeout(() => {
+      this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+      this.clearCalendarCaches();
+      this.isNavigating = false;
+    }, 50);
   }
 
   nextMonth() {
-    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
+    this.isNavigating = true;
+    setTimeout(() => {
+      this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
+      this.clearCalendarCaches();
+      this.isNavigating = false;
+    }, 50);
   }
 
   getCurrentMonthYear(): string {
@@ -278,6 +307,13 @@ export class UserCalendarPage implements OnInit {
   }
 
   getCalendarDates(): Date[] {
+    const monthKey = `${this.currentMonth.getFullYear()}-${this.currentMonth.getMonth()}`;
+    
+    // Use cached dates if available
+    if (this.currentMonthCache === monthKey && this.calendarDatesCache.length > 0) {
+      return this.calendarDatesCache;
+    }
+    
     const year = this.currentMonth.getFullYear();
     const month = this.currentMonth.getMonth();
     
@@ -290,10 +326,15 @@ export class UserCalendarPage implements OnInit {
     const dates: Date[] = [];
     const currentDate = new Date(startDate);
     
-    while (currentDate.getMonth() <= month || currentDate.getDay() !== 0) {
+    // Generate exactly 42 dates (6 weeks x 7 days) for consistent grid
+    for (let i = 0; i < 42; i++) {
       dates.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 1);
     }
+    
+    // Cache the results
+    this.calendarDatesCache = dates;
+    this.currentMonthCache = monthKey;
     
     return dates;
   }
@@ -324,13 +365,8 @@ export class UserCalendarPage implements OnInit {
     return dateStr === this.selectedDate;
   }
 
-  showEventDetails(event: CalendarEvent, eventObj: any) {
-    eventObj.stopPropagation();
-    this.selectedEvent = event;
-    this.showEventModal = true;
-  }
 
-  openInGoogleCalendar(event: CalendarEvent) {
+  openInGoogleCalendar(event: GlobalEvent) {
     // This would open the event in Google Calendar if it was created there
     // For now, just show a message
     this.showAlert('Info', 'This feature would open the event in Google Calendar.');
@@ -363,8 +399,12 @@ export class UserCalendarPage implements OnInit {
   }
 
   goToMonth(date: Date) {
-    this.currentMonth = new Date(date);
-    this.loadEvents();
+    this.isNavigating = true;
+    setTimeout(() => {
+      this.currentMonth = new Date(date);
+      this.clearCalendarCaches();
+      this.isNavigating = false;
+    }, 50);
   }
 
   getSelectedDayName(): string {
@@ -377,20 +417,16 @@ export class UserCalendarPage implements OnInit {
     return selected.getDate();
   }
 
-  getEventsForSelectedDate(): CalendarEvent[] {
-    const selected = new Date(this.selectedDate);
+  getEventsForSelectedDate(): GlobalEvent[] {
     return this.events.filter(event => {
-      const eventDate = new Date(event.start);
-      return eventDate.getDate() === selected.getDate() && 
-             eventDate.getMonth() === selected.getMonth() && 
-             eventDate.getFullYear() === selected.getFullYear();
+      return event.date === this.selectedDate;
     });
   }
 
-  getAllEventsSorted(): CalendarEvent[] {
+  getAllEventsSorted(): GlobalEvent[] {
     const sortedEvents = this.events
       .filter(event => {
-        const eventDate = new Date(event.start);
+        const eventDate = new Date(event.date);
         const eventMonth = eventDate.getMonth();
         const eventYear = eventDate.getFullYear();
         const currentMonth = this.currentMonth.getMonth();
@@ -398,20 +434,16 @@ export class UserCalendarPage implements OnInit {
         const isInCurrentMonth = eventMonth === currentMonth && eventYear === currentYear;
         return isInCurrentMonth;
       })
-      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+      .sort((a, b) => new Date(a.date + 'T' + a.time).getTime() - new Date(b.date + 'T' + b.time).getTime());
     return sortedEvents;
   }
 
-  getEventsGroupedByDate(): { date: string; events: CalendarEvent[] }[] {
+  getEventsGroupedByDate(): { date: string; events: GlobalEvent[] }[] {
     const events = this.getAllEventsSorted();
-    const grouped: { [key: string]: CalendarEvent[] } = {};
+    const grouped: { [key: string]: GlobalEvent[] } = {};
     
     events.forEach(event => {
-      const eventDate = new Date(event.start);
-      const year = eventDate.getFullYear();
-      const month = String(eventDate.getMonth() + 1).padStart(2, '0');
-      const day = String(eventDate.getDate()).padStart(2, '0');
-      const dateKey = `${year}-${month}-${day}`;
+      const dateKey = event.date;
       
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
@@ -425,43 +457,35 @@ export class UserCalendarPage implements OnInit {
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  getEventsGroupedByWeek(): { weekStart: Date; dateGroups: { date: string; events: CalendarEvent[] }[] }[] {
+  getEventsGroupedByWeek(): { weekStart: Date; dateGroups: { date: string; events: GlobalEvent[] }[] }[] {
     const allEvents = this.getAllEventsSorted();
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Get the first day of the current month
     const firstDayOfMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), 1);
     const lastDayOfMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 0);
     
-    // Get the start of the week for the first day of the month
     const firstWeekStart = this.getWeekStart(firstDayOfMonth);
     const lastWeekStart = this.getWeekStart(lastDayOfMonth);
     
-    const weekGroups: { weekStart: Date; dateGroups: { date: string; events: CalendarEvent[] }[] }[] = [];
+    const weekGroups: { weekStart: Date; dateGroups: { date: string; events: GlobalEvent[] }[] }[] = [];
     
-    // Generate all weeks that overlap with the current month
     let currentWeekStart = new Date(firstWeekStart);
     while (currentWeekStart <= lastWeekStart) {
       const weekEnd = new Date(currentWeekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
       
-      // Only include weeks that haven't completely passed
       if (weekEnd >= today) {
-        const dateGroups: { date: string; events: CalendarEvent[] }[] = [];
+        const dateGroups: { date: string; events: GlobalEvent[] }[] = [];
         
-        // Group events by date for this week
         for (let i = 0; i < 7; i++) {
           const currentDate = new Date(currentWeekStart);
           currentDate.setDate(currentDate.getDate() + i);
           
           const dateString = currentDate.toISOString().split('T')[0];
           const eventsForDate = allEvents.filter(event => {
-            const eventDate = new Date(event.start);
-            const eventDateString = eventDate.toISOString().split('T')[0];
-            const matches = eventDateString === dateString;
-            return matches;
+            return event.date === dateString;
           });
           
           if (eventsForDate.length > 0) {
@@ -505,29 +529,30 @@ export class UserCalendarPage implements OnInit {
     }
   }
 
-  getEventCategory(event: CalendarEvent): string {
-    if (this.isItineraryEvent(event)) {
-      const eventType = event.extendedProps?.type;
-      if (eventType === 'restaurant') {
+  getEventCategory(event: GlobalEvent): string {
+    switch (event.eventType) {
+      case 'restaurant':
         return 'Restaurant';
-      } else if (eventType === 'hotel') {
+      case 'hotel':
         return 'Hotel';
-      } else if (eventType === 'admin_event') {
-        return 'Admin Event';
-      } else {
+      case 'tourist_spot':
+        return 'Tourist Spot';
+      case 'user_itinerary':
         return 'My Itinerary';
-      }
+      case 'admin_event':
+        return 'Event';
+      default:
+        return 'Event';
     }
-    return 'Event';
   }
 
-  getEventDayName(event: CalendarEvent): string {
-    const date = new Date(event.start);
+  getEventDayName(event: GlobalEvent): string {
+    const date = new Date(event.date);
     return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
   }
 
-  getEventDayNumber(event: CalendarEvent): number {
-    const date = new Date(event.start);
+  getEventDayNumber(event: GlobalEvent): number {
+    const date = new Date(event.date);
     return date.getDate();
   }
 
@@ -535,5 +560,89 @@ export class UserCalendarPage implements OnInit {
     const today = new Date();
     const todayDay = today.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
     return day === todayDay;
+  }
+
+  // TrackBy functions for performance
+  trackByDate(index: number, date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+
+  trackByEventId(index: number, event: GlobalEvent): string {
+    return event.id || index.toString();
+  }
+
+  trackByWeekGroup(index: number, weekGroup: any): string {
+    return weekGroup.weekStart.toISOString();
+  }
+
+  trackByDateGroup(index: number, dateGroup: any): string {
+    return dateGroup.date;
+  }
+
+  // Simple getters for template performance
+  get sortedEvents(): GlobalEvent[] {
+    return this.events.filter(event => {
+      const eventDate = new Date(event.date);
+      const eventMonth = eventDate.getMonth();
+      const eventYear = eventDate.getFullYear();
+      const currentMonth = this.currentMonth.getMonth();
+      const currentYear = this.currentMonth.getFullYear();
+      return eventMonth === currentMonth && eventYear === currentYear;
+    }).sort((a, b) => new Date(a.date + 'T' + a.time).getTime() - new Date(b.date + 'T' + b.time).getTime());
+  }
+
+  get eventsGroupedByWeek(): any[] {
+    // Simplified version - just return current month events grouped by week
+    const currentEvents = this.sortedEvents;
+    if (currentEvents.length === 0) return [];
+    
+    // Simple grouping by week
+    const weeks: any[] = [];
+    const eventsByDate: { [key: string]: GlobalEvent[] } = {};
+    
+    currentEvents.forEach(event => {
+      if (!eventsByDate[event.date]) {
+        eventsByDate[event.date] = [];
+      }
+      eventsByDate[event.date].push(event);
+    });
+    
+    Object.keys(eventsByDate).forEach(dateKey => {
+      const events = eventsByDate[dateKey];
+      const weekStart = new Date(dateKey);
+      weeks.push({
+        weekStart: weekStart,
+        dateGroups: [{ date: dateKey, events: events }]
+      });
+    });
+    
+    return weeks;
+  }
+
+  // Event Click Handler
+  onEventClick(event: GlobalEvent, clickEvent: Event) {
+    clickEvent.stopPropagation();
+    clickEvent.preventDefault();
+    
+    // Show modal without blocking UI
+    this.showEventModal(event);
+  }
+
+  // Event Modal Methods
+  showEventModal(event: GlobalEvent) {
+    // Use zone.runOutsideAngular if available, or setTimeout for non-blocking execution
+    setTimeout(() => {
+      this.modalCtrl.create({
+        component: EventDetailModalComponent,
+        cssClass: 'event-detail-modal',
+        componentProps: {
+          event: event
+        }
+      }).then(modal => {
+        modal.present();
+      }).catch(error => {
+        console.error('Error showing modal:', error);
+      });
+    }, 0);
   }
 }

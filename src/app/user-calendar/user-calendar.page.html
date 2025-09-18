@@ -43,13 +43,14 @@
     </div>
 
     <!-- Loading State -->
-    <div *ngIf="isLoading" class="loading-state">
+    <div *ngIf="isLoading || isNavigating" class="loading-state">
       <ion-spinner name="crescent"></ion-spinner>
-      <p>Loading calendar events...</p>
+      <p *ngIf="isLoading">Loading calendar events...</p>
+      <p *ngIf="isNavigating">Loading calendar...</p>
     </div>
 
     <!-- Grid View -->
-    <div *ngIf="!isLoading && viewMode === 'grid'" class="grid-view">
+    <div *ngIf="!isLoading && !isNavigating && viewMode === 'grid'" class="grid-view">
       <!-- Calendar Grid -->
       <div class="calendar-grid">
         <!-- Day Headers -->
@@ -60,7 +61,7 @@
         <!-- Calendar Days -->
         <div class="calendar-days">
           <div 
-            *ngFor="let date of getCalendarDates()" 
+            *ngFor="let date of getCalendarDates(); trackBy: trackByDate" 
             class="calendar-day"
             [ngClass]="{
               'other-month': !isCurrentMonth(date),
@@ -74,11 +75,11 @@
             <!-- Event Indicators -->
             <div class="event-indicators">
               <div 
-                *ngFor="let event of getEventsForDate(date); let i = index"
+                *ngFor="let event of getEventsForDate(date); trackBy: trackByEventId"
                 class="event-dot"
                 [ngClass]="getEventColor(event)"
-                (click)="showEventDetails(event, $event)"
-                [title]="event.title"
+                (click)="onEventClick(event, $event)"
+                [title]="event.name"
               ></div>
             </div>
           </div>
@@ -87,7 +88,7 @@
     </div>
 
     <!-- Agenda View -->
-    <div *ngIf="!isLoading && viewMode === 'agenda'" class="agenda-view">
+    <div *ngIf="!isLoading && !isNavigating && viewMode === 'agenda'" class="agenda-view">
       <!-- Month Navigation Tabs -->
       <div class="month-tabs">
         <div class="month-tab" 
@@ -112,14 +113,14 @@
 
       <!-- Events List -->
       <div class="events-list">
-        <div *ngFor="let weekGroup of getEventsGroupedByWeek()" class="week-group">
+        <div *ngFor="let weekGroup of eventsGroupedByWeek; trackBy: trackByWeekGroup" class="week-group">
           <!-- Week Separator -->
           <div class="week-separator">
             {{ getWeekRange(weekGroup.weekStart) }}
           </div>
           
           <!-- Date Groups for this week -->
-          <div *ngFor="let dateGroup of weekGroup.dateGroups" class="date-group">
+          <div *ngFor="let dateGroup of weekGroup.dateGroups; trackBy: trackByDateGroup" class="date-group">
             <!-- Date Header -->
             <div class="date-header">
               <div class="event-date">
@@ -133,9 +134,9 @@
             </div>
             
             <!-- Events for this date -->
-            <div *ngFor="let event of dateGroup.events" class="event-item" (click)="showEventDetails(event, $event)">
+            <div *ngFor="let event of dateGroup.events; trackBy: trackByEventId" class="event-item" (click)="onEventClick(event, $event)">
               <div class="event-content">
-                <div class="event-title">{{ event.title }}</div>
+                <div class="event-title">{{ event.name }}</div>
                 <div class="event-time" *ngIf="getEventTime(event)">
                   {{ getEventTime(event) }}
                 </div>
@@ -153,7 +154,7 @@
         </div>
 
         <!-- No Events Message -->
-        <div *ngIf="getAllEventsSorted().length === 0" class="no-events">
+        <div *ngIf="sortedEvents.length === 0" class="no-events">
           <ion-icon name="calendar-outline" class="no-events-icon"></ion-icon>
           <h4>No events this month</h4>
           <p>Create an itinerary from your bucket list to add events to your calendar!</p>
@@ -161,61 +162,7 @@
       </div>
     </div>
 
-    <!-- Event Details Modal -->
-    <ion-modal [isOpen]="showEventModal" (didDismiss)="showEventModal = false" cssClass="event-details-modal">
-      <ng-template>
-        <ion-header>
-          <ion-toolbar color="warning">
-            <ion-title>Event Details</ion-title>
-            <ion-buttons slot="end">
-              <ion-button (click)="showEventModal = false" fill="clear">
-                <ion-icon name="close"></ion-icon>
-              </ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content *ngIf="selectedEvent" class="event-details-content">
-          <div class="event-details">
-            <div class="event-header">
-              <ion-icon [name]="getEventIcon(selectedEvent)" [color]="getEventColor(selectedEvent)" class="event-icon-large"></ion-icon>
-              <h2>{{ selectedEvent.title }}</h2>
-              <div class="event-badge" [ngClass]="getEventColor(selectedEvent)">
-                {{ getEventCategory(selectedEvent) }}
-              </div>
-            </div>
 
-            <div class="event-info">
-              <div class="info-item">
-                <ion-icon name="time-outline"></ion-icon>
-                <span>{{ getEventDate(selectedEvent) }} at {{ getEventTime(selectedEvent) }}</span>
-              </div>
-              
-              <div class="info-item" *ngIf="selectedEvent.end">
-                <ion-icon name="time-outline"></ion-icon>
-                <span>Ends at {{ getEventEndTime(selectedEvent) }}</span>
-              </div>
-              
-              <div class="info-item" *ngIf="selectedEvent.extendedProps?.description">
-                <ion-icon name="document-text-outline"></ion-icon>
-                <span>{{ selectedEvent.extendedProps.description }}</span>
-              </div>
-            </div>
-
-            <div class="event-actions">
-              <ion-button 
-                expand="block" 
-                color="danger" 
-                fill="outline"
-                (click)="deleteEvent(selectedEvent.id!)"
-              >
-                <ion-icon name="trash-outline" slot="start"></ion-icon>
-                Delete Event
-              </ion-button>
-            </div>
-          </div>
-        </ion-content>
-      </ng-template>
-    </ion-modal>
   </div>
 </ion-content>
 

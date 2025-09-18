@@ -80,6 +80,11 @@
   --border-radius: 16px 16px 0 0;
 }
 
+.event-detail-modal {
+  --height: 70%;
+  --border-radius: 16px 16px 0 0;
+}
+
 // Ensure modals have proper backdrop
 ion-modal {
   --backdrop-opacity: 0.5;

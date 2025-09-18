@@ -1,0 +1,38 @@
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-title>Event Details</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()" fill="clear">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="event-detail-content">
+  <div class="event-details">
+    <div class="event-header">
+      <div class="event-image-large">
+        <img [src]="event.imageUrl" [alt]="event.name" />
+      </div>
+      <h2>{{ event.name }}</h2>
+    </div>
+
+    <div class="event-info">
+      <div class="info-item">
+        <ion-icon name="time-outline"></ion-icon>
+        <span>{{ getEventDate() }} at {{ getEventTime() }}</span>
+      </div>
+      
+      <div class="info-item" *ngIf="event.location">
+        <ion-icon name="location-outline"></ion-icon>
+        <span>{{ event.location }}</span>
+      </div>
+      
+      <div class="info-item" *ngIf="event.description">
+        <ion-icon name="document-text-outline"></ion-icon>
+        <span>{{ event.description }}</span>
+      </div>
+    </div>
+  </div>
+</ion-content>

@@ -1,10 +1,12 @@
 // Global Modal Styles
 :global(.event-details-modal) {
-  --height: 60%;
-  --width: 90%;
+  --height: 70%;
+  --width: 85%;
   --max-width: 400px;
   --border-radius: 16px;
+  --backdrop-opacity: 0.6;
 }
+
 
 :global(.event-details-content) {
   --padding-start: 16px;
@@ -882,6 +884,11 @@ ion-content {
             background-color: #ff6b35;
           }
 
+          &.warning {
+            background-color: #FFD144;
+            box-shadow: 0 0 8px rgba(255, 209, 68, 0.6);
+          }
+
           &.medium {
             background-color: #20c997;
           }
@@ -891,6 +898,59 @@ ion-content {
           }
         }
       }
+    }
+  }
+}
+
+// Event Details Modal
+.event-header {
+  text-align: center;
+  margin-bottom: 24px;
+  
+  .event-image-large {
+    width: 100%;
+    height: 200px;
+    border-radius: 16px;
+    overflow: hidden;
+    margin: 0 auto 16px auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+  
+  h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #2D3748;
+    line-height: 1.3;
+  }
+}
+
+.event-info {
+  .info-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    
+    ion-icon {
+      margin-right: 12px;
+      color: #FFD144;
+      font-size: 20px;
+    }
+    
+    span {
+      flex: 1;
+      font-size: 16px;
+      color: #2D3748;
+      line-height: 1.4;
     }
   }
 }

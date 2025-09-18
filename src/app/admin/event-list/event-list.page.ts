@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, ModalController, NavController } from '@ionic/angular';
 import { DatePipe } from '@angular/common';
-import { CalendarService, CalendarEvent } from '../../services/calendar.service';
+import { CalendarService, GlobalEvent } from '../../services/calendar.service';
 
 @Component({
   standalone: false,
@@ -61,30 +61,31 @@ export class EventListPage implements OnInit {
   async loadEvents() {
     this.isLoading = true;
     try {
-      // Load all events from the calendar service
-      const allEvents = await this.calendarService.loadItineraryEvents();
+      // Load admin events using new global event system
+      const adminEvents = await this.calendarService.loadAdminEvents();
       
-      // Filter for admin events only
-      this.events = allEvents
-        .filter(event => event.extendedProps?.isAdminEvent === true)
-        .map(event => ({
-          id: event.id,
-          name: event.title,
-          description: event.extendedProps?.description || '',
-          date: event.start.split('T')[0],
-          time: event.start.split('T')[1]?.substring(0, 5) || '',
-          location: event.extendedProps?.location || '',
-          spotId: event.extendedProps?.spotId || '',
-          imageUrl: event.extendedProps?.imageUrl || '',
-          createdAt: event.createdAt,
-          updatedAt: event.extendedProps?.updatedAt
-        }))
-        .sort((a, b) => {
-          // Sort by date descending, then by time
-          const dateA = new Date(a.date + 'T' + a.time);
-          const dateB = new Date(b.date + 'T' + b.time);
-          return dateB.getTime() - dateA.getTime();
-        });
+      console.log('Loaded admin events:', adminEvents);
+      
+      // Convert to display format
+      this.events = adminEvents.map(event => ({
+        id: event.id,
+        name: event.name,
+        description: event.description,
+        date: event.date,
+        time: event.time,
+        location: event.location,
+        spotId: event.spotId,
+        imageUrl: event.imageUrl,
+        createdAt: event.createdAt,
+        updatedAt: event.updatedAt
+      })).sort((a, b) => {
+        // Sort by date descending, then by time
+        const dateA = new Date(a.date + 'T' + a.time);
+        const dateB = new Date(b.date + 'T' + b.time);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      console.log('Admin events for display:', this.events);
       
       // Clear caches when events are reloaded
       this.clearCalendarCaches();
@@ -160,13 +161,8 @@ export class EventListPage implements OnInit {
           text: 'Delete',
           handler: async () => {
             try {
-              // Delete from Firestore
-              await this.firestore.collection('user_itinerary_events').doc(id).delete();
-              
-              // Remove from localStorage
-              const currentEvents = JSON.parse(localStorage.getItem('user_itinerary_events') || '[]');
-              const updatedEvents = currentEvents.filter((event: any) => event.id !== id);
-              localStorage.setItem('user_itinerary_events', JSON.stringify(updatedEvents));
+              // Delete using new global event system
+              await this.calendarService.deleteGlobalEvent(id);
               
               this.showAlert('Success', 'Event deleted successfully');
               await this.loadEvents(); // Reload the list

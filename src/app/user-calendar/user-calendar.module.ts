@@ -11,6 +11,7 @@ import { UserCalendarPageRoutingModule } from './user-calendar-routing.module';
 
 import { UserCalendarPage } from './user-calendar.page';
 import { ComponentsModule } from '../components/components.module';
+import { EventDetailModalComponent } from '../modals/event-detail-modal/event-detail-modal.component';
 
 @NgModule({
   imports: [

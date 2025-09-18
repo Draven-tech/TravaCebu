@@ -3,7 +3,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, NavController } from '@ionic/angular';
 import { StorageService } from '../../services/storage.service';
 import { AuthService } from '../../services/auth.service';
-import { CalendarService, CalendarEvent } from '../../services/calendar.service';
+import { CalendarService, GlobalEvent } from '../../services/calendar.service';
 
 @Component({
   selector: 'app-event-editor',
@@ -190,33 +190,30 @@ export class EventEditorPage implements OnInit {
     try {
       const imageUrl = await this.uploadImage();
       
-      // Create CalendarEvent structure compatible with the calendar system
-      const calendarEvent: CalendarEvent = {
-        title: this.eventName.trim(),
-        start: `${this.eventDate}T${this.eventTime}:00`,
-        end: `${this.eventDate}T${this.eventTime}:00`,
-        color: '#ff6b35', // Orange for admin events
-        textColor: '#fff',
-        allDay: false,
-        extendedProps: {
-          type: 'admin_event',
-          description: this.eventDescription.trim(),
-          location: this.eventLocation.trim(),
-          spotId: this.selectedSpotId,
-          imageUrl: imageUrl,
-          isAdminEvent: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
+      // Create GlobalEvent structure
+      const globalEvent: Omit<GlobalEvent, 'id' | 'createdAt' | 'createdBy'> = {
+        name: this.eventName.trim(),
+        description: this.eventDescription.trim(),
+        date: this.eventDate,
+        time: this.eventTime,
+        location: this.eventLocation.trim(),
+        spotId: this.selectedSpotId,
+        imageUrl: imageUrl,
+        createdByType: 'admin',
+        eventType: 'admin_event',
+        status: 'active'
       };
 
       if (this.isEditing && this.editingEventId) {
         // Update existing event
-        calendarEvent.id = this.editingEventId;
-        await this.calendarService.updateEvent(calendarEvent);
+        await this.calendarService.updateGlobalEvent(this.editingEventId, {
+          ...globalEvent,
+          updatedAt: new Date()
+        });
       } else {
-        // Create new event
-        await this.calendarService.saveItineraryEvents([calendarEvent]);
+        // Create new admin event
+        const eventId = await this.calendarService.saveGlobalEvent(globalEvent);
+        console.log('New admin event created with ID:', eventId);
       }
 
       this.showAlert('Success', `Event ${this.isEditing ? 'updated' : 'created'} successfully`);

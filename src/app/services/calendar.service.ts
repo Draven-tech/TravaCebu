@@ -2,6 +2,24 @@ import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 
+export interface GlobalEvent {
+  id?: string;
+  name: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  spotId: string;
+  imageUrl: string;
+  createdBy: string; // userId of creator (admin or user)
+  createdByType: 'admin' | 'user';
+  eventType: 'admin_event' | 'user_itinerary' | 'tourist_spot' | 'restaurant' | 'hotel';
+  status: 'active' | 'completed';
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+// Legacy interface for backward compatibility
 export interface CalendarEvent {
   id?: string;
   title: string;
@@ -27,17 +45,183 @@ export class CalendarService {
   ) { }
 
   /**
-   * Save itinerary events to both localStorage and Firestore
+   * GLOBAL EVENT METHODS - NEW UNIFIED SYSTEM
    */
-  async saveItineraryEvents(events: CalendarEvent[]): Promise<void> {
+
+  /**
+   * Save a new global event (admin or user)
+   */
+  async saveGlobalEvent(event: Omit<GlobalEvent, 'id' | 'createdAt' | 'createdBy'>): Promise<string> {
     try {
-      // Get current user
       const user = await this.afAuth.currentUser;
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      // Clean and prepare events for Firestore (remove undefined values)
+      const newEvent: GlobalEvent = {
+        ...event,
+        createdBy: user.uid,
+        createdAt: new Date(),
+        status: 'active'
+      };
+
+      console.log('Saving global event to Firebase:', newEvent);
+
+      // Save to 'events' collection
+      const docRef = await this.firestore.collection('events').add(newEvent);
+      
+      console.log('Event saved successfully with ID:', docRef.id);
+      return docRef.id;
+      
+    } catch (error) {
+      console.error('Error saving global event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load all global events (visible to everyone)
+   */
+  async loadAllGlobalEvents(): Promise<GlobalEvent[]> {
+    try {
+      console.log('Loading all global events from Firebase...');
+      
+      const snapshot = await this.firestore
+        .collection('events')
+        .get()
+        .toPromise();
+
+      if (snapshot && !snapshot.empty) {
+        const events = snapshot.docs.map((doc: any) => {
+          const data = doc.data() as any;
+          return {
+            id: doc.id,
+            ...data
+          };
+        }) as GlobalEvent[];
+        
+        console.log('Loaded global events:', events);
+        return events;
+      }
+
+      console.log('No events found in Firebase');
+      return [];
+      
+    } catch (error) {
+      console.error('Error loading global events:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Load events for admin (all events they created)
+   */
+  async loadAdminEvents(): Promise<GlobalEvent[]> {
+    try {
+      const user = await this.afAuth.currentUser;
+      if (!user) {
+        throw new Error('Admin not authenticated');
+      }
+
+      const events = await this.loadAllGlobalEvents();
+      
+      // Filter for events created by this admin
+      const adminEvents = events.filter(event => 
+        event.createdByType === 'admin' && event.createdBy === user.uid
+      );
+      
+      console.log('Admin events for current user:', adminEvents);
+      return adminEvents;
+      
+    } catch (error) {
+      console.error('Error loading admin events:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Load events for user calendar (user's events + all admin events)
+   */
+  async loadUserCalendarEvents(): Promise<GlobalEvent[]> {
+    try {
+      const user = await this.afAuth.currentUser;
+      if (!user) {
+        console.error('User not authenticated for calendar events');
+        return [];
+      }
+
+      const allEvents = await this.loadAllGlobalEvents();
+      
+      // Include user's own events + all admin events
+      const userCalendarEvents = allEvents.filter(event => {
+        // Include user's own events
+        const isUserEvent = event.createdBy === user.uid && event.createdByType === 'user';
+        
+        // Include all admin events (visible to everyone)
+        const isAdminEvent = event.createdByType === 'admin';
+        
+        return isUserEvent || isAdminEvent;
+      });
+      return userCalendarEvents;
+      
+    } catch (error) {
+      console.error('Error loading user calendar events:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Update an existing global event
+   */
+  async updateGlobalEvent(eventId: string, updates: Partial<GlobalEvent>): Promise<void> {
+    try {
+      const user = await this.afAuth.currentUser;
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const updateData = {
+        ...updates,
+        updatedAt: new Date()
+      };
+
+      await this.firestore.collection('events').doc(eventId).update(updateData);
+      console.log('Event updated successfully:', eventId);
+      
+    } catch (error) {
+      console.error('Error updating event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a global event
+   */
+  async deleteGlobalEvent(eventId: string): Promise<void> {
+    try {
+      await this.firestore.collection('events').doc(eventId).delete();
+      console.log('Event deleted successfully:', eventId);
+      
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * LEGACY METHODS - Keep for backward compatibility
+   */
+
+  /**
+   * Save itinerary events to user_itinerary_events collection (legacy)
+   */
+  async saveItineraryEvents(events: CalendarEvent[]): Promise<void> {
+    try {
+      const user = await this.afAuth.currentUser;
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       const cleanedEvents = events.map(event => {
         const cleanedEvent = {
           ...event,
@@ -45,7 +229,6 @@ export class CalendarService {
           createdAt: new Date()
         };
 
-        // Clean extendedProps to remove undefined values
         if (cleanedEvent.extendedProps) {
           const cleanedExtendedProps: any = {};
           Object.keys(cleanedEvent.extendedProps).forEach(key => {
@@ -60,10 +243,8 @@ export class CalendarService {
         return cleanedEvent;
       });
 
-      // Save to localStorage for immediate access
       localStorage.setItem('user_itinerary_events', JSON.stringify(cleanedEvents));
 
-      // Save to Firestore for persistence
       const batch = this.firestore.firestore.batch();
       
       cleanedEvents.forEach(event => {
@@ -79,8 +260,8 @@ export class CalendarService {
     }
   }
 
-    /**
-   * Load itinerary events for the current user
+  /**
+   * Load itinerary events for the current user (legacy)
    */
   async loadItineraryEvents(): Promise<CalendarEvent[]> {
     try {
@@ -89,7 +270,6 @@ export class CalendarService {
         return this.loadFromLocalStorage();
       }
 
-      // Try to load from Firestore first
       const snapshot = await this.firestore
         .collection('user_itinerary_events', ref => 
           ref.where('userId', '==', user.uid)
@@ -106,15 +286,11 @@ export class CalendarService {
           };
         }) as CalendarEvent[];
        
-        // Filter out completed events
         const activeEvents = events.filter(event => event.status !== 'completed');
-       
-        // Update localStorage with filtered data
         localStorage.setItem('user_itinerary_events', JSON.stringify(activeEvents));
         return activeEvents;
       }
 
-      // Fallback to localStorage
       return this.loadFromLocalStorage();
       
     } catch (error) {
@@ -124,7 +300,23 @@ export class CalendarService {
   }
 
   /**
-   * Force refresh from Firestore (bypass localStorage cache)
+   * Load from localStorage (fallback)
+   */
+  private loadFromLocalStorage(): CalendarEvent[] {
+    try {
+      const savedEvents = localStorage.getItem('user_itinerary_events');
+      if (savedEvents) {
+        const parsed = JSON.parse(savedEvents);
+        return parsed.filter((event: CalendarEvent) => event.status !== 'completed');
+      }
+    } catch (error) {
+      console.error('Error loading from localStorage:', error);
+    }
+    return [];
+  }
+
+  /**
+   * Force refresh from Firestore (legacy)
    */
   async forceRefreshFromFirestore(): Promise<CalendarEvent[]> {
     try {
@@ -133,10 +325,8 @@ export class CalendarService {
         return [];
       }
 
-      // Clear localStorage cache first
       localStorage.removeItem('user_itinerary_events');
 
-      // Load fresh from Firestore
       const snapshot = await this.firestore
         .collection('user_itinerary_events', ref => 
           ref.where('userId', '==', user.uid)
@@ -153,10 +343,7 @@ export class CalendarService {
           };
         }) as CalendarEvent[];
        
-        // Filter out completed events
         const activeEvents = events.filter(event => event.status !== 'completed');
-       
-        // Update localStorage with fresh data
         localStorage.setItem('user_itinerary_events', JSON.stringify(activeEvents));
         
         return activeEvents;
@@ -171,24 +358,7 @@ export class CalendarService {
   }
 
   /**
-   * Load events from localStorage
-   */
-  private loadFromLocalStorage(): CalendarEvent[] {
-    try {
-      const savedEvents = localStorage.getItem('user_itinerary_events');
-      if (savedEvents) {
-        const parsed = JSON.parse(savedEvents);
-        // Filter out completed events
-        return parsed.filter((event: CalendarEvent) => event.status !== 'completed');
-      }
-    } catch (error) {
-      console.error('Error loading from localStorage:', error);
-    }
-    return [];
-  }
-
-  /**
-   * Update an existing event
+   * Update an existing event (legacy)
    */
   async updateEvent(event: CalendarEvent): Promise<void> {
     try {
@@ -201,14 +371,12 @@ export class CalendarService {
         throw new Error('Event ID is required for update');
       }
 
-      // Update the event with current timestamp
       const updatedEvent = {
         ...event,
         userId: user.uid,
         updatedAt: new Date()
       };
 
-      // Clean extendedProps to remove undefined values
       if (updatedEvent.extendedProps) {
         const cleanedExtendedProps: any = {};
         Object.keys(updatedEvent.extendedProps).forEach(key => {
@@ -220,13 +388,11 @@ export class CalendarService {
         updatedEvent.extendedProps = cleanedExtendedProps;
       }
 
-      // Update in Firestore
       await this.firestore
         .collection('user_itinerary_events')
         .doc(event.id)
         .update(updatedEvent);
 
-      // Update in localStorage
       const savedEvents = localStorage.getItem('user_itinerary_events');
       if (savedEvents) {
         const events = JSON.parse(savedEvents) as CalendarEvent[];
@@ -241,13 +407,12 @@ export class CalendarService {
   }
 
   /**
-   * Clear all itinerary events for the current user
+   * Clear all itinerary events for the current user (legacy)
    */
   async clearItineraryEvents(): Promise<void> {
     try {
       const user = await this.afAuth.currentUser;
       if (user) {
-        // Clear from Firestore
         const snapshot = await this.firestore
           .collection('user_itinerary_events', ref => 
             ref.where('userId', '==', user.uid)
@@ -264,7 +429,6 @@ export class CalendarService {
         }
       }
 
-      // Clear from localStorage
       localStorage.removeItem('user_itinerary_events');
       
     } catch (error) {
@@ -274,7 +438,7 @@ export class CalendarService {
   }
 
   /**
-   * Clear events for specific dates only (to prevent duplication when editing)
+   * Clear events for specific dates only (legacy)
    */
   async clearEventsForDates(dates: string[]): Promise<void> {
     try {
@@ -283,7 +447,6 @@ export class CalendarService {
         return;
       }
 
-      // Clear from Firestore for specific dates
       const snapshot = await this.firestore
         .collection('user_itinerary_events', ref => 
           ref.where('userId', '==', user.uid)
@@ -297,9 +460,8 @@ export class CalendarService {
 
         snapshot.docs.forEach(doc => {
           const eventData = doc.data() as CalendarEvent;
-          const eventDate = eventData.start.split('T')[0]; // Get just the date part
+          const eventDate = eventData.start.split('T')[0];
           
-          // Only delete events that match the specified dates
           if (dates.includes(eventDate)) {
             batch.delete(doc.ref);
             hasEventsToDelete = true;
@@ -311,7 +473,6 @@ export class CalendarService {
         }
       }
 
-      // Clear from localStorage for specific dates
       const savedEvents = localStorage.getItem('user_itinerary_events');
       if (savedEvents) {
         const events = JSON.parse(savedEvents) as CalendarEvent[];
@@ -329,7 +490,7 @@ export class CalendarService {
   }
 
   /**
-   * Update event status (e.g., mark as completed)
+   * Update event status (legacy)
    */
   async updateEventStatus(eventId: string, status: string): Promise<void> {
     try {
@@ -338,7 +499,6 @@ export class CalendarService {
         throw new Error('User not authenticated');
       }
 
-      // Update in Firestore
       await this.firestore
         .collection('user_itinerary_events')
         .doc(eventId)
@@ -347,7 +507,6 @@ export class CalendarService {
           updatedAt: new Date()
         });
 
-      // Update in localStorage - load all events first
       const savedEvents = localStorage.getItem('user_itinerary_events');
       if (savedEvents) {
         const allEvents = JSON.parse(savedEvents) as CalendarEvent[];
@@ -364,7 +523,7 @@ export class CalendarService {
   }
 
   /**
-   * Delete a specific event by ID
+   * Delete a specific event by ID (legacy)
    */
   async deleteEvent(eventId: string): Promise<void> {
     try {
@@ -373,13 +532,11 @@ export class CalendarService {
         throw new Error('User not authenticated');
       }
 
-      // Delete from Firestore
       await this.firestore
         .collection('user_itinerary_events')
         .doc(eventId)
         .delete();
 
-      // Remove from localStorage
       const savedEvents = localStorage.getItem('user_itinerary_events');
       if (savedEvents) {
         const events = JSON.parse(savedEvents) as CalendarEvent[];
@@ -394,7 +551,7 @@ export class CalendarService {
   }
 
   /**
-   * Load ALL itinerary events (including completed ones) for admin/completed views
+   * Load ALL itinerary events (including completed ones) for admin/completed views (legacy)
    */
   async loadAllItineraryEvents(): Promise<CalendarEvent[]> {
     try {
@@ -403,7 +560,6 @@ export class CalendarService {
         return [];
       }
 
-      // Load ALL events from Firestore (including completed)
       const snapshot = await this.firestore
         .collection('user_itinerary_events', ref => 
           ref.where('userId', '==', user.uid)
@@ -420,7 +576,7 @@ export class CalendarService {
           };
         }) as CalendarEvent[];
        
-        return events; // Return ALL events, don't filter
+        return events;
       }
 
       return [];
@@ -430,4 +586,57 @@ export class CalendarService {
       return [];
     }
   }
-} 
+
+  /**
+   * CONVERSION HELPERS
+   */
+
+  /**
+   * Convert GlobalEvent to CalendarEvent format (for backward compatibility)
+   */
+  globalEventToCalendarEvent(globalEvent: GlobalEvent): CalendarEvent {
+    return {
+      id: globalEvent.id,
+      title: globalEvent.name,
+      start: `${globalEvent.date}T${globalEvent.time}:00`,
+      end: `${globalEvent.date}T${globalEvent.time}:00`,
+      color: globalEvent.createdByType === 'admin' ? '#ffc107' : '#28a745',
+      textColor: '#fff',
+      allDay: false,
+      extendedProps: {
+        type: globalEvent.eventType,
+        description: globalEvent.description,
+        location: globalEvent.location,
+        spotId: globalEvent.spotId,
+        imageUrl: globalEvent.imageUrl,
+        isAdminEvent: globalEvent.createdByType === 'admin',
+        createdByType: globalEvent.createdByType
+      },
+      userId: globalEvent.createdBy,
+      status: globalEvent.status,
+      createdAt: globalEvent.createdAt
+    };
+  }
+
+  /**
+   * Convert CalendarEvent to GlobalEvent format
+   */
+  calendarEventToGlobalEvent(calendarEvent: CalendarEvent, createdByType: 'admin' | 'user'): GlobalEvent {
+    return {
+      id: calendarEvent.id,
+      name: calendarEvent.title,
+      description: calendarEvent.extendedProps?.description || '',
+      date: calendarEvent.start.split('T')[0],
+      time: calendarEvent.start.split('T')[1]?.substring(0, 5) || '',
+      location: calendarEvent.extendedProps?.location || '',
+      spotId: calendarEvent.extendedProps?.spotId || '',
+      imageUrl: calendarEvent.extendedProps?.imageUrl || '',
+      createdBy: calendarEvent.userId || '',
+      createdByType: createdByType,
+      eventType: calendarEvent.extendedProps?.type || (createdByType === 'admin' ? 'admin_event' : 'user_itinerary'),
+      status: (calendarEvent.status as 'active' | 'completed') || 'active',
+      createdAt: calendarEvent.createdAt || new Date(),
+      updatedAt: calendarEvent.extendedProps?.updatedAt
+    };
+  }
+}

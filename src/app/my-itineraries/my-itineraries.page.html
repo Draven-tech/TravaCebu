@@ -41,15 +41,15 @@
   <!-- Itineraries List -->
   <div *ngIf="!isLoading && itineraries.length > 0">
 
-    <ion-button expand="block" color="success" (click)="shareUrl()">
-      <ion-icon name="share-outline" slot="start"></ion-icon>
-      Get Shareable Link For Your Itinerary
-    </ion-button>
-    <ion-button expand="block" color="success" (click)="downloadPdf()">
-      <ion-icon name="share-outline" slot="start"></ion-icon>
-      Download PDF
+    <ion-button fill="outline" size="small" color="medium" (click)="shareUrl()">
+      <ion-icon name="link-outline" slot="start"></ion-icon>
+      <ion-label>Get Link</ion-label>
     </ion-button>
 
+    <ion-button fill="outline" size="small" color="medium" (click)="downloadPdf()">
+      <ion-icon name="document-outline" slot="start"></ion-icon>
+      <ion-label>PDF</ion-label>
+    </ion-button>
 
     <ion-card *ngFor="let itinerary of itineraries" class="itinerary-card">
       <ion-card-header>

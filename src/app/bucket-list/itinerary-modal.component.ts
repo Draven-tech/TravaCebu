@@ -1,8 +1,7 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ModalController, AlertController, ToastController } from '@ionic/angular';
 import { ItineraryEditorComponent } from './itinerary-editor.component';
 import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itinerary.service';
-import { ChangeDetectorRef } from '@angular/core';
 import { ItineraryMapComponent } from './itinerary-map.component';
 import { CalendarService, CalendarEvent } from '../services/calendar.service';
 
@@ -37,10 +36,14 @@ interface PlaceSuggestion {
     </ion-header>
 
     <ion-content>
-
+      <!-- Loading suggestions indicator -->
+      <div *ngIf="fetchingSuggestions" class="loading-suggestions">
+        <ion-spinner name="crescent" color="warning"></ion-spinner>
+        <span>Loading restaurant and hotel suggestions...</span>
+      </div>
 
       <div class="itinerary-container">
-        <div *ngFor="let day of itinerary" class="day-section">
+        <div *ngFor="let day of itinerary; let dayIndex = index" class="day-section">
           <h3 class="day-title">Day {{ day.day }}</h3>
           <div *ngFor="let spot of sortByTimeSlot(day.spots); let i = index" class="spot-item">
             <div class="spot-name">{{ i + 1 }}. {{ spot.name }}</div>
@@ -49,6 +52,24 @@ interface PlaceSuggestion {
               <span class="duration">⏱️ {{ spot.estimatedDuration }}</span>
             </div>
             <div class="spot-category">📍 {{ spot.category }}</div>
+            
+            <!-- Show Suggestions Button for spots with meal times -->
+            <div *ngIf="spot.mealType && !spot.chosenRestaurant" class="suggestions-toggle">
+              <div class="suggestion-buttons">
+                <ion-button *ngIf="spot.restaurantSuggestions?.length > 0" size="small" fill="outline" color="warning" (click)="toggleSuggestions(getSpotKey(dayIndex, i))">
+                  <ion-icon name="restaurant-outline"></ion-icon>
+                  {{ areSuggestionsVisible(getSpotKey(dayIndex, i)) ? 'Hide' : 'Show' }} Restaurant Options
+                </ion-button>
+                <ion-button *ngIf="!spot.restaurantSuggestions || spot.restaurantSuggestions.length === 0" size="small" fill="outline" color="medium" disabled>
+                  <ion-icon name="restaurant-outline"></ion-icon>
+                  No Options Available
+                </ion-button>
+                <ion-button size="small" fill="clear" color="medium" (click)="skipRestaurant(spot)">
+                  <ion-icon name="close-circle-outline"></ion-icon>
+                  Skip for now
+                </ion-button>
+              </div>
+            </div>
             
             <!-- Selected Restaurant Card -->
             <div *ngIf="spot.mealType && spot.chosenRestaurant" class="selected-card restaurant-card">
@@ -78,7 +99,7 @@ interface PlaceSuggestion {
             </div>
 
             <!-- Restaurant Suggestions -->
-            <div *ngIf="spot.mealType && !spot.chosenRestaurant && spot.restaurantSuggestions && spot.restaurantSuggestions.length > 0" class="suggestions-section">
+            <div *ngIf="spot.mealType && !spot.chosenRestaurant && spot.restaurantSuggestions && spot.restaurantSuggestions.length > 0 && areSuggestionsVisible(getSpotKey(dayIndex, i))" class="suggestions-section">
               <div class="suggestions-header">
                 <ion-icon name="restaurant-outline" color="warning"></ion-icon>
                 <span>Restaurant Options ({{ spot.mealType }})</span>
@@ -103,15 +124,25 @@ interface PlaceSuggestion {
                   </div>
                 </div>
               </div>
-              <ion-button size="small" fill="clear" color="medium" (click)="skipRestaurant(spot)">
-                <ion-icon name="close-circle-outline"></ion-icon> Skip for now
-              </ion-button>
             </div>
 
-            <!-- No Restaurant Suggestions -->
-            <div *ngIf="spot.mealType && !spot.chosenRestaurant && (!spot.restaurantSuggestions || spot.restaurantSuggestions.length === 0)" class="no-suggestions">
-              <ion-icon name="restaurant-outline" color="medium"></ion-icon>
-              <span>Click "Fetch Suggestions" to get restaurant options for {{ spot.mealType }} time.</span>
+          </div>
+          
+          <!-- Show Hotel Suggestions Button -->
+          <div *ngIf="day.spots.length > 0 && !day.chosenHotel" class="suggestions-toggle hotel-toggle">
+            <div class="suggestion-buttons">
+              <ion-button *ngIf="day.hotelSuggestions && day.hotelSuggestions.length > 0" size="small" fill="outline" color="primary" (click)="toggleSuggestions(getDayKey(dayIndex))">
+                <ion-icon name="bed-outline"></ion-icon>
+                {{ areSuggestionsVisible(getDayKey(dayIndex)) ? 'Hide' : 'Show' }} Hotel Options
+              </ion-button>
+              <ion-button *ngIf="!day.hotelSuggestions || day.hotelSuggestions.length === 0" size="small" fill="outline" color="medium" disabled>
+                <ion-icon name="bed-outline"></ion-icon>
+                No Options Available
+              </ion-button>
+              <ion-button size="small" fill="clear" color="medium" (click)="skipHotel(day)">
+                <ion-icon name="close-circle-outline"></ion-icon>
+                Skip for now
+              </ion-button>
             </div>
           </div>
           
@@ -146,7 +177,7 @@ interface PlaceSuggestion {
           </div>
 
           <!-- Hotel Suggestions -->
-          <div *ngIf="!day.chosenHotel && day.hotelSuggestions && day.hotelSuggestions.length > 0" class="suggestions-section">
+          <div *ngIf="!day.chosenHotel && day.hotelSuggestions && day.hotelSuggestions.length > 0 && areSuggestionsVisible(getDayKey(dayIndex))" class="suggestions-section">
             <div class="suggestions-header">
               <ion-icon name="bed-outline" color="primary"></ion-icon>
               <span>Hotel Options (End of Day)</span>
@@ -171,16 +202,8 @@ interface PlaceSuggestion {
                 </div>
               </div>
             </div>
-            <ion-button size="small" fill="clear" color="medium" (click)="skipHotel(day)">
-              <ion-icon name="close-circle-outline"></ion-icon> Skip for now
-            </ion-button>
           </div>
 
-          <!-- No Hotel Suggestions -->
-          <div *ngIf="!day.chosenHotel && (!day.hotelSuggestions || day.hotelSuggestions.length === 0) && day.spots.length > 0" class="no-suggestions">
-            <ion-icon name="bed-outline" color="medium"></ion-icon>
-            <span>Click "Fetch Suggestions" to get hotel options for Day {{ day.day }}.</span>
-          </div>
         </div>
       </div>
     </ion-content>
@@ -190,10 +213,6 @@ interface PlaceSuggestion {
         <ion-button expand="block" color="success" (click)="saveItinerary()" [disabled]="saving">
           <ion-spinner *ngIf="saving" name="crescent"></ion-spinner>
                           <span *ngIf="!saving">Save Itinerary</span>
-        </ion-button>
-        <ion-button expand="block" color="primary" (click)="fetchSuggestions()" [disabled]="fetchingSuggestions">
-          <ion-spinner *ngIf="fetchingSuggestions" name="crescent"></ion-spinner>
-          <span *ngIf="!fetchingSuggestions">Fetch Suggestions</span>
         </ion-button>
         <ion-button expand="block" color="secondary" (click)="viewMap()">
           <ion-icon name="map"></ion-icon>
@@ -592,10 +611,60 @@ interface PlaceSuggestion {
       font-size: 2rem;
       opacity: 0.5;
     }
+
+    /* Suggestion Toggle Buttons */
+    .suggestions-toggle {
+      margin: 12px 0;
+      text-align: center;
+    }
+
+    .suggestions-toggle.hotel-toggle {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #dee2e6;
+    }
+
+    .suggestions-toggle ion-button {
+      font-size: 0.9rem;
+      --padding-start: 12px;
+      --padding-end: 12px;
+    }
+
+    .suggestion-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .suggestion-buttons ion-button {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    /* Loading suggestions indicator */
+    .loading-suggestions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 24px;
+      background: #f8f9fa;
+      margin: 16px;
+      border-radius: 12px;
+      border: 1px solid #dee2e6;
+    }
+
+    .loading-suggestions span {
+      color: #6c757d;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
   `],
   standalone: false
 })
-export class ItineraryModalComponent {
+export class ItineraryModalComponent implements OnInit {
   @Input() itinerary: ItineraryDay[] = [];
   @Input() originalStartTime: string = '';
   @Input() originalEndTime: string = '';
@@ -606,6 +675,7 @@ export class ItineraryModalComponent {
 
   fetchingSuggestions = false;
   saving = false;
+  suggestionsVisible: { [key: string]: boolean } = {}; // Track which spots show suggestions
 
 
   constructor(
@@ -616,6 +686,43 @@ export class ItineraryModalComponent {
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
   ) {}
+
+  async ngOnInit() {
+    // Auto-fetch suggestions when modal opens
+    await this.autoFetchSuggestions();
+  }
+
+  private async autoFetchSuggestions() {
+    try {
+      this.fetchingSuggestions = true;
+      this.itinerary = await this.itineraryService.fetchSuggestionsForItinerary(this.itinerary);
+      this.cdr.detectChanges();
+    } catch (error) {
+      console.error('Error auto-fetching suggestions:', error);
+    } finally {
+      this.fetchingSuggestions = false;
+    }
+  }
+
+  // Toggle suggestion visibility for a specific spot
+  toggleSuggestions(spotKey: string) {
+    this.suggestionsVisible[spotKey] = !this.suggestionsVisible[spotKey];
+  }
+
+  // Check if suggestions should be visible for a spot
+  areSuggestionsVisible(spotKey: string): boolean {
+    return !!this.suggestionsVisible[spotKey];
+  }
+
+  // Generate unique key for spot
+  getSpotKey(dayIndex: number, spotIndex: number): string {
+    return `day${dayIndex}_spot${spotIndex}`;
+  }
+
+  // Generate unique key for day (hotel suggestions)
+  getDayKey(dayIndex: number): string {
+    return `day${dayIndex}_hotel`;
+  }
 
   sortByTimeSlot(items: any[]): any[] {
     if (!items || items.length === 0) {
@@ -844,24 +951,6 @@ export class ItineraryModalComponent {
     
   }
 
-  async fetchSuggestions() {
-    this.fetchingSuggestions = true;
-    
-    try {
-      this.itinerary = await this.itineraryService.fetchSuggestionsForItinerary(this.itinerary, (msg: string) => {
-        // Progress callback - can be used for future features
-      });
-      this.cdr.detectChanges();
-      
-      // Show success message
-      this.showAlert('Success', 'Restaurant and hotel suggestions updated!');
-      
-    } catch (error) {
-      this.showAlert('Error', 'Failed to fetch suggestions. Please try again.');
-    } finally {
-      this.fetchingSuggestions = false;
-    }
-  }
 
   chooseRestaurant(spot: ItinerarySpot, restaurant: any) {
     // Ensure restaurant has lat/lng coordinates for pin utilization
@@ -873,10 +962,8 @@ export class ItineraryModalComponent {
           lng: restaurant.geometry.location.lng
         }
       };
-      console.log('✅ Restaurant saved with coordinates:', spot.chosenRestaurant.location);
     } else {
       spot.chosenRestaurant = restaurant;
-      console.log('⚠️ Restaurant saved without coordinates (no geometry data)');
     }
   }
   
@@ -898,10 +985,8 @@ export class ItineraryModalComponent {
           lng: hotel.geometry.location.lng
         }
       };
-      console.log('✅ Hotel saved with coordinates:', day.chosenHotel.location);
     } else {
       day.chosenHotel = hotel;
-      console.log('⚠️ Hotel saved without coordinates (no geometry data)');
     }
   }
   
@@ -1074,9 +1159,6 @@ export class ItineraryModalComponent {
     }, 3000);
   }
 
-  ngOnInit() {
-    // Component initialization
-  }
 
   private getItineraryId(): string {
     // Generate a unique ID for this itinerary based on the spots

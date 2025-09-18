@@ -363,9 +363,8 @@ export class BudgetService {
     });
   }
 
-  // Get estimated jeepney fare based on segments
-  getEstimatedJeepneyFare(segments: any[]): number {
-    let totalFare = 0;
+  // Get estimated jeepney fare based on segments (returns range)
+  getEstimatedJeepneyFare(segments: any[]): { min: number, max: number, average: number } {
     let jeepneyCount = 0;
 
     segments.forEach(segment => {
@@ -375,10 +374,23 @@ export class BudgetService {
     });
 
     // Standard jeepney fare in Cebu is ₱12-15 per ride
-    const jeepneyFare = 13;
-    totalFare = jeepneyCount * jeepneyFare;
+    const minFarePerRide = 12;
+    const maxFarePerRide = 15;
+    const avgFarePerRide = 13;
 
-    return totalFare;
+    return {
+      min: jeepneyCount * minFarePerRide,
+      max: jeepneyCount * maxFarePerRide,
+      average: jeepneyCount * avgFarePerRide
+    };
+  }
+
+  // Format fare range as string
+  formatFareRange(fareData: { min: number, max: number, average: number }): string {
+    if (fareData.min === fareData.max) {
+      return `₱${fareData.min}`;
+    }
+    return `₱${fareData.min}-${fareData.max}`;
   }
 
   // Get current expenses

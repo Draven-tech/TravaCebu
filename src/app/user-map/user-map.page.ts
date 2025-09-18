@@ -6011,7 +6011,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       // Collect all transportation segments with costs
       for (const segment of this.currentRouteInfo.segments) {
         if (segment.type === 'jeepney' || segment.type === 'bus') {
-          const cost = segment.cost || 15; // Default cost if not specified
+          const cost = segment.cost || 13; // Use average fare (₱12-15 range)
           totalEstimatedCost += cost;
           transportSegments.push({
             type: segment.type,

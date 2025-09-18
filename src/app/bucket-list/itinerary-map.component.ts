@@ -3,6 +3,7 @@ import { ModalController } from '@ionic/angular';
 import * as L from 'leaflet';
 import { ItineraryDay, ItineraryService } from '../services/itinerary.service';
 import { DaySpotPickerComponent } from '../user-map/day-spot-picker.component';
+import { PlaceAssignmentPickerComponent } from './place-assignment-picker.component';
 import { AlertController } from '@ionic/angular';
 
 @Component({
@@ -155,6 +156,14 @@ import { AlertController } from '@ionic/angular';
     :global(.highlight-marker) {
       background: transparent !important;
       border: none !important;
+    }
+
+    /* Assignment picker modal styles */
+    :global(.assignment-picker-modal) {
+      --height: 70%;
+      --width: 90%;
+      --max-width: 600px;
+      --border-radius: 16px;
     }
   `],
   standalone: false
@@ -602,7 +611,6 @@ private addRestaurantMarkers() {
 
   async addToItinerary(place: any, placeType: 'restaurant' | 'hotel') {
     try {
-      console.log('Adding to itinerary:', placeType, place);
       
       // Use the existing itinerary passed as input, or load from localStorage as fallback
       let itinerary: ItineraryDay[] = this.itinerary || [];
@@ -620,23 +628,25 @@ private addRestaurantMarkers() {
       }
 
       if (itinerary.length === 0) {
-        // Create a new itinerary if none exists
-        itinerary = [{
-          day: 1,
-          spots: [],
-          routes: [],
-          hotelSuggestions: [],
-          chosenHotel: null
-        }];
+        // Show error if no itinerary exists
+        const alert = await this.alertCtrl.create({
+          header: 'No Itinerary Found',
+          message: 'Please create an itinerary first before adding places to it.',
+          buttons: ['OK']
+        });
+        await alert.present();
+        return;
       }
 
-      // Open day spot picker modal
+      // Open place assignment picker modal
       const modal = await this.modalCtrl.create({
-        component: DaySpotPickerComponent,
+        component: PlaceAssignmentPickerComponent,
         componentProps: {
-          itinerary: itinerary
+          itinerary: itinerary,
+          placeName: place.name,
+          placeType: placeType
         },
-        cssClass: 'day-picker-modal'
+        cssClass: 'assignment-picker-modal'
       });
 
       await modal.present();
@@ -644,49 +654,56 @@ private addRestaurantMarkers() {
       const result = await modal.onDidDismiss();
       
       if (result.data) {
-        const { dayIndex, spotIndex } = result.data;
-        
-        // Create a new spot object for the itinerary
-        const newSpot = {
-          id: place.place_id || `place_${Date.now()}`,
-          name: place.name,
-          description: `${placeType === 'restaurant' ? 'Restaurant' : 'Hotel'}: ${place.name}`,
-          category: placeType === 'restaurant' ? 'Restaurant' : 'Hotel',
-          img: place.photos?.[0]?.photo_reference ? 
-            `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${place.photos[0].photo_reference}&key=YOUR_API_KEY` : 
-            'assets/img/default.png',
-          location: {
-            lat: place.geometry.location.lat,
-            lng: place.geometry.location.lng
-          },
-          timeSlot: '09:00', // Default time
-          estimatedDuration: placeType === 'restaurant' ? '1 hour' : 'Overnight',
-          durationMinutes: placeType === 'restaurant' ? 60 : 480,
-          restaurantSuggestions: [],
-          mealType: placeType === 'restaurant' ? 'lunch' : undefined,
-          chosenRestaurant: null,
-          customTime: false
-        };
-
-        // Add the spot to the selected position
-        itinerary[dayIndex].spots.splice(spotIndex, 0, newSpot);
-        
-        // Update time slots for the day
-        this.itineraryService.updateTimeSlots(itinerary[dayIndex]);
+        if (result.data.type === 'restaurant') {
+          // Assign restaurant to existing meal spot
+          const { dayIndex, spotIndex } = result.data;
+          const spot = itinerary[dayIndex].spots[spotIndex];
+          
+          // Assign restaurant like the suggestion system does
+          spot.chosenRestaurant = {
+            ...place,
+            location: {
+              lat: place.geometry.location.lat,
+              lng: place.geometry.location.lng
+            }
+          };
+          
+          // Show success message
+          const alert = await this.alertCtrl.create({
+            header: 'Success',
+            message: `${place.name} has been assigned to ${spot.name} (${spot.mealType} time) on Day ${itinerary[dayIndex].day}`,
+            buttons: ['OK']
+          });
+          await alert.present();
+          
+        } else if (result.data.type === 'hotel') {
+          // Assign hotel to day
+          const { dayIndex } = result.data;
+          const day = itinerary[dayIndex];
+          
+          // Assign hotel like the suggestion system does
+          day.chosenHotel = {
+            ...place,
+            location: {
+              lat: place.geometry.location.lat,
+              lng: place.geometry.location.lng
+            }
+          };
+          
+          // Show success message
+          const alert = await this.alertCtrl.create({
+            header: 'Success',
+            message: `${place.name} has been assigned as the hotel for Day ${day.day}`,
+            buttons: ['OK']
+          });
+          await alert.present();
+        }
         
         // Update the input itinerary reference
         this.itinerary = itinerary;
         
         // Save updated itinerary to localStorage
         localStorage.setItem('itinerary_suggestions_cache', JSON.stringify(itinerary));
-        
-        // Show success message
-        const alert = await this.alertCtrl.create({
-          header: 'Success',
-          message: `${place.name} has been added to Day ${itinerary[dayIndex].day} at position ${spotIndex + 1}`,
-          buttons: ['OK']
-        });
-        await alert.present();
       }
     } catch (error) {
       console.error('Error adding to itinerary:', error);

@@ -7,6 +7,7 @@ import { BucketListPage } from './bucket-list.page';
 import { ItineraryModalComponent } from './itinerary-modal.component';
 import { ItineraryEditorComponent } from './itinerary-editor.component';
 import { ItineraryMapComponent } from './itinerary-map.component';
+import { PlaceAssignmentPickerComponent } from './place-assignment-picker.component';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { RestaurantCardComponent } from './restaurant-card.component';
 import { ComponentsModule } from '../components/components.module';
@@ -24,7 +25,8 @@ import { ComponentsModule } from '../components/components.module';
     BucketListPage,
     ItineraryModalComponent,
     ItineraryEditorComponent,
-    ItineraryMapComponent
+    ItineraryMapComponent,
+    PlaceAssignmentPickerComponent
   ]
 })
 export class BucketListPageModule {}

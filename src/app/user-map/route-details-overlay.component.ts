@@ -134,10 +134,10 @@ import { Subscription } from 'rxjs';
                          <ion-icon name="bus"></ion-icon>
                          <ion-label>{{ segment.transitDetails }}</ion-label>
                        </ion-chip>
-                       <div *ngIf="segment.fare" class="fare-info">
+                       <div *ngIf="getSegmentFare(segment)" class="fare-info">
                          <ion-chip color="success" size="small">
                            <ion-icon name="card"></ion-icon>
-                           <ion-label>{{ segment.fare }}</ion-label>
+                           <ion-label>{{ getSegmentFare(segment) }}</ion-label>
                          </ion-chip>
                        </div>
                      </div>
@@ -692,22 +692,36 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
       return '₱0';
     }
 
-    let totalFare = 0;
     let jeepneyCount = 0;
 
-    // Count jeepney and bus segments and calculate fare
+    // Count jeepney and bus segments
     this.routeInfo.segments.forEach((segment: any) => {
       if ((segment.type === 'jeepney' || segment.type === 'bus') && segment.jeepneyCode) {
         jeepneyCount++;
       }
     });
 
-    // Standard jeepney fare in Cebu is ₱12-15 per ride
-    // Using ₱13 as average fare
-    const jeepneyFare = 13;
-    totalFare = jeepneyCount * jeepneyFare;
+    if (jeepneyCount === 0) {
+      return '₱0';
+    }
 
-    return `₱${totalFare}`;
+    // Standard jeepney fare in Cebu is ₱12-15 per ride
+    const minFare = jeepneyCount * 12;
+    const maxFare = jeepneyCount * 15;
+
+    if (minFare === maxFare) {
+      return `₱${minFare}`;
+    }
+
+    return `₱${minFare}-${maxFare}`;
+  }
+
+  // Get individual segment fare range
+  getSegmentFare(segment: any): string {
+    if (segment.type === 'jeepney' || segment.type === 'bus') {
+      return '₱12-15'; // Standard jeepney/bus fare range in Cebu
+    }
+    return segment.fare || ''; // Return existing fare if available
   }
 
   getRouteAlternatives(): any[] {
@@ -752,7 +766,17 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
 
   async addQuickTransportExpense() {
     const estimatedFare = this.getEstimatedFare();
-    const fareAmount = parseFloat(estimatedFare.replace('₱', '')) || 13;
+    // Extract average from range (e.g., "₱12-15" -> 13.5, "₱26" -> 26)
+    let fareAmount = 13; // Default fallback
+    
+    if (estimatedFare.includes('-')) {
+      const rangeParts = estimatedFare.replace('₱', '').split('-');
+      const min = parseFloat(rangeParts[0]);
+      const max = parseFloat(rangeParts[1]);
+      fareAmount = Math.round((min + max) / 2); // Use middle of range
+    } else {
+      fareAmount = parseFloat(estimatedFare.replace('₱', '')) || 13;
+    }
 
     const alert = await this.alertCtrl.create({
       header: 'Log Transportation Expense',

@@ -6,6 +6,8 @@ import { AlertController, ToastController } from '@ionic/angular';
 import { StorageService } from '../services/storage.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PlacesImageService } from '../services/places-image.service';
+import { GeofencingService } from '../services/geofencing.service';
+import { BucketService } from '../services/bucket-list.service';
 
 
 @Component({
@@ -40,7 +42,9 @@ export class TouristSpotDetailPage implements OnInit {
     private fb: FormBuilder,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
-    private placesImageService: PlacesImageService
+    private placesImageService: PlacesImageService,
+    private geofencingService: GeofencingService,
+    private bucketService: BucketService
   ) { }
 
   ngOnInit() {
@@ -220,37 +224,6 @@ export class TouristSpotDetailPage implements OnInit {
     });
     await alert.present();
   }
-  
-  async markAsVisited() {
-  const user = await this.afAuth.currentUser;
-  if (!user || !this.spotId || !this.spotData) {
-    this.showAlert('Error', 'User not logged in or spot data missing.');
-    return;
-  }
-
-  const visitedRef = this.firestore
-    .collection('users')
-    .doc(user.uid)
-    .collection('visitedSpots')
-    .doc(this.spotId);
-
-  try {
-    await visitedRef.set(
-      {
-        spotId: this.spotId,
-        name: this.spotData.name || '',
-        img: this.spotData.img || '',
-        visitedAt: new Date(),
-      },
-      { merge: true }
-    );
-
-    this.showAlert('Success', 'Marked as visited!');
-  } catch (error) {
-    console.error('Error marking as visited:', error);
-    this.showAlert('Error', 'Failed to mark as visited.');
-  }
-}
 
   // Refresh images from Google Places
   async refreshImages() {
@@ -340,5 +313,87 @@ export class TouristSpotDetailPage implements OnInit {
   // Check if spot has Google Places data
   hasGoogleImages(): boolean {
     return !!(this.enhancedSpot?.googleImages && this.enhancedSpot.googleImages.length > 0);
+  }
+
+  // Geofencing and visit tracking methods
+
+  /**
+   * Check if user has visited this spot
+   */
+  hasVisited(): boolean {
+    return this.geofencingService.hasVisited(this.spotId || '');
+  }
+
+  /**
+   * Mark spot as visited (manual fallback)
+   */
+  async markAsVisited(): Promise<void> {
+    if (!this.spotData || !this.spotId) return;
+
+    try {
+      const fakeGeofenceSpot = {
+        id: this.spotId,
+        name: this.spotData.name,
+        latitude: this.spotData.location?.lat || 0,
+        longitude: this.spotData.location?.lng || 0,
+        radius: 100
+      };
+
+      await this.geofencingService.manuallyConfirmVisit(fakeGeofenceSpot);
+
+      const toast = await this.toastCtrl.create({
+        message: `✅ Marked ${this.spotData.name} as visited! You can now post reviews.`,
+        duration: 3000,
+        position: 'top',
+        color: 'success'
+      });
+      await toast.present();
+
+    } catch (error) {
+      console.error('Failed to mark as visited:', error);
+      const toast = await this.toastCtrl.create({
+        message: 'Failed to mark as visited. Please try again.',
+        duration: 2000,
+        position: 'top',
+        color: 'danger'
+      });
+      await toast.present();
+    }
+  }
+
+  /**
+   * Add spot to bucket list
+   */
+  async addToBucketList(): Promise<void> {
+    if (!this.spotData || !this.spotId) return;
+
+    try {
+      await this.bucketService.addToBucket(this.spotData);
+      
+      const toast = await this.toastCtrl.create({
+        message: `${this.spotData.name} added to your bucket list!`,
+        duration: 2000,
+        position: 'top',
+        color: 'success'
+      });
+      await toast.present();
+      
+    } catch (error) {
+      console.error('Failed to add to bucket list:', error);
+      const toast = await this.toastCtrl.create({
+        message: 'Failed to add to bucket list. Please try again.',
+        duration: 2000,
+        position: 'top',
+        color: 'danger'
+      });
+      await toast.present();
+    }
+  }
+
+  /**
+   * Check if reviews should be allowed
+   */
+  canPostReview(): boolean {
+    return this.hasVisited();
   }
 }

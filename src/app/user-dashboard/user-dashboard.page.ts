@@ -8,6 +8,7 @@ import { NavController, ToastController, ModalController, AlertController } from
 import { PlacesService } from '../services/places.service';
 import { PendingTouristSpotService } from '../services/pending-tourist-spot.service';
 import { SearchModalComponent } from './search-modal.component';
+import { GeofencingService } from '../services/geofencing.service';
 
 
 @Component({
@@ -52,7 +53,8 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     private modalCtrl: ModalController,
     private alertCtrl: AlertController,
     private placesService: PlacesService,
-    private pendingSpotService: PendingTouristSpotService
+    private pendingSpotService: PendingTouristSpotService,
+    private geofencingService: GeofencingService
   ) { }
 
   private spotsSubscription: any;
@@ -548,6 +550,53 @@ async toggleBucketList(spot: any) {
     });
     toast.present();
   };
+
+  // Geofencing and visit tracking methods
+  
+  /**
+   * Check if a tourist spot has been visited
+   */
+  hasVisited(spotId: string): boolean {
+    return this.geofencingService.hasVisited(spotId);
+  }
+
+  /**
+   * Reset visit status for a spot (Visit Again functionality)
+   */
+  async visitAgain(spot: any): Promise<void> {
+    const alert = await this.alertCtrl.create({
+      header: 'Visit Again?',
+      message: `Reset your visit status for <strong>${spot.name}</strong>? This will allow you to confirm your visit again when you're nearby.`,
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Reset Visit',
+          handler: async () => {
+            await this.geofencingService.resetVisitStatus(spot.id);
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  /**
+   * Get visit status indicator for UI
+   */
+  getVisitStatusIcon(spotId: string): string {
+    return this.hasVisited(spotId) ? 'checkmark-circle' : 'location-outline';
+  }
+
+  /**
+   * Get visit status color for UI
+   */
+  getVisitStatusColor(spotId: string): string {
+    return this.hasVisited(spotId) ? 'success' : 'medium';
+  }
 
 
 }

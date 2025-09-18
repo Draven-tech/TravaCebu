@@ -130,6 +130,9 @@ export class BudgetService {
         .collection('budget_expenses')
         .add(expenseData);
 
+      // Force refresh of expenses to update observables
+      this.loadExpenses();
+
       return docRef.id;
     } catch (error) {
       console.error('Error adding expense:', error);
@@ -427,5 +430,27 @@ export class BudgetService {
   // Get current budget limits
   getCurrentBudgetLimits(): BudgetLimits {
     return this.budgetLimitsSubject.value;
+  }
+
+  // Update expense itinerary ID
+  async updateExpenseItineraryId(expenseId: string, newItineraryId: string): Promise<void> {
+    try {
+      await this.firestore
+        .collection('budget_expenses')
+        .doc(expenseId)
+        .update({ 
+          itineraryId: newItineraryId,
+          updatedAt: new Date()
+        });
+      
+      console.log('✅ Updated expense itinerary ID:', expenseId, 'to', newItineraryId);
+      
+      // Force refresh of expenses to update observables
+      this.loadExpenses();
+      
+    } catch (error) {
+      console.error('Error updating expense itinerary ID:', error);
+      throw error;
+    }
   }
 }

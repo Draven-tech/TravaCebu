@@ -43,16 +43,19 @@
     </ion-card-header>
     <ion-card-content>
       <p class="spot-description">{{ spotData.description }}</p>
-      <ion-button expand="full" color="success" (click)="markAsVisited()">
-  Mark as Visited
-</ion-button>
-
+      
     </ion-card-content>
   </ion-card>
 
-  <!-- Add Review -->
-  <div class="add-review-container">
-    <h2>Add Your Review</h2>
+  <!-- Add Review (Only for visited spots) -->
+  <div *ngIf="hasVisited()" class="add-review-container">
+    <div class="review-header">
+      <h2>Add Your Review</h2>
+      <ion-chip color="success" class="visited-indicator">
+        <ion-icon name="checkmark-circle"></ion-icon>
+        <ion-label>Visited</ion-label>
+      </ion-chip>
+    </div>
 
 <ion-item lines="none" class="rating-slider" style="flex-direction: column; align-items: flex-start;">
   <ion-label position="stacked">Rating: {{ rating }}</ion-label>
@@ -89,6 +92,27 @@
     <ion-button expand="block" color="warning" (click)="addReview()" [disabled]="uploading">
       {{ uploading ? 'Uploading...' : 'Submit Review' }}
     </ion-button>
+  </div>
+
+  <!-- Review Restriction Message (For unvisited spots) -->
+  <div *ngIf="!hasVisited()" class="review-restriction-container">
+    <div class="restriction-card">
+      <ion-icon name="lock-closed-outline" color="medium"></ion-icon>
+      <h3>Reviews Locked</h3>
+      <p>You need to visit this spot in person before you can post a review. This helps ensure authentic experiences!</p>
+      
+      <div class="suggestion-actions">
+        <ion-button expand="block" fill="outline" color="primary" (click)="addToBucketList()">
+          <ion-icon name="heart-outline"></ion-icon>
+          Add to Bucket List
+        </ion-button>
+        <ion-button expand="block" color="success" (click)="markAsVisited()">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          Mark as Visited
+        </ion-button>
+        <p class="suggestion-text">Add this spot to your bucket list, then create an itinerary to visit it!</p>
+      </div>
+    </div>
   </div>
 
   <!-- Review List -->

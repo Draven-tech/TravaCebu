@@ -275,3 +275,27 @@ ion-grid {
     }
   }
 }
+
+/* Visit status styles */
+.visit-status {
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.visit-status ion-chip {
+  font-size: 0.75rem;
+  height: 24px;
+}
+
+.bucket-action {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.bucket-action ion-button {
+  margin: 0;
+  font-size: 0.8rem;
+}

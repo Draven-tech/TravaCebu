@@ -8,38 +8,42 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
   template: `
     <ion-header>
       <ion-toolbar color="warning">
-        <ion-title>Edit Itinerary</ion-title>
+        <ion-title style="font-size: 1.2rem; font-weight: 700;">
+          <ion-icon name="create-outline" style="margin-right: 8px;"></ion-icon>
+          Edit Itinerary
+        </ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="saveChanges()" color="success">
-            <ion-icon name="checkmark"></ion-icon>
+          <ion-button (click)="saveChanges()" fill="solid" color="success" size="small">
+            <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+            Save
           </ion-button>
-          <ion-button (click)="cancel()">
-            <ion-icon name="close"></ion-icon>
+          <ion-button (click)="cancel()" fill="clear">
+            <ion-icon name="close" style="font-size: 20px;"></ion-icon>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-         <ion-content class="ion-padding compact-modal">
-       <!-- Combined Settings -->
-       <ion-item lines="none" class="compact-settings">
-         <ion-label>
-           <h3>⚙️ Settings</h3>
-         </ion-label>
-         <ion-button size="small" fill="clear" (click)="updateAllTimeSlots()">
-           <ion-icon name="refresh"></ion-icon>
-         </ion-button>
-       </ion-item>
-       
-       <!-- Date Settings -->
-       <ion-item lines="none" class="date-header">
-         <ion-label>
-           <h3>📅 Edit Dates</h3>
-         </ion-label>
-         <ion-button size="small" fill="clear" (click)="updateAllDates()">
-           <ion-icon name="refresh"></ion-icon>
-         </ion-button>
-       </ion-item>
+    <ion-content class="ion-padding compact-modal">
+      <!-- Combined Settings -->
+      <ion-item lines="none" class="compact-settings">
+        <ion-label>
+          <h3>⚙️ Settings</h3>
+        </ion-label>
+        <ion-button size="small" fill="clear" (click)="updateAllTimeSlots()">
+          <ion-icon name="refresh"></ion-icon>
+        </ion-button>
+      </ion-item>
+      
+      <!-- Date Settings -->
+      <ion-item lines="none" class="date-header">
+        <ion-label>
+          <h3>📅 Edit Dates</h3>
+        </ion-label>
+        <ion-button size="small" fill="clear" (click)="updateAllDates()">
+          <ion-icon name="refresh"></ion-icon>
+        </ion-button>
+      </ion-item>
        
                                <ion-item lines="none" class="compact-time-item">
            <ion-label position="stacked">Start Date</ion-label>
@@ -85,34 +89,6 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
            </ion-input>
          </ion-item>
 
-               <!-- Compact Available Spots -->
-        <ion-item lines="none" class="section-header">
-          <ion-label>
-            <h3>📋 Available Spots ({{ availableSpots.length }})</h3>
-          </ion-label>
-        </ion-item>
-        
-        <div cdkDropList
-             #availableList="cdkDropList"
-             [cdkDropListData]="availableSpots"
-             [cdkDropListConnectedTo]="dayLists"
-             class="drop-list compact-drop-list"
-             (cdkDropListDropped)="drop($event)">
-          <div class="compact-spot-item" *ngFor="let spot of availableSpots" cdkDrag>
-            <ion-avatar slot="start">
-              <img [src]="spot.img || 'assets/placeholder.jpg'" alt="{{ spot.name }}">
-            </ion-avatar>
-            <ion-label>
-              <h4>{{ spot.name }}</h4>
-              <p>{{ spot.category }}</p>
-            </ion-label>
-            <ion-icon name="move" slot="end" color="medium"></ion-icon>
-          </div>
-          <div *ngIf="availableSpots.length === 0" class="empty-message">
-            <ion-icon name="add-circle-outline" size="small" color="primary"></ion-icon>
-            <p>All spots assigned</p>
-          </div>
-        </div>
 
        <!-- Compact Days -->
        <div class="compact-days">
@@ -432,6 +408,288 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
 
      ion-avatar img {
        object-fit: cover;
+     }
+
+     /* Modern Edit Content Styles */
+     .modern-edit-content {
+       background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+       --padding-start: 16px;
+       --padding-end: 16px;
+       --padding-top: 16px;
+       --padding-bottom: 16px;
+     }
+
+     .settings-card {
+       background: rgba(255, 255, 255, 0.95);
+       backdrop-filter: blur(10px);
+       border-radius: 16px;
+       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+       margin-bottom: 20px;
+       border: 1px solid rgba(255, 255, 255, 0.2);
+     }
+
+     .settings-title {
+       display: flex;
+       align-items: center;
+       gap: 12px;
+       color: #2D3748;
+       font-size: 1.1rem;
+       font-weight: 700;
+     }
+
+     .settings-section {
+       margin-bottom: 24px;
+     }
+
+     .section-header {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       margin-bottom: 16px;
+       padding-bottom: 12px;
+       border-bottom: 2px solid #f1f3f4;
+     }
+
+     .section-title {
+       display: flex;
+       align-items: center;
+       gap: 8px;
+       color: #2D3748;
+       font-size: 1rem;
+       font-weight: 600;
+       margin: 0;
+     }
+
+     .modern-form-grid {
+       display: grid;
+       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+       gap: 16px;
+     }
+
+     .form-group {
+       background: rgba(255, 255, 255, 0.8);
+       border-radius: 12px;
+       padding: 16px;
+       border: 1px solid rgba(0, 0, 0, 0.1);
+     }
+
+     .modern-input-item {
+       --background: transparent;
+       --border-radius: 8px;
+       --padding-start: 0;
+       --padding-end: 0;
+     }
+
+     .modern-input {
+       --background: rgba(255, 255, 255, 0.9);
+       --border-radius: 8px;
+       --padding-start: 12px;
+       --padding-end: 12px;
+       border: 1px solid #e2e8f0;
+       margin-top: 8px;
+     }
+
+     .modern-input:focus {
+       --border-color: #f39c12;
+       box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.1);
+     }
+
+     /* Enhance existing compact modal styles */
+     .compact-modal {
+       background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+     }
+
+     .compact-settings, .date-header {
+       background: rgba(255, 255, 255, 0.95);
+       border-radius: 12px;
+       margin: 12px 0;
+       --padding-start: 16px;
+       --padding-end: 16px;
+       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+       --color: #2D3748;
+     }
+
+     .compact-settings ion-label h3,
+     .date-header ion-label h3 {
+       color: #2D3748 !important;
+       font-weight: 700;
+       margin: 8px 0;
+     }
+
+     .compact-time-item {
+       background: rgba(255, 255, 255, 0.9);
+       border-radius: 8px;
+       margin: 8px 0;
+       --padding-start: 12px;
+       --padding-end: 12px;
+       --color: #2D3748;
+     }
+
+     .compact-time-item ion-label {
+       color: #2D3748 !important;
+       font-weight: 600;
+     }
+
+     .compact-time-input, .compact-input {
+       --background: rgba(255, 255, 255, 0.95);
+       --border-radius: 6px;
+       --color: #2D3748;
+       border: 1px solid #e2e8f0;
+       font-weight: 600;
+     }
+
+     .compact-time-input:focus, .compact-input:focus {
+       border-color: #f39c12;
+       box-shadow: 0 0 0 3px rgba(241, 196, 15, 0.2);
+     }
+
+     .section-header {
+       background: rgba(255, 255, 255, 0.95);
+       border-radius: 12px;
+       margin: 16px 0 12px 0;
+       --padding-start: 16px;
+       --padding-end: 16px;
+       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+     }
+
+     /* Modern day sections */
+     .compact-day-card {
+       background: rgba(255, 255, 255, 0.95);
+       border-radius: 16px;
+       margin: 16px 0;
+       padding: 16px;
+       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+       border: 1px solid rgba(255, 255, 255, 0.3);
+     }
+
+     .compact-header {
+       --color: #2D3748;
+       padding-bottom: 12px;
+       border-bottom: 2px solid #f1c40f;
+     }
+
+     .compact-header ion-card-title {
+       color: #e74c3c !important;
+       font-size: 1.2rem;
+       font-weight: 700;
+       display: flex;
+       align-items: center;
+       gap: 8px;
+     }
+
+     /* Modern spot items */
+     .compact-spot-item {
+       background: rgba(255, 255, 255, 0.9);
+       border-radius: 12px;
+       margin: 8px 0;
+       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+       border: 1px solid rgba(0, 0, 0, 0.05);
+       transition: all 0.3s ease;
+       --color: #2D3748;
+     }
+
+     .compact-spot-item:hover {
+       transform: translateY(-2px);
+       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+     }
+
+     .compact-spot-item ion-label {
+       color: #2D3748 !important;
+     }
+
+     .compact-spot-item ion-label h4 {
+       color: #2D3748 !important;
+       font-weight: 600;
+       margin: 4px 0;
+     }
+
+     .compact-spot-item ion-label p {
+       color: #666 !important;
+       font-size: 0.85rem;
+       margin: 2px 0;
+     }
+
+     /* Modern available spots section */
+     .available-spots-section {
+       background: rgba(255, 255, 255, 0.95);
+       border-radius: 16px;
+       padding: 16px;
+       margin: 16px 0;
+       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+     }
+
+     /* Modern buttons */
+     ion-button {
+       --border-radius: 8px;
+       font-weight: 600;
+     }
+
+     ion-button[fill="solid"] {
+       --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+     }
+
+     ion-button[fill="outline"] {
+       --border-width: 2px;
+       --border-style: solid;
+     }
+
+     /* Modern drag and drop styling */
+     .drop-list {
+       background: rgba(255, 255, 255, 0.1);
+       border-radius: 12px;
+       padding: 12px;
+       min-height: 60px;
+       border: 2px dashed rgba(255, 255, 255, 0.4);
+       transition: all 0.3s ease;
+     }
+
+     .drop-list.cdk-drop-list-receiving {
+       background: rgba(241, 196, 15, 0.2);
+       border-color: #f1c40f;
+       transform: scale(1.02);
+       box-shadow: 0 0 20px rgba(241, 196, 15, 0.3);
+     }
+
+     .cdk-drag-preview {
+       background: rgba(255, 255, 255, 0.95);
+       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+       border-radius: 12px;
+       transform: rotate(3deg) scale(1.05);
+       backdrop-filter: blur(10px);
+     }
+
+     .cdk-drag-placeholder {
+       background: rgba(241, 196, 15, 0.2);
+       border: 2px dashed #f1c40f;
+       border-radius: 12px;
+       opacity: 0.6;
+     }
+
+     /* Empty state styling */
+     .empty-message {
+       background: rgba(255, 255, 255, 0.1);
+       border-radius: 12px;
+       padding: 24px;
+       text-align: center;
+       border: 2px dashed rgba(255, 255, 255, 0.3);
+     }
+
+     .empty-message ion-icon {
+       font-size: 2.5rem;
+       color: #f1c40f;
+       margin-bottom: 12px;
+     }
+
+     .empty-message {
+       background: rgba(255, 255, 255, 0.15);
+       border: 2px dashed rgba(255, 255, 255, 0.4);
+     }
+
+     .empty-message p {
+       color: rgba(255, 255, 255, 0.8);
+       font-size: 0.9rem;
+       margin: 0;
+       font-weight: 500;
      }
    `],
   standalone: false

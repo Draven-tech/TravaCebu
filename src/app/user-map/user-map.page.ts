@@ -16,6 +16,7 @@ import { environment } from '../../environments/environment';
 import { RouteDetailsOverlayComponent } from './route-details-overlay.component';
 import { BadgeService } from '../services/badge.service';
 import { BudgetService } from '../services/budget.service';
+import { GeofencingService } from '../services/geofencing.service';
 
 @Component({
   selector: 'app-user-map',
@@ -95,7 +96,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private viewContainerRef: ViewContainerRef,
     private injector: Injector,
     private badgeService: BadgeService,
-    private budgetService: BudgetService
+    private budgetService: BudgetService,
+    private geofencingService: GeofencingService
   ) {
     this.bucketService = bucketService;
   }
@@ -332,6 +334,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.currentRouteInfo = null;
       this.clearAllRouteLines();
       this.clearAllMarkers();
+      
+      // Stop geofencing when no itinerary is selected
+      await this.stopGeofencing();
       return;
     }
     
@@ -345,6 +350,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       // Show markers immediately when itinerary is selected
       await this.showItineraryMarkersOnly(selectedItinerary);
+      
+      // Start geofencing for the selected itinerary
+      await this.startGeofencingForItinerary(selectedItinerary);
       
       // Generate route information for the selected itinerary
       const routeInfo = await this.generateRouteInfo(selectedItinerary);
@@ -928,6 +936,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.loadItinerary();
     this.loadAvailableItineraries();
     this.loadJeepneyRoutes();
+    this.setupGlobalFunctions();
     
     // Automatically get user location on startup
     setTimeout(() => {
@@ -2052,10 +2061,26 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
             `<p style="margin: 4px 0; color: #1976d2; font-weight: bold;"><strong>🚌 Jeepney:</strong> ${jeepneyCode}</p>`
           : ''
         }
-        <button onclick="window.openItinerarySpotDetails('${spot.name}')" 
-                style="background: #ff6b35; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 8px;">
-          View Details
-        </button>
+        <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+          <button onclick="window.openItinerarySpotDetails('${spot.name}')" 
+                  style="background: #ff6b35; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            📍 View Details
+          </button>
+          ${this.geofencingService.hasVisited(spot.id) ? `
+            <div style="background: rgba(76, 175, 80, 0.1); border: 2px solid #4caf50; border-radius: 8px; padding: 8px; text-align: center;">
+              <span style="color: #4caf50; font-weight: bold;">✅ Visited</span>
+            </div>
+            <button onclick="window.resetVisitStatus('${spot.id}', '${spot.name}')" 
+                    style="background: #2196f3; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+              🔄 Visit Again
+            </button>
+          ` : `
+            <button onclick="window.markAsVisited('${spot.id}', '${spot.name}', ${spot.location?.lat || 0}, ${spot.location?.lng || 0})" 
+                    style="background: #4caf50; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+              ✅ Mark as Visited
+            </button>
+          `}
+        </div>
       </div>
     `;
   }
@@ -5843,10 +5868,12 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           .map((day: any) => day.spots?.map((spot: any) => spot.name) || [])
           .reduce((acc: any[], spots: any[]) => acc.concat(spots), [])
           .join('_');
-        return `itinerary_${spotNames.substring(0, 50).replace(/\s+/g, '_')}`;
+        const generatedId = `itinerary_${spotNames.substring(0, 50).replace(/\s+/g, '_')}`;
+        return generatedId;
       }
     }
-    return `itinerary_${Date.now()}`;
+    const fallbackId = `itinerary_${Date.now()}`;
+    return fallbackId;
   }
 
   private getCurrentItinerary(): any {
@@ -5950,6 +5977,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
               for (const event of itineraryEvents) {
                 await this.calendarService.updateEventStatus(event.id!, 'completed');
               }
+
+              // Update existing expense itinerary IDs to use completed format
+              await this.updateExpenseItineraryIds(itineraryId, currentItinerary);
 
               // Auto-save transportation estimates if no transport expenses logged
               const autoSavedTransport = await this.autoSaveTransportEstimates(currentItinerary);
@@ -6237,5 +6267,168 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       console.error(`❌ No valid coordinates found for segment ${segmentIndex + 1}:`, segment);
       this.showToast(`⚠️ Could not find coordinates for Segment ${segmentIndex + 1}`);
     }
+  }
+
+  /**
+   * Start geofencing for the selected itinerary
+   */
+  private async startGeofencingForItinerary(itinerary: any): Promise<void> {
+    try {
+      if (!itinerary || !itinerary.days) {
+        console.warn('No valid itinerary provided for geofencing');
+        return;
+      }
+
+      // Convert itinerary format to array of days for geofencing service
+      const itineraryDays = itinerary.days || [];
+      
+      if (itineraryDays.length === 0) {
+        console.warn('Itinerary has no days to geofence');
+        return;
+      }
+
+      console.log('🎯 Starting geofencing for itinerary with', itineraryDays.length, 'days');
+      
+      // Start geofencing monitoring
+      await this.geofencingService.startMonitoring(itineraryDays);
+      
+    } catch (error) {
+      console.error('Failed to start geofencing for itinerary:', error);
+    }
+  }
+
+  /**
+   * Stop geofencing when no itinerary is selected
+   */
+  private async stopGeofencing(): Promise<void> {
+    try {
+      await this.geofencingService.stopMonitoring();
+    } catch (error) {
+      console.error('Failed to stop geofencing:', error);
+    }
+  }
+
+  /**
+   * Update expense itinerary IDs when marking itinerary as complete
+   */
+  private async updateExpenseItineraryIds(originalItineraryId: string, itinerary: any): Promise<void> {
+    try {
+      // Generate the completed itinerary ID
+      const itineraryDate = itinerary.date || new Date().toISOString().split('T')[0];
+      const completedItineraryId = `completed_itinerary_${itineraryDate}`;
+
+      // Get all current expenses
+      const allExpenses = await this.budgetService.getExpenses();
+      
+      // Find expenses that match the original itinerary ID
+      const expensesToUpdate = allExpenses.filter((expense: any) => 
+        expense.itineraryId === originalItineraryId
+      );
+
+      // Update each expense's itinerary ID
+      for (const expense of expensesToUpdate) {
+        if (expense.id) {
+          await this.budgetService.updateExpenseItineraryId(expense.id, completedItineraryId);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error updating expense itinerary IDs:', error);
+    }
+  }
+
+  /**
+   * Setup global functions for popup buttons
+   */
+  private setupGlobalFunctions(): void {
+    // Make functions available globally for popup buttons
+    (window as any).markAsVisited = (spotId: string, spotName: string, lat: number, lng: number) => {
+      this.ngZone.run(async () => {
+        await this.markSpotAsVisited(spotId, spotName, lat, lng);
+      });
+    };
+
+    (window as any).resetVisitStatus = (spotId: string, spotName: string) => {
+      this.ngZone.run(async () => {
+        await this.resetSpotVisitStatus(spotId, spotName);
+      });
+    };
+  }
+
+  /**
+   * Mark a tourist spot as visited (manual fallback)
+   */
+  private async markSpotAsVisited(spotId: string, spotName: string, lat: number, lng: number): Promise<void> {
+    try {
+      // Create a fake geofence spot for manual confirmation
+      const fakeGeofenceSpot = {
+        id: spotId,
+        name: spotName,
+        latitude: lat,
+        longitude: lng,
+        radius: 100
+      };
+
+      // Manually trigger visit confirmation
+      await this.geofencingService.manuallyConfirmVisit(fakeGeofenceSpot);
+
+      // Show success message
+      const toast = await this.toastCtrl.create({
+        message: `✅ Marked ${spotName} as visited! You can now post reviews for this location.`,
+        duration: 3000,
+        position: 'top',
+        color: 'success',
+        icon: 'checkmark-circle'
+      });
+      await toast.present();
+
+      // Refresh the popup by closing and reopening it
+      this.refreshPopups();
+
+    } catch (error) {
+      console.error('Failed to mark spot as visited:', error);
+      const toast = await this.toastCtrl.create({
+        message: 'Failed to mark as visited. Please try again.',
+        duration: 2000,
+        position: 'top',
+        color: 'danger'
+      });
+      await toast.present();
+    }
+  }
+
+  /**
+   * Reset visit status for a spot (Visit Again functionality)
+   */
+  private async resetSpotVisitStatus(spotId: string, spotName: string): Promise<void> {
+    try {
+      await this.geofencingService.resetVisitStatus(spotId);
+      
+      // Refresh the popup by closing and reopening it
+      this.refreshPopups();
+
+    } catch (error) {
+      console.error('Failed to reset visit status:', error);
+    }
+  }
+
+  /**
+   * Refresh all popups to show updated visit status
+   */
+  private refreshPopups(): void {
+    // Close all open popups
+    this.map.eachLayer((layer: any) => {
+      if (layer.getPopup && layer.getPopup()) {
+        layer.closePopup();
+      }
+    });
+
+    // Force a small delay then reload itinerary markers to refresh popups
+    setTimeout(() => {
+      if (this.selectedItineraryIndex >= 0 && this.availableItineraries.length > 0) {
+        const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
+        this.showItineraryMarkersOnly(selectedItinerary);
+      }
+    }, 100);
   }
 }

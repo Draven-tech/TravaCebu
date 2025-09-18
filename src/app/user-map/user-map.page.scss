@@ -415,3 +415,42 @@ ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button[color="danger"] {
   font-size: 0.75rem;
   padding: 4px 8px;
 }
+
+/* Geofencing alert styles */
+:global(.geofence-alert) {
+  --max-width: 90%;
+  --border-radius: 16px;
+  
+  .alert-head {
+    padding: 20px 20px 10px 20px;
+  }
+  
+  .alert-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #2D3748;
+  }
+  
+  .alert-message {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #4A5568;
+    padding: 0 20px 20px 20px;
+  }
+  
+  .alert-button-group {
+    .alert-button {
+      font-weight: 600;
+      font-size: 1rem;
+      
+      &.secondary {
+        color: #6c757d;
+      }
+      
+      &.primary {
+        color: #28a745;
+        font-weight: 700;
+      }
+    }
+  }
+}

@@ -105,10 +105,25 @@ ion-content {
   padding: 16px;
   border-radius: 12px;
 
+  .review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
   h2 {
-    margin-bottom: 12px;
+    margin: 0;
     color: #f1c40f;
     font-size: 1.2rem;
+    flex: 1;
+  }
+
+  .visited-indicator {
+    font-size: 0.8rem;
+    height: 28px;
   }
 
   ion-item {
@@ -122,6 +137,94 @@ ion-content {
     border-radius: 10px;
     margin: 12px 0;
   }
+}
+
+/* Visit Status Styles */
+.visit-status-section {
+  margin: 16px 0;
+}
+
+.visited-status, .not-visited-status {
+  text-align: center;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.visited-status {
+  background: rgba(76, 175, 80, 0.1);
+  border: 2px solid #4caf50;
+}
+
+.not-visited-status {
+  background: rgba(255, 152, 0, 0.1);
+  border: 2px solid #ff9800;
+}
+
+.visited-chip, .not-visited-chip {
+  margin-bottom: 12px;
+}
+
+.visit-message, .visit-requirement {
+  color: #ddd;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 8px 0;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* Review Restriction Styles */
+.review-restriction-container {
+  background: #1e1e1e;
+  margin: 16px;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.restriction-card {
+  text-align: center;
+  padding: 24px 16px;
+  background: rgba(108, 117, 125, 0.1);
+  border-radius: 12px;
+  border: 2px solid #6c757d;
+}
+
+.restriction-card ion-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.restriction-card h3 {
+  color: #f1c40f;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.restriction-card p {
+  color: #ddd;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.suggestion-actions {
+  margin-top: 20px;
+}
+
+.suggestion-text {
+  color: #bbb;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-top: 12px;
+  margin-bottom: 0;
 }
 .rating-slider {
   width: 100%;

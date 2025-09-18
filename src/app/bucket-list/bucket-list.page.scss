@@ -315,7 +315,7 @@ ion-button[fill="clear"] {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
   position: relative;
   overflow: hidden;
 }
@@ -332,7 +332,7 @@ ion-button[fill="clear"] {
 }
 
 .setup-header {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
   padding: 40px 20px 30px;
   text-align: center;
   position: relative;
@@ -391,9 +391,9 @@ ion-button[fill="clear"] {
 
 .section-icon {
   font-size: 24px;
-  color: #667eea;
+  color: #f1c40f;
   margin-right: 12px;
-  background: linear-gradient(45deg, #667eea, #764ba2);
+  background: linear-gradient(45deg, #f1c40f, #f39c12);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -433,10 +433,10 @@ ion-button[fill="clear"] {
   --background: white;
   --border-radius: 16px;
   --border-width: 2px;
-  --border-color: #667eea;
+  --border-color: #f39c12;
   --border-style: solid;
   margin-top: 16px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.1);
 
   ion-label {
     color: #2d3748;
@@ -469,21 +469,125 @@ ion-button[fill="clear"] {
   margin-bottom: 16px;
 }
 
-.time-input {
-  --background: #f8fafc;
+.time-input, .date-input {
+  --background: rgba(255, 255, 255, 0.95);
   --border-radius: 16px;
-  --border-width: 1px;
-  --border-color: #e2e8f0;
+  --border-width: 2px;
+  --border-color: #f39c12;
+  --border-style: solid;
   --padding-start: 16px;
   --padding-end: 16px;
   --padding-top: 12px;
   --padding-bottom: 12px;
+  --color: #2d3748;
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.1);
+}
+
+.time-input ion-label, .date-input ion-label {
+  color: #2d3748 !important;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 8px;
 }
 
 .custom-datetime {
-  --background: transparent;
+  --background: rgba(255, 255, 255, 0.95);
   --color: #2d3748;
   font-weight: 600;
+  border-radius: 12px;
+  padding: 16px;
+  border: 2px solid #f39c12;
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.1);
+}
+
+/* Fix ion-datetime internal styling */
+ion-datetime {
+  --background: rgba(255, 255, 255, 0.95);
+  --color: #2d3748;
+  --border-radius: 12px;
+  border: 2px solid #f39c12;
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.1);
+}
+
+/* Style the datetime picker wheel */
+:global(ion-datetime .datetime-wheel) {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #2d3748 !important;
+}
+
+:global(ion-datetime .wheel-item) {
+  color: #2d3748 !important;
+  background: transparent !important;
+}
+
+:global(ion-datetime .wheel-item.wheel-item-active) {
+  background: rgba(241, 196, 15, 0.2) !important;
+  color: #2d3748 !important;
+  font-weight: 700 !important;
+}
+
+/* Fix datetime button styling */
+:global(ion-datetime ion-button) {
+  --background: rgba(255, 255, 255, 0.9);
+  --color: #2d3748;
+  --border-radius: 8px;
+  border: 1px solid #f39c12;
+}
+
+/* Style the datetime popover */
+:global(.datetime-popover) {
+  --background: rgba(255, 255, 255, 0.95);
+  --color: #2d3748;
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Force light theme for datetime picker */
+:global(ion-datetime) {
+  --background: #ffffff !important;
+  --color: #2d3748 !important;
+  background: #ffffff !important;
+  color: #2d3748 !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+:global(ion-datetime .datetime-text) {
+  color: #2d3748 !important;
+  background: #ffffff !important;
+}
+
+:global(ion-datetime .datetime-placeholder) {
+  color: #666 !important;
+}
+
+/* Fix the wheel columns */
+:global(ion-datetime .wheel-item) {
+  color: #2d3748 !important;
+  background: #ffffff !important;
+  border-radius: 8px !important;
+  margin: 2px !important;
+}
+
+:global(ion-datetime .wheel-item-active) {
+  background: #f1c40f !important;
+  color: #2d3748 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(241, 196, 15, 0.3) !important;
+}
+
+/* Fix datetime container */
+:global(ion-datetime .datetime-wrapper) {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+}
+
+/* Fix datetime header */
+:global(ion-datetime .datetime-header) {
+  background: #f8f9fa !important;
+  color: #2d3748 !important;
+  border-bottom: 1px solid #e9ecef !important;
 }
 
 .setup-summary {
@@ -530,10 +634,10 @@ ion-button[fill="clear"] {
 }
 
 .generate-btn {
-  --background: linear-gradient(45deg, #667eea, #764ba2);
-  --color: white;
+  --background: linear-gradient(45deg, #f1c40f, #f39c12);
+  --color: #2d3748;
   --border-radius: 16px;
-  --box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  --box-shadow: 0 8px 24px rgba(241, 196, 15, 0.3);
   font-weight: 700;
   font-size: 1.1rem;
   height: 56px;
@@ -541,7 +645,7 @@ ion-button[fill="clear"] {
   transition: all 0.3s ease;
 
   &:hover {
-    --box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+    --box-shadow: 0 12px 32px rgba(241, 196, 15, 0.4);
     transform: translateY(-2px);
   }
 }
@@ -566,6 +670,48 @@ ion-button[fill="clear"] {
 
 .calendar-content {
   --background: #f8f9fa;
+}
+
+/* AGGRESSIVE datetime picker light theme override */
+:global(.setup-modal ion-datetime),
+:global(.setup-modal ion-datetime *),
+:global(.setup-modal .datetime-wheel),
+:global(.setup-modal .wheel-item),
+:global(.setup-modal .datetime-text),
+:global(.setup-modal .datetime-placeholder) {
+  background: #ffffff !important;
+  color: #2d3748 !important;
+  --background: #ffffff !important;
+  --color: #2d3748 !important;
+  --ion-background-color: #ffffff !important;
+  --ion-text-color: #2d3748 !important;
+}
+
+/* Force all datetime wheel items to be visible */
+:global(.setup-modal .wheel-item) {
+  background: #ffffff !important;
+  color: #2d3748 !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 6px !important;
+  margin: 1px !important;
+  font-weight: 600 !important;
+}
+
+:global(.setup-modal .wheel-item-active) {
+  background: #f1c40f !important;
+  color: #2d3748 !important;
+  font-weight: 700 !important;
+  border: 2px solid #f39c12 !important;
+}
+
+/* Override any system dark mode */
+:global(.setup-modal) {
+  color-scheme: light !important;
+}
+
+:global(.setup-modal ion-datetime) {
+  color-scheme: light !important;
+  filter: none !important;
 }
 
 // Connection Prompt

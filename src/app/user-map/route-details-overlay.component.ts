@@ -554,6 +554,11 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
   }
 
   private loadBudgetData() {
+    if (!this.itineraryId) {
+      console.warn('⚠️ No itineraryId provided for budget data');
+      return;
+    }
+
     const budgetSubscription = this.budgetService.getBudgetSummary(this.itineraryId)
       .subscribe(summary => {
         this.budgetSummary = summary;

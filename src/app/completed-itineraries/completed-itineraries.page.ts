@@ -132,8 +132,16 @@ export class CompletedItinerariesPage implements OnInit {
       
       // Filter expenses that match this itinerary
       const matchingExpenses = allExpenses.filter(expense => {
-        return expense.itineraryId === itinerary.id || 
-               (expense.date && new Date(expense.date).toISOString().split('T')[0] === itinerary.date);
+        const matchesId = expense.itineraryId === itinerary.id;
+        const matchesDate = expense.date && new Date(expense.date).toISOString().split('T')[0] === itinerary.date;
+        
+        // Also try to match with the original itinerary ID format (before completion)
+        const originalItineraryId = itinerary.originalItineraryId || this.generateOriginalItineraryId(itinerary);
+        const matchesOriginalId = expense.itineraryId === originalItineraryId;
+        
+        const matches = matchesId || matchesDate || matchesOriginalId;
+        
+        return matches;
       });
       
       // Calculate totals manually
@@ -462,5 +470,19 @@ export class CompletedItinerariesPage implements OnInit {
 
   goBack() {
     this.navCtrl.back();
+  }
+
+  /**
+   * Generate what the original itinerary ID would have been before completion
+   */
+  private generateOriginalItineraryId(itinerary: any): string {
+    if (itinerary.days && itinerary.days.length > 0) {
+      const spotNames = itinerary.days
+        .map((day: any) => day.spots?.map((spot: any) => spot.name) || [])
+        .reduce((acc: any[], spots: any[]) => acc.concat(spots), [])
+        .join('_');
+      return `itinerary_${spotNames.substring(0, 50).replace(/\s+/g, '_')}`;
+    }
+    return '';
   }
 }

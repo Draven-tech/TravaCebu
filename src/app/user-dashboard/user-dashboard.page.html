@@ -54,18 +54,31 @@
 
             <ion-card-header>
               <ion-card-title>{{ spot.name }}</ion-card-title>
+              <!-- Visit Status Indicator -->
+              <div class="visit-status" *ngIf="hasVisited(spot.id)">
+                <ion-chip color="success" size="small">
+                  <ion-icon name="checkmark-circle"></ion-icon>
+                  <ion-label>Visited</ion-label>
+                </ion-chip>
+              </div>
             </ion-card-header>
           </div>
 
           <ion-card-content class="bucket-action">
+            <!-- Bucket List Button -->
             <ion-button fill="clear" size="small" (click)="toggleBucketList(spot); $event.stopPropagation()">
-
               <ion-icon [name]="isInBucketList(spot.id) ? 'checkmark-circle' : 'heart-outline'">
               </ion-icon>
-
               <span>
                 {{ isInBucketList(spot.id) ? 'ADDED TO BUCKET LIST' : 'ADD TO BUCKET LIST' }}
               </span>
+            </ion-button>
+            
+            <!-- Visit Again Button (only show for visited spots) -->
+            <ion-button *ngIf="hasVisited(spot.id)" fill="outline" size="small" color="primary" 
+                        (click)="visitAgain(spot); $event.stopPropagation()">
+              <ion-icon name="refresh-outline"></ion-icon>
+              <span>Visit Again</span>
             </ion-button>
           </ion-card-content>
         </ion-card>

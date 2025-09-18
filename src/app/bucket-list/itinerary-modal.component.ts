@@ -22,14 +22,15 @@ interface PlaceSuggestion {
   selector: 'app-itinerary-modal',
   template: `
     <ion-header>
-      <ion-toolbar color="warning" style="--min-height: 32px; --padding-top: 2px; --padding-bottom: 2px; display: flex; align-items: center; justify-content: space-between;">
-        <ion-title style="font-size: 1.1rem; font-weight: 700; text-align: center; flex: 1; padding: 0; margin: 0;">Your Itinerary</ion-title>
+      <ion-toolbar color="warning">
+        <ion-title style="font-size: 1.2rem; font-weight: 700;">Your Itinerary</ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="editItinerary()" aria-label="Edit" style="--padding-start: 4px; --padding-end: 4px; --min-height: 28px;">
-            <ion-icon name="create-outline" style="font-size: 16px;"></ion-icon>
+          <ion-button (click)="editItinerary()" fill="solid" color="primary" size="small" aria-label="Edit Itinerary">
+            <ion-icon name="create-outline" slot="start"></ion-icon>
+            Edit
           </ion-button>
-          <ion-button (click)="close()" aria-label="Close" style="--padding-start: 4px; --padding-end: 4px; --min-height: 28px;">
-            <ion-icon name="close" style="font-size: 16px;"></ion-icon>
+          <ion-button (click)="close()" fill="clear" aria-label="Close">
+            <ion-icon name="close" style="font-size: 20px;"></ion-icon>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>

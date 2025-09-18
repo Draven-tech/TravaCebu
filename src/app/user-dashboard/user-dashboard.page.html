@@ -58,9 +58,14 @@
           </div>
 
           <ion-card-content class="bucket-action">
-            <ion-button fill="clear" size="small" (click)="addToTrip(spot); $event.stopPropagation()">
-              <ion-icon name="heart-outline"></ion-icon>
-              <span>ADD TO BUCKET LIST</span>
+            <ion-button fill="clear" size="small" (click)="toggleBucketList(spot); $event.stopPropagation()">
+
+              <ion-icon [name]="isInBucketList(spot.id) ? 'checkmark-circle' : 'heart-outline'">
+              </ion-icon>
+
+              <span>
+                {{ isInBucketList(spot.id) ? 'ADDED TO BUCKET LIST' : 'ADD TO BUCKET LIST' }}
+              </span>
             </ion-button>
           </ion-card-content>
         </ion-card>

@@ -179,10 +179,14 @@ ion-grid {
 }
 
 .tourist-card {
-  background-color: #FFD144; // yellow background
+  width: 100%;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   border-radius: 12px;
-  text-align: center;
   overflow: hidden;
+  background: #FFD144; // ✅ yellow container
 
   img {
     width: 100%;
@@ -192,33 +196,36 @@ ion-grid {
     border-top-right-radius: 12px;
   }
 
-  ion-card-title {
-    font-weight: bold;
-    color: #000;
-    font-size: 1rem;
+  ion-card-header {
+    padding: 8px;
+    text-align: center;
+
+    ion-card-title {
+      font-size: 14px;
+      font-weight: bold;
+      white-space: normal;
+      overflow: hidden;
+      text-overflow: unset;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+    }
   }
 
   .bucket-action {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #000;
+    padding: 4px;
+    text-align: center;
 
-    ion-icon {
-      font-size: 16px;
-      color: #000;
-    }
-
-    span {
-      font-size: 0.75rem;
-      color: #000;
+    ion-button {
+      font-size: 12px;
+      --color: #000000; // ✅ black text
+      --background: transparent; // keep it clear so yellow shows
+      --padding-start: 0;
+      --padding-end: 0;
     }
   }
 }
+
+
 
 // Pagination
 .pagination-container {

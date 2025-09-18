@@ -9,6 +9,7 @@ import { PlacesService } from '../services/places.service';
 import { PendingTouristSpotService } from '../services/pending-tourist-spot.service';
 import { SearchModalComponent } from './search-modal.component';
 
+
 @Component({
   selector: 'app-user-dashboard',
   templateUrl: './user-dashboard.page.html',
@@ -37,6 +38,9 @@ export class UserDashboardPage implements OnInit, OnDestroy {
   isSearching = false;
   searchResults: any[] = [];
 
+  bucketList: any[] = [];
+
+
   constructor(
     private route: ActivatedRoute,
     private firestore: AngularFirestore,
@@ -54,7 +58,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
   private spotsSubscription: any;
 
   async ngOnInit() {
-
+    this.loadBucketList();
     this.checkNetworkStatus(); // Check immediately on load
     window.addEventListener('offline', this.showOfflineAlert);
     window.addEventListener('online', this.showOnlineToast);
@@ -109,6 +113,68 @@ export class UserDashboardPage implements OnInit, OnDestroy {
           this.isLoading = false;
         },
       });
+  }
+  async loadBucketList() {
+    try {
+      this.bucketList = await this.bucketService.getBucket();
+    } catch (error) {
+      console.error('Error loading bucket list:', error);
+      this.bucketList = [];
+    }
+  }
+  isInBucketList(spotId: string): boolean {
+    return this.bucketList.some(s => s.id === spotId);
+  }
+
+async toggleBucketList(spot: any) {
+  if (this.isInBucketList(spot.id)) {
+    // Remove from bucket list
+    await this.removeFromBucketList(spot.id);
+    this.showRemovedAlert();
+  } else {
+    // Ask before adding
+    const alert = await this.alertCtrl.create({
+      header: 'Add to Bucket List',
+      message: 'Do you want to add this to your bucket list?',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Yes',
+          handler: async () => {
+            await this.addToBucketList(spot);
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+}
+
+  async addToBucketList(spot: any) {
+    try {
+      await this.bucketService.addToBucket(spot);
+      await this.loadBucketList(); // refresh UI
+    } catch (error) {
+      console.error('Error adding to bucket list:', error);
+    }
+  }
+
+  async removeFromBucketList(spotId: string) {
+    try {
+      await this.bucketService.removeFromBucket(spotId);
+      await this.loadBucketList(); // refresh UI
+    } catch (error) {
+      console.error('Error removing from bucket list:', error);
+    }
+  }
+
+    private async showRemovedAlert() {
+    const alert = await this.alertCtrl.create({
+      header: 'Removed',
+      message: 'Removed from bucket list',
+      buttons: ['OK']
+    });
+    await alert.present();
   }
 
   selectTag(tag: string): void {
@@ -459,19 +525,19 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     this.navCtrl.navigateForward('/my-itineraries');
   }
   checkNetworkStatus() {
-  if (!navigator.onLine) {
-    this.showOfflineAlert();
+    if (!navigator.onLine) {
+      this.showOfflineAlert();
+    }
   }
-}
 
-showOfflineAlert = async () => {
-  const alert = await this.alertCtrl.create({
-    header: 'No Internet Connection',
-    message: 'You are currently offline. Some features may not be available. You can still access your itineraries on the map and calendar.',
-    buttons: ['OK']
-  });
-  await alert.present();
-};
+  showOfflineAlert = async () => {
+    const alert = await this.alertCtrl.create({
+      header: 'No Internet Connection',
+      message: 'You are currently offline. Some features may not be available. You can still access your itineraries on the map and calendar.',
+      buttons: ['OK']
+    });
+    await alert.present();
+  };
 
   showOnlineToast = async () => {
     const toast = await this.toastCtrl.create({

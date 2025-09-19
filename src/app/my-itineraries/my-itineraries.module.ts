@@ -16,6 +16,7 @@ import { ViewItineraryModalComponent } from './view-itinerary-modal.component';
     MyItinerariesPageRoutingModule,
     ComponentsModule
   ],
-  declarations: [MyItinerariesPage, ViewItineraryModalComponent]
+  declarations: [MyItinerariesPage, ViewItineraryModalComponent],
+  exports: [ViewItineraryModalComponent]
 })
 export class MyItinerariesPageModule {} 

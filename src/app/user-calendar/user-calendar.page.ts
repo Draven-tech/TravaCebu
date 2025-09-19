@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { AlertController, ModalController } from '@ionic/angular';
 import { CalendarService, GlobalEvent } from '../services/calendar.service';
 import { EventDetailModalComponent } from '../modals/event-detail-modal/event-detail-modal.component';
+import { ViewItineraryModalComponent, ViewItineraryDay, ViewItinerarySpot } from '../my-itineraries/view-itinerary-modal.component';
 
 @Component({
   standalone: false,
@@ -53,17 +54,30 @@ export class UserCalendarPage implements OnInit {
     await this.loadEvents();
   }
 
-  loadEvents() {
+  async loadEvents() {
     this.isLoading = true;
-    this.calendarService.loadUserCalendarEvents().then(events => {
-      this.events = events;
+    try {
+      // Load both new GlobalEvents and legacy itinerary events
+      const [globalEvents, legacyEvents] = await Promise.all([
+        this.calendarService.loadUserCalendarEvents(),
+        this.calendarService.loadItineraryEvents()
+      ]);
+
+      // Convert legacy events to GlobalEvent format
+      const convertedLegacyEvents = legacyEvents.map(event => 
+        this.calendarService.calendarEventToGlobalEvent(event, 'user')
+      );
+
+      // Combine all events
+      this.events = [...globalEvents, ...convertedLegacyEvents];
+      
       // Clear caches when events are reloaded
       this.clearCalendarCaches();
       this.isLoading = false;
-    }).catch(error => {
+    } catch (error) {
       console.error('Error loading events in user calendar:', error);
       this.isLoading = false;
-    });
+    }
   }
 
   private clearCalendarCaches() {
@@ -73,7 +87,6 @@ export class UserCalendarPage implements OnInit {
   }
 
   async refreshEvents() {
-    this.isLoading = true;
     await this.loadEvents();
   }
 
@@ -246,14 +259,67 @@ export class UserCalendarPage implements OnInit {
       return this.eventsCache[dateStr];
     }
     
-    const eventsForDate = this.events.filter(event => {
+    const allEventsForDate = this.events.filter(event => {
       return event.date === dateStr;
     });
     
-    // Cache the result
-    this.eventsCache[dateStr] = eventsForDate;
+    // Consolidate itinerary events into single representative event per date
+    const consolidatedEvents = this.consolidateEventsForDisplay(allEventsForDate);
     
-    return eventsForDate;
+    // Cache the result
+    this.eventsCache[dateStr] = consolidatedEvents;
+    
+    return consolidatedEvents;
+  }
+
+  // Get all events for date (without consolidation) - used for modal display
+  getAllEventsForDate(date: Date): GlobalEvent[] {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    return this.events.filter(event => {
+      return event.date === dateStr;
+    });
+  }
+
+  // Consolidate multiple itinerary events into single display event per date
+  private consolidateEventsForDisplay(events: GlobalEvent[]): GlobalEvent[] {
+    if (events.length === 0) return events;
+
+    // Separate itinerary events from admin events
+    const itineraryEvents = events.filter(event => 
+      event.createdByType === 'user' && 
+      (event.eventType === 'user_itinerary' || event.eventType === 'tourist_spot' || 
+       event.eventType === 'restaurant' || event.eventType === 'hotel')
+    );
+    
+    const adminEvents = events.filter(event => event.createdByType === 'admin');
+
+    const consolidatedEvents: GlobalEvent[] = [];
+
+    // If there are itinerary events, create one consolidated event
+    if (itineraryEvents.length > 0) {
+      // Sort by time to get the earliest event
+      const sortedItineraryEvents = itineraryEvents.sort((a, b) => a.time.localeCompare(b.time));
+      const firstEvent = sortedItineraryEvents[0];
+      
+      const consolidatedEvent: GlobalEvent = {
+        ...firstEvent,
+        id: `itinerary_${firstEvent.date}`,
+        name: `Itinerary (${itineraryEvents.length} activities)`,
+        description: `${itineraryEvents.length} planned activities for this day`,
+        eventType: 'user_itinerary'
+      };
+      
+      consolidatedEvents.push(consolidatedEvent);
+    }
+
+    // Add admin events as they are
+    consolidatedEvents.push(...adminEvents);
+
+    return consolidatedEvents;
   }
 
   async onDateSelected(date: Date) {
@@ -263,11 +329,23 @@ export class UserCalendarPage implements OnInit {
     const day = String(date.getDate()).padStart(2, '0');
     this.selectedDate = `${year}-${month}-${day}`;
     
-    // Check if this date has events
-    const eventsForDate = this.getEventsForDate(date);
-    if (eventsForDate.length > 0) {
-      // Show modal with the first event for this date
-      await this.showEventModal(eventsForDate[0]);
+    // Get ALL events for this date (not consolidated)
+    const allEventsForDate = this.getAllEventsForDate(date);
+    if (allEventsForDate.length > 0) {
+      // Check if any events are user itinerary events
+      const hasUserItineraryEvents = allEventsForDate.some(event => 
+        event.createdByType === 'user' && 
+        (event.eventType === 'user_itinerary' || event.eventType === 'tourist_spot' || 
+         event.eventType === 'restaurant' || event.eventType === 'hotel')
+      );
+      
+      // If there are user itinerary events or multiple events, show itinerary modal
+      if (hasUserItineraryEvents || allEventsForDate.length > 1) {
+        await this.showItineraryModal(allEventsForDate, this.selectedDate);
+      } else {
+        // For single admin events, show the event detail modal
+        await this.showEventModal(allEventsForDate[0]);
+      }
     }
   }
 
@@ -363,6 +441,22 @@ export class UserCalendarPage implements OnInit {
     const dateStr = `${year}-${month}-${day}`;
     
     return dateStr === this.selectedDate;
+  }
+
+  // Check if a date has itinerary events (user-created events)
+  hasItineraryEvents(date: Date): boolean {
+    const allEventsForDate = this.getAllEventsForDate(date);
+    return allEventsForDate.some(event => 
+      event.createdByType === 'user' && 
+      (event.eventType === 'user_itinerary' || event.eventType === 'tourist_spot' || 
+       event.eventType === 'restaurant' || event.eventType === 'hotel')
+    );
+  }
+
+  // Check if a date has multiple events (suggesting a full itinerary)
+  hasMultipleEvents(date: Date): boolean {
+    const allEventsForDate = this.getAllEventsForDate(date);
+    return allEventsForDate.length > 1;
   }
 
 
@@ -624,8 +718,24 @@ export class UserCalendarPage implements OnInit {
     clickEvent.stopPropagation();
     clickEvent.preventDefault();
     
-    // Show modal without blocking UI
-    this.showEventModal(event);
+    // Get all events for the same date as this event (not consolidated)
+    const eventDate = new Date(event.date);
+    const allEventsForDate = this.getAllEventsForDate(eventDate);
+    
+    // Check if any events are user itinerary events
+    const hasUserItineraryEvents = allEventsForDate.some(e => 
+      e.createdByType === 'user' && 
+      (e.eventType === 'user_itinerary' || e.eventType === 'tourist_spot' || 
+       e.eventType === 'restaurant' || e.eventType === 'hotel')
+    );
+    
+    // If there are user itinerary events or multiple events, show itinerary modal
+    if (hasUserItineraryEvents || allEventsForDate.length > 1) {
+      this.showItineraryModal(allEventsForDate, event.date);
+    } else {
+      // For single admin events, show the event detail modal
+      this.showEventModal(event);
+    }
   }
 
   // Event Modal Methods
@@ -644,5 +754,152 @@ export class UserCalendarPage implements OnInit {
         console.error('Error showing modal:', error);
       });
     }, 0);
+  }
+
+  // Itinerary Modal Methods
+  async showItineraryModal(events: GlobalEvent[], dateString: string) {
+    try {
+      // Convert events to itinerary format
+      const itineraryDay = this.convertEventsToItineraryDay(events, dateString);
+      
+      const modal = await this.modalCtrl.create({
+        component: ViewItineraryModalComponent,
+        cssClass: 'event-details-modal',
+        componentProps: {
+          itinerary: [itineraryDay]
+        },
+        backdropDismiss: true
+      });
+      
+      await modal.present();
+    } catch (error) {
+      console.error('Error showing itinerary modal:', error);
+    }
+  }
+
+  // Convert GlobalEvent[] to ViewItineraryDay format
+  private convertEventsToItineraryDay(events: GlobalEvent[], dateString: string): ViewItineraryDay {
+    // Sort events by time
+    const sortedEvents = events.sort((a, b) => a.time.localeCompare(b.time));
+    
+    const spots: ViewItinerarySpot[] = [];
+    const restaurants: ViewItinerarySpot[] = [];
+    const hotels: ViewItinerarySpot[] = [];
+    let chosenHotel: any = null;
+
+    // Calculate the day number for this date within the itinerary
+    const dayNumber = this.calculateItineraryDayNumber(events, dateString);
+
+    sortedEvents.forEach((event, index) => {
+      const spot: ViewItinerarySpot = {
+        id: event.id || `event_${index}`,
+        name: event.name,
+        description: event.description || '',
+        category: this.getEventCategory(event),
+        timeSlot: event.time,
+        estimatedDuration: '2 hours', // Default duration
+        location: { lat: 0, lng: 0 }, // Would need to parse location if available
+        mealType: event.eventType === 'restaurant' ? this.getMealTypeFromTime(event.time) : undefined
+      };
+
+      // Categorize based on event type
+      switch (event.eventType) {
+        case 'restaurant':
+          restaurants.push(spot);
+          break;
+        case 'hotel':
+          hotels.push(spot);
+          // If it's the last hotel event of the day, make it the chosen hotel
+          if (index === sortedEvents.length - 1 || 
+              !sortedEvents.slice(index + 1).some(e => e.eventType === 'hotel')) {
+            chosenHotel = {
+              name: event.name,
+              description: event.description,
+              rating: null,
+              vicinity: event.location
+            };
+          }
+          break;
+        default:
+          spots.push(spot);
+          break;
+      }
+    });
+
+    return {
+      day: dayNumber,
+      date: dateString,
+      spots: spots,
+      restaurants: restaurants,
+      hotels: hotels,
+      chosenHotel: chosenHotel
+    };
+  }
+
+  // Calculate which day of the itinerary this date represents
+  private calculateItineraryDayNumber(events: GlobalEvent[], targetDateString: string): number {
+    // Get all itinerary events from the user (not just for this date)
+    const allItineraryEvents = this.events.filter(event => 
+      event.createdByType === 'user' && 
+      (event.eventType === 'user_itinerary' || event.eventType === 'tourist_spot' || 
+       event.eventType === 'restaurant' || event.eventType === 'hotel')
+    );
+
+    // Get unique dates and sort them
+    const uniqueDates = [...new Set(allItineraryEvents.map(event => event.date))].sort();
+    
+    // Group dates into separate itineraries based on date gaps
+    const itineraryGroups = this.groupDatesByItinerary(uniqueDates);
+    
+    // Find which group the target date belongs to
+    for (const group of itineraryGroups) {
+      const dayIndex = group.findIndex(date => date === targetDateString);
+      if (dayIndex >= 0) {
+        return dayIndex + 1; // Return the day within this specific itinerary group
+      }
+    }
+    
+    return 1; // Default to day 1 if not found
+  }
+
+  // Group dates into separate itineraries based on gaps between dates
+  private groupDatesByItinerary(sortedDates: string[]): string[][] {
+    if (sortedDates.length === 0) return [];
+    
+    const groups: string[][] = [];
+    let currentGroup: string[] = [sortedDates[0]];
+    
+    for (let i = 1; i < sortedDates.length; i++) {
+      const currentDate = new Date(sortedDates[i]);
+      const previousDate = new Date(sortedDates[i - 1]);
+      
+      // Calculate the difference in days
+      const daysDifference = Math.floor((currentDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // If there's more than 1 day gap, start a new itinerary group
+      if (daysDifference > 1) {
+        groups.push(currentGroup);
+        currentGroup = [sortedDates[i]];
+      } else {
+        currentGroup.push(sortedDates[i]);
+      }
+    }
+    
+    // Add the last group
+    groups.push(currentGroup);
+    
+    return groups;
+  }
+
+  // Helper method to get meal type from time
+  private getMealTypeFromTime(time: string): string {
+    const hour = parseInt(time.split(':')[0]);
+    if (hour >= 6 && hour < 11) {
+      return 'breakfast';
+    } else if (hour >= 11 && hour < 16) {
+      return 'lunch';
+    } else {
+      return 'dinner';
+    }
   }
 }

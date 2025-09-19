@@ -66,7 +66,9 @@
             [ngClass]="{
               'other-month': !isCurrentMonth(date),
               'today': isToday(date),
-              'selected': isSelectedDate(date)
+              'selected': isSelectedDate(date),
+              'has-itinerary': hasItineraryEvents(date),
+              'has-multiple-events': hasMultipleEvents(date)
             }"
             (click)="onDateSelected(date)"
           >
@@ -134,7 +136,13 @@
             </div>
             
             <!-- Events for this date -->
-            <div *ngFor="let event of dateGroup.events; trackBy: trackByEventId" class="event-item" (click)="onEventClick(event, $event)">
+            <div *ngFor="let event of dateGroup.events; trackBy: trackByEventId" 
+                 class="event-item" 
+                 [ngClass]="{
+                   'itinerary-event': event.createdByType === 'user' && (event.eventType === 'user_itinerary' || event.eventType === 'tourist_spot' || event.eventType === 'restaurant' || event.eventType === 'hotel'),
+                   'full-itinerary-event': dateGroup.events.length > 1
+                 }"
+                 (click)="onEventClick(event, $event)">
               <div class="event-content">
                 <div class="event-title">{{ event.name }}</div>
                 <div class="event-time" *ngIf="getEventTime(event)">

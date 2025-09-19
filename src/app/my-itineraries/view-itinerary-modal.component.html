@@ -1,15 +1,15 @@
 <ion-header>
-  <ion-toolbar>
-    <ion-title>Saved Itinerary</ion-title>
+  <ion-toolbar color="warning">
+    <ion-title>Itinerary Details</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="close()">
+      <ion-button (click)="close()" fill="clear">
         <ion-icon name="close"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
+<ion-content class="event-detail-content">
   <div class="itinerary-container">
     <div *ngFor="let day of itinerary" class="day-section">
       <!-- Day Header -->

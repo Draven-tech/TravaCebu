@@ -639,4 +639,69 @@ export class CalendarService {
       updatedAt: calendarEvent.extendedProps?.updatedAt
     };
   }
+
+  /**
+   * Load completed itineraries for sharing (simplified format)
+   */
+  async loadCompletedItinerariesForSharing(): Promise<any[]> {
+    try {
+      const user = await this.afAuth.currentUser;
+      if (!user) {
+        return [];
+      }
+
+      const allEvents = await this.loadAllItineraryEvents();
+      const completedEvents = allEvents.filter(event => event.status === 'completed');
+      
+      // Group completed events into itineraries (same logic as completed-itineraries page)
+      const itineraries: any[] = [];
+      const groupedEvents = new Map<string, CalendarEvent[]>();
+
+      // Group events by date
+      completedEvents.forEach(event => {
+        const date = event.start.split('T')[0];
+        if (!groupedEvents.has(date)) {
+          groupedEvents.set(date, []);
+        }
+        groupedEvents.get(date)!.push(event);
+      });
+
+      // Convert grouped events to itineraries
+      groupedEvents.forEach((dayEvents, date) => {
+        if (dayEvents.length > 0) {
+          dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+          
+          const itinerary = {
+            id: `completed_itinerary_${date}`,
+            name: `My Cebu Adventure - ${this.getDateDisplay(date)}`,
+            date: date,
+            spots: dayEvents.map(event => ({
+              name: event.title,
+              type: event.extendedProps?.type || 'tourist_spot',
+              location: event.extendedProps?.location,
+              timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
+              duration: event.extendedProps?.duration || '2 hours'
+            }))
+          };
+          
+          itineraries.push(itinerary);
+        }
+      });
+
+      return itineraries;
+      
+    } catch (error) {
+      console.error('Error loading completed itineraries for sharing:', error);
+      return [];
+    }
+  }
+
+  private getDateDisplay(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
 }

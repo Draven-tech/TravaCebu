@@ -759,3 +759,135 @@ ion-menu.light-menu ion-list {
     justify-content: center !important;
   }
 }
+
+// Shared Itinerary Display Styles
+.shared-itinerary-card {
+  margin-top: 12px;
+
+  ion-card {
+    margin: 0;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+
+    ion-card-header {
+      padding-bottom: 8px;
+      background: linear-gradient(135deg, #FFD144 0%, #FFE066 100%);
+      border-radius: 12px 12px 0 0;
+
+      ion-card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #000;
+        display: flex;
+        align-items: center;
+        margin: 0;
+
+        ion-icon {
+          margin-right: 8px;
+          color: #000;
+        }
+      }
+
+      ion-card-subtitle {
+        font-size: 0.85rem;
+        color: #666;
+        margin-top: 4px;
+        margin-bottom: 0;
+      }
+    }
+
+    ion-card-content {
+      padding-top: 12px;
+
+      .itinerary-spots {
+        h4 {
+          margin: 0 0 12px 0;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #000;
+          display: flex;
+          align-items: center;
+
+          &::before {
+            content: "📍";
+            margin-right: 6px;
+          }
+        }
+
+        .spots-list {
+          .spot-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+
+            &:last-child {
+              border-bottom: none;
+            }
+
+            .spot-number {
+              font-weight: 600;
+              color: #FFD144;
+              margin-right: 12px;
+              min-width: 24px;
+              font-size: 0.9rem;
+            }
+
+            .spot-name {
+              flex: 1;
+              font-size: 0.9rem;
+              color: #000;
+              font-weight: 500;
+            }
+
+            .spot-time {
+              font-size: 0.8rem;
+              color: #666;
+              background: #f8f9fa;
+              padding: 4px 8px;
+              border-radius: 6px;
+              font-weight: 500;
+            }
+          }
+        }
+      }
+
+      .other-items-note {
+        margin-top: 12px;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        font-size: 0.8rem;
+        color: #666;
+
+        ion-icon {
+          margin-right: 6px;
+          font-size: 16px;
+        }
+      }
+
+      .itinerary-actions {
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid #f0f0f0;
+
+        ion-button {
+          --border-radius: 8px;
+          --padding-start: 16px;
+          --padding-end: 16px;
+          font-weight: 500;
+          text-transform: none;
+
+          &[disabled] {
+            --opacity: 0.6;
+            --background: #e9ecef;
+            --color: #6c757d;
+          }
+        }
+      }
+    }
+  }
+}

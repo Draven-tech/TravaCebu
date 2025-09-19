@@ -27,11 +27,23 @@
       </div>
     </div>
 
+    <!-- Post Type Selection -->
+    <div class="post-type-section">
+      <ion-segment [(ngModel)]="postType">
+        <ion-segment-button value="regular">
+          <ion-label>Regular Post</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="shared_itinerary">
+          <ion-label>Share Itinerary</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </div>
+
     <!-- Post Content -->
     <div class="post-input-section">
       <ion-textarea
         [(ngModel)]="postContent"
-        placeholder="What's on your mind?"
+        [placeholder]="postType === 'shared_itinerary' ? 'Share your travel experience...' : 'What\'s on your mind?'"
         rows="4"
         class="post-textarea"
         maxlength="1000"
@@ -39,8 +51,8 @@
       </ion-textarea>
     </div>
 
-    <!-- Tourist Spot Selection -->
-    <div class="location-section">
+    <!-- Regular Post Options -->
+    <div *ngIf="postType === 'regular'" class="location-section">
       <ion-item lines="none">
         <ion-icon name="location-outline" slot="start" color="medium"></ion-icon>
         <ion-select
@@ -63,6 +75,58 @@
           <ion-label>
             <h3>{{ getSelectedSpot()?.name }}</h3>
             <p>{{ getSelectedSpot()?.description }}</p>
+          </ion-label>
+        </ion-item>
+      </div>
+    </div>
+
+    <!-- Itinerary Sharing Options -->
+    <div *ngIf="postType === 'shared_itinerary'" class="itinerary-section">
+      <ion-item lines="none">
+        <ion-icon name="calendar-outline" slot="start" color="primary"></ion-icon>
+        <ion-select
+          [(ngModel)]="selectedItineraryId"
+          placeholder="Select completed itinerary to share"
+          interface="popover"
+          [disabled]="loadingItineraries">
+          <ion-select-option value="">Choose itinerary...</ion-select-option>
+          <ion-select-option 
+            *ngFor="let itinerary of completedItineraries" 
+            [value]="itinerary.id">
+            {{ itinerary.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+      
+      <!-- Selected Itinerary Preview -->
+      <div *ngIf="selectedItineraryId && getSelectedItinerary()" class="selected-itinerary-info">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>{{ getSelectedItinerary()?.name }}</ion-card-title>
+            <ion-card-subtitle>{{ getSelectedItinerary()?.date }}</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <h4>Places visited:</h4>
+            <ion-list>
+              <ion-item *ngFor="let spot of getSelectedItinerary()?.spots" lines="none">
+                <ion-icon name="location" slot="start" color="warning"></ion-icon>
+                <ion-label>
+                  <h3>{{ spot.name }}</h3>
+                  <p *ngIf="spot.timeSlot">{{ spot.timeSlot }} - {{ spot.duration }}</p>
+                </ion-label>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+      <!-- No Itineraries Message -->
+      <div *ngIf="!loadingItineraries && completedItineraries.length === 0" class="no-itineraries">
+        <ion-item lines="none">
+          <ion-icon name="information-circle-outline" slot="start" color="medium"></ion-icon>
+          <ion-label>
+            <h3>No completed itineraries</h3>
+            <p>Complete some trips first to share your itineraries!</p>
           </ion-label>
         </ion-item>
       </div>

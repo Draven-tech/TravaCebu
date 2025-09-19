@@ -4,6 +4,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { StorageService } from '../../services/storage.service';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { BadgeService } from '../../services/badge.service';
+import { CalendarService } from '../../services/calendar.service';
 
 @Component({
   selector: 'app-create-post-modal',
@@ -27,6 +28,12 @@ export class CreatePostModalComponent {
   touristSpots: any[] = [];
   loadingSpots: boolean = false;
 
+  // Itinerary sharing properties
+  postType: 'regular' | 'shared_itinerary' = 'regular';
+  selectedItineraryId: string = '';
+  completedItineraries: any[] = [];
+  loadingItineraries: boolean = false;
+
   constructor(
     private modalCtrl: ModalController,
     private firestore: AngularFirestore,
@@ -34,13 +41,17 @@ export class CreatePostModalComponent {
     private afAuth: AngularFireAuth,
     private alertCtrl: AlertController,
     private loadingCtrl: LoadingController,
-    private badgeService: BadgeService
+    private badgeService: BadgeService,
+    private calendarService: CalendarService
   ) {
     this.loadTouristSpots();
+    this.loadCompletedItineraries();
     if (this.isEditing && this.post) {
       this.postContent = this.post.content || '';
       this.imagePreview = this.post.imageUrl || null;
       this.selectedSpotId = this.post.touristSpotId || '';
+      this.postType = this.post.postType || 'regular';
+      this.selectedItineraryId = this.post.sharedItinerary?.itineraryId || '';
     }
   }
 
@@ -59,8 +70,23 @@ export class CreatePostModalComponent {
     }
   }
 
+  async loadCompletedItineraries() {
+    this.loadingItineraries = true;
+    try {
+      this.completedItineraries = await this.calendarService.loadCompletedItinerariesForSharing();
+      this.loadingItineraries = false;
+    } catch (error) {
+      console.error('Error loading completed itineraries:', error);
+      this.loadingItineraries = false;
+    }
+  }
+
   getSelectedSpot() {
     return this.touristSpots.find(spot => spot.id === this.selectedSpotId);
+  }
+
+  getSelectedItinerary() {
+    return this.completedItineraries.find(itinerary => itinerary.id === this.selectedItineraryId);
   }
 
   selectImage() {
@@ -92,6 +118,12 @@ export class CreatePostModalComponent {
       return;
     }
 
+    // Validate itinerary sharing
+    if (this.postType === 'shared_itinerary' && !this.selectedItineraryId) {
+      this.showAlert('Error', 'Please select an itinerary to share');
+      return;
+    }
+
     const loading = await this.loadingCtrl.create({
       message: this.isEditing ? 'Updating post...' : 'Creating post...',
       spinner: 'crescent'
@@ -113,35 +145,67 @@ export class CreatePostModalComponent {
       }
 
       const selectedSpot = this.getSelectedSpot();
-      const postData = {
+      const selectedItinerary = this.getSelectedItinerary();
+      
+      const postData: any = {
         userId: currentUser.uid,
         userName: this.userData?.fullName || 'Anonymous',
         userPhotoURL: this.userData?.photoURL || 'assets/img/default.png',
         content: this.postContent.trim(),
-        imageUrl: imageUrl,
-        touristSpotId: this.selectedSpotId || null,
-        touristSpotName: selectedSpot?.name || null,
-        touristSpotLocation: selectedSpot?.location || null,
+        imageUrl: imageUrl || null,
         likes: [],
         comments: [],
         timestamp: new Date(),
-        isPublic: true
+        isPublic: true,
+        postType: this.postType
       };
 
-      console.log('Creating post with data:', postData);
+      // Add tourist spot data only if provided and not empty
+      if (this.selectedSpotId && selectedSpot) {
+        postData.touristSpotId = this.selectedSpotId;
+        postData.touristSpotName = selectedSpot.name || null;
+        postData.touristSpotLocation = selectedSpot.location || null;
+      }
+
+      // Add shared itinerary data if sharing itinerary
+      if (this.postType === 'shared_itinerary' && selectedItinerary && selectedItinerary.spots) {
+        postData.sharedItinerary = {
+          itineraryId: selectedItinerary.id || null,
+          itineraryName: selectedItinerary.name || null,
+          itineraryDate: selectedItinerary.date || null,
+          spots: selectedItinerary.spots || [],
+          totalSpots: selectedItinerary.spots ? selectedItinerary.spots.length : 0
+        };
+      }
+
+      // Remove any undefined values to prevent Firestore errors
+      const cleanedPostData = this.removeUndefinedValues(postData);
+
+      console.log('Creating post with data:', cleanedPostData);
 
       if (this.isEditing && this.post?.id) {
-        // Update existing post
-        await this.firestore.collection('posts').doc(this.post.id).update({
-          content: postData.content,
-          imageUrl: postData.imageUrl,
-          touristSpotId: postData.touristSpotId,
-          touristSpotName: postData.touristSpotName,
-          touristSpotLocation: postData.touristSpotLocation
-        });
+        // Update existing post - create update object with only defined fields
+        const updateData: any = {
+          content: cleanedPostData.content,
+          imageUrl: cleanedPostData.imageUrl,
+          postType: cleanedPostData.postType
+        };
+        
+        // Add optional fields only if they exist
+        if (cleanedPostData.touristSpotId) {
+          updateData.touristSpotId = cleanedPostData.touristSpotId;
+          updateData.touristSpotName = cleanedPostData.touristSpotName;
+          updateData.touristSpotLocation = cleanedPostData.touristSpotLocation;
+        }
+        
+        if (cleanedPostData.sharedItinerary) {
+          updateData.sharedItinerary = cleanedPostData.sharedItinerary;
+        }
+        
+        await this.firestore.collection('posts').doc(this.post.id).update(updateData);
       } else {
         // Create new post
-        await this.firestore.collection('posts').add(postData);
+        await this.firestore.collection('posts').add(cleanedPostData);
       }
 
       await loading.dismiss();
@@ -197,5 +261,27 @@ export class CreatePostModalComponent {
 
   dismiss() {
     this.modalCtrl.dismiss();
+  }
+
+  private removeUndefinedValues(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.removeUndefinedValues(item));
+    }
+    
+    if (typeof obj === 'object') {
+      const cleaned: any = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key) && obj[key] !== undefined) {
+          cleaned[key] = this.removeUndefinedValues(obj[key]);
+        }
+      }
+      return cleaned;
+    }
+    
+    return obj;
   }
 } 

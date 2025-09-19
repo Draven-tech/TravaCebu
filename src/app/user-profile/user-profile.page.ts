@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AuthService } from '../services/auth.service';
-import { NavController, AlertController } from '@ionic/angular';
+import { NavController, AlertController, LoadingController } from '@ionic/angular';
 import { StorageService } from '../services/storage.service';
 import { ActionSheetController, ModalController } from '@ionic/angular';
 import { ViewProfilePictureComponent } from '../modals/view-profile-picture/view-profile-picture.component';
@@ -13,6 +13,7 @@ import { CreatePostModalComponent } from '../modals/create-post-modal/create-pos
 import { CommentsModalComponent } from '../modals/comments-modal/comments-modal.component';
 import { BadgeService, Badge } from '../services/badge.service';
 import { BadgeDetailModalComponent } from '../modals/badge-detail-modal/badge-detail-modal.component';
+import { BucketService } from '../services/bucket-list.service';
 
 // Post interface
 interface Post {
@@ -29,6 +30,19 @@ interface Post {
   timestamp: any;
   isPublic: boolean;
   liked?: boolean; // For UI state
+  postType?: 'regular' | 'shared_itinerary';
+  sharedItinerary?: {
+    itineraryId: string;
+    itineraryName: string;
+    itineraryDate: string;
+    spots: Array<{
+      name: string;
+      location?: string;
+      timeSlot?: string;
+      duration?: string;
+    }>;
+    totalSpots: number;
+  };
 }
 
 interface Comment {
@@ -75,7 +89,9 @@ export class UserProfilePage implements OnInit {
     private actionSheetCtrl: ActionSheetController,
     private modalCtrl: ModalController,
     private menuCtrl: MenuController,
-    private badgeService: BadgeService
+    private badgeService: BadgeService,
+    private bucketService: BucketService,
+    private loadingCtrl: LoadingController
   ) {}
 
   async ngOnInit() {
@@ -606,4 +622,105 @@ async viewProfilePicture() {
 
     await modal.present();
   }
+
+  formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  }
+
+  async copyItineraryToBucketList(sharedItinerary: any) {
+    if (!this.userId) {
+      this.showAlert('Error', 'User not authenticated');
+      return;
+    }
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Adding spots to your bucket list...',
+      spinner: 'crescent'
+    });
+    await loading.present();
+
+    try {
+      let addedCount = 0;
+      let skippedCount = 0;
+
+      for (const spot of sharedItinerary.spots) {
+        try {
+          // Only copy tourist spots, skip restaurants and hotels
+          const spotType = spot.type || 'tourist_spot';
+          if (spotType !== 'tourist_spot') {
+            console.log(`Skipping ${spotType}: ${spot.name}`);
+            skippedCount++;
+            continue;
+          }
+
+          // Create a spot object that matches the bucket list format
+          const spotData = {
+            id: this.generateSpotId(spot.name),
+            name: spot.name,
+            img: 'assets/img/default-spot.png', // Default image
+            category: 'tourist_spot',
+            location: spot.location || 'Cebu, Philippines',
+            description: `Shared from ${sharedItinerary.itineraryName}`
+          };
+
+          // Check if spot is already in bucket list
+          const isAlreadyAdded = await this.bucketService.isInBucket(spotData.id);
+          
+          if (!isAlreadyAdded) {
+            await this.bucketService.addToBucket(spotData);
+            addedCount++;
+          } else {
+            skippedCount++;
+          }
+        } catch (error) {
+          console.error('Error adding spot to bucket list:', error);
+          skippedCount++;
+        }
+      }
+
+      await loading.dismiss();
+
+      let message = '';
+      if (addedCount > 0) {
+        message = `Successfully added ${addedCount} tourist spots to your bucket list!`;
+        if (skippedCount > 0) {
+          message += ` (${skippedCount} items were skipped - restaurants, hotels, or duplicates)`;
+        }
+        this.showAlert('Success', message);
+      } else if (skippedCount > 0) {
+        this.showAlert('Info', 'No tourist spots were available to copy. This itinerary only contains restaurants and hotels, or all spots are already in your bucket list.');
+      } else {
+        this.showAlert('Error', 'Failed to add spots to your bucket list');
+      }
+
+    } catch (error) {
+      await loading.dismiss();
+      console.error('Error copying itinerary to bucket list:', error);
+      this.showAlert('Error', 'Failed to copy itinerary to your bucket list');
+    }
+  }
+
+  private generateSpotId(spotName: string): string {
+    // Generate a simple ID from the spot name
+    return spotName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  }
+
+  getTouristSpotsOnly(spots: any[]): any[] {
+    return spots.filter(spot => (spot.type || 'tourist_spot') === 'tourist_spot');
+  }
+
+  getTouristSpotsCount(spots: any[]): number {
+    return this.getTouristSpotsOnly(spots).length;
+  }
+
+  hasNonTouristSpots(spots: any[]): boolean {
+    return spots.some(spot => (spot.type || 'tourist_spot') !== 'tourist_spot');
+  }
+
 }

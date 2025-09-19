@@ -113,6 +113,46 @@
             <ion-icon name="location" color="warning"></ion-icon>
             <span>{{ post.touristSpotName }}</span>
           </div>
+
+          <!-- Shared Itinerary Display -->
+          <div *ngIf="post.postType === 'shared_itinerary' && post.sharedItinerary" class="shared-itinerary-card">
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>
+                  <ion-icon name="calendar-outline" color="primary"></ion-icon>
+                  {{ post.sharedItinerary.itineraryName }}
+                </ion-card-title>
+                <ion-card-subtitle>{{ formatDate(post.sharedItinerary.itineraryDate) }}</ion-card-subtitle>
+              </ion-card-header>
+              <ion-card-content>
+                <div class="itinerary-spots">
+                  <h4>📍 Places visited ({{ getTouristSpotsCount(post.sharedItinerary.spots) }} tourist spots):</h4>
+                  <div class="spots-list">
+                    <div *ngFor="let spot of getTouristSpotsOnly(post.sharedItinerary.spots); let i = index" class="spot-item">
+                      <span class="spot-number">{{ i + 1 }}.</span>
+                      <span class="spot-name">{{ spot.name }}</span>
+                      <span *ngIf="spot.timeSlot" class="spot-time">{{ spot.timeSlot }}</span>
+                    </div>
+                  </div>
+                  <div *ngIf="hasNonTouristSpots(post.sharedItinerary.spots)" class="other-items-note">
+                    <ion-icon name="information-circle-outline" color="medium"></ion-icon>
+                    <span>Restaurants and hotels are not included in bucket list copy</span>
+                  </div>
+                </div>
+                <div class="itinerary-actions">
+                  <ion-button 
+                    fill="outline" 
+                    size="small" 
+                    color="primary" 
+                    (click)="copyItineraryToBucketList(post.sharedItinerary)"
+                    [disabled]="post.userId === userId">
+                    <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+                    Copy Tourist Spots to Bucket List
+                  </ion-button>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </div>
         </div>
 
         <div class="post-actions">
@@ -177,6 +217,35 @@
           <div *ngIf="post.touristSpotName" class="post-location">
             <ion-icon name="location" color="warning"></ion-icon>
             <span>{{ post.touristSpotName }}</span>
+          </div>
+
+          <!-- Shared Itinerary Display -->
+          <div *ngIf="post.postType === 'shared_itinerary' && post.sharedItinerary" class="shared-itinerary-card">
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>
+                  <ion-icon name="calendar-outline" color="primary"></ion-icon>
+                  {{ post.sharedItinerary.itineraryName }}
+                </ion-card-title>
+                <ion-card-subtitle>{{ formatDate(post.sharedItinerary.itineraryDate) }}</ion-card-subtitle>
+              </ion-card-header>
+              <ion-card-content>
+                <div class="itinerary-spots">
+                  <h4>📍 Places visited ({{ getTouristSpotsCount(post.sharedItinerary.spots) }} tourist spots):</h4>
+                  <div class="spots-list">
+                    <div *ngFor="let spot of getTouristSpotsOnly(post.sharedItinerary.spots); let i = index" class="spot-item">
+                      <span class="spot-number">{{ i + 1 }}.</span>
+                      <span class="spot-name">{{ spot.name }}</span>
+                      <span *ngIf="spot.timeSlot" class="spot-time">{{ spot.timeSlot }}</span>
+                    </div>
+                  </div>
+                  <div *ngIf="hasNonTouristSpots(post.sharedItinerary.spots)" class="other-items-note">
+                    <ion-icon name="information-circle-outline" color="medium"></ion-icon>
+                    <span>Restaurants and hotels are not included in bucket list copy</span>
+                  </div>
+                </div>
+              </ion-card-content>
+            </ion-card>
           </div>
         </div>
 

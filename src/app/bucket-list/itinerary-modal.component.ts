@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, Input, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ModalController, AlertController, ToastController } from '@ionic/angular';
 import { ItineraryEditorComponent } from './itinerary-editor.component';
 import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itinerary.service';
@@ -49,10 +49,10 @@ interface PlaceSuggestion {
           <div *ngFor="let spot of sortByTimeSlot(day.spots); let i = index" class="spot-item">
             <div class="spot-name">{{ i + 1 }}. {{ spot.name }}</div>
             <div class="spot-details">
-              <span class="time">⏰ {{ spot.timeSlot }}</span>
-              <span class="duration">⏱️ {{ spot.estimatedDuration }}</span>
+              <span class="time">â° {{ spot.timeSlot }}</span>
+              <span class="duration">â±ï¸ {{ spot.estimatedDuration }}</span>
             </div>
-            <div class="spot-category">📍 {{ spot.category }}</div>
+            <div class="spot-category">ðŸ“ {{ spot.category }}</div>
             
             <!-- Show Suggestions Button for spots with meal times -->
             <div *ngIf="spot.mealType && !spot.chosenRestaurant" class="suggestions-toggle">
@@ -84,9 +84,9 @@ interface PlaceSuggestion {
               <div class="card-content">
                 <div class="place-name">{{ spot.chosenRestaurant.name }}</div>
                 <div class="place-details">
-                  <span *ngIf="spot.chosenRestaurant.rating">⭐ {{ spot.chosenRestaurant.rating }}★</span>
-                  <span *ngIf="spot.chosenRestaurant.vicinity">📍 {{ spot.chosenRestaurant.vicinity }}</span>
-                  <span class="meal-time">🍽️ {{ spot.mealType }} time</span>
+                  <span *ngIf="spot.chosenRestaurant.rating">â­ {{ spot.chosenRestaurant.rating }}â˜…</span>
+                  <span *ngIf="spot.chosenRestaurant.vicinity">ðŸ“ {{ spot.chosenRestaurant.vicinity }}</span>
+                  <span class="meal-time">ðŸ½ï¸ {{ spot.mealType }} time</span>
                 </div>
                 <div class="booking-links">
                   <ion-button size="small" fill="outline" color="primary" (click)="viewRestaurantMap(spot.chosenRestaurant)">
@@ -109,8 +109,8 @@ interface PlaceSuggestion {
                 <div *ngFor="let rest of (spot.restaurantSuggestions || []) | slice:0:3; trackBy: trackByPlaceId" class="suggestion-card">
                   <div class="suggestion-name">{{ getPlaceName(rest) }}</div>
                   <div class="suggestion-details">
-                    <span *ngIf="getPlaceRating(rest)">⭐ {{ getPlaceRating(rest) }}★</span>
-                    <span *ngIf="getPlaceVicinity(rest)">📍 {{ getPlaceVicinity(rest) }}</span>
+                    <span *ngIf="getPlaceRating(rest)">â­ {{ getPlaceRating(rest) }}â˜…</span>
+                    <span *ngIf="getPlaceVicinity(rest)">ðŸ“ {{ getPlaceVicinity(rest) }}</span>
                   </div>
                   <div class="suggestion-actions">
                     <ion-button size="small" fill="outline" color="success" (click)="chooseRestaurant(spot, rest)">
@@ -159,9 +159,9 @@ interface PlaceSuggestion {
             <div class="card-content">
               <div class="place-name">{{ day.chosenHotel.name }}</div>
               <div class="place-details">
-                <span *ngIf="day.chosenHotel.rating">⭐ {{ day.chosenHotel.rating }}★</span>
-                <span *ngIf="day.chosenHotel.vicinity">📍 {{ day.chosenHotel.vicinity }}</span>
-                <span class="check-in-time">🛏️ Check-in: Evening</span>
+                <span *ngIf="day.chosenHotel.rating">â­ {{ day.chosenHotel.rating }}â˜…</span>
+                <span *ngIf="day.chosenHotel.vicinity">ðŸ“ {{ day.chosenHotel.vicinity }}</span>
+                <span class="check-in-time">ðŸ›ï¸ Check-in: Evening</span>
               </div>
               <div class="booking-links">
                 <a [href]="getBookingUrl(day.chosenHotel)" target="_blank" class="booking-link">
@@ -187,8 +187,8 @@ interface PlaceSuggestion {
               <div *ngFor="let hotel of (day.hotelSuggestions || []) | slice:0:3; trackBy: trackByPlaceId" class="suggestion-card">
                 <div class="suggestion-name">{{ getPlaceName(hotel) }}</div>
                 <div class="suggestion-details">
-                  <span *ngIf="getPlaceRating(hotel)">⭐ {{ getPlaceRating(hotel) }}★</span>
-                  <span *ngIf="getPlaceVicinity(hotel)">📍 {{ getPlaceVicinity(hotel) }}</span>
+                  <span *ngIf="getPlaceRating(hotel)">â­ {{ getPlaceRating(hotel) }}â˜…</span>
+                  <span *ngIf="getPlaceVicinity(hotel)">ðŸ“ {{ getPlaceVicinity(hotel) }}</span>
                 </div>
                 <div class="suggestion-actions">
                   <ion-button size="small" fill="outline" color="success" (click)="chooseHotel(day, hotel)">
@@ -258,7 +258,6 @@ interface PlaceSuggestion {
       border: 1px solid rgba(231, 76, 60, 0.2);
     }
 
-
     .spot-item {
       background: #f8f9fa;
       border-radius: 12px;
@@ -288,7 +287,6 @@ interface PlaceSuggestion {
       text-transform: uppercase;
     }
 
-    /* Selected Cards */
     .selected-card {
       background: #ffffff;
       border-radius: 12px;
@@ -371,7 +369,6 @@ interface PlaceSuggestion {
       border-color: #adb5bd;
     }
 
-    /* Suggestions Section */
     .suggestions-section {
       margin-top: 16px;
       padding: 16px;
@@ -441,7 +438,6 @@ interface PlaceSuggestion {
       font-size: 0.9rem;
     }
 
-    /* No Suggestions */
     .no-suggestions {
       display: flex;
       align-items: center;
@@ -453,15 +449,13 @@ interface PlaceSuggestion {
       color: #6c757d;
       font-style: italic;
     }
-    
-    /* Map modal styles */
+
     :global(.map-modal) {
       --height: 90%;
       --width: 90%;
       --max-width: 800px;
     }
 
-    /* Route Information Styles */
     .route-chain {
       margin-top: 12px;
     }
@@ -613,7 +607,6 @@ interface PlaceSuggestion {
       opacity: 0.5;
     }
 
-    /* Suggestion Toggle Buttons */
     .suggestions-toggle {
       margin: 12px 0;
       text-align: center;
@@ -644,7 +637,6 @@ interface PlaceSuggestion {
       min-width: 120px;
     }
 
-    /* Loading suggestions indicator */
     .loading-suggestions {
       display: flex;
       flex-direction: column;
@@ -677,7 +669,6 @@ export class ItineraryModalComponent implements OnInit {
   fetchingSuggestions = false;
   saving = false;
   suggestionsVisible: { [key: string]: boolean } = {}; // Track which spots show suggestions
-
 
   constructor(
     private modalCtrl: ModalController, 
@@ -889,7 +880,7 @@ export class ItineraryModalComponent implements OnInit {
           const restaurantStartTime = `${year}-${month}-${day}T${hours}:${minutes}:00`;
           
           const restaurantEvent: CalendarEvent = {
-            title: `🍽️ ${spot.chosenRestaurant.name}`,
+            title: `ðŸ½ï¸ ${spot.chosenRestaurant.name}`,
             start: restaurantStartTime,
             end: restaurantStartTime,
             color: '#ff9800', // Orange for restaurants
@@ -919,7 +910,7 @@ export class ItineraryModalComponent implements OnInit {
       if (day.chosenHotel) {
         const hotelStartTime = `${day.date}T18:00:00`;
         const hotelEvent: CalendarEvent = {
-          title: `🏨 ${day.chosenHotel.name}`,
+          title: `ðŸ¨ ${day.chosenHotel.name}`,
           start: hotelStartTime,
           end: hotelStartTime,
           color: '#3880ff', // Blue for hotels
@@ -944,14 +935,11 @@ export class ItineraryModalComponent implements OnInit {
 
       }
     }
-    
-    
-    
+
     // Save using the calendar service
     await this.calendarService.saveItineraryEvents(events);
     
   }
-
 
   chooseRestaurant(spot: ItinerarySpot, restaurant: any) {
     // Ensure restaurant has lat/lng coordinates for pin utilization
@@ -1030,8 +1018,6 @@ export class ItineraryModalComponent implements OnInit {
     this.modalCtrl.dismiss();
   }
 
-
-
   saveToNotes() {
     let notes = '=== MY CEBU ITINERARY ===\n\n';
     this.itinerary.forEach(day => {
@@ -1048,9 +1034,7 @@ export class ItineraryModalComponent implements OnInit {
         if (spot.chosenRestaurant) {
           notes += `   Restaurant: ${spot.chosenRestaurant.name}\n`;
         }
-        
 
-        
         notes += '\n';
       });
       if (day.chosenHotel) {
@@ -1160,7 +1144,6 @@ export class ItineraryModalComponent implements OnInit {
     }, 3000);
   }
 
-
   private getItineraryId(): string {
     // Generate a unique ID for this itinerary based on the spots
     if (this.itinerary && this.itinerary.length > 0) {
@@ -1183,4 +1166,4 @@ export class ItineraryModalComponent implements OnInit {
     await toast.present();
   }
 
-} 
+}

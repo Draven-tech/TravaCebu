@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import * as pdfMake from 'pdfmake/build/pdfmake';
 import { vfs } from 'pdfmake/build/vfs_fonts';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -29,7 +29,7 @@ export class PdfExportService {
     const url = await getDownloadURL(storageRef);
     return url;
   }
-  // ⬇️ Called to get a Blob for sharing (instead of direct download)
+  // â¬‡ï¸ Called to get a Blob for sharing (instead of direct download)
   async generateFullItineraryBlob(itineraries: any[]): Promise<Blob> {
     const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
     const pdfDocGenerator = pdfMake.createPdf(docDefinition);
@@ -41,7 +41,7 @@ export class PdfExportService {
     });
   }
 
-  // ⬇️ Private: builds layout for multiple itineraries
+  // â¬‡ï¸ Private: builds layout for multiple itineraries
   private buildFullItineraryDocDefinition(itineraries: any[]): any {
     const content: any[] = [];
 
@@ -129,10 +129,9 @@ export class PdfExportService {
     const saved = await Filesystem.writeFile({
       path: `Download/${fileName}`,
       data: base64Data,
-      directory: Directory.ExternalStorage, // ✅ saves outside app sandbox
+      directory: Directory.ExternalStorage, // âœ… saves outside app sandbox
     });
 
-    console.log('PDF saved at:', saved.uri);
     alert(`PDF saved to Downloads folder: ${fileName}`);
   }
 }

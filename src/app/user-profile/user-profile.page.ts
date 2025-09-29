@@ -1,4 +1,4 @@
-import { Component, ViewChild, OnInit, ElementRef  } from '@angular/core';
+﻿import { Component, ViewChild, OnInit, ElementRef  } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
@@ -124,32 +124,22 @@ export class UserProfilePage implements OnInit {
 
   async loadPosts() {
     this.loadingPosts = true;
-    console.log('Loading posts for user:', this.userId);
-    
     try {
       // Load all public posts for feed
-      console.log('Loading public posts...');
       this.firestore.collection('posts', ref => 
         ref.where('isPublic', '==', true).orderBy('timestamp', 'desc').limit(20)
       ).snapshotChanges().subscribe(async (changes) => {
-        console.log('Public posts changes:', changes.length);
         const posts = changes.map(c => ({ id: c.payload.doc.id, ...(c.payload.doc.data() as any) }));
-        console.log('Public posts data:', posts);
         this.posts = await this.processPosts(posts);
-        console.log('Processed public posts:', this.posts.length);
-      });
+        });
 
       // Load user's posts
-      console.log('Loading user posts for userId:', this.userId);
       this.firestore.collection('posts', ref => 
         ref.where('userId', '==', this.userId).orderBy('timestamp', 'desc')
       ).snapshotChanges().subscribe(async (changes) => {
-        console.log('User posts changes:', changes.length);
         const posts = changes.map(c => ({ id: c.payload.doc.id, ...(c.payload.doc.data() as any) }));
-        console.log('User posts data:', posts);
         this.userPosts = await this.processPosts(posts);
-        console.log('Processed user posts:', this.userPosts.length);
-      });
+        });
     } catch (error) {
       console.error('Error loading posts:', error);
       this.showAlert('Error', 'Failed to load posts');
@@ -166,8 +156,7 @@ export class UserProfilePage implements OnInit {
       this.badgeService.getUserBadges(this.userId).subscribe(badges => {
         this.userBadges = badges;
         this.badgesLoaded = true;
-        console.log('Loaded badges:', badges);
-      });
+        });
     } catch (error) {
       console.error('Error loading badges:', error);
       this.showAlert('Error', 'Failed to load badges');
@@ -596,17 +585,12 @@ async viewProfilePicture() {
   async forceEvaluateBucketListBadge() {
     if (!this.userId || !this.userData) return;
     
-    console.log('Current user data:', this.userData);
-    console.log('Bucket list data:', this.userData?.bucketList);
-    
     // Manually trigger bucket list badge evaluation
     await this.badgeService.evaluateAllBadges(this.userId, this.userData);
     
     // Refresh the display
     this.refreshBadges();
   }
-
-
 
   async openBadgeDetail(badge: Badge) {
     const modal = await this.modalCtrl.create({
@@ -654,7 +638,6 @@ async viewProfilePicture() {
           // Only copy tourist spots, skip restaurants and hotels
           const spotType = spot.type || 'tourist_spot';
           if (spotType !== 'tourist_spot') {
-            console.log(`Skipping ${spotType}: ${spot.name}`);
             skippedCount++;
             continue;
           }

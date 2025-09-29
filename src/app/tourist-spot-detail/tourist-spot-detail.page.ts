@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
@@ -8,7 +8,6 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PlacesImageService } from '../services/places-image.service';
 import { GeofencingService } from '../services/geofencing.service';
 import { BucketService } from '../services/bucket-list.service';
-
 
 @Component({
   selector: 'app-tourist-spot-detail',
@@ -134,8 +133,6 @@ export class TouristSpotDetailPage implements OnInit {
       this.loadReviews();
       this.showAlert('Success', 'Review submitted successfully!');
 
-
-
     } catch (error) {
       console.error('Failed to submit review:', error);
       this.showAlert('Error', 'Something went wrong while submitting your review.');
@@ -207,8 +204,6 @@ export class TouristSpotDetailPage implements OnInit {
       this.removeImage();
       this.rating = 5;
       this.postAsAnonymous = false;
-
-
 
     } catch (error) {
       console.error('Error uploading review:', error);

@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouteDetailPage } from './route-detail.page';
 
 describe('RouteDetailPage', () => {
@@ -15,3 +15,5 @@ describe('RouteDetailPage', () => {
     expect(component).toBeTruthy();
   });
 });
+
+

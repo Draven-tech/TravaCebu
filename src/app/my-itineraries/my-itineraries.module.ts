@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+﻿import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
@@ -19,4 +19,4 @@ import { ViewItineraryModalComponent } from './view-itinerary-modal.component';
   declarations: [MyItinerariesPage, ViewItineraryModalComponent],
   exports: [ViewItineraryModalComponent]
 })
-export class MyItinerariesPageModule {} 
+export class MyItinerariesPageModule {}

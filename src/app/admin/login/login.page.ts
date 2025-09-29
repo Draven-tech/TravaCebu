@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
+﻿import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LoadingController, AlertController, ToastController, IonContent, Platform, NavController } from '@ionic/angular';
@@ -38,8 +38,7 @@ export class LoginPage implements OnInit {
 
   ngOnInit() {
     // Keyboard handling removed for web compatibility
-    console.log('Admin login page initialized');
-  }
+    }
 
   async login() {
     if (this.form.invalid) return;

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { AlertController, ModalController } from '@ionic/angular';
 import { CalendarService, GlobalEvent } from '../services/calendar.service';
 import { EventDetailModalComponent } from '../modals/event-detail-modal/event-detail-modal.component';
@@ -458,7 +458,6 @@ export class UserCalendarPage implements OnInit {
     const allEventsForDate = this.getAllEventsForDate(date);
     return allEventsForDate.length > 1;
   }
-
 
   openInGoogleCalendar(event: GlobalEvent) {
     // This would open the event in Google Calendar if it was created there

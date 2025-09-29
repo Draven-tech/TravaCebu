@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+﻿import { Component, Input, OnInit } from '@angular/core';
 import { ModalController, NavController, AlertController } from '@ionic/angular';
 import * as L from 'leaflet';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
@@ -44,7 +44,7 @@ export class TouristSpotDetailPage implements OnInit {
     });
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Satellite Imagery © Esri',
+      attribution: 'Satellite Imagery Â© Esri',
       maxZoom: 19
     }).addTo(this.map);
 
@@ -109,8 +109,7 @@ export class TouristSpotDetailPage implements OnInit {
                 // Delete the image from storage if it exists
                 if (this.spot.img) {
                   await this.storageService.deleteFileByURL(this.spot.img);
-                  console.log('Image deleted from storage:', this.spot.img);
-                }
+                  }
                 
                 // Delete the Firestore document
                 await this.firestore.collection('tourist_spots').doc(this.spot.id).delete();

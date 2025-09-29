@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Observable } from 'rxjs';
@@ -22,12 +22,10 @@ export class PlacesService {
       key: this.apiKey
     };
     
-    console.log('🧪 Testing API key with params:', testParams);
-    
     // Always use proxy for all platforms
     return this.http.get(this.proxyUrl, { params: testParams }).pipe(
       catchError(error => {
-        console.error('❌ API key test failed:', error);
+        console.error('âŒ API key test failed:', error);
         return new Observable(observer => {
           observer.next({ status: 'ERROR', error: error.message });
           observer.complete();
@@ -52,15 +50,12 @@ export class PlacesService {
     // Always use proxy for all platforms
     const apiUrl = this.proxyUrl;
     
-    console.log(`🔍 Fetching places from: ${apiUrl}`);
-    console.log(`📍 Location: ${lat},${lng}, Type: ${type}, Radius: ${radius}`);
-    
     return this.http.get(apiUrl, { params }).pipe(
       // Debug log the response
       tap((resp: any) => {
       }),
       catchError(error => {
-        console.error('❌ Error fetching places:', error);
+        console.error('âŒ Error fetching places:', error);
         console.error('Error details:', error.status, error.statusText, error.error);
         // Return empty results on error instead of throwing
         return new Observable(observer => {
@@ -91,7 +86,7 @@ export class PlacesService {
       tap((resp: any) => {
       }),
       catchError(error => {
-        console.error('❌ Error fetching place details:', error);
+        console.error('âŒ Error fetching place details:', error);
         return new Observable(observer => {
           observer.next({ status: 'ERROR', error: error.message });
           observer.complete();
@@ -119,7 +114,7 @@ export class PlacesService {
       tap((resp: any) => {
       }),
       catchError(error => {
-        console.error('❌ Error fetching place photos:', error);
+        console.error('âŒ Error fetching place photos:', error);
         return new Observable(observer => {
           observer.next({ status: 'ERROR', error: error.message });
           observer.complete();
@@ -167,7 +162,7 @@ export class PlacesService {
         return searchResult;
       }),
       catchError(error => {
-        console.error('❌ Error searching place:', error);
+        console.error('âŒ Error searching place:', error);
         // Return empty results on error instead of throwing
         return new Observable(observer => {
           observer.next({ results: [], status: 'ERROR', error: error.message });
@@ -189,9 +184,8 @@ export class PlacesService {
       tap((searchResult: any) => {
         if (searchResult.results && searchResult.results.length > 0) {
         } else {
-          console.log('❌ No exact match found, trying nearby search');
-        }
+          }
       })
     );
   }
-} 
+}

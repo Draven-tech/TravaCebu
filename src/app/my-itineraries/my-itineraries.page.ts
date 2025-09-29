@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { NavController, AlertController, ModalController, ToastController } from '@ionic/angular';
@@ -441,4 +441,4 @@ export class MyItinerariesPage implements OnInit {
   await this.pdfExportService.generateAndSavePDF(this.itineraries);
 }
 
-} 
+}

@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+﻿import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { EditProfileModalComponent } from './edit-profile-modal.component';
@@ -22,3 +22,5 @@ describe('EditProfileModalComponent', () => {
     expect(component).toBeTruthy();
   });
 });
+
+

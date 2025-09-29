@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AuthService } from './auth.service';
@@ -442,8 +442,6 @@ export class BudgetService {
           itineraryId: newItineraryId,
           updatedAt: new Date()
         });
-      
-      console.log('✅ Updated expense itinerary ID:', expenseId, 'to', newItineraryId);
       
       // Force refresh of expenses to update observables
       this.loadExpenses();

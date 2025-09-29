@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Router } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
@@ -20,7 +20,7 @@ export class AuthService {
       const userCredential = await this.afAuth.signInWithEmailAndPassword(email, password);
       const adminDoc = await this.firestore.collection('admins').doc(userCredential.user?.uid).get().toPromise();
       this.afAuth.setPersistence('local')
-        .then(() => console.log('Auth persistence: LOCAL'))
+        .then(() => console.log('Persistence set to local'))
         .catch(err => console.error('Persistence error', err));
 
       if (!adminDoc?.exists) {
@@ -68,6 +68,7 @@ export class AuthService {
       // You can store user info locally if needed
       return true;
     } catch (error) {
+      console.error('Error in auth service:', error);
       throw error;
     }
   }

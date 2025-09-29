@@ -1,0 +1,403 @@
+﻿import { Injectable } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class MapUtilitiesService {
+
+  constructor() { }
+
+  /**
+   * Generate nearby points around a location for route searching
+   */
+  generateNearbyPoints(lat: number, lng: number, radiusKm: number): any[] {
+    const points: any[] = [];
+    const numPoints = 8; // Generate 8 points in a circle
+    
+    for (let i = 0; i < numPoints; i++) {
+      const angle = (i * 360) / numPoints;
+      const distance = radiusKm / 111; // Rough conversion from km to degrees
+      
+      const newLat = lat + (distance * Math.cos(angle * Math.PI / 180));
+      const newLng = lng + (distance * Math.sin(angle * Math.PI / 180));
+      
+      points.push({
+        lat: newLat,
+        lng: newLng
+      });
+    }
+    
+    return points;
+  }
+
+  /**
+   * Calculate distance between two points using Haversine formula
+   */
+  calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLng = this.deg2rad(lng2 - lng1);
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Distance in kilometers
+    return distance;
+  }
+
+  /**
+   * Convert degrees to radians
+   */
+  deg2rad(deg: number): number {
+    return deg * (Math.PI/180);
+  }
+
+  /**
+   * Check if coordinates are within Cebu bounds
+   */
+  isWithinCebu(lat: number, lng: number): boolean {
+    // Cebu bounds: roughly 10.0-11.0 lat, 123.5-124.5 lng
+    return lat >= 10.0 && lat <= 11.0 && lng >= 123.5 && lng <= 124.5;
+  }
+
+  /**
+   * Format distance in meters to readable format
+   */
+  formatDistance(meters: number): string {
+    if (meters < 1000) {
+      return `${Math.round(meters)}m`;
+    } else {
+      return `${(meters / 1000).toFixed(1)}km`;
+    }
+  }
+
+  /**
+   * Format duration in seconds to readable format
+   */
+  formatDuration(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
+  }
+
+  /**
+   * Format fare in cents to readable format
+   */
+  formatFare(cents: number): string {
+    if (cents === 0) return 'Free';
+    const pesos = cents / 100;
+    return `₱${pesos.toFixed(2)}`;
+  }
+
+  /**
+   * Decode OSRM polyline
+   */
+  decodeOSRMPolyline(encoded: string): any[] {
+    if (!encoded) return [];
+    
+    const points: any[] = [];
+    let index = 0;
+    const len = encoded.length;
+    let lat = 0;
+    let lng = 0;
+
+    while (index < len) {
+      let b: number;
+      let shift = 0;
+      let result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      points.push([lat / 1e5, lng / 1e5]);
+    }
+
+    return points;
+  }
+
+  /**
+   * Decode Google polyline
+   */
+  decodePolyline(encoded: string): [number, number][] {
+    if (!encoded) return [];
+    
+    const points: [number, number][] = [];
+    let index = 0;
+    const len = encoded.length;
+    let lat = 0;
+    let lng = 0;
+
+    while (index < len) {
+      let b: number;
+      let shift = 0;
+      let result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      points.push([lat / 1e5, lng / 1e5]);
+    }
+
+    return points;
+  }
+
+  /**
+   * Get date display string
+   */
+  getDateDisplay(dateString: string): string {
+    if (!dateString) return 'Unknown Date';
+    
+    try {
+      const date = new Date(dateString);
+      
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date string:', dateString);
+        return 'Unknown Date';
+      }
+      
+      const now = new Date();
+      const diffTime = Math.abs(now.getTime() - date.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) {
+        return 'Today';
+      } else if (diffDays === 1) {
+        return 'Tomorrow';
+      } else if (diffDays <= 7) {
+        return `In ${diffDays} days`;
+      } else {
+        return date.toLocaleDateString();
+      }
+    } catch (error) {
+      console.error('Error parsing date:', error, 'Input:', dateString);
+      return 'Unknown Date';
+    }
+  }
+
+  /**
+   * Group events into itineraries
+   */
+  groupEventsIntoItineraries(events: any[]): any[] {
+    if (!events || events.length === 0) return [];
+
+    // Group events by date
+    const groupedByDate: { [key: string]: any[] } = {};
+    events.forEach(event => {
+      const dateKey = event.date || 'unscheduled';
+      if (!groupedByDate[dateKey]) {
+        groupedByDate[dateKey] = [];
+      }
+      groupedByDate[dateKey].push(event);
+    });
+
+    // Convert grouped events to itineraries
+    return Object.keys(groupedByDate).map(dateKey => ({
+      id: `itinerary_${dateKey}`,
+      name: `Itinerary for ${this.getDateDisplay(dateKey)}`,
+      date: dateKey,
+      events: groupedByDate[dateKey],
+      spots: groupedByDate[dateKey].map(event => ({
+        id: event.id,
+        name: event.name,
+        location: event.location,
+        timeSlot: event.timeSlot,
+        estimatedDuration: event.estimatedDuration,
+        eventType: event.eventType,
+        category: event.category,
+        mealType: event.mealType,
+        restaurant: event.restaurant,
+        hotel: event.hotel,
+        rating: event.rating,
+        vicinity: event.vicinity
+      }))
+    }));
+  }
+
+  /**
+   * Extract route segments from route
+   */
+  extractRouteSegments(route: any): any[] {
+    if (!route || !route.segments) return [];
+    
+    return route.segments.map((segment: any, index: number) => ({
+      ...segment,
+      index,
+      instructions: this.generateSegmentInstructions(segment),
+      transportMode: this.determineTransportMode(segment)
+    }));
+  }
+
+  /**
+   * Determine transport mode from segment
+   */
+  determineTransportMode(leg: any): string {
+    if (leg.type === 'walk') return 'Walking';
+    if (leg.type === 'jeepney') return 'Jeepney';
+    if (leg.type === 'bus') return 'Bus';
+    return 'Unknown';
+  }
+
+  /**
+   * Generate segment instructions
+   */
+  generateSegmentInstructions(leg: any): string {
+    if (leg.type === 'walk') {
+      return `Walk ${this.formatDistance(leg.distance)} (${this.formatDuration(leg.duration)})`;
+    } else if (leg.type === 'jeepney' || leg.type === 'bus') {
+      return `Take ${leg.jeepneyCode || leg.type} for ${this.formatDistance(leg.distance)} (${this.formatDuration(leg.duration)})`;
+    }
+    return leg.description || 'Continue';
+  }
+
+  /**
+   * Extract transit details from leg
+   */
+  extractTransitDetails(leg: any): any {
+    if (leg.type !== 'jeepney' && leg.type !== 'bus') return null;
+    
+    return {
+      line: leg.jeepneyCode,
+      type: leg.type,
+      duration: leg.duration,
+      distance: leg.distance
+    };
+  }
+
+  /**
+   * Estimate fare for route
+   */
+  estimateFare(route: any): string {
+    if (!route || !route.segments) return '₱0.00';
+    
+    let totalFare = 0;
+    route.segments.forEach((segment: any) => {
+      if (segment.type === 'jeepney') {
+        totalFare += 12; // Standard jeepney fare in Cebu
+      } else if (segment.type === 'bus') {
+        totalFare += 15; // Standard bus fare
+      }
+    });
+    
+    return this.formatFare(totalFare * 100);
+  }
+
+  /**
+   * Generate fallback routes when no transit is available
+   */
+  generateFallbackRoutes(origin: any, destination: any): any[] {
+    const distance = this.calculateDistance(
+      origin.lat || origin.location?.lat,
+      origin.lng || origin.location?.lng,
+      destination.lat || destination.location?.lat,
+      destination.lng || destination.location?.lng
+    );
+
+    // If distance is less than 2km, suggest walking
+    if (distance < 2) {
+      return [{
+        segments: [{
+          type: 'walk',
+          description: `Walk to ${destination.name}`,
+          duration: Math.round(distance * 1000 / 1.1), // ~1.1 m/s walking speed
+          distance: distance * 1000,
+          from: origin,
+          to: destination,
+          jeepneyCode: null,
+          polyline: null
+        }],
+        totalDuration: Math.round(distance * 1000 / 1.1),
+        totalDistance: distance * 1000,
+        summary: `Walking route: ${this.formatDistance(distance * 1000)} • ${this.formatDuration(Math.round(distance * 1000 / 1.1))}`
+      }];
+    }
+
+    return [];
+  }
+
+  /**
+   * Check if network is online
+   */
+  isOnline(): boolean {
+    return window.navigator.onLine;
+  }
+
+  /**
+   * Create bounds from coordinates
+   */
+  createBounds(coordinates: [number, number][]): any {
+    if (!coordinates || coordinates.length === 0) return null;
+    
+    let minLat = coordinates[0][0];
+    let maxLat = coordinates[0][0];
+    let minLng = coordinates[0][1];
+    let maxLng = coordinates[0][1];
+    
+    coordinates.forEach(([lat, lng]) => {
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+    });
+    
+    return {
+      north: maxLat,
+      south: minLat,
+      east: maxLng,
+      west: minLng
+    };
+  }
+
+  /**
+   * Validate coordinates
+   */
+  validateCoordinates(lat: number, lng: number): boolean {
+    return !isNaN(lat) && !isNaN(lng) && 
+           lat >= -90 && lat <= 90 && 
+           lng >= -180 && lng <= 180;
+  }
+
+  /**
+   * Snap coordinates to nearest valid point
+   */
+  snapCoordinates(lat: number, lng: number): { lat: number; lng: number } {
+    return {
+      lat: Math.max(-90, Math.min(90, lat)),
+      lng: Math.max(-180, Math.min(180, lng))
+    };
+  }
+}

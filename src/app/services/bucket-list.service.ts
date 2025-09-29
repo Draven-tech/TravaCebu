@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { BadgeService } from './badge.service';
@@ -147,8 +147,7 @@ export class BucketService {
       if (userData) {
         // Trigger badge evaluation
         await this.badgeService.evaluateAllBadges(userId, userData);
-        console.log('Badge evaluation triggered after bucket list change');
-      }
+        }
     } catch (error) {
       console.error('Error triggering badge evaluation:', error);
     }

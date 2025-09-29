@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+﻿import { Component, Input, OnInit } from '@angular/core';
 import { ModalController, NavController, AlertController } from '@ionic/angular';
 import * as L from 'leaflet';
 import { DatePipe } from '@angular/common';
@@ -51,7 +51,7 @@ export class RouteDetailPage implements OnInit {
     });
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Satellite Imagery © Esri',
+      attribution: 'Satellite Imagery Â© Esri',
       maxZoom: 19
     }).addTo(this.map);
 

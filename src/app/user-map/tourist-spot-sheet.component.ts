@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+﻿import { Component, Input, OnInit } from '@angular/core';
 import { ModalController, IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { PlacesImageService, EnhancedTouristSpot, PlaceImage } from '../services/places-image.service';
@@ -46,8 +46,7 @@ export class TouristSpotSheetComponent implements OnInit {
         this.allImages = this.placesImageService.getAllImages(enhancedSpot);
         this.isLoading = false;
         this.isRefreshing = false;
-        console.log('Enhanced spot with Google images:', enhancedSpot);
-      },
+        },
       error: (error) => {
         console.error('Error enhancing spot:', error);
         this.enhancedSpot = this.spot;
@@ -164,4 +163,4 @@ export class TouristSpotSheetComponent implements OnInit {
   getWorkingImagesCount(): number {
     return this.allImages.length - this.imageErrors.size;
   }
-} 
+}

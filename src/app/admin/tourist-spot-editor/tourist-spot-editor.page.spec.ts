@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TouristSpotEditorPage } from './tourist-spot-editor.page';
 
 describe('TouristSpotEditorPage', () => {
@@ -15,3 +15,5 @@ describe('TouristSpotEditorPage', () => {
     expect(component).toBeTruthy();
   });
 });
+
+

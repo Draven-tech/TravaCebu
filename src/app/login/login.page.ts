@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
+﻿import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { AlertController, NavController, IonContent } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';

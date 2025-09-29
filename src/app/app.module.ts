@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+﻿import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { RouteReuseStrategy } from '@angular/router';
 
@@ -14,11 +14,9 @@ import { environment } from '../environments/environment';
 import { HttpClientModule } from '@angular/common/http'; 
 import { initializeApp } from 'firebase/app';
 
-// Initialize Firebase for storage service
 try {
   initializeApp(environment.firebase);
-  console.log('Firebase initialized successfully');
-} catch (error) {
+  } catch (error) {
   console.error('Error initializing Firebase:', error);
 }
 

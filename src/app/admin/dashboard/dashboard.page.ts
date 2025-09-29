@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiTrackerService } from '../../services/api-tracker.service';
 import { AuthService } from '../../services/auth.service';
@@ -36,34 +36,26 @@ export class DashboardPage implements OnInit {
   }
 
   navigateTo(route: string) {
-    console.log('Dashboard navigating to:', route);
     switch (route) {
       case 'route-editor':
-        console.log('Navigating to route-editor');
         this.router.navigate(['/admin/route-editor']);
         break;
       case 'route-list':
-        console.log('Navigating to route-list');
         this.router.navigate(['/admin/route-list']);
         break;
       case 'tourist-spot-editor':
-        console.log('Navigating to tourist-spot-editor');
         this.router.navigate(['/admin/tourist-spot-editor']);
         break;
       case 'tourist-spot-list':
-        console.log('Navigating to tourist-spot-list');
         this.router.navigate(['/admin/tourist-spot-list']);
         break;
       case 'event-editor':
-        console.log('Navigating to event-editor');
         this.router.navigate(['/admin/event-editor']);
         break;
       case 'event-list':
-        console.log('Navigating to event-list');
         this.router.navigate(['/admin/event-list']);
         break;
       case 'pending-spots':
-        console.log('Navigating to pending-spots');
         this.router.navigate(['/admin/pending-spots']);
         break;
     }

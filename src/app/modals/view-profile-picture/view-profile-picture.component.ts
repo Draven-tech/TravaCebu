@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+﻿import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ModalController, NavController } from '@ionic/angular';
 
@@ -16,7 +16,7 @@ import { IonicModule, ModalController, NavController } from '@ionic/angular';
       </div>
     </ion-content>
   `,
-  styleUrls: ['./view-profile-picture.component.scss'] // ✅ linked SCSS
+  styleUrls: ['./view-profile-picture.component.scss'] // âœ… linked SCSS
 })
 export class ViewProfilePictureComponent {
   @Input() photoURL: string = '';

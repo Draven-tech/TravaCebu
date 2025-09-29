@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, ModalController, NavController } from '@ionic/angular';
 import { DatePipe } from '@angular/common';
@@ -64,8 +64,6 @@ export class EventListPage implements OnInit {
       // Load admin events using new global event system
       const adminEvents = await this.calendarService.loadAdminEvents();
       
-      console.log('Loaded admin events:', adminEvents);
-      
       // Convert to display format
       this.events = adminEvents.map(event => ({
         id: event.id,
@@ -84,8 +82,6 @@ export class EventListPage implements OnInit {
         const dateB = new Date(b.date + 'T' + b.time);
         return dateB.getTime() - dateA.getTime();
       });
-      
-      console.log('Admin events for display:', this.events);
       
       // Clear caches when events are reloaded
       this.clearCalendarCaches();
@@ -144,7 +140,6 @@ export class EventListPage implements OnInit {
   }
 
   navigateToEditor() {
-    console.log('EventList navigating to editor');
     this.navCtrl.navigateForward('/admin/event-editor');
   }
 
@@ -199,8 +194,6 @@ export class EventListPage implements OnInit {
 
   setActiveTab(tab: string) {
     this.activeTab = tab;
-    console.log('Active tab set to:', tab);
-    
     // If switching to calendar tab, we can add calendar-specific logic here later
     if (tab === 'calendar') {
       // Future: Initialize calendar view
@@ -209,8 +202,7 @@ export class EventListPage implements OnInit {
 
   onTabChange() {
     // Handle tab change event from ion-segment
-    console.log('Tab changed to:', this.activeTab);
-  }
+    }
 
   getUpcomingEvents() {
     const now = new Date();

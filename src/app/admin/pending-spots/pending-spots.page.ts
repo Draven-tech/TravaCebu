@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, NavController, ToastController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
@@ -233,4 +233,4 @@ export class PendingSpotsPage implements OnInit {
     this.loadSpots();
     event.target.complete();
   }
-} 
+}

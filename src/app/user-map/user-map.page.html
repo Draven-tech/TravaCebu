@@ -163,11 +163,11 @@
               <ion-label>
                 <h3>{{ segment.description }}</h3>
                 <p *ngIf="segment.jeepneyCode">Jeepney Code: {{ segment.jeepneyCode }}</p>
-                <p>{{ segment.estimatedTime }} • Stage {{ segment.stage }}</p>
+                <p>{{ segment.estimatedTime || 'N/A' }} • Stage {{ segment.stage || 'N/A' }}</p>
               </ion-label>
-              <ion-button *ngIf="stageRouteOptions[segment.stage - 1] && stageRouteOptions[segment.stage - 1].length > 1" 
+              <ion-button *ngIf="segment.stage && stageRouteOptions[segment.stage - 1] && stageRouteOptions[segment.stage - 1].length > 1" 
                           fill="clear" size="small" slot="end" 
-                          (click)="showStageRouteOptions(segment.stage - 1)">
+                          (click)="showStageRouteOptions((segment.stage || 1) - 1)">
                 <ion-icon name="options" slot="icon-only"></ion-icon>
               </ion-button>
             </ion-item>

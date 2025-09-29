@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, ModalController, NavController } from '@ionic/angular';
 import { RouteDetailPage } from '../route-detail/route-detail.page';
@@ -69,7 +69,6 @@ export class RouteListPage implements OnInit {
   }
 
   navigateToEditor() {
-    console.log('RouteList navigating to editor');
     this.navCtrl.navigateForward('/admin/route-editor');
   }
 

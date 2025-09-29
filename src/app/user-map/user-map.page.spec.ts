@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { UserMapPage } from './user-map.page';
 
 describe('UserMapPage', () => {
@@ -15,3 +15,5 @@ describe('UserMapPage', () => {
     expect(component).toBeTruthy();
   });
 });
+
+

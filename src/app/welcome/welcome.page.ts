@@ -1,4 +1,4 @@
-// welcome.page.ts
+﻿// welcome.page.ts
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
@@ -19,7 +19,7 @@ export class WelcomePage {
   ionViewWillEnter() {
     this.afAuth.authState.subscribe(user => {
       if (user) {
-        // Already signed in → skip welcome
+        // Already signed in â†’ skip welcome
         this.router.navigateByUrl(`/user-dashboard/${user.uid}`, { replaceUrl: true });
       }
     });

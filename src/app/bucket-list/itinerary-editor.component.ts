@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, AfterViewInit, ChangeDetectorRef, ViewChildren, QueryList } from '@angular/core';
+﻿import { Component, Input, Output, EventEmitter, OnInit, AfterViewInit, ChangeDetectorRef, ViewChildren, QueryList } from '@angular/core';
 import { ModalController, AlertController } from '@ionic/angular';
 import { CdkDragDrop, moveItemInArray, transferArrayItem, CdkDropList } from '@angular/cdk/drag-drop';
 import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itinerary.service';
@@ -28,7 +28,7 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
       <!-- Combined Settings -->
       <ion-item lines="none" class="compact-settings">
         <ion-label>
-          <h3>⚙️ Settings</h3>
+          <h3>âš™ï¸ Settings</h3>
         </ion-label>
         <ion-button size="small" fill="clear" (click)="updateAllTimeSlots()">
           <ion-icon name="refresh"></ion-icon>
@@ -38,7 +38,7 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
       <!-- Date Settings -->
       <ion-item lines="none" class="date-header">
         <ion-label>
-          <h3>📅 Edit Dates</h3>
+          <h3>ðŸ“… Edit Dates</h3>
         </ion-label>
         <ion-button size="small" fill="clear" (click)="updateAllDates()">
           <ion-icon name="refresh"></ion-icon>
@@ -88,7 +88,6 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
              class="compact-time-input">
            </ion-input>
          </ion-item>
-
 
        <!-- Compact Days -->
        <div class="compact-days">
@@ -410,7 +409,6 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
        object-fit: cover;
      }
 
-     /* Modern Edit Content Styles */
      .modern-edit-content {
        background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
        --padding-start: 16px;
@@ -494,7 +492,6 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
        box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.1);
      }
 
-     /* Enhance existing compact modal styles */
      .compact-modal {
        background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
      }
@@ -552,7 +549,6 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
      }
 
-     /* Modern day sections */
      .compact-day-card {
        background: rgba(255, 255, 255, 0.95);
        border-radius: 16px;
@@ -577,7 +573,6 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
        gap: 8px;
      }
 
-     /* Modern spot items */
      .compact-spot-item {
        background: rgba(255, 255, 255, 0.9);
        border-radius: 12px;
@@ -609,7 +604,6 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
        margin: 2px 0;
      }
 
-     /* Modern available spots section */
      .available-spots-section {
        background: rgba(255, 255, 255, 0.95);
        border-radius: 16px;
@@ -618,7 +612,6 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
      }
 
-     /* Modern buttons */
      ion-button {
        --border-radius: 8px;
        font-weight: 600;
@@ -633,7 +626,6 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
        --border-style: solid;
      }
 
-     /* Modern drag and drop styling */
      .drop-list {
        background: rgba(255, 255, 255, 0.1);
        border-radius: 12px;
@@ -665,7 +657,6 @@ import { ItineraryService, ItineraryDay, ItinerarySpot } from '../services/itine
        opacity: 0.6;
      }
 
-     /* Empty state styling */
      .empty-message {
        background: rgba(255, 255, 255, 0.1);
        border-radius: 12px;
@@ -735,8 +726,6 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
 
     // Store original available spots for reference
     this.originalAvailableSpots = [...this.availableSpots];
-    
-
 
     // Calculate available spots (spots not assigned to any day)
     this.calculateAvailableSpots();
@@ -859,8 +848,6 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
   private formatTime(date: Date): string {
     return date.toTimeString().slice(0, 5);
   }
-
-  
 
   async saveChanges() {
     // Validate that all spots are assigned
@@ -1119,4 +1106,4 @@ export class ItineraryEditorComponent implements OnInit, AfterViewInit {
       day: 'numeric' 
     });
   }
-} 
+}

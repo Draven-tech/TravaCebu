@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { AlertController, NavController, ToastController } from '@ionic/angular';
 import { PendingTouristSpotService, PendingTouristSpot } from '../../services/pending-tourist-spot.service';
 
@@ -142,4 +142,4 @@ Admin Notes: ${spot.reviewNotes}` : ''}`,
     this.loadSubmissions();
     event.target.complete();
   }
-} 
+}

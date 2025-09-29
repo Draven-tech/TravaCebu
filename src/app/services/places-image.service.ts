@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { PlacesService } from './places.service';
 import { Observable, of, forkJoin } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
@@ -41,8 +41,6 @@ export class PlacesImageService {
 
   // Test method to verify Google Places integration
   testGooglePlacesIntegration(): Observable<any> {
-    console.log('🧪 Testing Google Places integration...');
-    
     // Test with a known place in Cebu
     const testSpot = {
       id: 'test',
@@ -57,7 +55,6 @@ export class PlacesImageService {
 
     return this.enhanceTouristSpot(testSpot).pipe(
       map(enhancedSpot => {
-        console.log('✅ Google Places integration test result:', enhancedSpot);
         return {
           success: true,
           enhancedSpot,
@@ -66,7 +63,7 @@ export class PlacesImageService {
         };
       }),
       catchError(error => {
-        console.error('❌ Google Places integration test failed:', error);
+        console.error('âŒ Google Places integration test failed:', error);
         return of({
           success: false,
           error: error.message
@@ -364,8 +361,6 @@ export class PlacesImageService {
 
   // Retry fetching images for a spot with fresh Google Places data
   retryFetchImages(spot: any): Observable<EnhancedTouristSpot> {
-    console.log(`Retrying image fetch for spot: ${spot.name}`);
-    
     // Clear cache for this spot
     this.clearSpotCache(spot.id);
     
@@ -407,4 +402,4 @@ export class PlacesImageService {
     
     return validatedImages;
   }
-} 
+}

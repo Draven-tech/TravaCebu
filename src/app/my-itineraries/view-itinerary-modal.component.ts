@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+﻿import { Component, Input } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 
 export interface ViewItinerarySpot {
@@ -81,34 +81,34 @@ export class ViewItineraryModalComponent {
   getCategoryIcon(category: string): string {
     switch (category?.toUpperCase()) {
       case 'RESTAURANT':
-        return '🍽️';
+        return 'ðŸ½ï¸';
       case 'HOTEL':
-        return '🏨';
+        return 'ðŸ¨';
       case 'ATTRACTION':
-        return '🎯';
+        return 'ðŸŽ¯';
       case 'SHOPPING':
-        return '🛍️';
+        return 'ðŸ›ï¸';
       case 'CULTURAL':
-        return '🏛️';
+        return 'ðŸ›ï¸';
       case 'NATURE':
-        return '🌿';
+        return 'ðŸŒ¿';
       default:
-        return '📍';
+        return 'ðŸ“';
     }
   }
 
   getMealTypeIcon(mealType: string): string {
     switch (mealType?.toLowerCase()) {
       case 'breakfast':
-        return '🌅';
+        return 'ðŸŒ…';
       case 'lunch':
-        return '☀️';
+        return 'â˜€ï¸';
       case 'dinner':
-        return '🌙';
+        return 'ðŸŒ™';
       case 'snack':
-        return '🍿';
+        return 'ðŸ¿';
       default:
-        return '🍽️';
+        return 'ðŸ½ï¸';
     }
   }
-} 
+}

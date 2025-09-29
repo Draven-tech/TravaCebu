@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+﻿import { Component, OnInit, OnDestroy } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, NavController } from '@ionic/angular';
 import * as L from 'leaflet';
@@ -127,12 +127,12 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     }
     if (this.selectedTile === 'esri') {
       this.tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Satellite Imagery © Esri',
+        attribution: 'Satellite Imagery Â© Esri',
         maxZoom: 19
       });
     } else {
       this.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
+        attribution: 'Â© OpenStreetMap contributors',
         maxZoom: 19
       });
     }
@@ -271,7 +271,6 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
           this.showAlert('Success', `Form populated with data from "${googlePlace.name}". No image available from Google Places - you can upload one manually.`);
         }
       } catch (photoError) {
-        console.log('No photo available for this spot');
         this.showAlert('Success', `Form populated with data from "${googlePlace.name}". No image available from Google Places - you can upload one manually.`);
       }
       
@@ -358,7 +357,6 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
       // If we're editing and the image was removed, delete the original
       if (this.isEditing && this.originalImageUrl && !this.imageUrl) {
         await this.storageService.deleteFileByURL(this.originalImageUrl);
-        console.log('Original image deleted due to removal:', this.originalImageUrl);
         return ''; // Return empty string for no image
       }
       return this.imageUrl || '';
@@ -374,8 +372,7 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
       // If we're editing and there was a previous image, delete it
       if (this.isEditing && this.originalImageUrl && this.originalImageUrl !== url) {
         await this.storageService.deleteFileByURL(this.originalImageUrl);
-        console.log('Old image deleted:', this.originalImageUrl);
-      }
+        }
       
       return url;
     } catch (error) {

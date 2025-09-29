@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+﻿import { Component, Input } from '@angular/core';
 import { ModalController, AlertController } from '@ionic/angular';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
@@ -52,9 +52,6 @@ export class CommentsModalComponent {
 
     try {
       const updatedComments = [...(this.post.comments || []), commentData];
-      console.log('Adding comment:', commentData);
-      console.log('Updated comments array:', updatedComments);
-      
       await this.firestore.collection('posts').doc(this.post.id).update({
         comments: updatedComments
       });
@@ -91,4 +88,4 @@ export class CommentsModalComponent {
   dismiss() {
     this.modalCtrl.dismiss();
   }
-} 
+}

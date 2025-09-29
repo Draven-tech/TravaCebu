@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+﻿import { Component, Input } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { PlacesService } from '../services/places.service';
 
@@ -489,4 +489,4 @@ export class SearchModalComponent {
   close() {
     this.modalCtrl.dismiss();
   }
-} 
+}

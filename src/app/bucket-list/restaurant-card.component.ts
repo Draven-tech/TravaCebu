@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+﻿import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 
@@ -12,8 +12,8 @@ import { CommonModule } from '@angular/common';
       </div>
       <div class="card-content">
         <div class="place-details">
-          <span *ngIf="restaurant.rating">⭐ {{ restaurant.rating }}★</span>
-          <span *ngIf="restaurant.vicinity">📍 {{ restaurant.vicinity }}</span>
+          <span *ngIf="restaurant.rating">â­ {{ restaurant.rating }}â˜…</span>
+          <span *ngIf="restaurant.vicinity">ðŸ“ {{ restaurant.vicinity }}</span>
         </div>
         <div class="timeslot-edit">
           <ion-label>Timeslot:</ion-label>
@@ -73,4 +73,4 @@ export class RestaurantCardComponent {
   onTimeslotChange(event: any) {
     this.timeslotChange.emit(event.detail.value);
   }
-} 
+}

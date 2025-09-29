@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { DirectionsService } from './directions.service';
 import { ApiTrackerService } from './api-tracker.service';
@@ -53,8 +53,6 @@ export class ItineraryService {
 
     // Sort spots by location proximity for efficient routing
     const sortedSpots = this.sortSpotsByProximity(spots);
-    console.log('📍 Spots sorted by proximity for optimal routing');
-    
     const days: any[] = Array.from({ length: numDays }, () => []);
     sortedSpots.forEach((spot, i) => {
       days[i % numDays].push(spot);
@@ -232,12 +230,10 @@ export class ItineraryService {
   // Test API connection and return the full response
   async testApiConnection(): Promise<any> {
     try {
-      console.log('🧪 Testing API connection...');
       const testResult = await this.placesService.testApiKey().toPromise();
-      console.log('API Test Result:', testResult);
       return testResult;
     } catch (error) {
-      console.error('❌ API connection test error:', error);
+      console.error('âŒ API connection test error:', error);
       return { status: 'ERROR', error: (error && typeof error === 'object' && 'message' in error) ? (error as any).message : String(error) };
     }
   }
@@ -673,4 +669,4 @@ export class ItineraryService {
       route.googleDirections = googleDirections;
     }
   }
-} 
+}

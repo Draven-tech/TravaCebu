@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { getApp } from 'firebase/app';
 
@@ -36,8 +36,7 @@ export class StorageService {
     try {
       const storageRef = ref(this.storage, filePath);
       await deleteObject(storageRef);
-      console.log('File deleted successfully:', filePath);
-    } catch (error) {
+      } catch (error) {
       console.error('Error deleting file:', error);
       // Don't throw error for deletion failures as they might not be critical
     }
@@ -56,4 +55,4 @@ export class StorageService {
       console.error('Error deleting file by URL:', error);
     }
   }
-} 
+}

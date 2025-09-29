@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+﻿import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { BottomNavComponent } from './bottom-nav/bottom-nav.component';
@@ -15,4 +15,4 @@ import { BottomNavComponent } from './bottom-nav/bottom-nav.component';
     BottomNavComponent
   ]
 })
-export class ComponentsModule {} 
+export class ComponentsModule {}

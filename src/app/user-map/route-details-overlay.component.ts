@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
+﻿import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { IonicModule, ModalController, AlertController, ToastController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -64,7 +64,7 @@ import { Subscription } from 'rxjs';
           <div class="expense-logging-section">
             <div class="total-expenses-display">
               <span class="total-label">Total Expenses</span>
-              <span class="total-amount">₱{{ (budgetSummary?.totalExpenses || 0) | number:'1.0-0' }}</span>
+              <span class="total-amount">â‚±{{ (budgetSummary?.totalExpenses || 0) | number:'1.0-0' }}</span>
             </div>
             
             <h3>Log Your Expenses</h3>
@@ -118,7 +118,7 @@ import { Subscription } from 'rxjs';
                  <!-- Segment Info -->
                  <div class="segment-info">
                    <div class="segment-header">
-                     <h3>{{ segment.fromName || segment.from }} → {{ segment.toName || segment.to }}</h3>
+                     <h3>{{ segment.fromName || segment.from }} â†’ {{ segment.toName || segment.to }}</h3>
                      <div class="segment-time-range">
                        <ion-icon name="time"></ion-icon>
                        {{ segment.estimatedTime || segment.duration }}
@@ -293,7 +293,6 @@ import { Subscription } from 'rxjs';
       opacity: 0.8;
       font-style: italic;
     }
-
 
     .expense-logging-section {
       background: #f8f9fa;
@@ -555,7 +554,7 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
 
   private loadBudgetData() {
     if (!this.itineraryId) {
-      console.warn('⚠️ No itineraryId provided for budget data');
+      console.warn('âš ï¸ No itineraryId provided for budget data');
       return;
     }
 
@@ -570,22 +569,15 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
     this.availableRestaurants = [];
     this.availableHotels = [];
 
-    console.log('🔍 Current itinerary:', this.currentItinerary);
-
     if (!this.currentItinerary) {
-      console.log('❌ No current itinerary found');
       return;
     }
 
     // Extract restaurants and hotels from itinerary spots
     if (this.currentItinerary.days) {
       this.currentItinerary.days.forEach((day: any) => {
-        console.log(`📅 Day ${day.day || day.dayNumber}:`, day);
-        
         // Get restaurants and hotels from spots (they are stored as separate events)
         day.spots?.forEach((spot: any) => {
-          console.log('🎯 Spot:', spot.name, 'EventType:', spot.eventType);
-          
           // Check if this spot is a restaurant
           if (spot.eventType === 'restaurant') {
             this.availableRestaurants.push({
@@ -615,15 +607,12 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
       });
     }
 
-    console.log('🍽️ Available restaurants:', this.availableRestaurants);
-    console.log('🏨 Available hotels:', this.availableHotels);
-
     // Remove duplicates based on name
     this.availableRestaurants = this.removeDuplicatePlaces(this.availableRestaurants);
     this.availableHotels = this.removeDuplicatePlaces(this.availableHotels);
     
-    console.log('🍽️ Final restaurants (after dedup):', this.availableRestaurants);
-    console.log('🏨 Final hotels (after dedup):', this.availableHotels);
+    console.log('Available restaurants:', this.availableRestaurants);
+    console.log('Available hotels:', this.availableHotels);
   }
 
   private removeDuplicatePlaces(places: any[]): any[] {
@@ -694,7 +683,7 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
 
   getEstimatedFare(): string {
     if (!this.routeInfo?.segments) {
-      return '₱0';
+      return 'â‚±0';
     }
 
     let jeepneyCount = 0;
@@ -707,24 +696,24 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
     });
 
     if (jeepneyCount === 0) {
-      return '₱0';
+      return 'â‚±0';
     }
 
-    // Standard jeepney fare in Cebu is ₱12-15 per ride
+    // Standard jeepney fare in Cebu is â‚±12-15 per ride
     const minFare = jeepneyCount * 12;
     const maxFare = jeepneyCount * 15;
 
     if (minFare === maxFare) {
-      return `₱${minFare}`;
+      return `â‚±${minFare}`;
     }
 
-    return `₱${minFare}-${maxFare}`;
+    return `â‚±${minFare}-${maxFare}`;
   }
 
   // Get individual segment fare range
   getSegmentFare(segment: any): string {
     if (segment.type === 'jeepney' || segment.type === 'bus') {
-      return '₱12-15'; // Standard jeepney/bus fare range in Cebu
+      return 'â‚±12-15'; // Standard jeepney/bus fare range in Cebu
     }
     return segment.fare || ''; // Return existing fare if available
   }
@@ -771,16 +760,16 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
 
   async addQuickTransportExpense() {
     const estimatedFare = this.getEstimatedFare();
-    // Extract average from range (e.g., "₱12-15" -> 13.5, "₱26" -> 26)
+    // Extract average from range (e.g., "â‚±12-15" -> 13.5, "â‚±26" -> 26)
     let fareAmount = 13; // Default fallback
     
     if (estimatedFare.includes('-')) {
-      const rangeParts = estimatedFare.replace('₱', '').split('-');
+      const rangeParts = estimatedFare.replace('â‚±', '').split('-');
       const min = parseFloat(rangeParts[0]);
       const max = parseFloat(rangeParts[1]);
       fareAmount = Math.round((min + max) / 2); // Use middle of range
     } else {
-      fareAmount = parseFloat(estimatedFare.replace('₱', '')) || 13;
+      fareAmount = parseFloat(estimatedFare.replace('â‚±', '')) || 13;
     }
 
     const alert = await this.alertCtrl.create({
@@ -791,7 +780,7 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
         {
           name: 'amount',
           type: 'number',
-          placeholder: 'Actual amount paid (₱)',
+          placeholder: 'Actual amount paid (â‚±)',
           value: fareAmount,
           min: 0
         },
@@ -915,7 +904,7 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
         {
           name: 'amount',
           type: 'number' as const,
-          placeholder: 'Amount spent (₱)',
+          placeholder: 'Amount spent (â‚±)',
           min: 0
         }
       ],
@@ -996,4 +985,4 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
     });
     await toast.present();
   }
-} 
+}

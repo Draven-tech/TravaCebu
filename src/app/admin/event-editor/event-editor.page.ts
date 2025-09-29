@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, NavController } from '@ionic/angular';
 import { StorageService } from '../../services/storage.service';
@@ -129,7 +129,6 @@ export class EventEditorPage implements OnInit {
       // If we're editing and the image was removed, delete the original
       if (this.isEditing && this.originalImageUrl && !this.imageUrl) {
         await this.storageService.deleteFileByURL(this.originalImageUrl);
-        console.log('Original image deleted due to removal:', this.originalImageUrl);
         return ''; // Return empty string for no image
       }
       return this.imageUrl || '';
@@ -145,8 +144,7 @@ export class EventEditorPage implements OnInit {
       // If we're editing and there was a previous image, delete it
       if (this.isEditing && this.originalImageUrl && this.originalImageUrl !== url) {
         await this.storageService.deleteFileByURL(this.originalImageUrl);
-        console.log('Old image deleted:', this.originalImageUrl);
-      }
+        }
       
       return url;
     } catch (error) {
@@ -213,8 +211,7 @@ export class EventEditorPage implements OnInit {
       } else {
         // Create new admin event
         const eventId = await this.calendarService.saveGlobalEvent(globalEvent);
-        console.log('New admin event created with ID:', eventId);
-      }
+        }
 
       this.showAlert('Success', `Event ${this.isEditing ? 'updated' : 'created'} successfully`);
       this.navCtrl.navigateBack(this.isEditing ? '/admin/event-list' : '/admin/dashboard');

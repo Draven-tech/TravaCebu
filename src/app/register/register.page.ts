@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
+﻿import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, NavController, IonContent, Platform } from '@ionic/angular';
@@ -250,4 +250,3 @@ export class RegisterPage implements OnInit {
     }
   }
 }
-

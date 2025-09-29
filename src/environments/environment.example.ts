@@ -1,4 +1,4 @@
-// This is an example environment file. Copy this to environment.ts and environment.prod.ts
+﻿// This is an example environment file. Copy this to environment.ts and environment.prod.ts
 // and replace the placeholder values with your actual API keys.
 
 export const environment = {
@@ -13,4 +13,4 @@ export const environment = {
   },
   googleMapsApiKey: 'your-google-maps-api-key',
   openRouteServiceApiKey: 'your-openroute-service-api-key'
-}; 
+};

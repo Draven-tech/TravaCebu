@@ -1,4 +1,4 @@
-import { Component, Input, ViewChild, ElementRef } from '@angular/core';
+﻿import { Component, Input, ViewChild, ElementRef } from '@angular/core';
 import { ModalController, AlertController, LoadingController } from '@ionic/angular';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { StorageService } from '../../services/storage.service';
@@ -181,8 +181,6 @@ export class CreatePostModalComponent {
       // Remove any undefined values to prevent Firestore errors
       const cleanedPostData = this.removeUndefinedValues(postData);
 
-      console.log('Creating post with data:', cleanedPostData);
-
       if (this.isEditing && this.post?.id) {
         // Update existing post - create update object with only defined fields
         const updateData: any = {
@@ -238,9 +236,7 @@ export class CreatePostModalComponent {
       } catch (error) {
         console.error('Error evaluating social butterfly badge:', error);
       }
-      
 
-      
       this.showAlert('Success', this.isEditing ? 'Post updated successfully!' : 'Post created successfully!');
 
     } catch (error: any) {
@@ -284,4 +280,4 @@ export class CreatePostModalComponent {
     
     return obj;
   }
-} 
+}

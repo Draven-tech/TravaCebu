@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouteEditorMapPage } from './route-editor-map.page';
 
 describe('RouteEditorMapPage', () => {
@@ -15,3 +15,5 @@ describe('RouteEditorMapPage', () => {
     expect(component).toBeTruthy();
   });
 });
+
+

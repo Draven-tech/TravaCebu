@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+﻿import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AuthService } from '../services/auth.service';
@@ -9,7 +9,6 @@ import { PlacesService } from '../services/places.service';
 import { PendingTouristSpotService } from '../services/pending-tourist-spot.service';
 import { SearchModalComponent } from './search-modal.component';
 import { GeofencingService } from '../services/geofencing.service';
-
 
 @Component({
   selector: 'app-user-dashboard',
@@ -40,7 +39,6 @@ export class UserDashboardPage implements OnInit, OnDestroy {
   searchResults: any[] = [];
 
   bucketList: any[] = [];
-
 
   constructor(
     private route: ActivatedRoute,
@@ -102,7 +100,6 @@ export class UserDashboardPage implements OnInit, OnDestroy {
       .valueChanges({ idField: 'id' })
       .subscribe({
         next: (data) => {
-          console.log('Loaded spots:', data.length, 'spots'); // Debug log
 
           // Sort by userRatingsTotal (ascending) - least popular first (hidden gems)
           this.originalSpots = this.sortByUserRatings(data);
@@ -262,8 +259,6 @@ async toggleBucketList(spot: any) {
     }
   }
 
-
-
   async addTouristSpotToDatabase(googlePlace: any): Promise<void> {
     try {
       // Enhanced duplicate detection
@@ -312,7 +307,6 @@ async toggleBucketList(spot: any) {
           newSpotData.img = this.placesService.getPhotoUrl(photo.photo_reference);
         }
       } catch (photoError) {
-        console.log('No photo available for this spot');
       }
 
       // Submit for approval instead of directly adding
@@ -477,7 +471,6 @@ async toggleBucketList(spot: any) {
 
   // Manual refresh method to force reload data
   async refreshData() {
-    console.log('Manually refreshing data...');
     this.loadSpots();
     await this.loadBucketStatus();
     await this.loadVisitedSpots();
@@ -485,27 +478,17 @@ async toggleBucketList(spot: any) {
 
   // Handle pull-to-refresh
   async handleRefresh(event: any) {
-    console.log('Pull to refresh triggered');
     await this.refreshData();
     event.target.complete();
   }
 
   // Debug method to check current data
   debugCurrentData() {
-    console.log('=== DEBUG: Current Data ===');
-    console.log('Original spots count:', this.originalSpots?.length);
-    console.log('Filtered spots count:', this.spots?.length);
-    console.log('Paginated spots count:', this.paginatedSpots?.length);
-    console.log('Current filter:', this.selectedTag);
-    console.log('Search query:', this.searchQuery);
 
     // Show first 5 spots with their userRatingsTotal for debugging
-    console.log('First 5 spots (sorted by userRatingsTotal ascending):');
     this.originalSpots?.slice(0, 5).forEach((spot, index) => {
-      console.log(`${index + 1}. ${spot.name} - Ratings: ${spot.userRatingsTotal || 0}`);
     });
 
-    console.log('==========================');
   }
 
   private async showAlert(header: string, message: string): Promise<void> {
@@ -598,6 +581,4 @@ async toggleBucketList(spot: any) {
     return this.hasVisited(spotId) ? 'success' : 'medium';
   }
 
-
 }
-

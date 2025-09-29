@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+﻿import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { CoordinateTableComponent } from './coordinate-table.component';
@@ -22,3 +22,5 @@ describe('CoordinateTableComponent', () => {
     expect(component).toBeTruthy();
   });
 });
+
+

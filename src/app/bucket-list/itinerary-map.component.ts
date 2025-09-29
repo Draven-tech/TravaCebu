@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, AfterViewInit, NgZone } from '@angular/core';
+﻿import { Component, Input, OnInit, OnDestroy, AfterViewInit, NgZone } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import * as L from 'leaflet';
 import { ItineraryDay, ItineraryService } from '../services/itinerary.service';
@@ -98,15 +98,13 @@ import { AlertController } from '@ionic/angular';
       margin: 10px 0 0 0;
       color: #666;
     }
-    
-    /* Map modal styles */
+
     :global(.map-modal) {
       --height: 90%;
       --width: 90%;
       --max-width: 800px;
     }
-    
-    /* Custom marker styles */
+
     :global(.custom-marker) {
       background: transparent !important;
       border: none !important;
@@ -137,7 +135,6 @@ import { AlertController } from '@ionic/angular';
       transform: scale(1.1);
     }
 
-    /* Highlight marker animation */
     @keyframes pulse {
       0% {
         transform: scale(1);
@@ -158,7 +155,6 @@ import { AlertController } from '@ionic/angular';
       border: none !important;
     }
 
-    /* Assignment picker modal styles */
     :global(.assignment-picker-modal) {
       --height: 70%;
       --width: 90%;
@@ -202,7 +198,6 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Add global functions for popup buttons
     (window as any).addRestaurantToItinerary = (placeId: string) => {
-      console.log('addRestaurantToItinerary called with placeId:', placeId);
       this.ngZone.run(() => {
         // Find the restaurant data from the itinerary
         let restaurant: any = null;
@@ -228,7 +223,6 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
     };
 
     (window as any).addHotelToItinerary = (placeId: string) => {
-      console.log('addHotelToItinerary called with placeId:', placeId);
       this.ngZone.run(() => {
         // Find the hotel data from the itinerary
         let hotel: any = null;
@@ -263,14 +257,12 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private initMap() {
     if (!this.itinerary || this.itinerary.length === 0) {
-      console.log('No itinerary data to display');
       return;
     }
 
     // Get center point from first tourist spot
     const firstSpot = this.itinerary[0]?.spots[0];
     if (!firstSpot) {
-      console.log('No spots found in itinerary');
       return;
     }
 
@@ -295,13 +287,13 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
       if (this.useEsri) {
         // Esri Satellite tiles
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-          attribution: 'Satellite Imagery © Esri',
+          attribution: 'Satellite Imagery Â© Esri',
           maxZoom: 19
         }).addTo(this.map);
       } else {
         // OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
+          attribution: 'Â© OpenStreetMap contributors',
           maxZoom: 18,
         }).addTo(this.map);
       }
@@ -371,7 +363,7 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
             // Create custom icon for hotels
             const hotelIcon = L.divIcon({
               className: 'hotel-marker',
-              html: `<div style="background: #1976D2; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);">🏨</div>`,
+              html: `<div style="background: #1976D2; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);">ðŸ¨</div>`,
               iconSize: [28, 28],
               iconAnchor: [14, 14]
             });
@@ -387,7 +379,7 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
 
             // Safely escape data for HTML
             const hotelName = hotel.name || 'Hotel Name Not Available';
-            const hotelRating = hotel.rating ? `${hotel.rating}★` : 'Not Available';
+            const hotelRating = hotel.rating ? `${hotel.rating}â˜…` : 'Not Available';
             const hotelLocation = hotel.vicinity || 'Location Not Available';
             const placeId = hotel.place_id || '';
 
@@ -406,23 +398,23 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
                   <div style="display: flex; flex-direction: column; gap: 8px;">
                     <button onclick="window.addHotelToItinerary('${placeId}')" 
                             style="background: #667eea; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
-                      📅 Add to Itinerary
+                      ðŸ“… Add to Itinerary
                     </button>
                     <a href="https://www.booking.com/search.html?ss=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #1976D2; text-decoration: none; padding: 5px 8px; border: 1px solid #1976D2; border-radius: 4px; text-align: center; font-size: 12px;">
-                      📖 Booking.com
+                      ðŸ“– Booking.com
                     </a>
                     <a href="https://www.agoda.com/search?q=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #E53E3E; text-decoration: none; padding: 5px 8px; border: 1px solid #E53E3E; border-radius: 4px; text-align: center; font-size: 12px;">
-                      🏨 Agoda.com
+                      ðŸ¨ Agoda.com
                     </a>
                     <a href="https://www.hotels.com/search.do?q-destination=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #38A169; text-decoration: none; padding: 5px 8px; border: 1px solid #38A169; border-radius: 4px; text-align: center; font-size: 12px;">
-                      🏢 Hotels.com
+                      ðŸ¢ Hotels.com
                     </a>
                     <a href="https://www.expedia.com/hotels?q=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #805AD5; text-decoration: none; padding: 5px 8px; border: 1px solid #805AD5; border-radius: 4px; text-align: center; font-size: 12px;">
-                      ✈️ Expedia
+                      âœˆï¸ Expedia
                     </a>
                   </div>
                 </div>
@@ -447,7 +439,7 @@ private addRestaurantMarkers() {
               // Create custom icon for restaurants
               const restaurantIcon = L.divIcon({
                 className: 'restaurant-marker',
-                html: `<div style="background: #FF9800; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);">🍽️</div>`,
+                html: `<div style="background: #FF9800; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);">ðŸ½ï¸</div>`,
                 iconSize: [28, 28],
                 iconAnchor: [14, 14]
               });
@@ -463,7 +455,7 @@ private addRestaurantMarkers() {
 
               // Safely escape data for HTML
               const restaurantName = restaurant.name || 'Restaurant Name Not Available';
-              const restaurantRating = restaurant.rating ? `${restaurant.rating}★` : 'Not Available';
+              const restaurantRating = restaurant.rating ? `${restaurant.rating}â˜…` : 'Not Available';
               const restaurantLocation = restaurant.vicinity || 'Location Not Available';
               const placeId = restaurant.place_id || '';
               const mealType = spot.mealType || 'meal';
@@ -484,19 +476,19 @@ private addRestaurantMarkers() {
                     <div style="display: flex; flex-direction: column; gap: 6px;">
                       <button onclick="window.addRestaurantToItinerary('${placeId}')" 
                               style="background: #667eea; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
-                        📅 Add to Itinerary
+                        ðŸ“… Add to Itinerary
                       </button>
                       <a href="https://www.google.com/search?q=${encodeURIComponent(restaurantName + ' reviews')}" 
                          target="_blank" style="color: #FF9800; text-decoration: none; padding: 4px 6px; border: 1px solid #FF9800; border-radius: 4px; text-align: center; font-size: 11px;">
-                        🔍 Google Reviews
+                        ðŸ” Google Reviews
                       </a>
                       <a href="https://www.tripadvisor.com/search?q=${encodeURIComponent(restaurantName)}" 
                          target="_blank" style="color: #00AA6C; text-decoration: none; padding: 4px 6px; border: 1px solid #00AA6C; border-radius: 4px; text-align: center; font-size: 11px;">
-                        🍽️ TripAdvisor
+                        ðŸ½ï¸ TripAdvisor
                       </a>
                       <a href="https://www.zomato.com/search?q=${encodeURIComponent(restaurantName)}" 
                          target="_blank" style="color: #E23744; text-decoration: none; padding: 4px 6px; border: 1px solid #E23744; border-radius: 4px; text-align: center; font-size: 11px;">
-                        🍕 Zomato
+                        ðŸ• Zomato
                       </a>
                     </div>
                   </div>
@@ -553,7 +545,7 @@ private addRestaurantMarkers() {
 
     const highlightIcon = L.divIcon({
       className: 'highlight-marker',
-      html: `<div style="background: #FFD700; color: #000; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 4px solid #FFA500; box-shadow: 0 4px 12px rgba(255,215,0,0.6); animation: pulse 2s infinite;">⭐</div>`,
+      html: `<div style="background: #FFD700; color: #000; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 4px solid #FFA500; box-shadow: 0 4px 12px rgba(255,215,0,0.6); animation: pulse 2s infinite;">â­</div>`,
       iconSize: [40, 40],
       iconAnchor: [20, 20]
     });
@@ -578,10 +570,10 @@ private addRestaurantMarkers() {
       className: 'highlight-popup'
     }).setContent(`
       <div style="padding: 15px;">
-        <h3 style="margin: 0 0 10px 0; color: #FFD700; text-align: center;">⭐ Highlighted Place ⭐</h3>
+        <h3 style="margin: 0 0 10px 0; color: #FFD700; text-align: center;">â­ Highlighted Place â­</h3>
         <h4 style="margin: 0 0 8px 0; color: #333;">${this.highlightPlace.name}</h4>
         <p style="margin: 5px 0; color: #666;">
-          ${this.highlightPlace.rating ? `Rating: ${this.highlightPlace.rating}★<br>` : ''}
+          ${this.highlightPlace.rating ? `Rating: ${this.highlightPlace.rating}â˜…<br>` : ''}
           ${this.highlightPlace.vicinity ? `Location: ${this.highlightPlace.vicinity}<br>` : ''}
         </p>
         <div style="margin-top: 12px; text-align: center;">
@@ -719,4 +711,4 @@ private addRestaurantMarkers() {
   close() {
     this.modalCtrl.dismiss();
   }
-} 
+}

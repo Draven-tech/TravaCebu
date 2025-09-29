@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Observable, of } from 'rxjs';
@@ -55,7 +55,6 @@ export interface UserBadgeProgress {
 })
 export class BadgeService {
   
-  // Badge definitions
   private readonly BADGE_DEFINITIONS = {
     profile_complete: {
       id: 'profile_complete',
@@ -104,9 +103,6 @@ export class BadgeService {
     private afAuth: AngularFireAuth
   ) {}
 
-  /**
-   * Get all available badges for a user
-   */
   getUserBadges(userId: string): Observable<Badge[]> {
     return this.getUserBadgeProgress(userId).pipe(
       map(progress => {
@@ -131,9 +127,6 @@ export class BadgeService {
     );
   }
 
-  /**
-   * Get the appropriate badge icon based on badge type and tier
-   */
   private getBadgeIcon(badgeId: string, tier: string): string {
     if (badgeId === 'bucket_list') {
       switch (tier) {
@@ -171,37 +164,28 @@ export class BadgeService {
       }
     }
     
-    // Default for other badges
     return this.BADGE_DEFINITIONS[badgeId as keyof typeof this.BADGE_DEFINITIONS]?.icon || '';
   }
 
-  /**
-   * Convert Firestore timestamp to JavaScript Date
-   */
   private convertFirestoreTimestamp(timestamp: any): Date {
     if (!timestamp) return new Date();
     
-    // If it's already a Date object, return it
     if (timestamp instanceof Date) {
       return timestamp;
     }
     
-    // If it's a Firestore Timestamp, convert to Date
     if (timestamp.toDate && typeof timestamp.toDate === 'function') {
       return timestamp.toDate();
     }
     
-    // If it's a timestamp number, create Date from it
     if (typeof timestamp === 'number') {
       return new Date(timestamp);
     }
     
-    // If it's a string, try to parse it
     if (typeof timestamp === 'string') {
       return new Date(timestamp);
     }
     
-    // Fallback to current date
     return new Date();
   }
 
@@ -249,12 +233,10 @@ export class BadgeService {
     const isComplete = this.isProfileComplete(userData);
     const progress = isComplete ? 100 : this.calculateProfileProgress(userData);
     
-    // Get current badge status - only upgrade, never downgrade
     const currentBadges = userData?.badges?.profile_complete;
     const currentTier = currentBadges?.tier || 'locked';
     const currentUnlocked = currentBadges?.unlocked || false;
     
-    // Determine new tier - only upgrade if conditions are met
     let tier: 'bronze' | 'silver' | 'gold' | 'locked' = currentTier;
     let unlocked = currentUnlocked;
     
@@ -359,15 +341,11 @@ export class BadgeService {
       console.error('Error getting bucket list count:', error);
       bucketListCount = 0;
     }
-    
-    console.log('Bucket list count:', bucketListCount);
-    
-    // Get current badge status - only upgrade, never downgrade
+
     const currentBadges = userData?.badges?.bucket_list;
     const currentTier = currentBadges?.tier || 'locked';
     const currentUnlocked = currentBadges?.unlocked || false;
     
-    // Determine new tier - only upgrade if conditions are met
     let tier: 'bronze' | 'silver' | 'gold' | 'locked' = currentTier;
     let unlocked = currentUnlocked;
 
@@ -382,14 +360,11 @@ export class BadgeService {
       unlocked = true;
     }
 
-    console.log('Bucket list badge evaluation:', { tier, progress: bucketListCount, unlocked });
-
     // Only update if upgrading the badge
     if (!currentBadges || 
         (tier !== currentTier) || 
         (bucketListCount !== currentBadges.progress) || 
         (unlocked !== currentUnlocked)) {
-      console.log('Updating bucket list badge...');
       await this.updateUserBadge(userId, 'bucket_list', {
         tier,
         progress: bucketListCount,
@@ -421,15 +396,11 @@ export class BadgeService {
       console.error('Error getting photo count:', error);
       photoCount = 0;
     }
-    
-    console.log('Photo enthusiast count:', photoCount);
-    
-    // Get current badge status - only upgrade, never downgrade
+
     const currentBadges = userData?.badges?.photo_enthusiast;
     const currentTier = currentBadges?.tier || 'locked';
     const currentUnlocked = currentBadges?.unlocked || false;
     
-    // Determine new tier - only upgrade if conditions are met
     let tier: 'bronze' | 'silver' | 'gold' | 'locked' = currentTier;
     let unlocked = currentUnlocked;
 
@@ -444,14 +415,11 @@ export class BadgeService {
       unlocked = true;
     }
 
-    console.log('Photo enthusiast badge evaluation:', { tier, progress: photoCount, unlocked });
-
     // Only update if upgrading the badge
     if (!currentBadges || 
         (tier !== currentTier) || 
         (photoCount !== currentBadges.progress) || 
         (unlocked !== currentUnlocked)) {
-      console.log('Updating photo enthusiast badge...');
       await this.updateUserBadge(userId, 'photo_enthusiast', {
         tier,
         progress: photoCount,
@@ -506,18 +474,14 @@ export class BadgeService {
       totalLikesReceived = 0;
       totalCommentsMade = 0;
     }
-    
-    console.log('Social butterfly metrics:', { postsCount, totalLikesReceived, totalCommentsMade });
-    
+
     // Calculate overall progress (combined score)
     const progress = postsCount + totalLikesReceived + totalCommentsMade;
     
-    // Get current badge status - only upgrade, never downgrade
     const currentBadges = userData?.badges?.social_butterfly;
     const currentTier = currentBadges?.tier || 'locked';
     const currentUnlocked = currentBadges?.unlocked || false;
     
-    // Determine new tier - only upgrade if conditions are met
     let tier: 'bronze' | 'silver' | 'gold' | 'locked' = currentTier;
     let unlocked = currentUnlocked;
 
@@ -535,14 +499,11 @@ export class BadgeService {
       unlocked = true;
     }
 
-    console.log('Social butterfly badge evaluation:', { tier, progress, unlocked, postsCount, totalLikesReceived, totalCommentsMade });
-
     // Only update if upgrading the badge
     if (!currentBadges || 
         (tier !== currentTier) || 
         (progress !== currentBadges.progress) || 
         (unlocked !== currentUnlocked)) {
-      console.log('Updating social butterfly badge...');
       await this.updateUserBadge(userId, 'social_butterfly', {
         tier,
         progress,
@@ -572,15 +533,11 @@ export class BadgeService {
       console.error('Error getting visited spots:', error);
       uniqueSpotsVisited = 0;
     }
-    
-    console.log('Unique spots visited (location-based):', uniqueSpotsVisited);
-    
-    // Get current badge status - only upgrade, never downgrade
+
     const currentBadges = userData?.badges?.explorer;
     const currentTier = currentBadges?.tier || 'locked';
     const currentUnlocked = currentBadges?.unlocked || false;
     
-    // Determine new tier - only upgrade if conditions are met
     let tier: 'bronze' | 'silver' | 'gold' | 'locked' = currentTier;
     let unlocked = currentUnlocked;
 
@@ -595,14 +552,11 @@ export class BadgeService {
       unlocked = true;
     }
 
-    console.log('Explorer badge evaluation (location-based):', { tier, progress: uniqueSpotsVisited, unlocked });
-
     // Only update if upgrading the badge
     if (!currentBadges || 
         (tier !== currentTier) || 
         (uniqueSpotsVisited !== currentBadges.progress) || 
         (unlocked !== currentUnlocked)) {
-      console.log('Updating explorer badge (location-based)...');
       await this.updateUserBadge(userId, 'explorer', {
         tier,
         progress: uniqueSpotsVisited,
@@ -637,7 +591,6 @@ export class BadgeService {
             const visitRecorded = await this.recordSpotVisit(userId, spot.id, spot.name);
             if (visitRecorded) {
               newVisitRecorded = true;
-              console.log(`📍 User visited ${spot.name} (${distance.toFixed(0)}m away)`);
             }
           }
         }
@@ -684,7 +637,6 @@ export class BadgeService {
         visitedSpots: visitedSpots
       });
 
-      console.log(`✅ Recorded visit to ${spotName} for user ${userId}`);
       return true;
 
     } catch (error) {
@@ -709,4 +661,4 @@ export class BadgeService {
     const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
     return R * c;
   }
-} 
+}

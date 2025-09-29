@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { Geolocation } from '@capacitor/geolocation';
 import { ApiTrackerService } from './api-tracker.service';
@@ -353,4 +353,4 @@ export class RouteManagerService {
       return `${(totalMeters / 1000).toFixed(1)}km`;
     }
   }
-} 
+}

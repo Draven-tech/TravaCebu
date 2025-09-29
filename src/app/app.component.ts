@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { Platform }  from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Router }    from '@angular/router';

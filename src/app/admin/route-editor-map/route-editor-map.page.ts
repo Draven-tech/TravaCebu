@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+﻿import { Component, OnInit, OnDestroy } from '@angular/core';
 import * as L from 'leaflet';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController } from '@ionic/angular';
@@ -67,17 +67,13 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    console.log('RouteEditorMapPage ngOnInit called');
     this.checkOsrmStatus();
     // Check for edit mode
     const nav = window.history.state;
-    console.log('Navigation state:', nav);
     // Use a longer timeout to ensure DOM is ready, especially on mobile
     setTimeout(() => {
-      console.log('Initializing map after timeout');
       this.destroyMap();
       if (nav && nav.routeToEdit) {
-        console.log('Edit mode detected');
         const route = nav.routeToEdit;
         this.isEditMode = true;
         this.editingRouteId = route.id;
@@ -92,7 +88,6 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
           this.updateRouteLine();
         }
       } else {
-        console.log('Create new route mode');
         this.isEditMode = false;
         this.editingRouteId = '';
         this.initMap();
@@ -140,12 +135,12 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
     }
     if (this.selectedTile === 'esri') {
       this.tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Satellite Imagery © Esri',
+        attribution: 'Satellite Imagery Â© Esri',
         maxZoom: 19
       });
     } else {
       this.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
+        attribution: 'Â© OpenStreetMap contributors',
         maxZoom: 19
       });
     }
@@ -219,13 +214,9 @@ export class RouteEditorMapPage implements OnInit, OnDestroy {
     
     try {
       const points = this.markers.map(m => m.getLatLng());
-      console.log('Follow Roads enabled:', this.snapToRoads);
-      
       const routePath = this.snapToRoads 
         ? await this.getRoutePath(points) 
         : points;
-
-      console.log('Route path points:', routePath.length, 'snapToRoads:', this.snapToRoads);
 
       this.routeLine = L.polyline(routePath, {
         color: this.routeColor,

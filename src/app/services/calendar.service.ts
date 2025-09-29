@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 
@@ -65,12 +65,9 @@ export class CalendarService {
         status: 'active'
       };
 
-      console.log('Saving global event to Firebase:', newEvent);
-
       // Save to 'events' collection
       const docRef = await this.firestore.collection('events').add(newEvent);
       
-      console.log('Event saved successfully with ID:', docRef.id);
       return docRef.id;
       
     } catch (error) {
@@ -84,8 +81,6 @@ export class CalendarService {
    */
   async loadAllGlobalEvents(): Promise<GlobalEvent[]> {
     try {
-      console.log('Loading all global events from Firebase...');
-      
       const snapshot = await this.firestore
         .collection('events')
         .get()
@@ -100,11 +95,9 @@ export class CalendarService {
           };
         }) as GlobalEvent[];
         
-        console.log('Loaded global events:', events);
         return events;
       }
 
-      console.log('No events found in Firebase');
       return [];
       
     } catch (error) {
@@ -130,7 +123,6 @@ export class CalendarService {
         event.createdByType === 'admin' && event.createdBy === user.uid
       );
       
-      console.log('Admin events for current user:', adminEvents);
       return adminEvents;
       
     } catch (error) {
@@ -186,9 +178,7 @@ export class CalendarService {
       };
 
       await this.firestore.collection('events').doc(eventId).update(updateData);
-      console.log('Event updated successfully:', eventId);
-      
-    } catch (error) {
+      } catch (error) {
       console.error('Error updating event:', error);
       throw error;
     }
@@ -200,9 +190,7 @@ export class CalendarService {
   async deleteGlobalEvent(eventId: string): Promise<void> {
     try {
       await this.firestore.collection('events').doc(eventId).delete();
-      console.log('Event deleted successfully:', eventId);
-      
-    } catch (error) {
+      } catch (error) {
       console.error('Error deleting event:', error);
       throw error;
     }

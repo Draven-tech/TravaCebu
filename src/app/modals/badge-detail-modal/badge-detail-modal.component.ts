@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+﻿import { Component, Input } from '@angular/core';
 import { ModalController, IonicModule } from '@ionic/angular';
 import { Badge } from '../../services/badge.service';
 import { CommonModule } from '@angular/common';
@@ -97,4 +97,4 @@ export class BadgeDetailModalComponent {
       day: 'numeric'
     });
   }
-} 
+}

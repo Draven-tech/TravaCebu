@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EventEditorPage } from './event-editor.page';
 
 describe('EventEditorPage', () => {
@@ -15,3 +15,5 @@ describe('EventEditorPage', () => {
     expect(component).toBeTruthy();
   });
 });
+
+

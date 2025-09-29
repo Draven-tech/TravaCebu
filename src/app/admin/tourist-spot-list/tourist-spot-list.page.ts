@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, ModalController, NavController } from '@ionic/angular';
 import { TouristSpotDetailPage } from '../tourist-spot-detail/tourist-spot-detail.page';
@@ -94,8 +94,7 @@ export class TouristSpotListPage implements OnInit {
               // Delete the image from storage if it exists
               if (spotData?.img) {
                 await this.storageService.deleteFileByURL(spotData.img);
-                console.log('Image deleted from storage:', spotData.img);
-              }
+                }
               
               // Delete the Firestore document
               await this.firestore.collection('tourist_spots').doc(id).delete();

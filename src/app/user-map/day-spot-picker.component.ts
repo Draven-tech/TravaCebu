@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+﻿import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { ModalController, IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { ItineraryDay } from '../services/itinerary.service';
@@ -149,4 +149,4 @@ export class DaySpotPickerComponent {
   cancel() {
     this.modalCtrl.dismiss();
   }
-} 
+}

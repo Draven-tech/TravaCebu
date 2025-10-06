@@ -1,0 +1,109 @@
+<ion-header>
+      <ion-toolbar color="warning">
+        <ion-title>Search Tourist Spots</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="close()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="ion-padding">
+      <!-- Search Input -->
+      <div class="search-input-container">
+        <ion-searchbar 
+          [(ngModel)]="searchTerm" 
+          placeholder="Enter tourist spot name..."
+          (ionInput)="onSearchInput($event)"
+          [debounce]="500">
+        </ion-searchbar>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-container" *ngIf="isSearching">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Searching for tourist spots...</p>
+      </div>
+
+             <!-- Search Results -->
+       <div class="search-results" *ngIf="!isSearching && searchResults.length > 0">
+         <h3>Search Results for "{{ searchTerm }}"</h3>
+         <div class="results-grid">
+           <div *ngFor="let result of searchResults; let i = index" 
+                class="result-card" 
+                [class.existing-spot-card]="isExistingSpot(result)"
+                (click)="!isExistingSpot(result) && addToDatabase(result)">
+             <div class="result-image">
+               <img 
+                 [src]="getPlaceImageUrl(result)" 
+                 [alt]="result.name"
+                 (error)="onImageError($event, result)"
+                 class="place-image">
+               
+                               <!-- Existing Spot Badge -->
+                <div class="existing-spot-badge" *ngIf="isExistingSpot(result)">
+                  <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+                  Already Added
+                </div>
+               
+               <div class="image-overlay">
+                 <ion-button 
+                   fill="clear" 
+                   size="small" 
+                   color="light"
+                   (click)="!isExistingSpot(result) && addToDatabase(result); $event.stopPropagation()">
+                   <ion-icon name="add-circle" slot="start" *ngIf="!isExistingSpot(result)"></ion-icon>
+                   <ion-icon name="checkmark-circle" slot="start" *ngIf="isExistingSpot(result)"></ion-icon>
+                   {{ isExistingSpot(result) ? 'Already Added' : 'Add to Database' }}
+                 </ion-button>
+               </div>
+             </div>
+             <div class="result-details">
+               <h4 class="place-name">{{ result.name }}</h4>
+               <p class="place-address">
+                 <ion-icon name="location-outline"></ion-icon>
+                 {{ result.formatted_address || 'Cebu, Philippines' }}
+               </p>
+               <div class="place-rating" *ngIf="result.rating">
+                 <ion-icon name="star" color="warning"></ion-icon>
+                 <span>{{ result.rating }}</span>
+                 <span class="rating-count" *ngIf="result.user_ratings_total">
+                   ({{ result.user_ratings_total }} reviews)
+                 </span>
+               </div>
+               <div class="place-types" *ngIf="result.types">
+                 <ion-chip size="small" color="medium" *ngFor="let type of getDisplayTypes(result.types)">
+                   {{ type }}
+                 </ion-chip>
+               </div>
+             </div>
+           </div>
+         </div>
+       </div>
+
+      <!-- No Results -->
+      <div class="no-results" *ngIf="!isSearching && searchResults.length === 0 && searchTerm">
+        <ion-icon name="search-outline" class="no-results-icon"></ion-icon>
+        <h3>No results found</h3>
+        <p>Try searching with a different name or check your spelling.</p>
+      </div>
+
+      <!-- Initial State -->
+      <div class="initial-state" *ngIf="!isSearching && searchResults.length === 0 && !searchTerm">
+        <ion-icon name="search-outline" class="initial-icon"></ion-icon>
+        <h3>Search for Tourist Spots</h3>
+        <p>Enter the name of a tourist spot in Cebu to find and add it to our database.</p>
+        <div class="search-examples">
+          <ion-chip size="small" color="light" (click)="searchTerm = 'SM Seaside'">
+            SM Seaside
+          </ion-chip>
+                     <ion-chip size="small" color="light" (click)="searchTerm = 'Magellans Cross'">
+             Magellan's Cross
+           </ion-chip>
+          <ion-chip size="small" color="light" (click)="searchTerm = 'Fort San Pedro'">
+            Fort San Pedro
+          </ion-chip>
+        </div>
+      </div>
+    </ion-content>

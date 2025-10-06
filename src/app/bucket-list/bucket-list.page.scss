@@ -110,7 +110,7 @@ ion-content::before {
 
 .floating-buttons {
   position: fixed;
-  bottom: 80px; // above <app-bottom-nav>
+  bottom: 80px; 
   left: 0;
   right: 0;
   padding: 0 16px;
@@ -223,7 +223,7 @@ ion-button[fill="clear"] {
   }
 }
 
-// Enhanced neumorphic tab styling
+
 .tab-btn {
   display: flex;
   justify-content: center;
@@ -279,7 +279,7 @@ ion-button[fill="clear"] {
   }
 }
 
-// Itinerary modal styling
+
 ::ng-deep .itinerary-modal {
   --height: 80vh;
   --width: 90vw;
@@ -290,7 +290,7 @@ ion-button[fill="clear"] {
   }
 }
 
-// Beautiful Itinerary Setup Modal
+
 ::ng-deep .setup-modal {
   --height: 90vh;
   --width: 95vw;
@@ -301,7 +301,7 @@ ion-button[fill="clear"] {
     overflow: hidden;
   }
 
-  // Fix accessibility issues
+
   ion-modal {
     --backdrop-opacity: 0.5;
   }
@@ -500,7 +500,7 @@ ion-button[fill="clear"] {
   box-shadow: 0 4px 12px rgba(243, 156, 18, 0.1);
 }
 
-/* Fix ion-datetime internal styling */
+
 ion-datetime {
   --background: rgba(255, 255, 255, 0.95);
   --color: #2d3748;
@@ -509,7 +509,7 @@ ion-datetime {
   box-shadow: 0 4px 12px rgba(243, 156, 18, 0.1);
 }
 
-/* Style the datetime picker wheel */
+
 :global(ion-datetime .datetime-wheel) {
   background: rgba(255, 255, 255, 0.95) !important;
   color: #2d3748 !important;
@@ -526,7 +526,7 @@ ion-datetime {
   font-weight: 700 !important;
 }
 
-/* Fix datetime button styling */
+
 :global(ion-datetime ion-button) {
   --background: rgba(255, 255, 255, 0.9);
   --color: #2d3748;
@@ -534,7 +534,7 @@ ion-datetime {
   border: 1px solid #f39c12;
 }
 
-/* Style the datetime popover */
+
 :global(.datetime-popover) {
   --background: rgba(255, 255, 255, 0.95);
   --color: #2d3748;
@@ -543,7 +543,7 @@ ion-datetime {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
-/* Force light theme for datetime picker */
+
 :global(ion-datetime) {
   --background: #ffffff !important;
   --color: #2d3748 !important;
@@ -562,7 +562,7 @@ ion-datetime {
   color: #666 !important;
 }
 
-/* Fix the wheel columns */
+
 :global(ion-datetime .wheel-item) {
   color: #2d3748 !important;
   background: #ffffff !important;
@@ -577,13 +577,12 @@ ion-datetime {
   box-shadow: 0 2px 8px rgba(241, 196, 15, 0.3) !important;
 }
 
-/* Fix datetime container */
+
 :global(ion-datetime .datetime-wrapper) {
   background: #ffffff !important;
   border-radius: 12px !important;
 }
 
-/* Fix datetime header */
 :global(ion-datetime .datetime-header) {
   background: #f8f9fa !important;
   color: #2d3748 !important;
@@ -672,7 +671,7 @@ ion-datetime {
   --background: #f8f9fa;
 }
 
-/* AGGRESSIVE datetime picker light theme override */
+
 :global(.setup-modal ion-datetime),
 :global(.setup-modal ion-datetime *),
 :global(.setup-modal .datetime-wheel),
@@ -687,7 +686,7 @@ ion-datetime {
   --ion-text-color: #2d3748 !important;
 }
 
-/* Force all datetime wheel items to be visible */
+
 :global(.setup-modal .wheel-item) {
   background: #ffffff !important;
   color: #2d3748 !important;
@@ -704,7 +703,7 @@ ion-datetime {
   border: 2px solid #f39c12 !important;
 }
 
-/* Override any system dark mode */
+
 :global(.setup-modal) {
   color-scheme: light !important;
 }
@@ -713,5 +712,3 @@ ion-datetime {
   color-scheme: light !important;
   filter: none !important;
 }
-
-// Connection Prompt

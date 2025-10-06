@@ -7,8 +7,8 @@ import { IonicModule } from '@ionic/angular';
 import { UserMapPageRoutingModule } from './user-map-routing.module';
 
 import { UserMapPage } from './user-map.page';
-import { TouristSpotSheetComponent } from './tourist-spot-sheet.component';
-import { DaySpotPickerComponent } from './day-spot-picker.component';
+import { TouristSpotSheetComponent } from '../components/tourist-spot-sheet/tourist-spot-sheet.component';
+import { DaySpotPickerComponent } from '../components/day-spot-picker/day-spot-picker.component';
 import { ComponentsModule } from '../components/components.module';
 
 @NgModule({

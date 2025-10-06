@@ -1,0 +1,152 @@
+<div class="overlay-backdrop" (click)="close()">
+      <div class="overlay-content" (click)="$event.stopPropagation()">
+        <!-- Header -->
+        <div class="overlay-header">
+          <ion-toolbar color="warning">
+            <ion-title>Public Transport</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="close()" style="--color: white; font-weight: bold;">
+                <ion-icon name="close"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </div>
+
+        <!-- Content -->
+        <div class="overlay-body">
+          <!-- Route Summary Header -->
+          <div class="route-summary">
+            <div class="route-header">
+              <ion-icon name="map" color="warning"></ion-icon>
+              <div class="route-info">
+                <h2>{{ routeInfo?.title || 'Your Route' }}</h2>
+                <p class="route-stats">
+                  <ion-icon name="time"></ion-icon> {{ routeInfo?.totalDuration }}
+                  <ion-icon name="location"></ion-icon> {{ routeInfo?.totalDistance }}
+                  <ion-icon name="card"></ion-icon> {{ getEstimatedFare() }}
+                </p>
+              </div>
+            </div>
+            
+            <!-- Route Alternatives (API only) -->
+            <div *ngIf="getRouteAlternatives().length > 0" class="route-alternatives">
+              <h3>Alternative Routes</h3>
+              <div class="alternative-routes">
+                <div *ngFor="let alt of getRouteAlternatives(); let i = index" 
+                     class="alternative-route" 
+                     [class.selected]="selectedAlternativeIndex === i"
+                     (click)="selectAlternative(i)">
+                  <div class="alt-route-info">
+                    <span class="alt-route-number">Route {{ i + 2 }}</span>
+                    <span class="alt-route-duration">{{ alt.totalDuration }}</span>
+                    <span class="alt-route-distance">{{ alt.totalDistance }}</span>
+                  </div>
+                  <div class="alt-route-summary">{{ alt.summary }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Expense Logging -->
+          <div class="expense-logging-section">
+            <div class="total-expenses-display">
+              <span class="total-label">Total Expenses</span>
+              <span class="total-amount">â‚±{{ (budgetSummary?.totalExpenses || 0) | number:'1.0-0' }}</span>
+            </div>
+            
+            <h3>Log Your Expenses</h3>
+            <div class="quick-expense-actions">
+              <ion-button fill="solid" color="warning" (click)="addQuickTransportExpense()">
+                <ion-icon name="add" slot="start"></ion-icon>
+                Transport
+              </ion-button>
+              <ion-button fill="solid" color="success" (click)="addQuickFoodExpense()">
+                <ion-icon name="add" slot="start"></ion-icon>
+                Food
+              </ion-button>
+              <ion-button fill="solid" color="primary" (click)="addQuickAccommodationExpense()">
+                <ion-icon name="add" slot="start"></ion-icon>
+                Accommodation
+              </ion-button>
+            </div>
+          </div>
+
+          <!-- Detailed Route Segments -->
+          <div class="route-segments">
+            <!-- No segments found message -->
+            <div *ngIf="getCurrentRouteSegments().length === 0" class="no-segments">
+              <ion-card>
+                <ion-card-content>
+                  <ion-icon name="information-circle" color="warning"></ion-icon>
+                  <p>No route segments found.</p>
+                </ion-card-content>
+              </ion-card>
+            </div>
+            
+            <ion-list *ngIf="getCurrentRouteSegments().length > 0">
+              <ion-item *ngFor="let segment of getCurrentRouteSegments(); let i = index" class="route-segment" [class.highlighted]="i === 0">
+               <div class="segment-content">
+                 <!-- Segment Header with Route Type Icons -->
+                 <div class="segment-route-path">
+                   <div class="route-step" *ngFor="let step of getRouteSteps(segment); let stepIndex = index">
+                     <div class="step-icon">
+                       <ion-icon [name]="getStepIcon(step.type)" [color]="getStepColor(step.type)"></ion-icon>
+                       <span class="step-duration">{{ step.duration }}</span>
+                     </div>
+                     <div class="step-details" *ngIf="step.type === 'jeepney' || step.type === 'bus'">
+                       <ion-chip color="warning" size="small">
+                         <ion-label>{{ step.code }}</ion-label>
+                       </ion-chip>
+                     </div>
+                     <ion-icon *ngIf="stepIndex < getRouteSteps(segment).length - 1" name="arrow-forward" class="arrow"></ion-icon>
+                   </div>
+                 </div>
+
+                 <!-- Segment Info -->
+                 <div class="segment-info">
+                   <div class="segment-header">
+                     <h3>{{ segment.fromName || segment.from }} â†’ {{ segment.toName || segment.to }}</h3>
+                     <div class="segment-time-range">
+                       <ion-icon name="time"></ion-icon>
+                       {{ segment.estimatedTime || segment.duration }}
+                     </div>
+                   </div>
+                   
+                   <div class="segment-details">
+                     <p class="segment-description">{{ segment.description || segment.instructions }}</p>
+                     
+                     <!-- Transit Details -->
+                     <div *ngIf="segment.transitDetails" class="transit-details">
+                       <ion-chip color="primary">
+                         <ion-icon name="bus"></ion-icon>
+                         <ion-label>{{ segment.transitDetails }}</ion-label>
+                       </ion-chip>
+                       <div *ngIf="getSegmentFare(segment)" class="fare-info">
+                         <ion-chip color="success" size="small">
+                           <ion-icon name="card"></ion-icon>
+                           <ion-label>{{ getSegmentFare(segment) }}</ion-label>
+                         </ion-chip>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </ion-item>
+           </ion-list>
+         </div>
+
+         <!-- Route Actions -->
+         <div class="route-actions">
+           <ion-button expand="block" color="success" (click)="startNavigation()">
+             <ion-icon name="navigate"></ion-icon>
+             Start Navigation
+           </ion-button>
+           
+           <ion-button expand="block" color="primary" (click)="shareRoute()">
+             <ion-icon name="share"></ion-icon>
+             Share Route
+           </ion-button>
+         </div>
+       </div>
+     </div>
+   </div>

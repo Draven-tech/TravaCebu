@@ -11,7 +11,7 @@
   }
 }
 ion-content {
-  --padding-bottom: 80px; // ✅ leaves room above bottom nav
+  --padding-bottom: 80px; 
 }
 
 .share-actions {
@@ -146,7 +146,7 @@ ion-content {
   }
 }
 
-// Responsive design
+
 @media (max-width: 480px) {
   .itinerary-actions {
     ion-button {
@@ -156,7 +156,7 @@ ion-content {
   }
 }
 
-// Animation for cards
+
 .itinerary-card {
   animation: slideInUp 0.3s ease-out;
 }

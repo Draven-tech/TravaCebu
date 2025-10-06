@@ -2,7 +2,7 @@
 import { AlertController, ModalController } from '@ionic/angular';
 import { CalendarService, GlobalEvent } from '../services/calendar.service';
 import { EventDetailModalComponent } from '../modals/event-detail-modal/event-detail-modal.component';
-import { ViewItineraryModalComponent, ViewItineraryDay, ViewItinerarySpot } from '../my-itineraries/view-itinerary-modal.component';
+import { ViewItineraryModalComponent, ViewItineraryDay, ViewItinerarySpot } from '../modals/view-itinerary-modal/view-itinerary-modal.component';
 
 @Component({
   standalone: false,

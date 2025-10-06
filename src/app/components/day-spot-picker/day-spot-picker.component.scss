@@ -1,0 +1,37 @@
+.picker-container {
+      padding: 16px;
+    }
+    
+    .picker-container h3 {
+      margin-bottom: 16px;
+      color: #333;
+      font-weight: 600;
+    }
+    
+    .spot-selection {
+      margin-top: 20px;
+    }
+    
+    .new-day-option {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #e0e0e0;
+    }
+    
+    ion-item {
+      --padding-start: 16px;
+      --padding-end: 16px;
+      --min-height: 60px;
+    }
+    
+    ion-item h3 {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    
+    ion-item p {
+      color: #666;
+      font-size: 0.9rem;
+      margin: 0;
+    }

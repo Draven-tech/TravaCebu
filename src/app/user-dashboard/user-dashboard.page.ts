@@ -7,7 +7,7 @@ import { BucketService } from '../services/bucket-list.service';
 import { NavController, ToastController, ModalController, AlertController } from '@ionic/angular';
 import { PlacesService } from '../services/places.service';
 import { PendingTouristSpotService } from '../services/pending-tourist-spot.service';
-import { SearchModalComponent } from './search-modal.component';
+import { SearchModalComponent } from '../modals/search-modal/search-modal.component';
 import { GeofencingService } from '../services/geofencing.service';
 
 @Component({

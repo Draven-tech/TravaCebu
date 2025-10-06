@@ -7,7 +7,7 @@ import { IonicModule } from '@ionic/angular';
 import { UserDashboardPageRoutingModule } from './user-dashboard-routing.module';
 
 import { UserDashboardPage } from './user-dashboard.page';
-import { SearchModalComponent } from './search-modal.component';
+import { SearchModalComponent } from '../modals/search-modal/search-modal.component';
 import { ComponentsModule } from '../components/components.module';
 
 @NgModule({

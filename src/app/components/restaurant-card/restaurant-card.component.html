@@ -1,0 +1,43 @@
+<div class="restaurant-card">
+      <div class="card-header">
+        <ion-icon name="restaurant" color="warning"></ion-icon>
+        <span class="card-title">{{ restaurant.name }}</span>
+      </div>
+      <div class="card-content">
+        <div class="place-details">
+          <span *ngIf="restaurant.rating">â­ {{ restaurant.rating }}â˜…</span>
+          <span *ngIf="restaurant.vicinity">ðŸ“ {{ restaurant.vicinity }}</span>
+        </div>
+        <div class="timeslot-edit">
+          <ion-label>Timeslot:</ion-label>
+          <ion-datetime
+            display-format="HH:mm"
+            picker-format="HH:mm"
+            [value]="timeslot"
+            (ionChange)="onTimeslotChange($event)">
+          </ion-datetime>
+        </div>
+        <ng-content></ng-content>
+      </div>
+    </div><div class="restaurant-card">
+      <div class="card-header">
+        <ion-icon name="restaurant" color="warning"></ion-icon>
+        <span class="card-title">{{ restaurant.name }}</span>
+      </div>
+      <div class="card-content">
+        <div class="place-details">
+          <span *ngIf="restaurant.rating">â­ {{ restaurant.rating }}â˜…</span>
+          <span *ngIf="restaurant.vicinity">ðŸ“ {{ restaurant.vicinity }}</span>
+        </div>
+        <div class="timeslot-edit">
+          <ion-label>Timeslot:</ion-label>
+          <ion-datetime
+            display-format="HH:mm"
+            picker-format="HH:mm"
+            [value]="timeslot"
+            (ionChange)="onTimeslotChange($event)">
+          </ion-datetime>
+        </div>
+        <ng-content></ng-content>
+      </div>
+    </div>

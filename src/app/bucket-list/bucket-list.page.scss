@@ -333,7 +333,7 @@ ion-button[fill="clear"] {
 
 .setup-header {
   background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-  padding: 40px 20px 30px;
+  padding: 10px 10px 10px;
   text-align: center;
   position: relative;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -347,7 +347,7 @@ ion-button[fill="clear"] {
 .header-icon {
   font-size: 48px;
   color: white;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
 }
 
@@ -376,7 +376,7 @@ ion-button[fill="clear"] {
 .setup-section {
   background: white;
   border-radius: 20px;
-  padding: 24px;
+  padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -406,28 +406,49 @@ ion-button[fill="clear"] {
   margin: 0;
 }
 
-.days-selector {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 16px;
-}
+ .days-slider {
+    background: #fff;
+    border: 2px solid var(--ion-color-warning);
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
 
-.day-btn {
-  --border-radius: 16px;
-  --border-width: 2px;
-  --border-style: solid;
-  --border-color: #e2e8f0;
-  font-weight: 600;
-  font-size: 0.9rem;
-  height: 48px;
-  transition: all 0.3s ease;
+    .slider-item {
+      --background: transparent;
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      ion-label {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--ion-color-medium);
+      }
+
+      ion-range.custom-slider {
+        margin-top: 10px;
+        --bar-background: #f4b94250;
+        --bar-background-active: var(--ion-color-warning);
+        --knob-background: var(--ion-color-warning);
+        --knob-size: 28px;
+        --knob-border-radius: 50%;
+        --pin-background: var(--ion-color-warning);
+        --pin-color: #fff;
+        --height: 28px;
+      }
+
+      ion-range::part(bar) {
+        height: 8px;
+        border-radius: 10px;
+      }
+    }
+
+    .selected-days {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--ion-color-warning);
+    }
   }
-}
+
 
 .custom-days-input {
   --background: white;
@@ -446,24 +467,7 @@ ion-button[fill="clear"] {
   }
 }
 
-.custom-number-input {
-  --background: transparent;
-  --color: #2d3748;
-  --placeholder-color: #a0aec0;
-  --placeholder-opacity: 0.8;
-  font-size: 1.1rem;
-  font-weight: 600;
-  text-align: center;
-  --padding-start: 16px;
-  --padding-end: 16px;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
 
-  &::placeholder {
-    color: #a0aec0;
-    font-weight: 400;
-  }
-}
 
 .time-selector {
   margin-bottom: 16px;
@@ -472,8 +476,8 @@ ion-button[fill="clear"] {
 .time-input, .date-input {
   --background: rgba(255, 255, 255, 0.95);
   --border-radius: 16px;
-  --border-width: 2px;
-  --border-color: #f39c12;
+  //--border-width: 2px;
+ // --border-color: #f39c12;
   --border-style: solid;
   --padding-start: 16px;
   --padding-end: 16px;
@@ -495,7 +499,7 @@ ion-button[fill="clear"] {
   --color: #2d3748;
   font-weight: 600;
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px;
   border: 2px solid #f39c12;
   box-shadow: 0 4px 12px rgba(243, 156, 18, 0.1);
 }

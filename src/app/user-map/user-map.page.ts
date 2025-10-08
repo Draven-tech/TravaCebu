@@ -130,7 +130,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     if (this.selectedTab === 'directions') {
       await this.loadAvailableItineraries();
       await this.loadJeepneyRoutes();
-      await this.showDirectionsAndRoutes();
+      
+      // If an itinerary is already selected, show it
+      if (this.selectedItineraryIndex >= 0 && this.availableItineraries.length > 0) {
+        await this.showDirectionsAndRoutes();
+      }
     } else if (this.selectedTab === 'spots') {
       this.showTouristSpots();
     }
@@ -144,9 +148,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   async loadAvailableItineraries(): Promise<void> {
     try {
-      console.log('📅 Loading available itineraries...');
-      
-      // Load only active (non-completed) itineraries for the dropdown
       const events = await this.calendarService.loadItineraryEvents();
       
       if (events && events.length > 0) {
@@ -154,17 +155,13 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         
         if (itineraries.length > 0) {
           this.availableItineraries = itineraries;
-          console.log('Loaded itineraries:', this.availableItineraries.length);
         } else {
           this.availableItineraries = [];
-          console.log('No itineraries found');
         }
       } else {
         this.availableItineraries = [];
-        console.log('No events found');
       }
     } catch (error) {
-      console.error('Error loading itinerary data:', error);
       this.availableItineraries = [];
     }
   }
@@ -180,25 +177,39 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       })) || [];
       
     } catch (error) {
-      console.error('Error loading jeepney routes:', error);
+      // Silently handle error
     } finally {
       this.isLoadingJeepneyRoutes = false;
     }
   }
 
   async loadItineraryRoutes(): Promise<void> {
-    // Load itinerary routes from calendar service
-    try {
-      const events = await this.calendarService.loadItineraryEvents();
+    if (this.selectedItineraryIndex < 0 || this.selectedItineraryIndex >= this.availableItineraries.length) {
+      // Clear any existing route data when no itinerary is selected
+      this.currentRouteInfo = null;
+      this.mapManagement.clearAllRouteLines();
+      this.mapManagement.clearAllMarkers();
+      return;
+    }
+    
+    if (this.availableItineraries.length > 0 && this.selectedItineraryIndex < this.availableItineraries.length) {
+      const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
       
-      if (events && events.length > 0) {
-        const itineraries = this.mapUtils.groupEventsIntoItineraries(events);
-        this.availableItineraries = itineraries;
-      } else {
-        this.availableItineraries = [];
-      }
-    } catch (error) {
-      console.error('Error loading itinerary routes:', error);
+      // Clear any existing routes when itinerary changes
+      this.mapManagement.clearAllRouteLines();
+      this.mapManagement.clearAllMarkers();
+      this.currentRouteInfo = null;
+      
+      // Show markers immediately when itinerary is selected
+      this.mapManagement.showItinerarySpots(selectedItinerary, this.mapUI);
+      
+      // Start geofencing for the selected itinerary
+      await this.geofencingService.startMonitoring(selectedItinerary.days);
+      
+      // Generate route information for the selected itinerary
+      await this.generateRouteForItinerary(selectedItinerary);
+    } else {
+      this.currentRouteInfo = null;
     }
   }
 
@@ -280,7 +291,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       window.addEventListener('offline', () => this.onNetworkStatusChange(false));
       
     } catch (error) {
-      console.error('Error in ngAfterViewInit:', error);
       await this.showToast('Error initializing map');
     }
   }
@@ -328,14 +338,172 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
   }
 
+  getSegmentTitle(segment: any): string {
+    if (segment.type === 'jeepney' || segment.type === 'bus') {
+      return `${segment.jeepneyCode || 'Transit'} (${segment.fromName || segment.from} → ${segment.toName || segment.to})`;
+    } else if (segment.type === 'walk') {
+      return `Walk (${segment.fromName || segment.from} → ${segment.toName || segment.to})`;
+    } else {
+      return `${segment.fromName || segment.from} → ${segment.toName || segment.to}`;
+    }
+  }
+
   async showSegmentSelector(): Promise<void> {
-    // Implementation for segment selector
-    console.log('Show segment selector');
+    if (!this.currentRouteInfo || !this.currentRouteInfo.segments) {
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: 'Navigate to Route Segment',
+      subHeader: `Select a segment to view on the map`,
+      inputs: this.currentRouteInfo.segments.map((segment: any, index: number) => ({
+        name: 'segment',
+        type: 'radio' as const,
+        label: `Segment ${index + 1}: ${this.getSegmentTitle(segment)}`,
+        value: index,
+        checked: index === 0
+      })),
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Go to Segment',
+          handler: (selectedIndex: number) => {
+            this.navigateToSegment(selectedIndex);
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  navigateToSegment(segmentIndex: number): void {
+    if (!this.currentRouteInfo || !this.currentRouteInfo.segments || segmentIndex < 0) {
+      return;
+    }
+
+    const segment = this.currentRouteInfo.segments[segmentIndex];
+    if (!segment) return;
+
+    // Try multiple ways to get segment coordinates
+    let lat, lng;
+    
+    // Special handling for meal and accommodation segments
+    if (segment.type === 'meal' || segment.type === 'accommodation') {
+      const placeName = segment.from || segment.to || segment.placeName;
+      
+      if (placeName && typeof placeName === 'string') {
+        const cleanName = placeName.replace(/🍽️|🏨|🛏️/g, '').trim();
+        
+        // Search in tourist spots
+        const foundSpot = this.touristSpots.find(spot => 
+          spot.name.toLowerCase().includes(cleanName.toLowerCase()) ||
+          cleanName.toLowerCase().includes(spot.name.toLowerCase())
+        );
+        
+        if (foundSpot && foundSpot.location) {
+          lat = foundSpot.location.lat;
+          lng = foundSpot.location.lng;
+        }
+        
+        // If not found in tourist spots, try itinerary data
+        if (!lat && this.availableItineraries && this.selectedItineraryIndex >= 0) {
+          const currentItinerary = this.availableItineraries[this.selectedItineraryIndex];
+          if (currentItinerary && currentItinerary.days) {
+            currentItinerary.days.forEach((day: any) => {
+              day.spots?.forEach((spot: any) => {
+                if (spot.name.toLowerCase().includes(cleanName.toLowerCase()) ||
+                    (spot.chosenRestaurant && spot.chosenRestaurant.name.toLowerCase().includes(cleanName.toLowerCase())) ||
+                    (spot.chosenHotel && spot.chosenHotel.name.toLowerCase().includes(cleanName.toLowerCase()))) {
+                  lat = spot.location?.lat;
+                  lng = spot.location?.lng;
+                }
+              });
+            });
+          }
+        }
+      }
+    }
+    
+    // Regular coordinate extraction for transportation segments
+    if (!lat || !lng) {
+      // Method 1: from.lat/lng
+      if (segment.from && segment.from.lat && segment.from.lng) {
+        lat = segment.from.lat;
+        lng = segment.from.lng;
+      }
+      // Method 2: from.location.lat/lng
+      else if (segment.from && segment.from.location && segment.from.location.lat && segment.from.location.lng) {
+        lat = segment.from.location.lat;
+        lng = segment.from.location.lng;
+      }
+      // Method 3: fromLocation
+      else if (segment.fromLocation && segment.fromLocation.lat && segment.fromLocation.lng) {
+        lat = segment.fromLocation.lat;
+        lng = segment.fromLocation.lng;
+      }
+      // Method 4: to.lat/lng (use destination if from is missing)
+      else if (segment.to && segment.to.lat && segment.to.lng) {
+        lat = segment.to.lat;
+        lng = segment.to.lng;
+      }
+      // Method 5: to.location.lat/lng
+      else if (segment.to && segment.to.location && segment.to.location.lat && segment.to.location.lng) {
+        lat = segment.to.location.lat;
+        lng = segment.to.location.lng;
+      }
+      // Method 6: toLocation
+      else if (segment.toLocation && segment.toLocation.lat && segment.toLocation.lng) {
+        lat = segment.toLocation.lat;
+        lng = segment.toLocation.lng;
+      }
+      // Method 7: Try to find coordinates from polyline
+      else if (segment.polyline) {
+        try {
+          let decodedPoints: any[] = [];
+          
+          if (typeof segment.polyline === 'string') {
+            decodedPoints = this.mapUtils.decodePolyline(segment.polyline);
+          } else if (segment.polyline.points) {
+            decodedPoints = this.mapUtils.decodePolyline(segment.polyline.points);
+          } else if (Array.isArray(segment.polyline) && segment.polyline.length > 0) {
+            // Already decoded array from OSRM
+            lat = segment.polyline[0].lat;
+            lng = segment.polyline[0].lng;
+          }
+          
+          if (!lat && decodedPoints.length > 0) {
+            lat = decodedPoints[0][0];
+            lng = decodedPoints[0][1];
+          }
+        } catch (error) {
+          // Silently handle polyline decode errors
+        }
+      }
+    }
+
+    if (lat && lng && lat !== 0 && lng !== 0) {
+      // Pan to the segment location with zoom
+      const map = this.mapManagement.getMap();
+      if (map) {
+        map.setView([lat, lng], 16, {
+          animate: true,
+          duration: 1
+        });
+      }
+
+      // Show toast with segment info
+      this.showToast(`📍 Navigated to Segment ${segmentIndex + 1}: ${this.getSegmentTitle(segment)}`);
+    } else {
+      this.showToast(`⚠️ Could not find coordinates for Segment ${segmentIndex + 1}`);
+    }
   }
 
   async navigateNextItineraryStep(): Promise<void> {
     // Implementation for navigation
-    console.log('Navigate next step');
   }
 
   async showStageRouteOptions(stageIndex: number): Promise<void> {
@@ -361,7 +529,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.stageRouteOptions = routes;
       
     } catch (error) {
-      console.error('Error generating route options:', error);
       await this.showToast('Error generating route options');
     }
   }
@@ -418,7 +585,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   async generateRouteForItinerary(itinerary: any): Promise<void> {
     try {
       this.isGeneratingRoute = true;
-      this.loadingProgress = 'Generating route...';
+      
+      // Show loading modal
+      await this.showLoadingModal('🚀 Starting route generation...');
       
       const userLocation = await this.locationTracking.getLocationWithFallback();
       
@@ -436,11 +605,18 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         });
       }
       
+      // Dismiss loading modal
+      await this.dismissLoadingModal();
+      
+      // Display route on map
       this.displayRouteOnMap(this.currentRouteInfo);
       
+      // Show success message
+      await this.showToast('✅ Route generation completed!');
+      
     } catch (error) {
-      console.error('Error generating route:', error);
-      await this.showToast('Error generating route');
+      await this.dismissLoadingModal();
+      await this.showToast('❌ Error generating routes. Please try again.');
     } finally {
       this.isGeneratingRoute = false;
       this.loadingProgress = '';
@@ -448,62 +624,203 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   displayRouteOnMap(routeInfo: any): void {
+    if (!routeInfo || !routeInfo.segments) {
+      return;
+    }
+    
     try {
       this.mapManagement.clearAllRouteLines();
       
-      for (const segment of routeInfo.segments) {
-        if (segment.polyline) {
-          const coordinates = this.mapUtils.decodePolyline(segment.polyline);
-          const polyline = L.polyline(coordinates, {
-            color: segment.type === 'walk' ? '#4caf50' : '#1976d2',
-            weight: 4,
-            opacity: 0.8
-          });
-          
-          this.mapManagement.addRouteLine(polyline);
-        } else if (segment.from && segment.to) {
-          // Create a simple line between points if no polyline
-          const polyline = L.polyline([
-            [segment.from.lat, segment.from.lng],
-            [segment.to.lat, segment.to.lng]
-          ], {
-            color: segment.type === 'walk' ? '#4caf50' : '#1976d2',
-            weight: 4,
-            opacity: 0.8
-          });
-          
-          this.mapManagement.addRouteLine(polyline);
+      routeInfo.segments.forEach((segment: any) => {
+        // Draw segment based on type
+        if ((segment.type === 'jeepney' || segment.type === 'bus') && segment.jeepneyCode) {
+          // Draw jeepney/bus route with code
+          this.drawJeepneySegment(segment);
+        } else if (segment.type === 'walk') {
+          // Draw walking segment
+          this.drawWalkingSegment(segment);
         }
-      }
+      });
       
     } catch (error) {
-      console.error('Error displaying route on map:', error);
+      // Silently handle display errors
+    }
+  }
+  
+  private drawJeepneySegment(segment: any): void {
+    if (!segment.from || !segment.to) return;
+    
+    const fromLat = segment.from.lat || segment.from.location?.lat;
+    const fromLng = segment.from.lng || segment.from.location?.lng;
+    const toLat = segment.to.lat || segment.to.location?.lat;
+    const toLng = segment.to.lng || segment.to.location?.lng;
+    
+    if (!fromLat || !fromLng || !toLat || !toLng) return;
+    
+    // Check if we have polyline data from Google Maps
+    let polylinePoints: [number, number][] = [];
+    
+    if (segment.polyline) {
+      try {
+        // Handle different polyline formats
+        if (typeof segment.polyline === 'string') {
+          // Encoded polyline string from Google Maps
+          polylinePoints = this.mapUtils.decodePolyline(segment.polyline);
+        } else if (segment.polyline.points) {
+          // Polyline object with points property
+          polylinePoints = this.mapUtils.decodePolyline(segment.polyline.points);
+        } else if (Array.isArray(segment.polyline)) {
+          // Already decoded array of {lat, lng} from OSRM
+          polylinePoints = segment.polyline.map((p: any) => [p.lat, p.lng]);
+        }
+      } catch (error) {
+        polylinePoints = [[fromLat, fromLng], [toLat, toLng]];
+      }
+    } else {
+      polylinePoints = [[fromLat, fromLng], [toLat, toLng]];
+    }
+    
+    // Draw jeepney route line
+    const jeepneyLine = L.polyline(polylinePoints, {
+      color: '#FF5722',
+      weight: 6,
+      opacity: 0.8,
+      dashArray: '0'
+    });
+    
+    this.mapManagement.addRouteLine(jeepneyLine);
+    
+    // Add jeepney code marker at midpoint
+    const midIndex = Math.floor(polylinePoints.length / 2);
+    const midPoint = polylinePoints[midIndex];
+    
+    const jeepneyMarker = L.marker([midPoint[0], midPoint[1]], {
+      icon: L.divIcon({
+        html: `<div style="
+          background: #FF5722;
+          color: white;
+          border: 2px solid white;
+          border-radius: 8px;
+          padding: 4px 8px;
+          font-size: 14px;
+          font-weight: bold;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+          text-align: center;
+        ">${segment.jeepneyCode || '🚌'}</div>`,
+        iconSize: [50, 30],
+        iconAnchor: [25, 15]
+      })
+    });
+    
+    jeepneyMarker.bindPopup(`
+      <div style="text-align: center;">
+        <strong>🚌 Jeepney ${segment.jeepneyCode}</strong><br>
+        <small>${segment.description || 'Jeepney Route'}</small><br>
+        <small>Distance: ${this.mapUtils.formatDistance(segment.distance || 0)}</small><br>
+        <small>Duration: ${this.mapUtils.formatDuration(segment.duration || 0)}</small>
+      </div>
+    `);
+    
+    this.mapManagement.addRouteMarker(jeepneyMarker);
+  }
+  
+  private drawWalkingSegment(segment: any): void {
+    if (!segment.from || !segment.to) return;
+    
+    const fromLat = segment.from.lat || segment.from.location?.lat;
+    const fromLng = segment.from.lng || segment.from.location?.lng;
+    const toLat = segment.to.lat || segment.to.location?.lat;
+    const toLng = segment.to.lng || segment.to.location?.lng;
+    
+    if (!fromLat || !fromLng || !toLat || !toLng) return;
+    
+    // Check if we have polyline data
+    let polylinePoints: [number, number][] = [];
+    
+    if (segment.polyline) {
+      try {
+        // Handle different polyline formats
+        if (typeof segment.polyline === 'string') {
+          // Encoded polyline string from Google Maps
+          polylinePoints = this.mapUtils.decodePolyline(segment.polyline);
+        } else if (segment.polyline.points) {
+          // Polyline object with points property
+          polylinePoints = this.mapUtils.decodePolyline(segment.polyline.points);
+        } else if (Array.isArray(segment.polyline)) {
+          // Already decoded array of {lat, lng} from OSRM
+          polylinePoints = segment.polyline.map((p: any) => [p.lat, p.lng]);
+        }
+      } catch (error) {
+        polylinePoints = [[fromLat, fromLng], [toLat, toLng]];
+      }
+    } else {
+      // No polyline - draw straight line
+      polylinePoints = [[fromLat, fromLng], [toLat, toLng]];
+    }
+    
+    // Draw walking route line
+    const walkLine = L.polyline(polylinePoints, {
+      color: '#4CAF50',
+      weight: 5,
+      opacity: 0.8,
+      dashArray: '15, 10'
+    });
+    
+    this.mapManagement.addRouteLine(walkLine);
+    
+    // Add walking marker at midpoint (only if we have multiple points)
+    if (polylinePoints.length > 1) {
+      const midIndex = Math.floor(polylinePoints.length / 2);
+      const midPoint = polylinePoints[midIndex];
+      
+      const walkMarker = L.marker([midPoint[0], midPoint[1]], {
+        icon: L.divIcon({
+          html: `<div style="
+            background: #4CAF50;
+            color: white;
+            border: 1px solid white;
+            border-radius: 4px;
+            padding: 2px 4px;
+            font-size: 8px;
+            font-weight: bold;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            text-align: center;
+          ">🚶</div>`,
+          iconSize: [35, 15],
+          iconAnchor: [17, 7]
+        })
+      });
+      
+      walkMarker.bindPopup(`
+        <div style="text-align: center;">
+          <strong>🚶 Walking</strong><br>
+          <small>${segment.description || 'Walk to destination'}</small><br>
+          <small>Distance: ${this.mapUtils.formatDistance(segment.distance || 0)}</small><br>
+          <small>Duration: ${this.mapUtils.formatDuration(segment.duration || 0)}</small>
+        </div>
+      `);
+      
+      this.mapManagement.addRouteMarker(walkMarker);
     }
   }
 
   async loadTouristSpots(): Promise<void> {
     try {
-      console.log('📍 Loading tourist spots...');
-      
       const cached = localStorage.getItem('tourist_spots_cache');
       if (cached) {
         this.touristSpots = JSON.parse(cached);
-        console.log('Loaded from cache:', this.touristSpots.length, 'spots');
         return;
       }
       
-      console.log('Fetching from Firestore...');
       const spotsSnapshot = await this.firestore.collection('tourist_spots').get().toPromise();
       this.touristSpots = spotsSnapshot?.docs.map(doc => ({
         id: doc.id,
         ...(doc.data() as any)
       })) || [];
       
-      console.log('Loaded from Firestore:', this.touristSpots.length, 'spots');
       localStorage.setItem('tourist_spots_cache', JSON.stringify(this.touristSpots));
       
     } catch (error) {
-      console.error('Error loading tourist spots:', error);
       await this.showToast('Error loading tourist spots');
     }
   }
@@ -564,7 +881,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       try {
         await this.loadingModal.dismiss();
       } catch (error) {
-        console.log('Loading modal already dismissed');
+        // Silently handle already dismissed modal
       }
       this.loadingModal = null;
     }
@@ -604,7 +921,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         this.showTouristSpots();
       }
     } catch (error) {
-      console.error('Error refreshing tourist spots:', error);
+      // Silently handle error
     }
   }
 
@@ -643,8 +960,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         </div>
       `;
       this.userMarker.bindPopup(popupContent);
-
-      console.log('✅ User marker updated on map:', location);
     }
   }
 

@@ -122,7 +122,9 @@ export class ItineraryService {
         if (spot.mealType) {
           try {
             const restRes: any = await this.placesService.getNearbyPlaces(spot.location.lat, spot.location.lng, 'restaurant').toPromise();
-            spot.restaurantSuggestions = restRes.results || [];
+            const suggestions = restRes.results || [];
+            // Rank and sort suggestions so UI top 3 are meaningful
+            spot.restaurantSuggestions = this.rankPlacesByQualityAndProximity(suggestions, spot.location);
           } catch (error) {
             console.error(`Error fetching restaurants for ${spot.name}:`, error);
             spot.restaurantSuggestions = [];
@@ -135,7 +137,9 @@ export class ItineraryService {
         const lastSpot = day.spots[day.spots.length - 1];
         try {
           const hotelRes: any = await this.placesService.getNearbyPlaces(lastSpot.location.lat, lastSpot.location.lng, 'lodging').toPromise();
-          day.hotelSuggestions = hotelRes.results || [];
+          const suggestions = hotelRes.results || [];
+          // Rank and sort hotel suggestions similarly
+          day.hotelSuggestions = this.rankPlacesByQualityAndProximity(suggestions, lastSpot.location);
         } catch (error) {
           console.error(`Error fetching hotels for Day ${day.day}:`, error);
           day.hotelSuggestions = [];
@@ -144,6 +148,60 @@ export class ItineraryService {
     }
     
     return itinerary;
+  }
+
+  // Rank Google Places results by a composite of rating, reviews, proximity, open-now, and price
+  private rankPlacesByQualityAndProximity(places: any[], origin: { lat: number; lng: number }): any[] {
+    if (!Array.isArray(places) || places.length === 0) {
+      return [];
+    }
+
+    // Determine max distance for normalization (fallback to 5km if data sparse)
+    const locations = places
+      .map(p => this.safeGetPlaceLocation(p))
+      .filter((loc): loc is { lat: number; lng: number } => !!loc);
+    const distances = locations.map(loc => this.getDistance(origin, loc));
+    const maxDistanceKm = Math.max(5, distances.length ? Math.max(...distances) : 0);
+
+    const scored = places.map((place) => {
+      const rating: number = typeof place.rating === 'number' ? place.rating : 0;
+      const reviews: number = typeof place.user_ratings_total === 'number' ? place.user_ratings_total : 0;
+      const openNow: boolean = !!place.opening_hours?.open_now;
+      const priceLevel: number = typeof place.price_level === 'number' ? place.price_level : 2; // 0-4, assume mid if unknown
+      const loc = this.safeGetPlaceLocation(place);
+      const distanceKm = loc ? this.getDistance(origin, loc) : maxDistanceKm; // worst if unknown
+
+      // Normalize components
+      const ratingScore = rating / 5; // 0..1
+      const reviewsScore = Math.min(1, Math.log10(Math.max(1, reviews)) / 3); // saturate ~ at 1000 reviews
+      const proximityScore = 1 - Math.min(1, distanceKm / maxDistanceKm); // closer => higher
+      const openNowBonus = openNow ? 0.08 : 0; // small boost if open
+      const priceScore = 1 - Math.min(1, priceLevel / 4); // cheaper => higher
+
+      // Weights tuned for quality first, then proximity
+      const score = (
+        0.45 * ratingScore +
+        0.25 * reviewsScore +
+        0.20 * proximityScore +
+        0.07 * priceScore +
+        openNowBonus
+      );
+
+      return { place, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.map(s => s.place);
+  }
+
+  private safeGetPlaceLocation(place: any): { lat: number; lng: number } | null {
+    // Google Places NearbySearch returns geometry.location with lat/lng
+    const lat = place?.geometry?.location?.lat;
+    const lng = place?.geometry?.location?.lng;
+    if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+      return { lat, lng };
+    }
+    return null;
   }
 
   // Helper: create a cache key based on spot IDs and time slots

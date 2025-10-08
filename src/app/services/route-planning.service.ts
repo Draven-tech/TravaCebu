@@ -90,7 +90,6 @@ export class RoutePlanningService {
           });
         }
       } catch (error) {
-        console.error('Error generating route for stage:', error);
         // Add error segment
         segments.push({
           type: 'walk',
@@ -398,13 +397,11 @@ export class RoutePlanningService {
           const fromLat = fromPoint?.lat || fromPoint?.location?.lat;
           const fromLng = fromPoint?.lng || fromPoint?.location?.lng;
           if (!fromPoint || !fromLat || !fromLng) {
-            console.warn(`⚠️ Stage ${spotIndex + 1}: Invalid fromPoint coordinates:`, fromPoint);
             continue;
           }
           
           // Validate spot has coordinates
           if (!spot.location || !spot.location.lat || !spot.location.lng) {
-            console.warn(`⚠️ Stage ${spotIndex + 1}: Invalid spot coordinates:`, spot);
             continue;
           }
           
@@ -450,22 +447,66 @@ export class RoutePlanningService {
               }
             });
           } else {
-            // No transit route found - add fallback message
-            segments.push({
-              type: 'walk',
-              from: fromPoint,
-              to: spot,
-              fromName: spotIndex === 0 ? 'Your Location' : spots[spotIndex - 1]?.name || 'Previous Location',
-              toName: spot.name,
-              estimatedTime: 'N/A',
-              description: `⚠️ No transit data available for this segment`,
-              jeepneyCode: null,
-              mealType: null,
-              distance: 0,
-              duration: 0,
-              stage: spotIndex + 1,
-              polyline: null
-            });
+            // No transit route found - try OSRM walking route as fallback
+            if (loadingCallback) {
+              await loadingCallback(`🚶 No transit found. Generating walking route for Stage ${spotIndex + 1}...`);
+            }
+            
+            const walkingRoute = await this.createWalkingRouteWithOSRM(fromPoint, spot);
+            
+            if (walkingRoute && walkingRoute.segments && walkingRoute.segments[0]) {
+              // OSRM walking route generated successfully
+              const segment = walkingRoute.segments[0];
+              segments.push({
+                type: 'walk',
+                from: segment.from,
+                to: segment.to,
+                fromName: spotIndex === 0 ? 'Your Location' : spots[spotIndex - 1]?.name || 'Previous Location',
+                toName: spot.name,
+                estimatedTime: this.formatDuration(segment.duration),
+                description: segment.description,
+                jeepneyCode: null,
+                mealType: null,
+                distance: segment.distance,
+                duration: segment.duration,
+                stage: spotIndex + 1,
+                polyline: segment.polyline
+              });
+              
+              totalDistance += (segment.distance || 0) / 1000;
+              totalDuration += (segment.duration || 0);
+            } else {
+              // OSRM failed - use straight line fallback
+              const fromCoords = {
+                lat: fromLat,
+                lng: fromLng
+              };
+              const toCoords = spot.location;
+              
+              const straightLineDistance = this.calculateDistance(
+                fromLat, fromLng,
+                toCoords.lat, toCoords.lng
+              ) * 1000; // Convert to meters
+              
+              segments.push({
+                type: 'walk',
+                from: fromCoords,
+                to: toCoords,
+                fromName: spotIndex === 0 ? 'Your Location' : spots[spotIndex - 1]?.name || 'Previous Location',
+                toName: spot.name,
+                estimatedTime: this.formatDuration(straightLineDistance / 1.1),
+                description: `Walk ${(straightLineDistance / 1000).toFixed(2)}km (direct path)`,
+                jeepneyCode: null,
+                mealType: null,
+                distance: straightLineDistance,
+                duration: straightLineDistance / 1.1, // ~1.1 m/s walking speed
+                stage: spotIndex + 1,
+                polyline: null // No polyline for straight line
+              });
+              
+              totalDistance += straightLineDistance / 1000;
+              totalDuration += straightLineDistance / 1.1;
+            }
           }
         }
       }
@@ -483,7 +524,6 @@ export class RoutePlanningService {
       };
       
     } catch (error) {
-      console.error('Error generating route info:', error);
       return null;
     }
   }
@@ -492,11 +532,182 @@ export class RoutePlanningService {
    * Find all jeepney routes using Google Maps API
    */
   private async findAllJeepneyRoutes(from: any, to: any): Promise<any[]> {
-    // This would need to be implemented with the complex logic from the original
-    // For now, return empty array - this should be implemented properly
-    return [];
+    try {
+      const fromLat = from.lat || from.location?.lat;
+      const fromLng = from.lng || from.location?.lng;
+      const toLat = to.lat || to.location?.lat;
+      const toLng = to.lng || to.location?.lng;
+      
+      if (!fromLat || !fromLng || !toLat || !toLng) {
+        return [];
+      }
+      
+      const origin = `${fromLat},${fromLng}`;
+      const destination = `${toLat},${toLng}`;
+      
+      const response: any = await this.directionsService.getTransitRoute(origin, destination).toPromise();
+      
+      if (response && response.routes && response.routes.length > 0) {
+        const allRoutes = [];
+        
+        for (const route of response.routes) {
+          const hasTransitSteps = this.hasTransitSteps(route);
+          
+          if (hasTransitSteps) {
+            const segments = this.processGoogleMapsTransitRoute(route, from, to);
+            const hasTransitSegments = segments.some((seg: any) => 
+              seg.type === 'jeepney' || seg.type === 'bus'
+            );
+            
+            if (hasTransitSegments) {
+              let totalDuration = 0;
+              let totalDistance = 0;
+              
+              segments.forEach((seg: any) => {
+                totalDuration += seg.duration || 0;
+                totalDistance += seg.distance || 0;
+              });
+              
+              allRoutes.push({
+                segments,
+                totalDuration,
+                totalDistance
+              });
+            }
+          }
+        }
+        
+        return allRoutes;
+      }
+      
+      return [];
+    } catch (error) {
+      return [];
+    }
   }
 
+  /**
+   * Check if route has transit steps
+   */
+  private hasTransitSteps(route: any): boolean {
+    if (route.legs && route.legs.length > 0) {
+      const leg = route.legs[0];
+      if (leg.steps) {
+        const transitSteps = leg.steps.filter((step: any) => 
+          step.travel_mode === 'TRANSIT' && 
+          step.transit_details && 
+          step.transit_details.line &&
+          step.transit_details.line.vehicle?.type === 'BUS'
+        );
+        
+        return transitSteps.length > 0;
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Create a walking route using OSRM to follow streets instead of straight lines
+   */
+  private async createWalkingRouteWithOSRM(from: any, to: any): Promise<any> {
+    try {
+      const fromLat = from.lat || from.location?.lat;
+      const fromLng = from.lng || from.location?.lng;
+      const toLat = to.lat || to.location?.lat;
+      const toLng = to.lng || to.location?.lng;
+      
+      if (!fromLat || !fromLng || !toLat || !toLng) {
+        return null;
+      }
+
+      const coordinates = `${fromLng},${fromLat};${toLng},${toLat}`;
+      const response: any = await this.directionsService.getOsrmRoute(coordinates, 'foot').toPromise();
+      
+      if (response && response.routes && response.routes[0]) {
+        const route = response.routes[0];
+        
+        // Handle OSRM geometry (can be GeoJSON or encoded polyline)
+        let routePath: any[] = [];
+        if (route.geometry) {
+          if (typeof route.geometry === 'string') {
+            // Encoded polyline5 format
+            routePath = this.decodeOSRMPolyline(route.geometry);
+          } else if (route.geometry.type === 'LineString' && route.geometry.coordinates) {
+            // GeoJSON format
+            routePath = route.geometry.coordinates.map((coord: number[]) => ({
+              lat: coord[1],
+              lng: coord[0]
+            }));
+          }
+        }
+        
+        const walkingSegment = {
+          type: 'walk',
+          from: { lat: fromLat, lng: fromLng },
+          to: { lat: toLat, lng: toLng },
+          description: `Walk ${(route.distance / 1000).toFixed(2)}km (${Math.round(route.duration / 60)} min)`,
+          duration: route.duration,
+          distance: route.distance,
+          polyline: routePath,
+          jeepneyCode: null
+        };
+        
+        return {
+          segments: [walkingSegment],
+          totalDuration: route.duration,
+          totalDistance: route.distance,
+          type: 'walking'
+        };
+      } else {
+        return null;
+      }
+      
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Decode polyline5 geometry from OSRM
+   */
+  private decodeOSRMPolyline(encoded: string): any[] {
+    const points: any[] = [];
+    let index = 0;
+    let lat = 0;
+    let lng = 0;
+    
+    while (index < encoded.length) {
+      let shift = 0;
+      let result = 0;
+      let byte: number;
+      
+      do {
+        byte = encoded.charCodeAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20);
+      
+      const deltaLat = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+      lat += deltaLat;
+      
+      shift = 0;
+      result = 0;
+      
+      do {
+        byte = encoded.charCodeAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20);
+      
+      const deltaLng = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+      lng += deltaLng;
+      
+      points.push({ lat: lat / 1e5, lng: lng / 1e5 });
+    }
+    
+    return points;
+  }
 
   /**
    * Convert degrees to radians

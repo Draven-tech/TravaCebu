@@ -16,6 +16,17 @@ export class MapUtilitiesService {
 
       const itineraries: any[] = [];
       const groupedEvents = new Map<string, any[]>();
+      
+      // Load tourist spots from cache for location lookup
+      let touristSpots: any[] = [];
+      try {
+        const cached = localStorage.getItem('tourist_spots_cache');
+        if (cached) {
+          touristSpots = JSON.parse(cached);
+        }
+      } catch (e) {
+        // Silently handle cache errors
+      }
 
       // Group events by date
       events.forEach(event => {
@@ -46,13 +57,20 @@ export class MapUtilitiesService {
               day: 1,
               date: date,
               spots: dayEvents.map((event: any) => {
-                // Try to get location from event first, then from tourist spots
-                let location = event.extendedProps?.location || { lat: 0, lng: 0 };
+                // Try to get location from event first
+                let location = event.extendedProps?.location || null;
                 
-                // If location is invalid (0,0), try to find it in tourist spots
-                if ((location.lat === 0 && location.lng === 0) || !location.lat || !location.lng) {
-                  // Note: touristSpots would need to be passed as parameter or accessed differently
-                  // For now, keep the location as is
+                // If location is invalid or missing, try to find it in tourist spots
+                if (!location || !location.lat || !location.lng || (location.lat === 0 && location.lng === 0)) {
+                  const matchingSpot = touristSpots.find(spot => 
+                    spot.name === event.title || 
+                    spot.id === event.extendedProps?.spotId
+                  );
+                  if (matchingSpot && matchingSpot.location) {
+                    location = matchingSpot.location;
+                  } else {
+                    location = null; // Set to null instead of {0,0}
+                  }
                 }
                 
                 // Determine the type of event (tourist spot, restaurant, or hotel)
@@ -77,7 +95,7 @@ export class MapUtilitiesService {
                   timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
                   estimatedDuration: event.extendedProps?.duration || '2 hours',
                   durationMinutes: event.extendedProps?.durationMinutes || 120,
-                  location: location,
+                  location: location, // Can be null if not found
                   img: img,
                   mealType: event.extendedProps?.mealType || null,
                   eventType: eventType,
@@ -108,7 +126,6 @@ export class MapUtilitiesService {
       
       // Check if the date is valid
       if (isNaN(date.getTime())) {
-        console.warn('Invalid date string:', dateString);
         return 'Unknown Date';
       }
       
@@ -120,7 +137,6 @@ export class MapUtilitiesService {
         day: 'numeric' 
       });
     } catch (error) {
-      console.error('Error parsing date:', error, 'Input:', dateString);
       return 'Unknown Date';
     }
   }

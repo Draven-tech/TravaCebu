@@ -28,7 +28,6 @@ export class MapManagementService {
       
       const mapElement = document.getElementById(mapElementId);
       if (!mapElement) {
-        console.error('Map element not found in DOM');
         throw new Error('Map element not found');
       }
 
@@ -53,20 +52,16 @@ export class MapManagementService {
       // Add OSM layer
       osmLayer.addTo(this.map);
 
-      console.log('🗺️ Map instance created:', this.map);
-
       // Ensure map is properly sized
       setTimeout(() => {
         if (this.map) {
           this.map.invalidateSize();
-          console.log('🗺️ Map size invalidated');
         }
       }, 300);
       
       return this.map;
       
     } catch (error) {
-      console.error('Error in initMap:', error);
       throw error;
     }
   }
@@ -183,31 +178,48 @@ export class MapManagementService {
     try {
       this.clearAllMarkers();
       
-      const locationMap = new Map();
+      if (!itinerary || !itinerary.days) {
+        return;
+      }
       
-      for (let i = 0; i < itinerary.spots.length; i++) {
-        const spot = itinerary.spots[i];
-        if (!spot.location || !spot.location.lat || !spot.location.lng) continue;
+      const locationMap = new Map();
+      let spotIndex = 1;
+      
+      // Iterate through all days in the itinerary
+      for (const day of itinerary.days) {
+        if (!day.spots) {
+          continue;
+        }
         
-        const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
+        // Handle different spot data structures
+        const spots = Array.isArray(day.spots) ? day.spots : Object.values(day.spots);
         
-        if (!locationMap.has(locationKey)) {
-          const marker = L.marker([spot.location.lat, spot.location.lng], {
-            icon: mapUI.getRouteMarkerIcon(spot, i + 1)
-          });
+        for (const spot of spots) {
+          if (!spot || !spot.location || !spot.location.lat || !spot.location.lng) {
+            continue;
+          }
           
-          const popupContent = mapUI.createItinerarySpotPopup(spot, i + 1);
-          marker.bindPopup(popupContent);
+          const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
           
-          this.addMarker(marker);
-          locationMap.set(locationKey, true);
+          if (!locationMap.has(locationKey)) {
+            const marker = L.marker([spot.location.lat, spot.location.lng], {
+              icon: mapUI.getRouteMarkerIcon(spot, spotIndex)
+            });
+            
+            const popupContent = mapUI.createItinerarySpotPopup(spot, spotIndex);
+            marker.bindPopup(popupContent);
+            
+            this.addMarker(marker);
+            locationMap.set(locationKey, true);
+            spotIndex++;
+          }
         }
       }
       
       this.fitToMarkers();
       
     } catch (error) {
-      console.error('Error showing itinerary spots:', error);
+      // Silently handle errors
     }
   }
 
@@ -215,17 +227,12 @@ export class MapManagementService {
 
   showTouristSpots(touristSpots: any[], mapUI: any): void {
     try {
-      console.log('🗺️ Showing tourist spots...');
-      console.log('Tourist spots count:', touristSpots.length);
-      
       this.clearAllMarkers();
       
       const locationMap = new Map();
-      let markersAdded = 0;
       
       for (const spot of touristSpots) {
         if (!spot.location || !spot.location.lat || !spot.location.lng) {
-          console.log('Skipping spot without location:', spot.name);
           continue;
         }
         
@@ -241,15 +248,13 @@ export class MapManagementService {
           
           this.addMarker(marker);
           locationMap.set(locationKey, true);
-          markersAdded++;
         }
       }
       
-      console.log('Markers added:', markersAdded);
       this.fitToMarkers();
       
     } catch (error) {
-      console.error('Error showing tourist spots:', error);
+      // Silently handle error
     }
   }
 
@@ -260,9 +265,6 @@ export class MapManagementService {
     if (this.map) {
       marker.addTo(this.map);
       this.markers.push(marker);
-      console.log('Marker added to map. Total markers:', this.markers.length);
-    } else {
-      console.error('Map not initialized when trying to add marker');
     }
   }
 

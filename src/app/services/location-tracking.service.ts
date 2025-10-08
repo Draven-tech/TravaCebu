@@ -1,6 +1,7 @@
 ﻿import { Injectable, NgZone } from '@angular/core';
 import { Geolocation } from '@capacitor/geolocation';
 import { ToastController } from '@ionic/angular';
+import { Subject } from 'rxjs';
 
 export interface UserLocation {
   lat: number;
@@ -18,6 +19,10 @@ export class LocationTrackingService {
   private isLocationTracking: boolean = false;
   private locationUpdateInterval: number = 10000; // Update every 10 seconds
   private userLocation: UserLocation | null = null;
+  
+  // Observable to emit location updates
+  private locationUpdate$ = new Subject<UserLocation>();
+  public locationUpdates = this.locationUpdate$.asObservable();
 
   constructor(
     private ngZone: NgZone,
@@ -171,6 +176,8 @@ export class LocationTrackingService {
       timestamp: Date.now()
     };
 
+    // Emit location update
+    this.locationUpdate$.next(this.userLocation);
   }
 
   /**
@@ -203,6 +210,9 @@ export class LocationTrackingService {
       isReal: false,
       timestamp: Date.now()
     };
+    
+    // Emit default location update
+    this.locationUpdate$.next(this.userLocation);
   }
 
   /**

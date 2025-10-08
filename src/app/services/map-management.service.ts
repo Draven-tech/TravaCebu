@@ -78,9 +78,61 @@ export class MapManagementService {
     return this.map;
   }
 
-  /**
-   * Change the tile layer
-   */
+
+  /////////////////////////////// onTileChange ////////////////////////////////////
+
+  clearAllMarkers(): void {
+    this.markers.forEach(marker => {
+      if (this.map) {
+        this.map.removeLayer(marker);
+      }
+    });
+    this.markers = [];
+  }
+
+  clearRouteMarkers(): void {
+    this.routeMarkers.forEach(marker => {
+      if (this.map) {
+        this.map.removeLayer(marker);
+      }
+    });
+    this.routeMarkers = [];
+  }
+
+  clearAllRouteLines(): void {
+    this.routeLines.forEach(line => {
+      if (this.map) {
+        this.map.removeLayer(line);
+      }
+    });
+    this.routeLines = [];
+    
+    if (this.walkLine && this.map) {
+      this.map.removeLayer(this.walkLine);
+      this.walkLine = undefined;
+    }
+    
+    if (this.jeepneyLine && this.map) {
+      this.map.removeLayer(this.jeepneyLine);
+      this.jeepneyLine = undefined;
+    }
+    
+    if (this.routeLine && this.map) {
+      this.map.removeLayer(this.routeLine);
+      this.routeLine = undefined;
+    }
+  }
+
+
+  invalidateSize(): void {
+    if (this.map) {
+      this.map.invalidateSize();
+    }
+  }
+
+  /////////////////////////// onTileChange //////////////////////////////
+
+
   changeTileLayer(tileType: string): void {
     if (!this.map) return;
 
@@ -91,7 +143,6 @@ export class MapManagementService {
       }
     });
 
-    // Add new tile layer based on selection
     let tileLayer: L.TileLayer;
     
     switch (tileType) {
@@ -126,54 +177,79 @@ export class MapManagementService {
     tileLayer.addTo(this.map);
   }
 
-  /**
-   * Clear all markers from the map
-   */
-  clearAllMarkers(): void {
-    this.markers.forEach(marker => {
-      if (this.map) {
-        this.map.removeLayer(marker);
+  ////////////////////////////////////////// showDirectionsAndRoutes, map-management.service.ts ///////////////////////////////////////////////////////////
+
+  showItinerarySpots(itinerary: any, mapUI: any): void {
+    try {
+      this.clearAllMarkers();
+      
+      const locationMap = new Map();
+      
+      for (let i = 0; i < itinerary.spots.length; i++) {
+        const spot = itinerary.spots[i];
+        if (!spot.location || !spot.location.lat || !spot.location.lng) continue;
+        
+        const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
+        
+        if (!locationMap.has(locationKey)) {
+          const marker = L.marker([spot.location.lat, spot.location.lng], {
+            icon: mapUI.getRouteMarkerIcon(spot, i + 1)
+          });
+          
+          const popupContent = mapUI.createItinerarySpotPopup(spot, i + 1);
+          marker.bindPopup(popupContent);
+          
+          this.addMarker(marker);
+          locationMap.set(locationKey, true);
+        }
       }
-    });
-    this.markers = [];
+      
+      this.fitToMarkers();
+      
+    } catch (error) {
+      console.error('Error showing itinerary spots:', error);
+    }
   }
 
-  /**
-   * Clear route markers only
-   */
-  clearRouteMarkers(): void {
-    this.routeMarkers.forEach(marker => {
-      if (this.map) {
-        this.map.removeLayer(marker);
-      }
-    });
-    this.routeMarkers = [];
-  }
+  //////////////////////////////////////////// map-management.service.ts ///////////////////////////////////////////
 
-  /**
-   * Clear all route lines
-   */
-  clearAllRouteLines(): void {
-    this.routeLines.forEach(line => {
-      if (this.map) {
-        this.map.removeLayer(line);
+  showTouristSpots(touristSpots: any[], mapUI: any): void {
+    try {
+      console.log('🗺️ Showing tourist spots...');
+      console.log('Tourist spots count:', touristSpots.length);
+      
+      this.clearAllMarkers();
+      
+      const locationMap = new Map();
+      let markersAdded = 0;
+      
+      for (const spot of touristSpots) {
+        if (!spot.location || !spot.location.lat || !spot.location.lng) {
+          console.log('Skipping spot without location:', spot.name);
+          continue;
+        }
+        
+        const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
+        
+        if (!locationMap.has(locationKey)) {
+          const marker = L.marker([spot.location.lat, spot.location.lng], {
+            icon: mapUI.getMarkerIconForSpot(spot)
+          });
+          
+          const popupContent = this.createSpotPopup(spot);
+          marker.bindPopup(popupContent);
+          
+          this.addMarker(marker);
+          locationMap.set(locationKey, true);
+          markersAdded++;
+        }
       }
-    });
-    this.routeLines = [];
-    
-    if (this.walkLine && this.map) {
-      this.map.removeLayer(this.walkLine);
-      this.walkLine = undefined;
-    }
-    
-    if (this.jeepneyLine && this.map) {
-      this.map.removeLayer(this.jeepneyLine);
-      this.jeepneyLine = undefined;
-    }
-    
-    if (this.routeLine && this.map) {
-      this.map.removeLayer(this.routeLine);
-      this.routeLine = undefined;
+      
+      console.log('Markers added:', markersAdded);
+      this.fitToMarkers();
+      
+    } catch (error) {
+      console.error('Error showing tourist spots:', error);
     }
   }
 
@@ -304,15 +380,6 @@ export class MapManagementService {
   }
 
   /**
-   * Invalidate map size (useful after DOM changes)
-   */
-  invalidateSize(): void {
-    if (this.map) {
-      this.map.invalidateSize();
-    }
-  }
-
-  /**
    * Remove the map
    */
   removeMap(): void {
@@ -354,49 +421,6 @@ export class MapManagementService {
   }
 
   /**
-   * Show tourist spots on map
-   */
-  showTouristSpots(touristSpots: any[], mapUI: any): void {
-    try {
-      console.log('🗺️ Showing tourist spots...');
-      console.log('Tourist spots count:', touristSpots.length);
-      
-      this.clearAllMarkers();
-      
-      const locationMap = new Map();
-      let markersAdded = 0;
-      
-      for (const spot of touristSpots) {
-        if (!spot.location || !spot.location.lat || !spot.location.lng) {
-          console.log('Skipping spot without location:', spot.name);
-          continue;
-        }
-        
-        const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
-        
-        if (!locationMap.has(locationKey)) {
-          const marker = L.marker([spot.location.lat, spot.location.lng], {
-            icon: mapUI.getMarkerIconForSpot(spot)
-          });
-          
-          const popupContent = this.createSpotPopup(spot);
-          marker.bindPopup(popupContent);
-          
-          this.addMarker(marker);
-          locationMap.set(locationKey, true);
-          markersAdded++;
-        }
-      }
-      
-      console.log('Markers added:', markersAdded);
-      this.fitToMarkers();
-      
-    } catch (error) {
-      console.error('Error showing tourist spots:', error);
-    }
-  }
-
-  /**
    * Create spot popup content
    */
   private createSpotPopup(spot: any): string {
@@ -414,38 +438,4 @@ export class MapManagementService {
     `;
   }
 
-  /**
-   * Show itinerary spots on map
-   */
-  showItinerarySpots(itinerary: any, mapUI: any): void {
-    try {
-      this.clearAllMarkers();
-      
-      const locationMap = new Map();
-      
-      for (let i = 0; i < itinerary.spots.length; i++) {
-        const spot = itinerary.spots[i];
-        if (!spot.location || !spot.location.lat || !spot.location.lng) continue;
-        
-        const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
-        
-        if (!locationMap.has(locationKey)) {
-          const marker = L.marker([spot.location.lat, spot.location.lng], {
-            icon: mapUI.getRouteMarkerIcon(spot, i + 1)
-          });
-          
-          const popupContent = mapUI.createItinerarySpotPopup(spot, i + 1);
-          marker.bindPopup(popupContent);
-          
-          this.addMarker(marker);
-          locationMap.set(locationKey, true);
-        }
-      }
-      
-      this.fitToMarkers();
-      
-    } catch (error) {
-      console.error('Error showing itinerary spots:', error);
-    }
-  }
 }

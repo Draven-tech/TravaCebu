@@ -7,6 +7,126 @@ export class MapUtilitiesService {
 
   constructor() { }
 
+
+///////////////////////////////// loadAvailableItineraries///////////////////////////////////////// 
+
+
+    groupEventsIntoItineraries(events: any[]): any[] {
+      if (!events || events.length === 0) return [];
+
+      const itineraries: any[] = [];
+      const groupedEvents = new Map<string, any[]>();
+
+      // Group events by date
+      events.forEach(event => {
+        const date = event.start.split('T')[0]; 
+        if (!groupedEvents.has(date)) {
+          groupedEvents.set(date, []);
+        }
+        groupedEvents.get(date)!.push(event);
+      });
+
+      // Convert grouped events to itineraries
+      groupedEvents.forEach((dayEvents, date) => {
+        if (dayEvents.length > 0) {
+          // Sort events by start time
+          dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+          
+          const firstEvent = dayEvents[0];
+          const lastEvent = dayEvents[dayEvents.length - 1];
+          
+          const itinerary = {
+            id: `itinerary_${date}`,
+            name: `Itinerary for ${this.getDateDisplay(date)}`,
+            start: firstEvent.start,
+            end: lastEvent.end,
+            date: date,
+            status: firstEvent.status || 'active',
+            days: [{
+              day: 1,
+              date: date,
+              spots: dayEvents.map((event: any) => {
+                // Try to get location from event first, then from tourist spots
+                let location = event.extendedProps?.location || { lat: 0, lng: 0 };
+                
+                // If location is invalid (0,0), try to find it in tourist spots
+                if ((location.lat === 0 && location.lng === 0) || !location.lat || !location.lng) {
+                  // Note: touristSpots would need to be passed as parameter or accessed differently
+                  // For now, keep the location as is
+                }
+                
+                // Determine the type of event (tourist spot, restaurant, or hotel)
+                const eventType = event.extendedProps?.type || 'tourist_spot';
+                let category = event.extendedProps?.category || 'GENERAL';
+                let img = event.extendedProps?.img || 'assets/img/default.png';
+                
+                // Set appropriate category and image based on event type
+                if (eventType === 'restaurant') {
+                  category = 'Restaurant';
+                  img = 'assets/img/restaurant-icon.png';
+                } else if (eventType === 'hotel') {
+                  category = 'Hotel';
+                  img = 'assets/img/hotel-icon.png';
+                }
+                
+                return {
+                  id: event.extendedProps?.spotId || event.id || '',
+                  name: event.title || 'Unknown Spot',
+                  description: event.extendedProps?.description || '',
+                  category: category,
+                  timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
+                  estimatedDuration: event.extendedProps?.duration || '2 hours',
+                  durationMinutes: event.extendedProps?.durationMinutes || 120,
+                  location: location,
+                  img: img,
+                  mealType: event.extendedProps?.mealType || null,
+                  eventType: eventType,
+                  // Add restaurant/hotel specific properties
+                  restaurant: event.extendedProps?.restaurant || null,
+                  hotel: event.extendedProps?.hotel || null,
+                  rating: event.extendedProps?.rating || null,
+                  vicinity: event.extendedProps?.vicinity || null
+                };
+              })
+            }]
+          };
+          
+          itineraries.push(itinerary);
+        }
+      });
+
+      return itineraries;
+    }
+
+    ////////////////////////////////// loadItineraryRoutes /////////////////////////////////////////
+
+  getDateDisplay(dateString: string): string {
+    if (!dateString) return 'Unknown Date';
+    
+    try {
+      const date = new Date(dateString);
+      
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date string:', dateString);
+        return 'Unknown Date';
+      }
+      
+      // Always return the full date format
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch (error) {
+      console.error('Error parsing date:', error, 'Input:', dateString);
+      return 'Unknown Date';
+    }
+  }
+
+
+
   /**
    * Generate nearby points around a location for route searching
    */
@@ -175,79 +295,7 @@ export class MapUtilitiesService {
     return points;
   }
 
-  /**
-   * Get date display string
-   */
-  getDateDisplay(dateString: string): string {
-    if (!dateString) return 'Unknown Date';
-    
-    try {
-      const date = new Date(dateString);
-      
-      // Check if the date is valid
-      if (isNaN(date.getTime())) {
-        console.warn('Invalid date string:', dateString);
-        return 'Unknown Date';
-      }
-      
-      const now = new Date();
-      const diffTime = Math.abs(now.getTime() - date.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays === 0) {
-        return 'Today';
-      } else if (diffDays === 1) {
-        return 'Tomorrow';
-      } else if (diffDays <= 7) {
-        return `In ${diffDays} days`;
-      } else {
-        return date.toLocaleDateString();
-      }
-    } catch (error) {
-      console.error('Error parsing date:', error, 'Input:', dateString);
-      return 'Unknown Date';
-    }
-  }
-
-  /**
-   * Group events into itineraries
-   */
-  groupEventsIntoItineraries(events: any[]): any[] {
-    if (!events || events.length === 0) return [];
-
-    // Group events by date
-    const groupedByDate: { [key: string]: any[] } = {};
-    events.forEach(event => {
-      const dateKey = event.date || 'unscheduled';
-      if (!groupedByDate[dateKey]) {
-        groupedByDate[dateKey] = [];
-      }
-      groupedByDate[dateKey].push(event);
-    });
-
-    // Convert grouped events to itineraries
-    return Object.keys(groupedByDate).map(dateKey => ({
-      id: `itinerary_${dateKey}`,
-      name: `Itinerary for ${this.getDateDisplay(dateKey)}`,
-      date: dateKey,
-      events: groupedByDate[dateKey],
-      spots: groupedByDate[dateKey].map(event => ({
-        id: event.id,
-        name: event.name,
-        location: event.location,
-        timeSlot: event.timeSlot,
-        estimatedDuration: event.estimatedDuration,
-        eventType: event.eventType,
-        category: event.category,
-        mealType: event.mealType,
-        restaurant: event.restaurant,
-        hotel: event.hotel,
-        rating: event.rating,
-        vicinity: event.vicinity
-      }))
-    }));
-  }
-
+  
   /**
    * Extract route segments from route
    */

@@ -128,9 +128,7 @@ export class MapUIService {
     `;
   }
 
-  /**
-   * Get icon color based on spot type
-   */
+  //////////////////////////////////////////////////////////////////////////////////////////
   private getIconColor(spot: any): string {
     if (spot.eventType === 'restaurant') return '#ff9800';
     if (spot.eventType === 'hotel') return '#1976d2';
@@ -140,9 +138,6 @@ export class MapUIService {
     return '#666666';
   }
 
-  /**
-   * Get icon name based on spot type
-   */
   private getIconName(spot: any): string {
     if (spot.eventType === 'restaurant') return 'restaurant';
     if (spot.eventType === 'hotel') return 'hotel';
@@ -151,6 +146,21 @@ export class MapUIService {
     if (spot.eventType === 'entertainment') return 'entertainment';
     return 'place';
   }
+
+  private getIconSymbol(iconName: string): string {
+    const symbols: { [key: string]: string } = {
+      restaurant: 'R',
+      hotel: 'H',
+      attraction: 'A',
+      shopping: 'S',
+      entertainment: 'E',
+      place: 'P'
+    };
+    return symbols[iconName] || 'P';
+  }
+
+/////////////////////////////////////////////////////////////////////////////////////
+
 
   /**
    * Get marker style based on spot type
@@ -164,20 +174,7 @@ export class MapUIService {
     return 'default-marker';
   }
 
-  /**
-   * Get icon symbol
-   */
-  private getIconSymbol(iconName: string): string {
-    const symbols: { [key: string]: string } = {
-      restaurant: 'R',
-      hotel: 'H',
-      attraction: 'A',
-      shopping: 'S',
-      entertainment: 'E',
-      place: 'P'
-    };
-    return symbols[iconName] || 'P';
-  }
+
 
   /**
    * Create custom marker HTML

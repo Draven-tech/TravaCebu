@@ -3,20 +3,24 @@ import { NavController, ToastController, ModalController, LoadingController, Ale
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { HttpClient } from '@angular/common/http';
-import { BucketService } from '../services/bucket-list.service';
 import * as L from 'leaflet';
 import { TouristSpotSheetComponent } from './tourist-spot-sheet.component';
-import { DirectionsService } from '../services/directions.service';
-import { ApiTrackerService } from '../services/api-tracker.service';
 import { Geolocation } from '@capacitor/geolocation';
-import { ItineraryService, ItineraryDay } from '../services/itinerary.service';
 import { DaySpotPickerComponent } from './day-spot-picker.component';
-import { CalendarService, CalendarEvent } from '../services/calendar.service';
 import { environment } from '../../environments/environment';
 import { RouteDetailsOverlayComponent } from './route-details-overlay.component';
+import { GeofencingService } from '../services/geofencing.service';
+import { Subscription } from 'rxjs';
+
+
+// services imports
+import { BucketService } from '../services/bucket-list.service';
+import { DirectionsService } from '../services/directions.service';
+import { ApiTrackerService } from '../services/api-tracker.service';
+import { ItineraryService, ItineraryDay } from '../services/itinerary.service';
+import { CalendarService, CalendarEvent } from '../services/calendar.service';
 import { BadgeService } from '../services/badge.service';
 import { BudgetService } from '../services/budget.service';
-import { GeofencingService } from '../services/geofencing.service';
 
 import { MapManagementService } from '../services/map-management.service';
 import { RoutePlanningService, RouteInfo } from '../services/route-planning.service';
@@ -24,6 +28,7 @@ import { JeepneyRoutingService } from '../services/jeepney-routing.service';
 import { LocationTrackingService, UserLocation } from '../services/location-tracking.service';
 import { MapUIService } from '../services/map-ui.service';
 import { MapUtilitiesService } from '../services/map-utilities.service';
+
 
 @Component({
   selector: 'app-user-map',
@@ -63,42 +68,48 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   // Loading modal properties
   loadingModal: any = null;
   loadingProgress: string = '';
-  isGeneratingRoute: boolean = false;
-  isLoadingJeepneyRoutes: boolean = false;
   
   // Location tracking
   private locationWatcher?: any;
   private isLocationTracking: boolean = false;
-  private locationUpdateInterval: number = 10000; // Update every 10 seconds
+  private locationUpdateInterval: number = 10000; // update every 10 seconds
   
   // Jeepney routes loaded from Firebase
   jeepneyRoutes: any[] = [];
-  
+  isLoadingJeepneyRoutes: boolean = false;
+  isGeneratingRoute: boolean = false;
+
   // Fullscreen mode
   isFullscreen: boolean = false;
+
+  // Subscription for location updates
+  private locationSubscription?: Subscription;
 
   constructor(
     private navCtrl: NavController,
     private afAuth: AngularFireAuth,
     private firestore: AngularFirestore,
     private http: HttpClient,
-    bucketService: BucketService,
     private toastCtrl: ToastController,
     private ngZone: NgZone,
     private modalCtrl: ModalController,
     private loadingCtrl: LoadingController,
     private alertCtrl: AlertController,
+    private componentFactoryResolver: ComponentFactoryResolver,
+    private viewContainerRef: ViewContainerRef,
+    private injector: Injector,
+    private geofencingService: GeofencingService,
+
+
+
+    // services imports
+    bucketService: BucketService,
     private directionsService: DirectionsService,
     private apiTracker: ApiTrackerService,
     private itineraryService: ItineraryService,
     private calendarService: CalendarService,
-    private componentFactoryResolver: ComponentFactoryResolver,
-    private viewContainerRef: ViewContainerRef,
-    private injector: Injector,
     private badgeService: BadgeService,
     private budgetService: BudgetService,
-    private geofencingService: GeofencingService,
-    
     private mapManagement: MapManagementService,
     private routePlanning: RoutePlanningService,
     private jeepneyRouting: JeepneyRoutingService,
@@ -107,51 +118,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private mapUtils: MapUtilitiesService
   ) {
     this.bucketService = bucketService;
-  }
-
-  get isOnline(): boolean {
-    return this.mapUtils.isOnline();
-  }
-
-  get isRealLocation(): boolean {
-    return this.locationTracking.isRealLocation();
-  }
-
-  get locationStatusText(): string {
-    return this.locationTracking.getLocationStatusText();
-  }
-
-  get isLocationTrackingActive(): boolean {
-    return this.locationTracking.isTrackingActive();
-  }
-
-  get userLocation(): any {
-    return this.locationTracking.getUserLocation();
-  }
-
-  async ngAfterViewInit(): Promise<void> {
-    try {
-      this.mapManagement.initMap();
-      
-      await this.locationTracking.startLocationTracking();
-      
-      await this.loadTouristSpots();
-      
-      // Wait a bit for map to be fully initialized
-      setTimeout(() => {
-        // Show tourist spots by default since selectedTab is 'spots'
-        this.showTouristSpots();
-      }, 500);
-      
-      this.setupGlobalFunctions();
-      
-      window.addEventListener('online', () => this.onNetworkStatusChange(true));
-      window.addEventListener('offline', () => this.onNetworkStatusChange(false));
-      
-    } catch (error) {
-      console.error('Error in ngAfterViewInit:', error);
-      await this.showToast('Error initializing map');
-    }
   }
 
   async onTabChange(): Promise<void> {
@@ -170,28 +136,54 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
   }
 
+
   onTileChange(): void {
     this.mapManagement.changeTileLayer(this.selectedTile);
   }
 
-  // ===== TEMPLATE METHODS =====
 
-  async showCuratedRouteDetailsSheet(): Promise<void> {
-    if (!this.currentRouteInfo) {
-      await this.showToast('No route information available');
-      return;
+  async loadAvailableItineraries(): Promise<void> {
+    try {
+      console.log('📅 Loading available itineraries...');
+      
+      // Load only active (non-completed) itineraries for the dropdown
+      const events = await this.calendarService.loadItineraryEvents();
+      
+      if (events && events.length > 0) {
+        const itineraries = this.mapUtils.groupEventsIntoItineraries(events);
+        
+        if (itineraries.length > 0) {
+          this.availableItineraries = itineraries;
+          console.log('Loaded itineraries:', this.availableItineraries.length);
+        } else {
+          this.availableItineraries = [];
+          console.log('No itineraries found');
+        }
+      } else {
+        this.availableItineraries = [];
+        console.log('No events found');
+      }
+    } catch (error) {
+      console.error('Error loading itinerary data:', error);
+      this.availableItineraries = [];
     }
+  }
 
-    const modal = await this.modalCtrl.create({
-      component: RouteDetailsOverlayComponent,
-      componentProps: {
-        routeInfo: this.currentRouteInfo,
-        availableRestaurants: this.touristSpots.filter(spot => spot.eventType === 'restaurant'),
-        availableHotels: this.touristSpots.filter(spot => spot.eventType === 'hotel')
-      },
-      backdropDismiss: true
-    });
-    await modal.present();
+  async loadJeepneyRoutes(): Promise<void> {
+    this.isLoadingJeepneyRoutes = true;
+    
+    try {
+      const routesSnapshot = await this.firestore.collection('jeepney_routes').get().toPromise();
+      this.jeepneyRoutes = routesSnapshot?.docs.map(doc => ({
+        id: doc.id,
+        ...(doc.data() as any)
+      })) || [];
+      
+    } catch (error) {
+      console.error('Error loading jeepney routes:', error);
+    } finally {
+      this.isLoadingJeepneyRoutes = false;
+    }
   }
 
   async loadItineraryRoutes(): Promise<void> {
@@ -217,12 +209,103 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     const dayCount = itinerary.days?.length || 0;
     const spotCount = itinerary.days?.[0]?.spots?.length || 0;
     
-    if (itinerary.name && itinerary.name !== `Day ${1} Itinerary`) {
+    if (itinerary.name && itinerary.name !== `Itinerary for Unknown Date`) {
       return `${itinerary.name} (${dayCount} day${dayCount > 1 ? 's' : ''}, ${spotCount} spots)`;
     }
     
-    return `Day ${1} Itinerary - ${spotCount} spots`;
+    return `Itinerary for Unknown Date (${dayCount} day${dayCount > 1 ? 's' : ''}, ${spotCount} spots)`;
   }
+
+  async showDirectionsAndRoutes(): Promise<void> {
+    if (this.availableItineraries.length === 0) {
+      await this.loadAvailableItineraries();
+    }
+    
+    if (this.availableItineraries.length > 0 && this.selectedItineraryIndex >= 0) {
+      const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
+      
+      // Show itinerary spots on map
+      this.mapManagement.showItinerarySpots(selectedItinerary, this.mapUI);
+      
+      await this.generateRouteForItinerary(selectedItinerary);
+    }
+  }
+  
+  get isOnline(): boolean {
+    return this.mapUtils.isOnline();
+  }
+
+  get isRealLocation(): boolean {
+    return this.locationTracking.isRealLocation();
+  }
+
+  get locationStatusText(): string {
+    return this.locationTracking.getLocationStatusText();
+  }
+
+  get isLocationTrackingActive(): boolean {
+    return this.locationTracking.isTrackingActive();
+  }
+
+  get userLocation(): any {
+    return this.locationTracking.getUserLocation();
+  }
+
+  async ngAfterViewInit(): Promise<void> {
+    try {
+      this.mapManagement.initMap();
+      
+      // Subscribe to location updates to display user marker
+      this.locationSubscription = this.locationTracking.locationUpdates.subscribe(
+        (location: UserLocation) => {
+          this.ngZone.run(() => {
+            this.updateUserMarker(location);
+          });
+        }
+      );
+      
+      await this.locationTracking.startLocationTracking();
+      
+      await this.loadTouristSpots();
+      
+      // Wait a bit for map to be fully initialized
+      setTimeout(() => {
+        // Show tourist spots by default since selectedTab is 'spots'
+        this.showTouristSpots();
+      }, 500);
+      
+      this.setupGlobalFunctions();
+      
+      window.addEventListener('online', () => this.onNetworkStatusChange(true));
+      window.addEventListener('offline', () => this.onNetworkStatusChange(false));
+      
+    } catch (error) {
+      console.error('Error in ngAfterViewInit:', error);
+      await this.showToast('Error initializing map');
+    }
+  }
+
+
+  // ===== TEMPLATE METHODS =====
+
+  async showCuratedRouteDetailsSheet(): Promise<void> {
+    if (!this.currentRouteInfo) {
+      await this.showToast('No route information available');
+      return;
+    }
+
+    const modal = await this.modalCtrl.create({
+      component: RouteDetailsOverlayComponent,
+      componentProps: {
+        routeInfo: this.currentRouteInfo,
+        availableRestaurants: this.touristSpots.filter(spot => spot.eventType === 'restaurant'),
+        availableHotels: this.touristSpots.filter(spot => spot.eventType === 'hotel')
+      },
+      backdropDismiss: true
+    });
+    await modal.present();
+  }
+
 
   async showUserLocation(): Promise<void> {
     const userLocation = this.locationTracking.getUserLocation();
@@ -329,62 +412,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.isFullscreen = !this.isFullscreen;
   }
 
-  // ===== CORE METHODS =====
 
-  async loadAvailableItineraries(): Promise<void> {
-    try {
-      console.log('📅 Loading available itineraries...');
-      
-      // Load only active (non-completed) itineraries for the dropdown
-      const events = await this.calendarService.loadItineraryEvents();
-      
-      if (events && events.length > 0) {
-        const itineraries = this.mapUtils.groupEventsIntoItineraries(events);
-        
-        if (itineraries.length > 0) {
-          this.availableItineraries = itineraries;
-          console.log('Loaded itineraries:', this.availableItineraries.length);
-        } else {
-          this.availableItineraries = [];
-          console.log('No itineraries found');
-        }
-      } else {
-        this.availableItineraries = [];
-        console.log('No events found');
-      }
-    } catch (error) {
-      console.error('Error loading itinerary data:', error);
-      this.availableItineraries = [];
-    }
-  }
 
-  async loadJeepneyRoutes(): Promise<void> {
-    this.isLoadingJeepneyRoutes = true;
-    
-    try {
-      const routesSnapshot = await this.firestore.collection('jeepney_routes').get().toPromise();
-      this.jeepneyRoutes = routesSnapshot?.docs.map(doc => ({
-        id: doc.id,
-        ...(doc.data() as any)
-      })) || [];
-      
-    } catch (error) {
-      console.error('Error loading jeepney routes:', error);
-    } finally {
-      this.isLoadingJeepneyRoutes = false;
-    }
-  }
-
-  async showDirectionsAndRoutes(): Promise<void> {
-    if (this.availableItineraries.length === 0) {
-      await this.loadAvailableItineraries();
-    }
-    
-    if (this.availableItineraries.length > 0 && this.selectedItineraryIndex >= 0) {
-      const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
-      await this.generateRouteForItinerary(selectedItinerary);
-    }
-  }
 
   async generateRouteForItinerary(itinerary: any): Promise<void> {
     try {
@@ -579,7 +608,52 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * Update or create user location marker on the map
+   */
+  private updateUserMarker(location: UserLocation): void {
+    if (!location) {
+      return;
+    }
+
+    // Remove existing user marker if present
+    if (this.userMarker) {
+      this.mapManagement.getMap()?.removeLayer(this.userMarker);
+    }
+
+    // Create new user marker using MapUIService
+    this.userMarker = this.mapUI.createUserLocationMarker(
+      location.lat,
+      location.lng,
+      location.isReal
+    );
+
+    // Add marker to map
+    const map = this.mapManagement.getMap();
+    if (map) {
+      this.userMarker.addTo(map);
+
+      // Add popup to marker
+      const popupContent = `
+        <div style="min-width: 150px;">
+          <h4 style="margin: 0 0 8px 0; color: #333;">
+            ${location.isReal ? '📍 Your Location (GPS)' : '📍 Default Location'}
+          </h4>
+          ${location.accuracy ? `<p style="margin: 4px 0; color: #666;">Accuracy: ${Math.round(location.accuracy)}m</p>` : ''}
+        </div>
+      `;
+      this.userMarker.bindPopup(popupContent);
+
+      console.log('✅ User marker updated on map:', location);
+    }
+  }
+
   ngOnDestroy(): void {
+    // Unsubscribe from location updates
+    if (this.locationSubscription) {
+      this.locationSubscription.unsubscribe();
+    }
+    
     this.locationTracking.stopLocationTracking();
     
     this.mapManagement.removeMap();

@@ -3,7 +3,7 @@ import { BucketService } from '../services/bucket-list.service';
 import { NavController } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AlertController, ModalController, LoadingController } from '@ionic/angular';
-import { ItineraryModalComponent } from './itinerary-modal.component';
+import { ItineraryModalComponent } from '../components/itinerary-modal/itinerary-modal.component';
 import { ItineraryService, ItineraryDay } from '../services/itinerary.service';
 
 @Component({
@@ -19,7 +19,7 @@ export class BucketListPage implements OnInit {
   showCustomDays = false;
   setup = { days: 1, startDate: this.getTodayString(), startTime: '1970-01-01T08:00', endTime: '1970-01-01T18:00' };
   editing = false;
-  isLoading = true;
+  isLoading = false;
 
   constructor(
     private bucketService: BucketService,
@@ -142,7 +142,7 @@ export class BucketListPage implements OnInit {
         originalEndTime: this.setup.endTime,
         editable: true,
         onEdit: () => this.editItinerary(),
-        originalSpots: this.spots // Pass the original bucket list spots
+        originalSpots: this.spots 
       },
       cssClass: 'itinerary-modal'
     });
@@ -150,8 +150,6 @@ export class BucketListPage implements OnInit {
   }
 
   async editItinerary() {
-    // For simplicity, just allow re-running the setup for now
-    // (Advanced: implement drag-and-drop, day assignment, duration editing)
     this.showSetupModal = true;
   }
 

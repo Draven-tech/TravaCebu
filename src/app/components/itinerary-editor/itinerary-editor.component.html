@@ -1,0 +1,138 @@
+<ion-header>
+      <ion-toolbar color="warning">
+        <ion-title style="font-size: 1.2rem; font-weight: 700;">
+          <ion-icon name="create-outline" style="margin-right: 8px;"></ion-icon>
+          Edit Itinerary
+        </ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="saveChanges()" fill="solid" color="success" size="small">
+            <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+            Save
+          </ion-button>
+          <ion-button (click)="cancel()" fill="clear">
+            <ion-icon name="close" style="font-size: 20px;"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="ion-padding compact-modal">
+      <!-- Combined Settings -->
+      <ion-item lines="none" class="compact-settings">
+        <ion-label>
+          <h3>Settings</h3>
+        </ion-label>
+        <ion-button size="small" fill="clear" (click)="updateAllTimeSlots()">
+          <ion-icon name="refresh"></ion-icon>
+        </ion-button>
+      </ion-item>
+      
+      <!-- Date Settings -->
+      <ion-item lines="none" class="date-header">
+        <ion-label>
+          <h3>Edit Dates</h3>
+        </ion-label>
+        <ion-button size="small" fill="clear" (click)="updateAllDates()">
+          <ion-icon name="refresh"></ion-icon>
+        </ion-button>
+      </ion-item>
+       
+                               <ion-item lines="none" class="compact-time-item">
+           <ion-label position="stacked">Start Date</ion-label>
+           <ion-input 
+             type="date"
+             [(ngModel)]="startDate"
+             (ionChange)="updateAllDates()"
+             class="compact-time-input">
+           </ion-input>
+         </ion-item>
+       
+               <ion-item lines="none" class="compact-time-item">
+          <ion-label position="stacked">Number of Days</ion-label>
+          <ion-input 
+            type="number" 
+            min="1" 
+            max="14"
+            [(ngModel)]="numberOfDays"
+            (ionChange)="updateNumberOfDays()"
+            placeholder="1"
+            class="compact-input">
+          </ion-input>
+        </ion-item>
+       
+                       <!-- Time Settings -->
+         <ion-item lines="none" class="compact-time-item">
+           <ion-label position="stacked">Start Time</ion-label>
+           <ion-input 
+             type="time"
+             [(ngModel)]="settings.startTime"
+             (ionChange)="updateAllTimeSlots()"
+             class="compact-time-input">
+           </ion-input>
+         </ion-item>
+         
+         <ion-item lines="none" class="compact-time-item">
+           <ion-label position="stacked">End Time</ion-label>
+           <ion-input 
+             type="time"
+             [(ngModel)]="settings.endTime"
+             (ionChange)="updateAllTimeSlots()"
+             class="compact-time-input">
+           </ion-input>
+         </ion-item>
+
+       <!-- Compact Days -->
+       <div class="compact-days">
+         <ion-card *ngFor="let day of editedItinerary; let dayIndex = index" class="compact-day-card">
+           <ion-card-header class="compact-header">
+             <ion-card-title>
+               Day {{ day.day }}
+               <span class="day-date" *ngIf="day.date">{{ formatDateDisplay(day.date) }}</span>
+             </ion-card-title>
+             <ion-button size="small" fill="clear" color="danger" (click)="removeAllSpotsFromDay(dayIndex)" *ngIf="day.spots.length > 0">
+               <ion-icon name="trash"></ion-icon>
+             </ion-button>
+           </ion-card-header>
+           <ion-card-content class="compact-content">
+             <div cdkDropList
+                  #dayList="cdkDropList"
+                  [cdkDropListData]="day.spots"
+                  [cdkDropListConnectedTo]="allLists"
+                  class="drop-list compact-day-drop-list"
+                  (cdkDropListDropped)="drop($event)">
+               <div class="compact-spot-item" *ngFor="let spot of day.spots; let spotIndex = index" cdkDrag>
+                 <ion-avatar slot="start">
+                   <img [src]="spot.img || 'assets/placeholder.jpg'" alt="{{ spot.name }}">
+                 </ion-avatar>
+                                   <ion-label>
+                    <h4>{{ spot.name }}</h4>
+                    <p class="time-slot">{{ spot.timeSlot }}</p>
+                  </ion-label>
+                 <div class="compact-actions">
+                   <ion-input 
+                     type="number" 
+                     min="30" 
+                     max="480"
+                     [(ngModel)]="spot.durationMinutes"
+                     (ionChange)="updateTimeSlots(dayIndex)"
+                     placeholder="120"
+                     class="duration-input">
+                   </ion-input>
+                   <ion-button 
+                     size="small" 
+                     fill="clear" 
+                     color="danger" 
+                     (click)="removeSpot(dayIndex, spotIndex)">
+                     <ion-icon name="close"></ion-icon>
+                   </ion-button>
+                 </div>
+               </div>
+                               <div *ngIf="day.spots.length === 0" class="empty-message">
+                  <ion-icon name="calendar-outline" size="small" color="primary"></ion-icon>
+                  <p>Drop spots here</p>
+                </div>
+             </div>
+           </ion-card-content>
+         </ion-card>
+       </div>
+     </ion-content>

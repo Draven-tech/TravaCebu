@@ -1,4 +1,4 @@
-﻿import { Component, Input } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 
 export interface ViewItinerarySpot {
@@ -23,7 +23,7 @@ export interface ViewItineraryDay {
 }
 
 @Component({
-    standalone: false,
+  standalone: false,
   selector: 'app-view-itinerary-modal',
   templateUrl: './view-itinerary-modal.component.html',
   styleUrls: ['./view-itinerary-modal.component.scss']

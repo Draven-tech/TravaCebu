@@ -74,7 +74,7 @@
               </span>
             </ion-button>
             
-            <!-- Visit Again Button (only show for visited spots) -->
+            <!-- Visit Again Button -->
             <ion-button *ngIf="hasVisited(spot.id)" fill="outline" size="small" color="primary" 
                         (click)="visitAgain(spot); $event.stopPropagation()">
               <ion-icon name="refresh-outline"></ion-icon>

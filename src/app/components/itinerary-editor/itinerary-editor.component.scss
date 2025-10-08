@@ -1,0 +1,536 @@
+.compact-modal {
+        --padding-start: 4px;
+        --padding-end: 4px;
+        --padding-top: 4px;
+        --padding-bottom: 4px;
+      }
+
+      .compact-settings {
+        --background: #ffffff;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        border: 1px solid #e0e0e0;
+      }
+
+      .compact-settings h3 {
+        color: #333;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .date-header {
+        --background: #1976d2;
+        border-radius: 6px;
+        margin-bottom: 6px;
+      }
+
+      .date-header h3 {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 0;
+        color: white;
+      }
+
+      .day-date {
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 400;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 2px 4px;
+        border-radius: 3px;
+        margin-left: 4px;
+        display: inline-block;
+      }
+
+      .section-header {
+        --background: #f5f5f5;
+        border-radius: 6px;
+        margin: 6px 0;
+        border: 1px solid #e0e0e0;
+      }
+
+      .section-header h3 {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 0;
+        color: #333;
+      }
+
+                  .compact-drop-list {
+         min-height: 80px;
+         max-height: 140px;
+         overflow-y: auto;
+         border: 1px dashed #ccc;
+         border-radius: 6px;
+         padding: 8px;
+         background: #ffffff;
+         margin-bottom: 8px;
+       }
+
+       .compact-day-drop-list {
+         min-height: 70px;
+         max-height: 200px;
+         overflow-y: auto;
+         border: 1px dashed #ccc;
+         border-radius: 6px;
+         padding: 8px;
+         background: #ffffff;
+         margin-top: 6px;
+       }
+
+      .compact-day-drop-list:empty {
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+      }
+
+           .compact-spot-item {
+        display: flex;
+        align-items: center;
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        padding: 6px;
+        cursor: move;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+      }
+
+      .compact-spot-item:hover {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        transform: translateY(-1px);
+      }
+
+      .compact-spot-item ion-avatar {
+        width: 24px;
+        height: 24px;
+        margin-right: 8px;
+      }
+
+      .compact-spot-item ion-label {
+        flex: 1;
+        margin: 0;
+      }
+
+      .compact-spot-item h4 {
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin: 0 0 2px 0;
+        color: #333;
+      }
+
+      .compact-spot-item p {
+        font-size: 0.7rem;
+        margin: 0;
+        color: #666;
+      }
+
+      .time-slot {
+        color: #007bff;
+        font-weight: 500;
+        font-size: 0.65rem;
+        margin: 0;
+        opacity: 0.8;
+      }
+
+           .compact-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
+
+      .duration-input {
+        width: 45px;
+        --padding-start: 2px;
+        --padding-end: 2px;
+        font-size: 0.6rem;
+        --border-radius: 3px;
+        --min-height: 24px;
+      }
+
+           .compact-days {
+        margin-top: 6px;
+      }
+
+      .compact-day-card {
+        margin-bottom: 6px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      }
+
+      .compact-header {
+        background: linear-gradient(135deg, #ffc107, #ff9800);
+        color: white;
+        padding: 6px 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .compact-header ion-card-title {
+        color: white;
+        font-weight: 600;
+        font-size: 0.8rem;
+        margin: 0;
+      }
+
+            .compact-content {
+        padding: 6px;
+      }
+
+      .compact-time-item {
+        --min-height: 35px;
+        --padding-start: 4px;
+        --padding-end: 4px;
+        --padding-top: 1px;
+        --padding-bottom: 1px;
+        margin-bottom: 1px;
+      }
+
+      .compact-time-item ion-label {
+        font-size: 0.65rem;
+        margin-bottom: 1px;
+        --color: #666;
+      }
+
+      .compact-time-input {
+        --height: 28px;
+        --min-height: 28px;
+        --max-height: 28px;
+        font-size: 0.75rem;
+        --padding-start: 4px;
+        --padding-end: 4px;
+        --border-radius: 3px;
+        --border: 1px solid #ddd;
+      }
+
+      .compact-input {
+        --height: 28px;
+        --min-height: 28px;
+        --max-height: 28px;
+        font-size: 0.75rem;
+        --padding-start: 4px;
+        --padding-end: 4px;
+        --border-radius: 3px;
+        --border: 1px solid #ddd;
+      }
+
+            .empty-message {
+        text-align: center;
+        color: #666;
+        padding: 8px 4px;
+        font-size: 0.65rem;
+      }
+
+      .empty-message ion-icon {
+        margin-bottom: 2px;
+        color: #007bff;
+      }
+
+      .empty-message p {
+        margin: 0;
+        font-size: 0.65rem;
+        color: #666;
+      }
+
+     .cdk-drag-preview {
+       box-sizing: border-box;
+       border-radius: 6px;
+       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+       transform: rotate(2deg);
+     }
+
+     .cdk-drag-placeholder {
+       opacity: 0.3;
+       background: #e3f2fd;
+       border: 1px dashed #2196f3;
+     }
+
+     .cdk-drag-animating {
+       transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+     }
+
+     .drop-list.cdk-drop-list-dragging .compact-spot-item:not(.cdk-drag-placeholder) {
+       transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+     }
+
+     ion-avatar img {
+       object-fit: cover;
+     }
+
+     .modern-edit-content {
+       background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+       --padding-start: 16px;
+       --padding-end: 16px;
+       --padding-top: 16px;
+       --padding-bottom: 16px;
+     }
+
+     .settings-card {
+       background: rgba(255, 255, 255, 0.95);
+       backdrop-filter: blur(10px);
+       border-radius: 16px;
+       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+       margin-bottom: 20px;
+       border: 1px solid rgba(255, 255, 255, 0.2);
+     }
+
+     .settings-title {
+       display: flex;
+       align-items: center;
+       gap: 12px;
+       color: #2D3748;
+       font-size: 1.1rem;
+       font-weight: 700;
+     }
+
+     .settings-section {
+       margin-bottom: 24px;
+     }
+
+     .section-header {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       margin-bottom: 16px;
+       padding-bottom: 12px;
+       border-bottom: 2px solid #f1f3f4;
+     }
+
+     .section-title {
+       display: flex;
+       align-items: center;
+       gap: 8px;
+       color: #2D3748;
+       font-size: 1rem;
+       font-weight: 600;
+       margin: 0;
+     }
+
+     .modern-form-grid {
+       display: grid;
+       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+       gap: 16px;
+     }
+
+     .form-group {
+       background: rgba(255, 255, 255, 0.8);
+       border-radius: 12px;
+       padding: 16px;
+       border: 1px solid rgba(0, 0, 0, 0.1);
+     }
+
+     .modern-input-item {
+       --background: transparent;
+       --border-radius: 8px;
+       --padding-start: 0;
+       --padding-end: 0;
+     }
+
+     .modern-input {
+       --background: rgba(255, 255, 255, 0.9);
+       --border-radius: 8px;
+       --padding-start: 12px;
+       --padding-end: 12px;
+       border: 1px solid #e2e8f0;
+       margin-top: 8px;
+     }
+
+     .modern-input:focus {
+       --border-color: #f39c12;
+       box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.1);
+     }
+
+     .compact-modal {
+       background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+     }
+
+     .compact-settings, .date-header {
+       background: rgba(255, 255, 255, 0.95);
+       border-radius: 12px;
+       margin: 12px 0;
+       --padding-start: 16px;
+       --padding-end: 16px;
+       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+       --color: #2D3748;
+     }
+
+     .compact-settings ion-label h3,
+     .date-header ion-label h3 {
+       color: #2D3748 !important;
+       font-weight: 700;
+       margin: 8px 0;
+     }
+
+     .compact-time-item {
+       background: rgba(255, 255, 255, 0.9);
+       border-radius: 8px;
+       margin: 8px 0;
+       --padding-start: 12px;
+       --padding-end: 12px;
+       --color: #2D3748;
+     }
+
+     .compact-time-item ion-label {
+       color: #2D3748 !important;
+       font-weight: 600;
+     }
+
+     .compact-time-input, .compact-input {
+       --background: rgba(255, 255, 255, 0.95);
+       --border-radius: 6px;
+       --color: #2D3748;
+       border: 1px solid #e2e8f0;
+       font-weight: 600;
+     }
+
+     .compact-time-input:focus, .compact-input:focus {
+       border-color: #f39c12;
+       box-shadow: 0 0 0 3px rgba(241, 196, 15, 0.2);
+     }
+
+     .section-header {
+       background: rgba(255, 255, 255, 0.95);
+       border-radius: 12px;
+       margin: 16px 0 12px 0;
+       --padding-start: 16px;
+       --padding-end: 16px;
+       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+     }
+
+     .compact-day-card {
+       background: rgba(255, 255, 255, 0.95);
+       border-radius: 16px;
+       margin: 16px 0;
+       padding: 16px;
+       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+       border: 1px solid rgba(255, 255, 255, 0.3);
+     }
+
+     .compact-header {
+       --color: #2D3748;
+       padding-bottom: 12px;
+       border-bottom: 2px solid #f1c40f;
+     }
+
+     .compact-header ion-card-title {
+       color: #e74c3c !important;
+       font-size: 1.2rem;
+       font-weight: 700;
+       display: flex;
+       align-items: center;
+       gap: 8px;
+     }
+
+     .compact-spot-item {
+       background: rgba(255, 255, 255, 0.9);
+       border-radius: 12px;
+       margin: 8px 0;
+       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+       border: 1px solid rgba(0, 0, 0, 0.05);
+       transition: all 0.3s ease;
+       --color: #2D3748;
+     }
+
+     .compact-spot-item:hover {
+       transform: translateY(-2px);
+       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+     }
+
+     .compact-spot-item ion-label {
+       color: #2D3748 !important;
+     }
+
+     .compact-spot-item ion-label h4 {
+       color: #2D3748 !important;
+       font-weight: 600;
+       margin: 4px 0;
+     }
+
+     .compact-spot-item ion-label p {
+       color: #666 !important;
+       font-size: 0.85rem;
+       margin: 2px 0;
+     }
+
+     .available-spots-section {
+       background: rgba(255, 255, 255, 0.95);
+       border-radius: 16px;
+       padding: 16px;
+       margin: 16px 0;
+       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+     }
+
+     ion-button {
+       --border-radius: 8px;
+       font-weight: 600;
+     }
+
+     ion-button[fill="solid"] {
+       --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+     }
+
+     ion-button[fill="outline"] {
+       --border-width: 2px;
+       --border-style: solid;
+     }
+
+     .drop-list {
+       background: rgba(255, 255, 255, 0.1);
+       border-radius: 12px;
+       padding: 12px;
+       min-height: 60px;
+       border: 2px dashed rgba(255, 255, 255, 0.4);
+       transition: all 0.3s ease;
+     }
+
+     .drop-list.cdk-drop-list-receiving {
+       background: rgba(241, 196, 15, 0.2);
+       border-color: #f1c40f;
+       transform: scale(1.02);
+       box-shadow: 0 0 20px rgba(241, 196, 15, 0.3);
+     }
+
+     .cdk-drag-preview {
+       background: rgba(255, 255, 255, 0.95);
+       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+       border-radius: 12px;
+       transform: rotate(3deg) scale(1.05);
+       backdrop-filter: blur(10px);
+     }
+
+     .cdk-drag-placeholder {
+       background: rgba(241, 196, 15, 0.2);
+       border: 2px dashed #f1c40f;
+       border-radius: 12px;
+       opacity: 0.6;
+     }
+
+     .empty-message {
+       background: rgba(255, 255, 255, 0.1);
+       border-radius: 12px;
+       padding: 24px;
+       text-align: center;
+       border: 2px dashed rgba(255, 255, 255, 0.3);
+     }
+
+     .empty-message ion-icon {
+       font-size: 2.5rem;
+       color: #f1c40f;
+       margin-bottom: 12px;
+     }
+
+     .empty-message {
+       background: rgba(255, 255, 255, 0.15);
+       border: 2px dashed rgba(255, 255, 255, 0.4);
+     }
+
+     .empty-message p {
+       color: rgba(255, 255, 255, 0.8);
+       font-size: 0.9rem;
+       margin: 0;
+       font-weight: 500;
+     }

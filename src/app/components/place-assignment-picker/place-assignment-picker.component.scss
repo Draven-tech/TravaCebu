@@ -1,0 +1,116 @@
+.assignment-container {
+      padding: 16px;
+    }
+
+    .place-info {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .place-info h3 {
+      color: #ffffff;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .place-info p {
+      color: #cccccc;
+      font-size: 0.9rem;
+    }
+
+    .day-section {
+      margin-bottom: 24px;
+    }
+
+    .day-section h4 {
+      color: #e74c3c;
+      font-weight: 600;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .option-item {
+      margin-bottom: 8px;
+    }
+
+    .meal-option, .hotel-option {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      border: 2px solid #dee2e6;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .meal-option:not(.disabled):hover, .hotel-option:not(.disabled):hover {
+      border-color: #FF9800;
+      background: #fff8f0;
+    }
+
+    .meal-option.disabled, .hotel-option.disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      border-color: #e9ecef;
+      background: #f8f9fa;
+    }
+
+    .option-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .spot-name, .day-name {
+      font-weight: 600;
+      color: #2D3748;
+    }
+
+    .meal-info, .hotel-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-right: auto;
+    }
+
+    .meal-type, .time-slot, .spots-count {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .meal-type {
+      color: #FF9800;
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+
+    .assigned-restaurant, .assigned-hotel {
+      font-size: 0.85rem;
+      color: #28a745;
+      font-weight: 500;
+    }
+
+    .no-options {
+      text-align: center;
+      padding: 32px 16px;
+      color: #666;
+    }
+
+    .no-options ion-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+
+    .no-options h4 {
+      margin-bottom: 8px;
+      color: #2D3748;
+    }
+
+    .no-options p {
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }

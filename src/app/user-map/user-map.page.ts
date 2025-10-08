@@ -4,11 +4,11 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { HttpClient } from '@angular/common/http';
 import * as L from 'leaflet';
-import { TouristSpotSheetComponent } from './tourist-spot-sheet.component';
+import { TouristSpotSheetComponent } from '../components/tourist-spot-sheet/tourist-spot-sheet.component';
 import { Geolocation } from '@capacitor/geolocation';
-import { DaySpotPickerComponent } from './day-spot-picker.component';
+import { DaySpotPickerComponent } from '../components/day-spot-picker/day-spot-picker.component';
 import { environment } from '../../environments/environment';
-import { RouteDetailsOverlayComponent } from './route-details-overlay.component';
+import { RouteDetailsOverlayComponent } from '../components/route-details-overlay/route-details-overlay.component';
 import { GeofencingService } from '../services/geofencing.service';
 import { Subscription } from 'rxjs';
 

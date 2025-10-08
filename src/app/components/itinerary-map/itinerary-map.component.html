@@ -1,0 +1,36 @@
+<ion-header>
+      <ion-toolbar color="warning">
+        <ion-title>Itinerary Map</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="close()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      <div class="map-container">
+        <div #mapElement id="itinerary-map"></div>
+        
+        <div *ngIf="!mapLoaded" class="map-loading">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Loading map...</p>
+        </div>
+        
+        <div class="map-controls" *ngIf="mapLoaded">
+          <ion-button size="small" (click)="toggleMapType()" [color]="useEsri ? 'primary' : 'secondary'">
+            <ion-icon name="map"></ion-icon>
+            {{ useEsri ? 'Satellite' : 'OSM' }}
+          </ion-button>
+          <ion-button size="small" (click)="toggleHotels()" [color]="showHotels ? 'success' : 'medium'">
+            <ion-icon name="bed"></ion-icon>
+            {{ showHotels ? 'Hide' : 'Show' }} Hotels
+          </ion-button>
+          <ion-button size="small" (click)="toggleRestaurants()" [color]="showRestaurants ? 'success' : 'medium'">
+            <ion-icon name="restaurant"></ion-icon>
+            {{ showRestaurants ? 'Hide' : 'Show' }} Restaurants
+          </ion-button>
+        </div>
+      </div>
+    </ion-content>

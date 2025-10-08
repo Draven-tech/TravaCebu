@@ -4,12 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { BucketListPageRoutingModule } from './bucket-list-routing.module';
 import { BucketListPage } from './bucket-list.page';
-import { ItineraryModalComponent } from './itinerary-modal.component';
-import { ItineraryEditorComponent } from './itinerary-editor.component';
-import { ItineraryMapComponent } from './itinerary-map.component';
-import { PlaceAssignmentPickerComponent } from './place-assignment-picker.component';
+import { ItineraryModalComponent } from '../components/itinerary-modal/itinerary-modal.component';
+import { ItineraryEditorComponent } from '../components/itinerary-editor/itinerary-editor.component';
+import { ItineraryMapComponent } from '../components/itinerary-map/itinerary-map.component';
+import { PlaceAssignmentPickerComponent } from '../components/place-assignment-picker/place-assignment-picker.component';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { RestaurantCardComponent } from './restaurant-card.component';
+import { RestaurantCardComponent } from '../components/restaurant-card/restaurant-card.component';
 import { ComponentsModule } from '../components/components.module';
 
 @NgModule({
@@ -23,10 +23,7 @@ import { ComponentsModule } from '../components/components.module';
   ],
   declarations: [
     BucketListPage,
-    ItineraryModalComponent,
-    ItineraryEditorComponent,
-    ItineraryMapComponent,
-    PlaceAssignmentPickerComponent
+
   ]
 })
 export class BucketListPageModule {}

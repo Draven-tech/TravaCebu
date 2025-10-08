@@ -1,168 +1,17 @@
-﻿import { Component, Input, OnInit, OnDestroy, AfterViewInit, NgZone } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, AfterViewInit, NgZone } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import * as L from 'leaflet';
-import { ItineraryDay, ItineraryService } from '../services/itinerary.service';
-import { DaySpotPickerComponent } from '../user-map/day-spot-picker.component';
-import { PlaceAssignmentPickerComponent } from './place-assignment-picker.component';
+import { ItineraryDay, ItineraryService } from '../../services/itinerary.service';
+import { DaySpotPickerComponent } from '../day-spot-picker/day-spot-picker.component';
+import { PlaceAssignmentPickerComponent } from '../place-assignment-picker/place-assignment-picker.component';
 import { AlertController } from '@ionic/angular';
+
 
 @Component({
   selector: 'app-itinerary-map',
-  template: `
-    <ion-header>
-      <ion-toolbar color="warning">
-        <ion-title>Itinerary Map</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="close()">
-            <ion-icon name="close"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content>
-      <div class="map-container">
-        <div #mapElement id="itinerary-map"></div>
-        
-        <div *ngIf="!mapLoaded" class="map-loading">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Loading map...</p>
-        </div>
-        
-        <div class="map-controls" *ngIf="mapLoaded">
-          <ion-button size="small" (click)="toggleMapType()" [color]="useEsri ? 'primary' : 'secondary'">
-            <ion-icon name="map"></ion-icon>
-            {{ useEsri ? 'Satellite' : 'OSM' }}
-          </ion-button>
-          <ion-button size="small" (click)="toggleHotels()" [color]="showHotels ? 'success' : 'medium'">
-            <ion-icon name="bed"></ion-icon>
-            {{ showHotels ? 'Hide' : 'Show' }} Hotels
-          </ion-button>
-          <ion-button size="small" (click)="toggleRestaurants()" [color]="showRestaurants ? 'success' : 'medium'">
-            <ion-icon name="restaurant"></ion-icon>
-            {{ showRestaurants ? 'Hide' : 'Show' }} Restaurants
-          </ion-button>
-        </div>
-      </div>
-    </ion-content>
-  `,
-  styles: [`
-    .map-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-    }
-    
-    #itinerary-map {
-      height: 100% !important;
-      min-height: 100% !important;
-      width: 100% !important;
-      min-width: 100% !important;
-      touch-action: auto !important;
-      pointer-events: auto !important;
-      z-index: 1;
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-    
-    .map-controls {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    
-    .map-controls ion-button {
-      --padding-start: 8px;
-      --padding-end: 8px;
-      font-size: 12px;
-    }
-    
-    .map-loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 20px;
-      border-radius: 10px;
-      z-index: 1000;
-    }
-    
-    .map-loading p {
-      margin: 10px 0 0 0;
-      color: #666;
-    }
-
-    :global(.map-modal) {
-      --height: 90%;
-      --width: 90%;
-      --max-width: 800px;
-    }
-
-    :global(.custom-marker) {
-      background: transparent !important;
-      border: none !important;
-      transition: transform 0.2s ease-in-out;
-    }
-    
-    :global(.custom-marker:hover) {
-      transform: scale(1.1);
-    }
-    
-    :global(.hotel-marker) {
-      background: transparent !important;
-      border: none !important;
-      transition: transform 0.2s ease-in-out;
-    }
-    
-    :global(.hotel-marker:hover) {
-      transform: scale(1.1);
-    }
-    
-    :global(.restaurant-marker) {
-      background: transparent !important;
-      border: none !important;
-      transition: transform 0.2s ease-in-out;
-    }
-    
-    :global(.restaurant-marker:hover) {
-      transform: scale(1.1);
-    }
-
-    @keyframes pulse {
-      0% {
-        transform: scale(1);
-        box-shadow: 0 4px 12px rgba(255,215,0,0.6);
-      }
-      50% {
-        transform: scale(1.1);
-        box-shadow: 0 6px 16px rgba(255,215,0,0.8);
-      }
-      100% {
-        transform: scale(1);
-        box-shadow: 0 4px 12px rgba(255,215,0,0.6);
-      }
-    }
-
-    :global(.highlight-marker) {
-      background: transparent !important;
-      border: none !important;
-    }
-
-    :global(.assignment-picker-modal) {
-      --height: 70%;
-      --width: 90%;
-      --max-width: 600px;
-      --border-radius: 16px;
-    }
-  `],
-  standalone: false
+  templateUrl: './itinerary-map.component.html',
+  styleUrls: ['./itinerary-map.component.scss'],
+  standalone: false,
 })
 export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
   @Input() itinerary: ItineraryDay[] = [];

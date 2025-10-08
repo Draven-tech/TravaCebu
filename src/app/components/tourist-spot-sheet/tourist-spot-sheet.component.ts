@@ -1,7 +1,7 @@
 ﻿import { Component, Input, OnInit } from '@angular/core';
 import { ModalController, IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
-import { PlacesImageService, EnhancedTouristSpot, PlaceImage } from '../services/places-image.service';
+import { PlacesImageService, EnhancedTouristSpot, PlaceImage } from '../../services/places-image.service';
 
 @Component({
   standalone: true,
@@ -18,7 +18,7 @@ export class TouristSpotSheetComponent implements OnInit {
   currentImageIndex = 0;
   isLoading = true;
   isRefreshing = false;
-  imageErrors: Set<number> = new Set(); // Track which images failed to load
+  imageErrors: Set<number> = new Set(); 
 
   constructor(
     private modalCtrl: ModalController,

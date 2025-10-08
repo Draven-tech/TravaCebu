@@ -1,6 +1,8 @@
 ﻿import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { RouteReuseStrategy } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 
 import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
 
@@ -14,6 +16,17 @@ import { environment } from '../environments/environment';
 import { HttpClientModule } from '@angular/common/http'; 
 import { initializeApp } from 'firebase/app';
 
+
+import { ItineraryEditorComponent } from './components/itinerary-editor/itinerary-editor.component';
+import { DaySpotPickerComponent } from './components/day-spot-picker/day-spot-picker.component';
+import { PlaceAssignmentPickerComponent } from './components/place-assignment-picker/place-assignment-picker.component';  
+import { ItineraryModalComponent } from './components/itinerary-modal/itinerary-modal.component';
+import { ItineraryMapComponent } from './components/itinerary-map/itinerary-map.component';
+import { ViewItineraryModalComponent } from './modals/view-itinerary-modal/view-itinerary-modal.component';
+import { SearchModalComponent } from './modals/search-modal/search-modal.component';
+import { RouteDetailsOverlayComponent } from './components/route-details-overlay/route-details-overlay.component';
+
+
 try {
   initializeApp(environment.firebase);
   } catch (error) {
@@ -21,12 +34,24 @@ try {
 }
 
 @NgModule({
-  declarations: [AppComponent],
+  declarations: [AppComponent,
+   // DaySpotPickerComponent,
+    PlaceAssignmentPickerComponent,
+    ItineraryModalComponent,
+    ItineraryMapComponent,
+    ItineraryEditorComponent,
+    //ViewItineraryModalComponent,
+    RouteDetailsOverlayComponent,
+
+    
+  ],
   imports: [
     HttpClientModule,
     BrowserModule, 
     IonicModule.forRoot(), 
-    AppRoutingModule, 
+    AppRoutingModule,
+     FormsModule,
+     DragDropModule,
     AngularFireModule.initializeApp(environment.firebase),
     AngularFireAuthModule,
     AngularFirestoreModule.enablePersistence()

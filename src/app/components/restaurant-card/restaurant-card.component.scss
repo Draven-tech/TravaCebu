@@ -1,0 +1,32 @@
+.restaurant-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px;
+      border: 2px solid #ffc107;
+      margin-bottom: 12px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: #2D3748;
+      margin-bottom: 8px;
+    }
+    .card-title {
+      flex: 1;
+    }
+    .card-content {
+      max-width: 100%;
+    }
+    .place-details {
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      color: #6c757d;
+    }
+    .timeslot-edit {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }

@@ -81,34 +81,34 @@ export class ViewItineraryModalComponent {
   getCategoryIcon(category: string): string {
     switch (category?.toUpperCase()) {
       case 'RESTAURANT':
-        return 'ðŸ½ï¸';
+        return '🍽️';
       case 'HOTEL':
-        return 'ðŸ¨';
+        return '🏨';
       case 'ATTRACTION':
-        return 'ðŸŽ¯';
+        return '🎯';
       case 'SHOPPING':
-        return 'ðŸ›ï¸';
+        return '🛍️';
       case 'CULTURAL':
-        return 'ðŸ›ï¸';
+        return '🏛️';
       case 'NATURE':
-        return 'ðŸŒ¿';
+        return '🌿';
       default:
-        return 'ðŸ“';
+        return '📍';
     }
   }
 
   getMealTypeIcon(mealType: string): string {
     switch (mealType?.toLowerCase()) {
       case 'breakfast':
-        return 'ðŸŒ…';
+        return '🌅';
       case 'lunch':
-        return 'â˜€ï¸';
+        return '☀️';
       case 'dinner':
-        return 'ðŸŒ™';
+        return '🌙';
       case 'snack':
-        return 'ðŸ¿';
+        return '🍿';
       default:
-        return 'ðŸ½ï¸';
+        return '🍽️';
     }
   }
 }

@@ -19,7 +19,7 @@ export class WelcomePage {
   ionViewWillEnter() {
     this.afAuth.authState.subscribe(user => {
       if (user) {
-        // Already signed in â†’ skip welcome
+        // Already signed in → skip welcome
         this.router.navigateByUrl(`/user-dashboard/${user.uid}`, { replaceUrl: true });
       }
     });

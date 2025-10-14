@@ -60,7 +60,7 @@ export class MapUIService {
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
           <button onclick="window.openItinerarySpotDetails('${spot.name}')" 
                   style="background: #ff6b35; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-            ðŸ“ View Details
+            📍View Details
           </button>
         </div>
       </div>
@@ -76,7 +76,7 @@ export class MapUIService {
     if (spot.eventType === 'restaurant' && spot.restaurant) {
       restaurantInfo = `
         <p style="margin: 4px 0; color: #ff9800;"><strong>Restaurant:</strong> ${spot.restaurant}</p>
-        ${spot.rating ? `<p style="margin: 4px 0; color: #ff9800;"><strong>Rating:</strong> ${spot.rating}â˜…</p>` : ''}
+        ${spot.rating ? `<p style="margin: 4px 0; color: #ff9800;"><strong>Rating:</strong> ${spot.rating}⭐</p>` : ''}
         ${spot.vicinity ? `<p style="margin: 4px 0; color: #ff9800;"><strong>Location:</strong> ${spot.vicinity}</p>` : ''}
       `;
     }
@@ -86,7 +86,7 @@ export class MapUIService {
     if (spot.eventType === 'hotel' && spot.hotel) {
       hotelInfo = `
         <p style="margin: 4px 0; color: #1976d2;"><strong>Hotel:</strong> ${spot.hotel}</p>
-        ${spot.rating ? `<p style="margin: 4px 0; color: #1976d2;"><strong>Rating:</strong> ${spot.rating}â˜…</p>` : ''}
+        ${spot.rating ? `<p style="margin: 4px 0; color: #1976d2;"><strong>Rating:</strong> ${spot.rating}⭐</p>` : ''}
         ${spot.vicinity ? `<p style="margin: 4px 0; color: #1976d2;"><strong>Location:</strong> ${spot.vicinity}</p>` : ''}
       `;
     }
@@ -121,7 +121,7 @@ export class MapUIService {
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
           <button onclick="window.openItinerarySpotDetails('${spot.name}')" 
                   style="background: #ff6b35; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-            ðŸ“ View Details
+            📍“ View Details
           </button>
         </div>
       </div>

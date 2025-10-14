@@ -247,7 +247,7 @@ export class ItineraryModalComponent implements OnInit {
           const restaurantStartTime = `${year}-${month}-${day}T${hours}:${minutes}:00`;
 
           const restaurantEvent: CalendarEvent = {
-            title: `ðŸ½ï¸ ${spot.chosenRestaurant.name}`,
+            title: `🍽️ ${spot.chosenRestaurant.name}`,
             start: restaurantStartTime,
             end: restaurantStartTime,
             color: '#ff9800', // Orange for restaurants
@@ -277,7 +277,7 @@ export class ItineraryModalComponent implements OnInit {
       if (day.chosenHotel) {
         const hotelStartTime = `${day.date}T18:00:00`;
         const hotelEvent: CalendarEvent = {
-          title: `ðŸ¨ ${day.chosenHotel.name}`,
+          title: `🍽️¨ ${day.chosenHotel.name}`,
           start: hotelStartTime,
           end: hotelStartTime,
           color: '#3880ff', // Blue for hotels

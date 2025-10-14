@@ -54,7 +54,7 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
 
   private loadBudgetData() {
     if (!this.itineraryId) {
-      console.warn('âš ï¸ No itineraryId provided for budget data');
+      console.warn('No itineraryId provided for budget data');
       return;
     }
 
@@ -183,7 +183,7 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
 
   getEstimatedFare(): string {
     if (!this.routeInfo?.segments) {
-      return 'â‚±0';
+      return '₱0';
     }
 
     let jeepneyCount = 0;
@@ -196,24 +196,24 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
     });
 
     if (jeepneyCount === 0) {
-      return 'â‚±0';
+      return '₱0';
     }
 
-    // Standard jeepney fare in Cebu is â‚±12-15 per ride
+    // Standard jeepney fare in Cebu is ₱12-15 per ride
     const minFare = jeepneyCount * 12;
     const maxFare = jeepneyCount * 15;
 
     if (minFare === maxFare) {
-      return `â‚±${minFare}`;
+      return `₱${minFare}`;
     }
 
-    return `â‚±${minFare}-${maxFare}`;
+    return `₱${minFare}-${maxFare}`;
   }
 
   // Get individual segment fare range
   getSegmentFare(segment: any): string {
     if (segment.type === 'jeepney' || segment.type === 'bus') {
-      return 'â‚±12-15'; // Standard jeepney/bus fare range in Cebu
+      return '₱12-15'; // Standard jeepney/bus fare range in Cebu
     }
     return segment.fare || ''; // Return existing fare if available
   }
@@ -260,16 +260,16 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
 
   async addQuickTransportExpense() {
     const estimatedFare = this.getEstimatedFare();
-    // Extract average from range (e.g., "â‚±12-15" -> 13.5, "â‚±26" -> 26)
+    // Extract average from range (e.g., "₱12-15" -> 13.5, "₱26" -> 26)
     let fareAmount = 13; // Default fallback
     
     if (estimatedFare.includes('-')) {
-      const rangeParts = estimatedFare.replace('â‚±', '').split('-');
+      const rangeParts = estimatedFare.replace('₱', '').split('-');
       const min = parseFloat(rangeParts[0]);
       const max = parseFloat(rangeParts[1]);
       fareAmount = Math.round((min + max) / 2); // Use middle of range
     } else {
-      fareAmount = parseFloat(estimatedFare.replace('â‚±', '')) || 13;
+      fareAmount = parseFloat(estimatedFare.replace('₱', '')) || 13;
     }
 
     const alert = await this.alertCtrl.create({
@@ -280,7 +280,7 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
         {
           name: 'amount',
           type: 'number',
-          placeholder: 'Actual amount paid (â‚±)',
+          placeholder: 'Actual amount paid (₱)',
           value: fareAmount,
           min: 0
         },
@@ -404,7 +404,7 @@ export class RouteDetailsOverlayComponent implements OnInit, OnDestroy {
         {
           name: 'amount',
           type: 'number' as const,
-          placeholder: 'Amount spent (â‚±)',
+          placeholder: 'Amount spent (₱)',
           min: 0
         }
       ],

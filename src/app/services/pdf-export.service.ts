@@ -29,7 +29,7 @@ export class PdfExportService {
     const url = await getDownloadURL(storageRef);
     return url;
   }
-  // â¬‡ï¸ Called to get a Blob for sharing (instead of direct download)
+  // ✅¬‡ï¸ Called to get a Blob for sharing (instead of direct download)
   async generateFullItineraryBlob(itineraries: any[]): Promise<Blob> {
     const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
     const pdfDocGenerator = pdfMake.createPdf(docDefinition);
@@ -41,7 +41,7 @@ export class PdfExportService {
     });
   }
 
-  // â¬‡ï¸ Private: builds layout for multiple itineraries
+  // ✅¬‡ï¸ Private: builds layout for multiple itineraries
   private buildFullItineraryDocDefinition(itineraries: any[]): any {
     const content: any[] = [];
 
@@ -129,7 +129,7 @@ export class PdfExportService {
     const saved = await Filesystem.writeFile({
       path: `Download/${fileName}`,
       data: base64Data,
-      directory: Directory.ExternalStorage, // âœ… saves outside app sandbox
+      directory: Directory.ExternalStorage, // ✅œ… saves outside app sandbox
     });
 
     alert(`PDF saved to Downloads folder: ${fileName}`);

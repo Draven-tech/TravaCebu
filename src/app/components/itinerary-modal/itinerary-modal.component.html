@@ -26,10 +26,10 @@
           <div *ngFor="let spot of sortByTimeSlot(day.spots); let i = index" class="spot-item">
             <div class="spot-name">{{ i + 1 }}. {{ spot.name }}</div>
             <div class="spot-details">
-              <span class="time">â° {{ spot.timeSlot }}</span>
-              <span class="duration">â±ï¸ {{ spot.estimatedDuration }}</span>
+              <span class="time">⏰ {{ spot.timeSlot }}</span>
+              <span class="duration">⏱️ {{ spot.estimatedDuration }}</span>
             </div>
-            <div class="spot-category">ðŸ“ {{ spot.category }}</div>
+            <div class="spot-category">📍 {{ spot.category }}</div>
             
             <!-- Show Suggestions Button for spots with meal times -->
             <div *ngIf="spot.mealType && !spot.chosenRestaurant" class="suggestions-toggle">
@@ -61,9 +61,9 @@
               <div class="card-content">
                 <div class="place-name">{{ spot.chosenRestaurant.name }}</div>
                 <div class="place-details">
-                  <span *ngIf="spot.chosenRestaurant.rating">â­ {{ spot.chosenRestaurant.rating }}â˜…</span>
-                  <span *ngIf="spot.chosenRestaurant.vicinity">ðŸ“ {{ spot.chosenRestaurant.vicinity }}</span>
-                  <span class="meal-time">ðŸ½ï¸ {{ spot.mealType }} time</span>
+                  <span *ngIf="spot.chosenRestaurant.rating">⭐­ {{ spot.chosenRestaurant.rating }}⭐˜…</span>
+                  <span *ngIf="spot.chosenRestaurant.vicinity">🍽️“ {{ spot.chosenRestaurant.vicinity }}</span>
+                  <span class="meal-time">🍽️½ï¸ {{ spot.mealType }} time</span>
                 </div>
                 <div class="booking-links">
                   <ion-button size="small" fill="outline" color="primary" (click)="viewRestaurantMap(spot.chosenRestaurant)">
@@ -86,8 +86,8 @@
                 <div *ngFor="let rest of (spot.restaurantSuggestions || []) | slice:0:3; trackBy: trackByPlaceId" class="suggestion-card">
                   <div class="suggestion-name">{{ getPlaceName(rest) }}</div>
                   <div class="suggestion-details">
-                    <span *ngIf="getPlaceRating(rest)">â­ {{ getPlaceRating(rest) }}â˜…</span>
-                    <span *ngIf="getPlaceVicinity(rest)">ðŸ“ {{ getPlaceVicinity(rest) }}</span>
+                    <span *ngIf="getPlaceRating(rest)">⭐­ {{ getPlaceRating(rest) }}⭐˜…</span>
+                    <span *ngIf="getPlaceVicinity(rest)">🍽️“ {{ getPlaceVicinity(rest) }}</span>
                   </div>
                   <div class="suggestion-actions">
                     <ion-button size="small" fill="outline" color="success" (click)="chooseRestaurant(spot, rest)">
@@ -136,9 +136,9 @@
             <div class="card-content">
               <div class="place-name">{{ day.chosenHotel.name }}</div>
               <div class="place-details">
-                <span *ngIf="day.chosenHotel.rating">â­ {{ day.chosenHotel.rating }}â˜…</span>
-                <span *ngIf="day.chosenHotel.vicinity">ðŸ“ {{ day.chosenHotel.vicinity }}</span>
-                <span class="check-in-time">ðŸ›ï¸ Check-in: Evening</span>
+                <span *ngIf="day.chosenHotel.rating">⭐­ {{ day.chosenHotel.rating }}⭐˜…</span>
+                <span *ngIf="day.chosenHotel.vicinity">🍽️“ {{ day.chosenHotel.vicinity }}</span>
+                <span class="check-in-time">🍽️›ï¸ Check-in: Evening</span>
               </div>
               <div class="booking-links">
                 <a [href]="getBookingUrl(day.chosenHotel)" target="_blank" class="booking-link">
@@ -164,8 +164,8 @@
               <div *ngFor="let hotel of (day.hotelSuggestions || []) | slice:0:3; trackBy: trackByPlaceId" class="suggestion-card">
                 <div class="suggestion-name">{{ getPlaceName(hotel) }}</div>
                 <div class="suggestion-details">
-                  <span *ngIf="getPlaceRating(hotel)">â­ {{ getPlaceRating(hotel) }}â˜…</span>
-                  <span *ngIf="getPlaceVicinity(hotel)">ðŸ“ {{ getPlaceVicinity(hotel) }}</span>
+                  <span *ngIf="getPlaceRating(hotel)">⭐­ {{ getPlaceRating(hotel) }}⭐˜…</span>
+                  <span *ngIf="getPlaceVicinity(hotel)">🍽️“ {{ getPlaceVicinity(hotel) }}</span>
                 </div>
                 <div class="suggestion-actions">
                   <ion-button size="small" fill="outline" color="success" (click)="chooseHotel(day, hotel)">

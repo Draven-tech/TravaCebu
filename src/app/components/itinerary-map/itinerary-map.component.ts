@@ -212,7 +212,7 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
             // Create custom icon for hotels
             const hotelIcon = L.divIcon({
               className: 'hotel-marker',
-              html: `<div style="background: #1976D2; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);">ðŸ¨</div>`,
+              html: `<div style="background: #1976D2; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);">🍽️</div>`,
               iconSize: [28, 28],
               iconAnchor: [14, 14]
             });
@@ -228,7 +228,7 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
 
             // Safely escape data for HTML
             const hotelName = hotel.name || 'Hotel Name Not Available';
-            const hotelRating = hotel.rating ? `${hotel.rating}â˜…` : 'Not Available';
+            const hotelRating = hotel.rating ? `${hotel.rating}⭐` : 'Not Available';
             const hotelLocation = hotel.vicinity || 'Location Not Available';
             const placeId = hotel.place_id || '';
 
@@ -247,23 +247,23 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
                   <div style="display: flex; flex-direction: column; gap: 8px;">
                     <button onclick="window.addHotelToItinerary('${placeId}')" 
                             style="background: #667eea; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
-                      ðŸ“… Add to Itinerary
+                      🍽️“… Add to Itinerary
                     </button>
                     <a href="https://www.booking.com/search.html?ss=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #1976D2; text-decoration: none; padding: 5px 8px; border: 1px solid #1976D2; border-radius: 4px; text-align: center; font-size: 12px;">
-                      ðŸ“– Booking.com
+                      🍽️“– Booking.com
                     </a>
                     <a href="https://www.agoda.com/search?q=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #E53E3E; text-decoration: none; padding: 5px 8px; border: 1px solid #E53E3E; border-radius: 4px; text-align: center; font-size: 12px;">
-                      ðŸ¨ Agoda.com
+                      🍽️¨ Agoda.com
                     </a>
                     <a href="https://www.hotels.com/search.do?q-destination=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #38A169; text-decoration: none; padding: 5px 8px; border: 1px solid #38A169; border-radius: 4px; text-align: center; font-size: 12px;">
-                      ðŸ¢ Hotels.com
+                      🍽️¢ Hotels.com
                     </a>
                     <a href="https://www.expedia.com/hotels?q=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #805AD5; text-decoration: none; padding: 5px 8px; border: 1px solid #805AD5; border-radius: 4px; text-align: center; font-size: 12px;">
-                      âœˆï¸ Expedia
+                      🏨 Expedia
                     </a>
                   </div>
                 </div>
@@ -288,7 +288,7 @@ private addRestaurantMarkers() {
               // Create custom icon for restaurants
               const restaurantIcon = L.divIcon({
                 className: 'restaurant-marker',
-                html: `<div style="background: #FF9800; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);">ðŸ½ï¸</div>`,
+                html: `<div style="background: #FF9800; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);">🍽️½ï¸</div>`,
                 iconSize: [28, 28],
                 iconAnchor: [14, 14]
               });
@@ -304,7 +304,7 @@ private addRestaurantMarkers() {
 
               // Safely escape data for HTML
               const restaurantName = restaurant.name || 'Restaurant Name Not Available';
-              const restaurantRating = restaurant.rating ? `${restaurant.rating}â˜…` : 'Not Available';
+              const restaurantRating = restaurant.rating ? `${restaurant.rating}⭐` : 'Not Available';
               const restaurantLocation = restaurant.vicinity || 'Location Not Available';
               const placeId = restaurant.place_id || '';
               const mealType = spot.mealType || 'meal';
@@ -325,19 +325,19 @@ private addRestaurantMarkers() {
                     <div style="display: flex; flex-direction: column; gap: 6px;">
                       <button onclick="window.addRestaurantToItinerary('${placeId}')" 
                               style="background: #667eea; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
-                        ðŸ“… Add to Itinerary
+                        🍽️“… Add to Itinerary
                       </button>
                       <a href="https://www.google.com/search?q=${encodeURIComponent(restaurantName + ' reviews')}" 
                          target="_blank" style="color: #FF9800; text-decoration: none; padding: 4px 6px; border: 1px solid #FF9800; border-radius: 4px; text-align: center; font-size: 11px;">
-                        ðŸ” Google Reviews
+                        🍽️” Google Reviews
                       </a>
                       <a href="https://www.tripadvisor.com/search?q=${encodeURIComponent(restaurantName)}" 
                          target="_blank" style="color: #00AA6C; text-decoration: none; padding: 4px 6px; border: 1px solid #00AA6C; border-radius: 4px; text-align: center; font-size: 11px;">
-                        ðŸ½ï¸ TripAdvisor
+                        🍽️½ï¸ TripAdvisor
                       </a>
                       <a href="https://www.zomato.com/search?q=${encodeURIComponent(restaurantName)}" 
                          target="_blank" style="color: #E23744; text-decoration: none; padding: 4px 6px; border: 1px solid #E23744; border-radius: 4px; text-align: center; font-size: 11px;">
-                        ðŸ• Zomato
+                        🍽️• Zomato
                       </a>
                     </div>
                   </div>
@@ -394,7 +394,7 @@ private addRestaurantMarkers() {
 
     const highlightIcon = L.divIcon({
       className: 'highlight-marker',
-      html: `<div style="background: #FFD700; color: #000; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 4px solid #FFA500; box-shadow: 0 4px 12px rgba(255,215,0,0.6); animation: pulse 2s infinite;">â­</div>`,
+      html: `<div style="background: #FFD700; color: #000; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 4px solid #FFA500; box-shadow: 0 4px 12px rgba(255,215,0,0.6); animation: pulse 2s infinite;">⭐­</div>`,
       iconSize: [40, 40],
       iconAnchor: [20, 20]
     });
@@ -419,10 +419,10 @@ private addRestaurantMarkers() {
       className: 'highlight-popup'
     }).setContent(`
       <div style="padding: 15px;">
-        <h3 style="margin: 0 0 10px 0; color: #FFD700; text-align: center;">â­ Highlighted Place â­</h3>
+        <h3 style="margin: 0 0 10px 0; color: #FFD700; text-align: center;">⭐­ Highlighted Place ⭐­</h3>
         <h4 style="margin: 0 0 8px 0; color: #333;">${this.highlightPlace.name}</h4>
         <p style="margin: 5px 0; color: #666;">
-          ${this.highlightPlace.rating ? `Rating: ${this.highlightPlace.rating}â˜…<br>` : ''}
+          ${this.highlightPlace.rating ? `Rating: ${this.highlightPlace.rating}⭐<br>` : ''}
           ${this.highlightPlace.vicinity ? `Location: ${this.highlightPlace.vicinity}<br>` : ''}
         </p>
         <div style="margin-top: 12px; text-align: center;">

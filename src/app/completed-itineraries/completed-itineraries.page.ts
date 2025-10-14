@@ -227,7 +227,7 @@ export class CompletedItinerariesPage implements OnInit {
     let notes = `=== ${itinerary.name.toUpperCase()} ===\n\n`;
     
     // Add expense summary
-    notes += `ðŸ’° EXPENSE SUMMARY\n`;
+    notes += `🍽️ EXPENSE SUMMARY\n`;
     notes += `Total Spent: ₱${itinerary.totalExpenses || 0}\n`;
     notes += `Transportation: ₱${itinerary.expenseBreakdown?.transportation || 0}\n`;
     notes += `Food: ₱${itinerary.expenseBreakdown?.food || 0}\n`;
@@ -252,7 +252,7 @@ export class CompletedItinerariesPage implements OnInit {
 
     // Add detailed expenses
     if (itinerary.expenses && itinerary.expenses.length > 0) {
-      notes += `ðŸ“‹ DETAILED EXPENSES\n`;
+      notes += `🍽️“‹ DETAILED EXPENSES\n`;
       notes += '='.repeat(20) + '\n';
       
       itinerary.expenses.forEach((expense: any) => {
@@ -301,14 +301,14 @@ export class CompletedItinerariesPage implements OnInit {
 
   async viewItineraryDetails(itinerary: any) {
     // Create a simpler text-based alert that works better
-    let message = `ðŸ’° EXPENSES:\n`;
+    let message = `🍽️’° EXPENSES:\n`;
     message += `Total: ₱${itinerary.totalExpenses || 0}\n`;
     message += `🚗 Transportation: ₱${itinerary.expenseBreakdown?.transportation || 0}\n`;
-    message += `ðŸ½ï¸ Food: ₱${itinerary.expenseBreakdown?.food || 0}\n`;
-    message += `ðŸ¨ Accommodation: ₱${itinerary.expenseBreakdown?.accommodation || 0}\n\n`;
+    message += `🍽️½ï¸ Food: ₱${itinerary.expenseBreakdown?.food || 0}\n`;
+    message += `🍽️¨ Accommodation: ₱${itinerary.expenseBreakdown?.accommodation || 0}\n\n`;
 
     if (itinerary.days && itinerary.days.length > 0) {
-      message += `ðŸ“ PLACES VISITED:\n`;
+      message += `🍽️“ PLACES VISITED:\n`;
       itinerary.days.forEach((day: any, dayIndex: number) => {
         if (itinerary.days.length > 1) {
           message += `Day ${day.day || dayIndex + 1}:\n`;
@@ -320,10 +320,10 @@ export class CompletedItinerariesPage implements OnInit {
             message += `${spotIndex + 1}. ${spot.name}${timeInfo}\n`;
             
             if (spot.restaurant && spot.restaurant !== spot.name) {
-              message += `   ðŸ½ï¸ ${spot.restaurant}\n`;
+              message += `   🍽️½ï¸ ${spot.restaurant}\n`;
             }
             if (spot.hotel && spot.hotel !== spot.name) {
-              message += `   ðŸ¨ ${spot.hotel}\n`;
+              message += `   🍽️¨ ${spot.hotel}\n`;
             }
           });
         }
@@ -333,7 +333,7 @@ export class CompletedItinerariesPage implements OnInit {
 
     // Add detailed expenses if available
     if (itinerary.expenses && itinerary.expenses.length > 0) {
-      message += `ðŸ“‹ EXPENSE DETAILS:\n`;
+      message += `🍽️“‹ EXPENSE DETAILS:\n`;
       
       const expensesByCategory = {
         transportation: itinerary.expenses.filter((e: any) => e.category === 'transportation'),
@@ -343,7 +343,7 @@ export class CompletedItinerariesPage implements OnInit {
 
       Object.entries(expensesByCategory).forEach(([category, expenses]: [string, any[]]) => {
         if (expenses.length > 0) {
-          const categoryIcon = category === 'transportation' ? '🚗' : category === 'food' ? 'ðŸ½ï¸' : 'ðŸ¨';
+          const categoryIcon = category === 'transportation' ? '🚗' : category === 'food' ? '🍽️½ï¸' : '🍽️¨';
           message += `${categoryIcon} ${category.toUpperCase()}:\n`;
           
           expenses.forEach((expense: any) => {

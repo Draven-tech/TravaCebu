@@ -51,7 +51,7 @@
           <div class="expense-logging-section">
             <div class="total-expenses-display">
               <span class="total-label">Total Expenses</span>
-              <span class="total-amount">â‚±{{ (budgetSummary?.totalExpenses || 0) | number:'1.0-0' }}</span>
+              <span class="total-amount">₱{{ (budgetSummary?.totalExpenses || 0) | number:'1.0-0' }}</span>
             </div>
             
             <h3>Log Your Expenses</h3>
@@ -105,7 +105,7 @@
                  <!-- Segment Info -->
                  <div class="segment-info">
                    <div class="segment-header">
-                     <h3>{{ segment.fromName || segment.from }} â†’ {{ segment.toName || segment.to }}</h3>
+                     <h3>{{ segment.fromName || segment.from }} → {{ segment.toName || segment.to }}</h3>
                      <div class="segment-time-range">
                        <ion-icon name="time"></ion-icon>
                        {{ segment.estimatedTime || segment.duration }}

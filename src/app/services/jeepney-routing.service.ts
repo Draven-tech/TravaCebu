@@ -280,14 +280,14 @@ export class JeepneyRoutingService {
     const jeepneySegments = segments.filter((s: any) => s.type === 'jeepney');
     const walkingSegments = segments.filter((s: any) => s.type === 'walk');
     
-    let summary = `Total: ${this.formatDistance(totalDistance)} â€¢ ${this.formatDuration(totalDuration)}`;
+    let summary = `Total: ${this.formatDistance(totalDistance)} • ${this.formatDuration(totalDuration)}`;
     
     if (jeepneySegments.length > 0) {
-      summary += ` â€¢ ${jeepneySegments.length} jeepney ride${jeepneySegments.length > 1 ? 's' : ''}`;
+      summary += ` • ${jeepneySegments.length} jeepney ride${jeepneySegments.length > 1 ? 's' : ''}`;
     }
     
     if (walkingSegments.length > 0) {
-      summary += ` â€¢ ${walkingSegments.length} walk${walkingSegments.length > 1 ? 's' : ''}`;
+      summary += ` • ${walkingSegments.length} walk${walkingSegments.length > 1 ? 's' : ''}`;
     }
     
     return summary;

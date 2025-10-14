@@ -16,7 +16,7 @@ import { IonicModule, ModalController, NavController } from '@ionic/angular';
       </div>
     </ion-content>
   `,
-  styleUrls: ['./view-profile-picture.component.scss'] // âœ… linked SCSS
+  styleUrls: ['./view-profile-picture.component.scss'] // ✅œ… linked SCSS
 })
 export class ViewProfilePictureComponent {
   @Input() photoURL: string = '';

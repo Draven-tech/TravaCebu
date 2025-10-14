@@ -291,7 +291,7 @@ export class ItineraryService {
       const testResult = await this.placesService.testApiKey().toPromise();
       return testResult;
     } catch (error) {
-      console.error('âŒ API connection test error:', error);
+      console.error('API connection test error:', error);
       return { status: 'ERROR', error: (error && typeof error === 'object' && 'message' in error) ? (error as any).message : String(error) };
     }
   }

@@ -6,9 +6,11 @@ import { HttpClient } from '@angular/common/http';
 import * as L from 'leaflet';
 import { TouristSpotSheetComponent } from '../components/tourist-spot-sheet/tourist-spot-sheet.component';
 import { Geolocation } from '@capacitor/geolocation';
+import { App } from '@capacitor/app';
 import { DaySpotPickerComponent } from '../components/day-spot-picker/day-spot-picker.component';
 import { environment } from '../../environments/environment';
 import { RouteDetailsOverlayComponent } from '../components/route-details-overlay/route-details-overlay.component';
+import { ItineraryControlsModalComponent } from '../modals/itinerary-controls-modal/itinerary-controls-modal.component';
 import { GeofencingService } from '../services/geofencing.service';
 import { Subscription } from 'rxjs';
 
@@ -28,6 +30,8 @@ import { JeepneyRoutingService } from '../services/jeepney-routing.service';
 import { LocationTrackingService, UserLocation } from '../services/location-tracking.service';
 import { MapUIService } from '../services/map-ui.service';
 import { MapUtilitiesService } from '../services/map-utilities.service';
+import { ItinerarySessionService, ItinerarySession } from '../services/itinerary-session.service';
+import { ModalCommunicationService } from '../services/modal-communication.service';
 
 
 @Component({
@@ -56,7 +60,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   navigating: boolean = false;
 
   // Add missing properties for template
-  selectedTab: string = 'spots';
   selectedTile: string = 'osm';
   selectedItineraryIndex: number = -1; // Start with no selection
   availableItineraries: any[] = [];
@@ -64,6 +67,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   stageRouteOptions: any[] = []; // Store multiple route options for each stage
   selectedStageForOptions: number = -1; // Track which stage's options are being shown
   selectedSegmentIndex: number = -1; // Track selected route segment for navigation
+  currentSegmentIndex: number = 0; // Track which segment is currently being displayed
   
   // Loading modal properties
   loadingModal: any = null;
@@ -81,9 +85,13 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   // Fullscreen mode
   isFullscreen: boolean = false;
+  
+  // Stage notification visibility
+  showStageNotification: boolean = true;
 
-  // Subscription for location updates
+  // Subscriptions
   private locationSubscription?: Subscription;
+  private appStateSubscription?: any;
 
   constructor(
     private navCtrl: NavController,
@@ -115,27 +123,26 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private jeepneyRouting: JeepneyRoutingService,
     private locationTracking: LocationTrackingService,
     private mapUI: MapUIService,
-    private mapUtils: MapUtilitiesService
+    private mapUtils: MapUtilitiesService,
+    private itinerarySession: ItinerarySessionService,
+    private modalCommunication: ModalCommunicationService
   ) {
     this.bucketService = bucketService;
   }
 
-  async onTabChange(): Promise<void> {
+  // Method to update map display based on current state
+  async updateMapDisplay(): Promise<void> {
     this.mapManagement.clearAllMarkers();
     this.mapManagement.clearRouteMarkers();
     this.mapManagement.clearAllRouteLines();
     
     this.mapManagement.invalidateSize();
     
-    if (this.selectedTab === 'directions') {
-      await this.loadAvailableItineraries();
-      await this.loadJeepneyRoutes();
-      
-      // If an itinerary is already selected, show it
-      if (this.selectedItineraryIndex >= 0 && this.availableItineraries.length > 0) {
-        await this.showDirectionsAndRoutes();
-      }
-    } else if (this.selectedTab === 'spots') {
+    if (this.selectedItineraryIndex >= 0) {
+      // Show itinerary spots and routes
+      await this.showDirectionsAndRoutes();
+    } else {
+      // Show all tourist spots
       this.showTouristSpots();
     }
   }
@@ -184,30 +191,52 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   async loadItineraryRoutes(): Promise<void> {
+    // Ensure we have itineraries loaded
+    if (this.availableItineraries.length === 0) {
+      console.log('No itineraries available, loading them first...');
+      await this.loadAvailableItineraries();
+      await this.loadJeepneyRoutes();
+    }
+    
     if (this.selectedItineraryIndex < 0 || this.selectedItineraryIndex >= this.availableItineraries.length) {
       // Clear any existing route data when no itinerary is selected
       this.currentRouteInfo = null;
       this.mapManagement.clearAllRouteLines();
       this.mapManagement.clearAllMarkers();
+      // Update map to show all tourist spots
+      this.updateMapDisplay();
       return;
     }
     
     if (this.availableItineraries.length > 0 && this.selectedItineraryIndex < this.availableItineraries.length) {
       const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
       
-      // Clear any existing routes when itinerary changes
-      this.mapManagement.clearAllRouteLines();
-      this.mapManagement.clearAllMarkers();
-      this.currentRouteInfo = null;
-      
-      // Show markers immediately when itinerary is selected
-      this.mapManagement.showItinerarySpots(selectedItinerary, this.mapUI);
-      
-      // Start geofencing for the selected itinerary
-      await this.geofencingService.startMonitoring(selectedItinerary.days);
-      
-      // Generate route information for the selected itinerary
-      await this.generateRouteForItinerary(selectedItinerary);
+      try {
+        // Start or update itinerary session
+        this.itinerarySession.startSession(this.selectedItineraryIndex, selectedItinerary);
+        
+        // Clear any existing routes when itinerary changes
+        this.mapManagement.clearAllRouteLines();
+        this.mapManagement.clearAllMarkers();
+        this.currentRouteInfo = null;
+        
+        // Show markers immediately when itinerary is selected
+        this.mapManagement.showItinerarySpots(selectedItinerary, this.mapUI);
+        
+        // Start geofencing for the selected itinerary
+        await this.geofencingService.startMonitoring(selectedItinerary.days);
+        
+        // Generate route information for the selected itinerary
+        await this.generateRouteForItinerary(selectedItinerary);
+      } catch (error) {
+        console.error('Error loading itinerary routes:', error);
+        this.showToast('Error loading itinerary routes');
+        // Clear the failed session
+        this.itinerarySession.endSession();
+        this.selectedItineraryIndex = -1;
+        this.currentSegmentIndex = 0;
+        this.updateMapDisplay();
+      }
     } else {
       this.currentRouteInfo = null;
     }
@@ -279,10 +308,35 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       await this.loadTouristSpots();
       
+      // Check for existing itinerary session
+      await this.checkForExistingSession();
+      
+      // Subscribe to modal communication service
+      this.modalCommunication.itinerarySelection$.subscribe((index: number | null) => {
+        if (index !== null) {
+          console.log('Received itinerary selection from service:', index);
+          this.selectedItineraryIndex = index;
+          this.loadItineraryRoutes();
+        }
+      });
+      
+      // Listen for app state changes (pause/background)
+      this.appStateSubscription = App.addListener('appStateChange', (state) => {
+        console.log('App state changed. isActive:', state.isActive);
+        
+        if (!state.isActive) {
+          // App is going to background or being closed
+          console.log('App going to background - stopping itinerary if active');
+          if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
+            this.stopItinerary();
+          }
+        }
+      });
+      
       // Wait a bit for map to be fully initialized
       setTimeout(() => {
-        // Show tourist spots by default since selectedTab is 'spots'
-        this.showTouristSpots();
+        // Show tourist spots by default (no itinerary selected)
+        this.updateMapDisplay();
       }, 500);
       
       this.setupGlobalFunctions();
@@ -290,13 +344,131 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       window.addEventListener('online', () => this.onNetworkStatusChange(true));
       window.addEventListener('offline', () => this.onNetworkStatusChange(false));
       
+      // Listen for browser close/refresh (for web version)
+      window.addEventListener('beforeunload', () => {
+        console.log('Browser closing/refreshing - stopping itinerary if active');
+        if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
+          this.stopItinerary();
+        }
+      });
+      
     } catch (error) {
       await this.showToast('Error initializing map');
     }
   }
 
 
-  // ===== TEMPLATE METHODS =====
+  // /////////////////////////////////////SESSION MANAGEMENT///////////////////////////////////////////////////
+
+  async checkForExistingSession(): Promise<void> {
+    const currentSession = this.itinerarySession.getCurrentSession();
+    if (currentSession && currentSession.isActive) {
+      console.log('Resuming existing session:', currentSession);
+      
+      try {
+        // Add timeout to prevent infinite loading
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Session resumption timeout')), 10000); // 10 second timeout
+        });
+        
+        const resumptionPromise = this.resumeSessionWithTimeout(currentSession);
+        
+        await Promise.race([resumptionPromise, timeoutPromise]);
+        
+      } catch (error) {
+        console.error('Error resuming session:', error);
+        // Clear the invalid session
+        this.itinerarySession.endSession();
+        this.selectedItineraryIndex = -1;
+        this.currentSegmentIndex = 0;
+        this.updateMapDisplay();
+        this.showToast(' Could not resume previous session');
+      }
+    }
+  }
+
+  private async resumeSessionWithTimeout(currentSession: any): Promise<void> {
+    // First, ensure we have the itineraries loaded
+    if (this.availableItineraries.length === 0) {
+      console.log('Loading itineraries for session resumption...');
+      await this.loadAvailableItineraries();
+      await this.loadJeepneyRoutes();
+    }
+    
+    // Verify the session is still valid
+    if (currentSession.selectedItineraryIndex >= 0 && currentSession.selectedItineraryIndex < this.availableItineraries.length) {
+      // Restore session state
+      this.selectedItineraryIndex = currentSession.selectedItineraryIndex;
+      this.currentSegmentIndex = currentSession.currentSegmentIndex;
+      
+      // Load the itinerary routes
+      await this.loadItineraryRoutes();
+      
+      // Show a toast about session resumption
+      this.showToast(`🔄 Resumed session: ${this.formatItineraryTitle(currentSession.selectedItinerary)}`);
+    } else {
+      console.log('Session is invalid, clearing it');
+      this.itinerarySession.endSession();
+      this.selectedItineraryIndex = -1;
+      this.currentSegmentIndex = 0;
+      this.updateMapDisplay();
+    }
+  }
+
+  /////////////////////////////////////////////TEMPLATE METHODS ///////////////////////////////////
+
+  async showItineraryControlsModal(): Promise<void> {
+    // Load itineraries if not already loaded
+    if (this.availableItineraries.length === 0) {
+      console.log('Loading itineraries...');
+      await this.loadAvailableItineraries();
+      await this.loadJeepneyRoutes();
+    }
+    
+    console.log('Available itineraries:', this.availableItineraries.length);
+    
+    const modal = await this.modalCtrl.create({
+      component: ItineraryControlsModalComponent,
+      componentProps: {
+        availableItineraries: this.availableItineraries,
+        selectedItineraryIndex: this.selectedItineraryIndex,
+        currentRouteInfo: this.currentRouteInfo,
+        currentSegmentIndex: this.currentSegmentIndex,
+        isLocationTrackingActive: this.isLocationTrackingActive,
+        isRealLocation: this.isRealLocation,
+        locationStatusText: this.locationStatusText,
+        isLoadingJeepneyRoutes: this.isLoadingJeepneyRoutes,
+        isGeneratingRoute: this.isGeneratingRoute
+      },
+      backdropDismiss: true,
+      showBackdrop: true,
+      cssClass: 'itinerary-controls-modal',
+      breakpoints: [0, 0.3, 0.7, 0.95],
+      initialBreakpoint: 0.7
+    });
+
+    // Handle events from the modal
+    modal.onDidDismiss().then((result) => {
+      if (result.data) {
+        // Handle any data returned from modal if needed
+        if (result.data.action === 'showUserLocation') {
+          this.showUserLocation();
+        } else if (result.data.action === 'toggleLocationTracking') {
+          this.toggleLocationTracking();
+        } else if (result.data.action === 'nextSegment') {
+          this.nextSegment();
+        } else if (result.data.action === 'showSegmentSelector') {
+          this.showSegmentSelector();
+        } else if (result.data.action === 'stopItinerary') {
+          this.stopItinerary();
+        } else if (result.data.action === 'cancelRouteGeneration') {
+          this.cancelRouteGeneration();
+        }
+      }
+    });
+
+    await modal.present();
+  }
 
   async showCuratedRouteDetailsSheet(): Promise<void> {
     if (!this.currentRouteInfo) {
@@ -346,6 +518,80 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     } else {
       return `${segment.fromName || segment.from} → ${segment.toName || segment.to}`;
     }
+  }
+
+  getCurrentStageDescription(): string {
+    if (!this.currentRouteInfo || !this.currentRouteInfo.segments || this.currentSegmentIndex < 0) {
+      return 'No stage selected';
+    }
+    
+    const segment = this.currentRouteInfo.segments[this.currentSegmentIndex];
+    if (!segment) {
+      return 'Invalid stage';
+    }
+    
+    return this.getSegmentTitle(segment);
+  }
+
+
+  stopItinerary(): void {
+    console.log('Stopping itinerary...');
+    
+    // Clear route visualization
+    this.mapManagement.clearAllRouteLines();
+    this.mapManagement.clearRouteMarkers();
+    
+    // Reset route state
+    this.currentRouteInfo = null;
+    this.selectedItineraryIndex = -1;
+    this.currentSegmentIndex = 0;
+    
+    // Reset notification visibility
+    this.showStageNotification = true;
+    
+    // End session
+    this.itinerarySession.endSession();
+    
+    // Clear modal communication
+    this.modalCommunication.clearSelection();
+    
+    // Update map to show all tourist spots
+    this.updateMapDisplay();
+    
+    // Show confirmation
+    this.showToast('Itinerary stopped');
+    
+    console.log('Itinerary stopped successfully');
+  }
+
+  cancelRouteGeneration(): void {
+    console.log('Cancelling route generation...');
+    
+    // Reset loading states
+    this.isLoadingJeepneyRoutes = false;
+    this.isGeneratingRoute = false;
+    
+    // Reset route state
+    this.currentRouteInfo = null;
+    this.selectedItineraryIndex = -1;
+    this.currentSegmentIndex = 0;
+    
+    // Reset notification visibility
+    this.showStageNotification = true;
+    
+    // End session
+    this.itinerarySession.endSession();
+    
+    // Clear modal communication
+    this.modalCommunication.clearSelection();
+    
+    // Update map to show all tourist spots
+    this.updateMapDisplay();
+    
+    // Show confirmation
+    this.showToast('Route generation cancelled');
+    
+    console.log('Route generation cancelled successfully');
   }
 
   async showSegmentSelector(): Promise<void> {
@@ -495,10 +741,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         });
       }
 
-      // Show toast with segment info
-      this.showToast(`📍 Navigated to Segment ${segmentIndex + 1}: ${this.getSegmentTitle(segment)}`);
+      // Stage info is shown in the persistent yellow banner
     } else {
-      this.showToast(`⚠️ Could not find coordinates for Segment ${segmentIndex + 1}`);
+      this.showToast(`Could not find coordinates for Segment ${segmentIndex + 1}`);
     }
   }
 
@@ -579,6 +824,71 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.isFullscreen = !this.isFullscreen;
   }
 
+  nextSegment(): void {
+    if (!this.currentRouteInfo || !this.currentRouteInfo.segments) {
+      return;
+    }
+    
+    // Move to next segment (loop back to first when reaching the end)
+    this.currentSegmentIndex = (this.currentSegmentIndex + 1) % this.currentRouteInfo.segments.length;
+    
+    // Update session with new current segment
+    this.itinerarySession.updateCurrentSegment(this.currentSegmentIndex);
+    
+    // Display only the current segment
+    this.displayCurrentSegment();
+    
+    // Stage info is now shown in the yellow banner at the top
+  }
+
+  previousSegment(): void {
+    if (!this.currentRouteInfo || !this.currentRouteInfo.segments) {
+      return;
+    }
+    
+    // Move to previous segment (loop to last when at the beginning)
+    this.currentSegmentIndex = this.currentSegmentIndex > 0 
+      ? this.currentSegmentIndex - 1 
+      : this.currentRouteInfo.segments.length - 1;
+    
+    // Update session with new current segment
+    this.itinerarySession.updateCurrentSegment(this.currentSegmentIndex);
+    
+    // Display only the current segment
+    this.displayCurrentSegment();
+    
+    // Stage info is now shown in the yellow banner at the top
+  }
+
+  displayCurrentSegment(): void {
+    if (!this.currentRouteInfo || !this.currentRouteInfo.segments) {
+      return;
+    }
+    
+    try {
+      // Clear all existing route lines
+      this.mapManagement.clearAllRouteLines();
+      
+      // Get the current segment
+      const segment = this.currentRouteInfo.segments[this.currentSegmentIndex];
+      
+      if (!segment) return;
+      
+      // Draw only the current segment based on type
+      if ((segment.type === 'jeepney' || segment.type === 'bus') && segment.jeepneyCode) {
+        this.drawJeepneySegment(segment);
+      } else if (segment.type === 'walk') {
+        this.drawWalkingSegment(segment);
+      }
+      
+      // Center map on the segment
+      this.navigateToSegment(this.currentSegmentIndex);
+      
+    } catch (error) {
+      // Silently handle display errors
+    }
+  }
+
 
 
 
@@ -587,7 +897,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.isGeneratingRoute = true;
       
       // Show loading modal
-      await this.showLoadingModal('🚀 Starting route generation...');
+      await this.showLoadingModal('Starting route generation...');
       
       const userLocation = await this.locationTracking.getLocationWithFallback();
       
@@ -612,11 +922,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.displayRouteOnMap(this.currentRouteInfo);
       
       // Show success message
-      await this.showToast('✅ Route generation completed!');
+      await this.showToast('Route generation completed!');
       
     } catch (error) {
       await this.dismissLoadingModal();
-      await this.showToast('❌ Error generating routes. Please try again.');
+      await this.showToast('Error generating routes. Please try again.');
     } finally {
       this.isGeneratingRoute = false;
       this.loadingProgress = '';
@@ -629,18 +939,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
     
     try {
-      this.mapManagement.clearAllRouteLines();
+      // Reset to first segment when displaying a new route
+      this.currentSegmentIndex = 0;
       
-      routeInfo.segments.forEach((segment: any) => {
-        // Draw segment based on type
-        if ((segment.type === 'jeepney' || segment.type === 'bus') && segment.jeepneyCode) {
-          // Draw jeepney/bus route with code
-          this.drawJeepneySegment(segment);
-        } else if (segment.type === 'walk') {
-          // Draw walking segment
-          this.drawWalkingSegment(segment);
-        }
-      });
+      // Display only the first segment
+      this.displayCurrentSegment();
       
     } catch (error) {
       // Silently handle display errors
@@ -714,7 +1017,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     
     jeepneyMarker.bindPopup(`
       <div style="text-align: center;">
-        <strong>🚌 Jeepney ${segment.jeepneyCode}</strong><br>
+        <strong>Jeepney ${segment.jeepneyCode}</strong><br>
         <small>${segment.description || 'Jeepney Route'}</small><br>
         <small>Distance: ${this.mapUtils.formatDistance(segment.distance || 0)}</small><br>
         <small>Duration: ${this.mapUtils.formatDuration(segment.duration || 0)}</small>
@@ -793,7 +1096,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       walkMarker.bindPopup(`
         <div style="text-align: center;">
-          <strong>🚶 Walking</strong><br>
+          <strong>Walking</strong><br>
           <small>${segment.description || 'Walk to destination'}</small><br>
           <small>Distance: ${this.mapUtils.formatDistance(segment.distance || 0)}</small><br>
           <small>Duration: ${this.mapUtils.formatDuration(segment.duration || 0)}</small>
@@ -917,9 +1220,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     try {
       localStorage.removeItem('tourist_spots_cache');
       await this.loadTouristSpots();
-      if (this.selectedTab === 'spots') {
-        this.showTouristSpots();
-      }
+      // Update map display after refreshing spots
+      this.updateMapDisplay();
     } catch (error) {
       // Silently handle error
     }
@@ -954,7 +1256,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       const popupContent = `
         <div style="min-width: 150px;">
           <h4 style="margin: 0 0 8px 0; color: #333;">
-            ${location.isReal ? '📍 Your Location (GPS)' : '📍 Default Location'}
+            ${location.isReal ? 'Your Location (GPS)' : 'Default Location'}
           </h4>
           ${location.accuracy ? `<p style="margin: 4px 0; color: #666;">Accuracy: ${Math.round(location.accuracy)}m</p>` : ''}
         </div>
@@ -964,9 +1266,20 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Stop itinerary if active
+    if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
+      console.log('Component destroying - stopping active itinerary');
+      this.stopItinerary();
+    }
+    
     // Unsubscribe from location updates
     if (this.locationSubscription) {
       this.locationSubscription.unsubscribe();
+    }
+    
+    // Remove app state listener
+    if (this.appStateSubscription) {
+      this.appStateSubscription.remove();
     }
     
     this.locationTracking.stopLocationTracking();
@@ -975,5 +1288,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     
     window.removeEventListener('online', () => this.onNetworkStatusChange(true));
     window.removeEventListener('offline', () => this.onNetworkStatusChange(false));
+    window.removeEventListener('beforeunload', () => {});
   }
 }

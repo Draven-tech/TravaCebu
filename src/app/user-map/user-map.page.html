@@ -1,4 +1,4 @@
-<ion-header>
+<ion-header *ngIf="!isFullscreen">
   <ion-toolbar color="warning">
     <ion-title>Map</ion-title>
     <ion-buttons slot="end">
@@ -9,110 +9,33 @@
     </ion-buttons>
   </ion-toolbar>
   
-  <!-- Search Bar (only show on Tourist Spots tab) -->
-  <ion-toolbar *ngIf="selectedTab === 'spots'">
+  <!-- Search Bar (show when no itinerary selected) -->
+  <ion-toolbar *ngIf="selectedItineraryIndex < 0">
     <ion-searchbar [(ngModel)]="searchQuery" placeholder="Search tourist spots..."></ion-searchbar>
   </ion-toolbar>
   
-  <!-- Tab Navigation -->
-  <ion-segment [(ngModel)]="selectedTab" mode="ios" color="warning" (ionChange)="onTabChange()">
-    <ion-segment-button value="spots">
-      <ion-label>📍 Tourist Spots</ion-label>
-    </ion-segment-button>
-    <ion-segment-button value="directions">
-      <ion-label>🧭 Directions & Routes</ion-label>
-    </ion-segment-button>
-  </ion-segment>
   
-  <!-- Directions & Routes Tab Controls -->
-  <ion-toolbar *ngIf="selectedTab === 'directions'" style="--min-height: 30px; padding: 4px 16px;">
-    <!-- Loading indicator for jeepney routes -->
-    <ion-item *ngIf="isLoadingJeepneyRoutes" lines="none" style="--min-height: 24px;">
-      <ion-spinner name="crescent" style="width: 14px; height: 14px;"></ion-spinner>
-      <ion-label style="font-size: 11px;">Loading jeepney routes...</ion-label>
-    </ion-item>
-    
-    <!-- Route type selection prompt (compact) -->
-    <ion-item *ngIf="selectedItineraryIndex < 0" lines="none" style="--min-height: 24px;">
-      <ion-icon name="information-circle" color="warning" slot="start" style="font-size: 14px;"></ion-icon>
-      <ion-label style="font-size: 11px;">
-        <h3 style="font-size: 12px; margin: 0;">Select an Itinerary First</h3>
-        <p style="font-size: 10px; margin: 1px 0;">Choose an itinerary from the dropdown below</p>
-      </ion-label>
-    </ion-item>
-    
-
-    
-
-  </ion-toolbar>
-  
-  <!-- Itinerary and Route Type Selection (compact) -->
-  <ion-toolbar *ngIf="selectedTab === 'directions'" class="itinerary-toolbar" style="--min-height: 40px; padding: 4px 16px;">
-    <ion-item lines="none" class="itinerary-selector" style="--padding-start: 0; --padding-end: 0; --min-height: 32px;">
-      <ion-label class="itinerary-label" style="margin: 0; min-width: 60px; font-size: 14px;">Itinerary:</ion-label>
-      <ion-select 
-        [(ngModel)]="selectedItineraryIndex" 
-        (ionChange)="loadItineraryRoutes()" 
-        interface="action-sheet" 
-        [disabled]="availableItineraries.length === 0"
-        class="itinerary-dropdown"
-        style="--padding-start: 0; --padding-end: 0; font-size: 14px;"
-        placeholder="Select an itinerary...">
-        <ion-select-option value="-1" disabled>
-          Select an itinerary...
-        </ion-select-option>
-        <ion-select-option *ngFor="let itinerary of availableItineraries; let i = index" [value]="i">
-          {{ formatItineraryTitle(itinerary) }}
-        </ion-select-option>
-      </ion-select>
-    </ion-item>
-    
-    <ion-button fill="clear" (click)="showUserLocation()" [color]="isRealLocation ? 'success' : 'warning'" size="small">
-      <ion-icon name="location"></ion-icon>
-      {{ locationStatusText }}
-    </ion-button>
-    <ion-button fill="clear" (click)="toggleLocationTracking()" 
-                [color]="isLocationTrackingActive ? 'danger' : 'primary'" size="small">
-      <ion-icon [name]="isLocationTrackingActive ? 'stop-circle' : 'play-circle'"></ion-icon>
-      {{ isLocationTrackingActive ? 'Stop' : 'Track' }}
-    </ion-button>
-    
-    <!-- Route Segment Navigation Dropdown -->
-    <ion-button *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0"
-                fill="outline" 
-                size="small" 
-                color="secondary"
-                (click)="showSegmentSelector()">
-      <ion-icon name="list" slot="start"></ion-icon>
-      Segments ({{ currentRouteInfo.segments.length }})
-    </ion-button>
-    
-    <!-- Debug: Show when no segments -->
-    <ion-button *ngIf="!currentRouteInfo || !currentRouteInfo.segments || currentRouteInfo.segments.length === 0"
-                fill="clear" 
-                size="small" 
-                color="medium"
-                disabled="true">
-      <ion-icon name="alert-circle" slot="start"></ion-icon>
-      No Segments
-    </ion-button>
-
-  </ion-toolbar>
 </ion-header>
+
+<!-- Stage Notification Banner -->
+<div *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0 && showStageNotification" 
+     class="stage-notification"
+     [ngStyle]="{ top: isFullscreen ? '0' : '56px' }">
+  <div class="stage-content">
+    <ion-icon name="navigate" class="stage-icon"></ion-icon>
+    <div class="stage-text">
+      <span class="stage-title">Stage {{ currentSegmentIndex + 1 }}/{{ currentRouteInfo.segments.length }}</span>
+      <span class="stage-description">{{ getCurrentStageDescription() }}</span>
+    </div>
+  </div>
+</div>
 
 <ion-content [class.fullscreen-mode]="isFullscreen">
   <div id="map"></div>
   
-  <!-- Floating Location Button -->
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button (click)="showUserLocation()" (press)="toggleLocationTracking()" 
-                    [color]="isLocationTrackingActive ? 'danger' : (isRealLocation ? 'success' : 'warning')">
-      <ion-icon [name]="isLocationTrackingActive ? 'navigate' : 'location'"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
   
-  <!-- Tourist Spots Tab Content -->
-  <div *ngIf="selectedTab === 'spots'" class="map-controls">
+  <!-- Map Controls (show when no itinerary selected) -->
+  <div *ngIf="selectedItineraryIndex < 0 && !isFullscreen" class="map-controls">
     <ion-button expand="block" color="primary" (click)="navigateNextItineraryStep()" [disabled]="navigating">
       Navigate Next Itinerary Step
     </ion-button>
@@ -123,8 +46,8 @@
     </ion-list>
   </div>
   
-  <!-- Directions & Routes Tab Content -->
-  <div *ngIf="selectedTab === 'directions'" class="directions-controls">
+  <!-- Itinerary Controls (show when itinerary is selected) -->
+  <div *ngIf="selectedItineraryIndex >= 0 && !isFullscreen" class="directions-controls">
     <!-- Auto-loading indicator for jeepney route suggestions -->
     <ion-item *ngIf="selectedItineraryIndex >= 0 && availableItineraries.length > 0 && isLoadingJeepneyRoutes" lines="none" style="margin: 16px;">
       <ion-spinner name="crescent" slot="start"></ion-spinner>
@@ -255,6 +178,46 @@
         </ion-text>
       </ion-card-content>
     </ion-card>
+  </div>
+  
+  <!-- Navigation Buttons (Left Side) -->
+  <div *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0" 
+       style="position: fixed; left: 16px; z-index: 9999;">
+    
+    <!-- Complete Itinerary Button -->
+    <div [style.bottom]="isFullscreen ? '148px' : '228px'" 
+         style="background: #28a745; padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease; position: fixed; left: 16px;" 
+         (click)="stopItinerary()">
+      <ion-icon name="checkmark" style="color: white; font-size: 24px;"></ion-icon>
+    </div>
+    
+    <!-- Back Button -->
+    <div [style.bottom]="isFullscreen ? '20px' : '100px'" 
+         style="background: #ffc107; padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease; position: fixed; left: 16px;" 
+         (click)="previousSegment()">
+      <ion-icon name="arrow-back" style="color: white; font-size: 24px;"></ion-icon>
+    </div>
+    
+    <!-- Next Button -->
+    <div [style.bottom]="isFullscreen ? '84px' : '164px'" 
+         style="background: #ffc107; padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease; position: fixed; left: 16px;" 
+         (click)="nextSegment()">
+      <ion-icon name="arrow-forward" style="color: white; font-size: 24px;"></ion-icon>
+    </div>
+  </div>
+  
+  <!-- Controls Button -->
+  <div [style.bottom]="isFullscreen ? '230px' : '310px'" 
+       style="position: fixed; right: 16px; z-index: 9999; background: #ffc107; padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease;" 
+       (click)="showItineraryControlsModal()">
+    <ion-icon name="settings" style="color: white; font-size: 24px;"></ion-icon>
+  </div>
+  
+  <!-- Location Button -->
+  <div [style.bottom]="isFullscreen ? '160px' : '240px'" 
+       style="position: fixed; right: 16px; z-index: 9999; background: #ffc107; padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease;" 
+       (click)="showUserLocation()">
+    <ion-icon name="location" style="color: white; font-size: 24px;"></ion-icon>
   </div>
   
   <!-- Map Type Toggle Button -->

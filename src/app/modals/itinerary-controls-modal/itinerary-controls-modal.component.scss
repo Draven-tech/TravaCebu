@@ -1,0 +1,56 @@
+ion-card {
+  margin: 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+ion-card-header {
+  padding-bottom: 6px;
+}
+
+ion-card-content {
+  padding-top: 6px;
+}
+
+ion-item {
+  --padding-start: 0;
+  --padding-end: 0;
+  --border-radius: 8px;
+}
+
+ion-button {
+  margin: 6px 0;
+  --border-radius: 8px;
+}
+
+ion-spinner {
+  margin-right: 8px;
+}
+
+ion-select {
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+// Compact styling for popup modal
+ion-content {
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+}
+
+// Custom styling for better mobile experience
+@media (max-width: 768px) {
+  ion-card {
+    margin: 8px;
+  }
+  
+  ion-card-header {
+    padding: 12px 12px 6px 12px;
+  }
+  
+  ion-card-content {
+    padding: 6px 12px 12px 12px;
+  }
+}

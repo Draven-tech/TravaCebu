@@ -1,0 +1,189 @@
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-title>Itinerary Controls</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="onShowSegmentSelector()" 
+                  *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0">
+        <ion-icon name="list"></ion-icon>
+        All Segments
+      </ion-button>
+      <ion-button (click)="onCloseModal()">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content scrollY="true">
+  <!-- Itinerary Selection -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Select Itinerary</ion-card-title>
+      <ion-card-subtitle>Choose your travel plan</ion-card-subtitle>
+    </ion-card-header>
+    
+    <ion-card-content>
+      <!-- Show message if no itineraries -->
+      <ion-item *ngIf="availableItineraries.length === 0" lines="none" color="warning">
+        <ion-icon name="information-circle" slot="start"></ion-icon>
+        <ion-label class="ion-text-wrap">
+          <h3>No Itineraries Found</h3>
+          <p>Create an itinerary in the Calendar tab first.</p>
+        </ion-label>
+      </ion-item>
+      
+      <ion-item lines="none">
+        <ion-label>Itinerary:</ion-label>
+        <ion-select 
+          [(ngModel)]="selectedItineraryIndex" 
+          (ionChange)="onItineraryChange($event)"
+          interface="action-sheet" 
+          [disabled]="availableItineraries.length === 0"
+          placeholder="Select an itinerary...">
+          <ion-select-option value="-1" disabled>
+            Select an itinerary...
+          </ion-select-option>
+          <ion-select-option *ngFor="let itinerary of availableItineraries; let i = index" [value]="i">
+            {{ formatItineraryTitle(itinerary) }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+      
+      <!-- Stop Itinerary Button -->
+      <ion-button *ngIf="selectedItineraryIndex >= 0" 
+                  expand="block" 
+                  color="danger"
+                  fill="solid"
+                  (click)="onStopItinerary()"
+                  style="margin-top: 16px;">
+        <ion-icon name="stop-circle" slot="start"></ion-icon>
+        Stop Itinerary
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Loading Status Card -->
+  <ion-card *ngIf="isLoadingJeepneyRoutes || isGeneratingRoute">
+    <ion-card-header>
+      <ion-card-title>Route Generation</ion-card-title>
+      <ion-card-subtitle>Please wait while we find the best route</ion-card-subtitle>
+    </ion-card-header>
+    
+    <ion-card-content>
+      <ion-item *ngIf="isLoadingJeepneyRoutes" lines="none">
+        <ion-spinner name="crescent" slot="start"></ion-spinner>
+        <ion-label>Loading jeepney routes...</ion-label>
+      </ion-item>
+      
+      <ion-item *ngIf="isGeneratingRoute" lines="none">
+        <ion-spinner name="crescent" slot="start" color="warning"></ion-spinner>
+        <ion-label>Generating route...</ion-label>
+      </ion-item>
+      
+      <!-- Cancel Generation Button -->
+      <ion-button *ngIf="isGeneratingRoute || isLoadingJeepneyRoutes" 
+                  expand="block" 
+                  color="medium"
+                  fill="outline"
+                  (click)="onCancelRouteGeneration()"
+                  style="margin-top: 16px;">
+        <ion-icon name="close-circle" slot="start"></ion-icon>
+        Cancel Route Generation
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Location Tracking Status -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Location Status</ion-card-title>
+      <ion-card-subtitle>GPS and tracking controls</ion-card-subtitle>
+    </ion-card-header>
+    
+    <ion-card-content>
+      <ion-item lines="none">
+        <ion-icon [name]="isRealLocation ? 'checkmark-circle' : 'warning'" 
+                  [color]="isRealLocation ? 'success' : 'warning'" 
+                  slot="start"></ion-icon>
+        <ion-label>
+          <h3>{{ locationStatusText }}</h3>
+          <p>{{ isRealLocation ? 'GPS location detected' : 'Using default location' }}</p>
+        </ion-label>
+      </ion-item>
+      
+      <ion-button expand="block" 
+                  (click)="onShowUserLocation()" 
+                  [color]="isRealLocation ? 'success' : 'warning'"
+                  fill="outline">
+        <ion-icon name="location" slot="start"></ion-icon>
+        Center on Location
+      </ion-button>
+      
+      <ion-button expand="block" 
+                  (click)="onToggleLocationTracking()" 
+                  [color]="isLocationTrackingActive ? 'danger' : 'primary'"
+                  fill="outline">
+        <ion-icon [name]="isLocationTrackingActive ? 'stop-circle' : 'play-circle'" slot="start"></ion-icon>
+        {{ isLocationTrackingActive ? 'Stop Tracking' : 'Start Tracking' }}
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Current Segment Navigation -->
+  <ion-card *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0">
+    <ion-card-header>
+      <ion-card-title>Current Stage</ion-card-title>
+      <ion-card-subtitle>
+        Stage {{ currentSegmentIndex + 1 }} of {{ currentRouteInfo.segments.length }}
+      </ion-card-subtitle>
+    </ion-card-header>
+    
+    <ion-card-content>
+      <!-- Current segment info -->
+      <ion-item *ngIf="currentRouteInfo.segments[currentSegmentIndex]" lines="none">
+        <ion-icon [name]="currentRouteInfo.segments[currentSegmentIndex].type === 'jeepney' ? 'bus' : 'walk'" 
+                  [color]="currentRouteInfo.segments[currentSegmentIndex].type === 'jeepney' ? 'primary' : 'medium'" 
+                  slot="start"></ion-icon>
+        <ion-label>
+          <h3>{{ getSegmentTitle(currentRouteInfo.segments[currentSegmentIndex]) }}</h3>
+          <p *ngIf="currentRouteInfo.segments[currentSegmentIndex].jeepneyCode">
+            Jeepney Code: {{ currentRouteInfo.segments[currentSegmentIndex].jeepneyCode }}
+          </p>
+          <p>{{ formatDuration(currentRouteInfo.segments[currentSegmentIndex].duration) }}</p>
+        </ion-label>
+      </ion-item>
+      
+      <!-- Next segment button -->
+      <ion-button expand="block" 
+                  (click)="onNextSegment()" 
+                  color="warning"
+                  fill="solid">
+        <ion-icon name="arrow-forward" slot="start"></ion-icon>
+        Next Stage
+      </ion-button>
+      
+      <!-- Route summary -->
+      <ion-item lines="none" style="margin-top: 16px;">
+        <ion-label>
+          <h3>Total Route</h3>
+          <p>{{ currentRouteInfo.totalDuration }} • {{ currentRouteInfo.totalDistance }}</p>
+        </ion-label>
+      </ion-item>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- No route selected message -->
+  <ion-card *ngIf="!currentRouteInfo || !currentRouteInfo.segments || currentRouteInfo.segments.length === 0">
+    <ion-card-content>
+      <ion-text color="medium">
+        <p>Select an itinerary to see route stages and navigation options</p>
+      </ion-text>
+    </ion-card-content>
+  </ion-card>
+  
+  <!-- Scroll indicator -->
+  <div class="scroll-indicator" *ngIf="showScrollIndicator">
+    <ion-icon name="chevron-up"></ion-icon>
+    <span>Scroll for more</span>
+  </div>
+</ion-content>

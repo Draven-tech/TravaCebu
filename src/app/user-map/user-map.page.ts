@@ -49,6 +49,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   private jeepneyLine?: L.Polyline;
   searchQuery: string = '';
   touristSpots: any[] = [];
+  filteredSpots: any[] = [];
+  showSearchResults: boolean = false;
   public bucketService: BucketService;
   private routeLine?: L.Polyline;
   private routeLines: (L.Polyline | L.Marker)[] = [];
@@ -1130,6 +1132,62 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   async showTouristSpots(): Promise<void> {
     this.mapManagement.showTouristSpots(this.touristSpots, this.mapUI);
+  }
+
+  /**
+   * Filter tourist spots based on search query
+   */
+  onSearchChange(): void {
+    const query = this.searchQuery.trim().toLowerCase();
+    
+    if (query.length === 0) {
+      this.filteredSpots = [];
+      this.showSearchResults = false;
+      return;
+    }
+    
+    // Filter spots that match the search query
+    this.filteredSpots = this.touristSpots.filter(spot => 
+      spot.name.toLowerCase().includes(query) ||
+      spot.description?.toLowerCase().includes(query) ||
+      spot.location_name?.toLowerCase().includes(query) ||
+      spot.eventType?.toLowerCase().includes(query)
+    ).slice(0, 8); // Limit to 8 results for better UX
+    
+    this.showSearchResults = this.filteredSpots.length > 0;
+  }
+
+  /**
+   * Navigate to selected spot from search
+   */
+  selectSearchResult(spot: any): void {
+    if (!spot || !spot.location) {
+      this.showToast('Location not available for this spot');
+      return;
+    }
+    
+    // Clear search
+    this.searchQuery = '';
+    this.filteredSpots = [];
+    this.showSearchResults = false;
+    
+    // Center map on the spot
+    this.mapManagement.centerOnLocation(spot.location.lat, spot.location.lng, 16);
+    
+    // Open spot details sheet
+    this.openSpotSheet(spot);
+    
+    // Show toast
+    this.showToast(`📍 ${spot.name}`);
+  }
+
+  /**
+   * Clear search results
+   */
+  clearSearch(): void {
+    this.searchQuery = '';
+    this.filteredSpots = [];
+    this.showSearchResults = false;
   }
 
 

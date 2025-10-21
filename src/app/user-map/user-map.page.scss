@@ -454,3 +454,93 @@ ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button[color="danger"] {
     }
   }
 }
+
+/* Search Results Dropdown Styles */
+.search-results-container {
+  position: fixed;
+  top: 112px; // Below the header and searchbar
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 400px;
+  overflow-y: auto;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-results-list {
+  padding: 0;
+  margin: 0;
+  background: transparent;
+}
+
+.search-result-item {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --min-height: 60px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  
+  &:hover {
+    --background: #f8f9fa;
+  }
+  
+  &:active {
+    --background: #e9ecef;
+  }
+  
+  ion-label h3 {
+    font-weight: 600;
+    color: #2D3748;
+    margin-bottom: 4px;
+    font-size: 1rem;
+  }
+  
+  ion-label p {
+    font-size: 0.875rem;
+    color: #666;
+    margin: 2px 0;
+  }
+  
+  .spot-type-badge {
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    margin-top: 4px;
+  }
+  
+  ion-icon {
+    font-size: 24px;
+  }
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .search-results-container {
+    max-height: 300px;
+  }
+}

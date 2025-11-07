@@ -432,11 +432,18 @@ export class MyItinerariesPage implements OnInit {
     this.presentToast('Link copied to clipboard!');
   }
 
-  async shareUrl() {
+async shareUrl() {
+  try {
+    this.showToast('Generating PDF, please wait...', 'primary');
     const url = await this.pdfExportService.generateAndUploadPDF(this.itineraries);
-    await Clipboard.write({ string: url });
     this.downloadUrl = url;
+    await Clipboard.write({ string: url });
+    this.showToast('PDF link copied to clipboard!', 'success');
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    this.showToast('Failed to generate PDF link.', 'danger');
   }
+}
   async downloadPdf() {
   await this.pdfExportService.generateAndSavePDF(this.itineraries);
 }

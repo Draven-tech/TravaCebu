@@ -63,7 +63,7 @@ export class PlacesImageService {
         };
       }),
       catchError(error => {
-        console.error('❌Œ Google Places integration test failed:', error);
+        console.error('Google Places integration test failed:', error);
         return of({
           success: false,
           error: error.message

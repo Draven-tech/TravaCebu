@@ -1,14 +1,15 @@
 ﻿import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
-import { AuthService } from '../services/auth.service';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { BucketService } from '../services/bucket-list.service';
 import { NavController, ToastController, ModalController, AlertController } from '@ionic/angular';
+
+import { AuthService } from '../services/auth.service';
+import { BucketService } from '../services/bucket-list.service';
 import { PlacesService } from '../services/places.service';
 import { PendingTouristSpotService } from '../services/pending-tourist-spot.service';
-import { SearchModalComponent } from '../modals/search-modal/search-modal.component';
 import { GeofencingService } from '../services/geofencing.service';
+import { SearchModalComponent } from '../modals/search-modal/search-modal.component';
 
 @Component({
   selector: 'app-user-dashboard',
@@ -17,94 +18,87 @@ import { GeofencingService } from '../services/geofencing.service';
   standalone: false,
 })
 export class UserDashboardPage implements OnInit, OnDestroy {
+  // ✅ User and app state
   userId: string | null = null;
   userData: any = null;
-  spots: any[] = [];
   isLoading = true;
+
+  // ✅ Data arrays
+  allSpots: any[] = [];       // All spots from Firestore
+  filteredSpots: any[] = [];  // Spots after filtering/search
+  bucketList: any[] = [];     // User’s saved spots
+  visitedSpots: any[] = [];   // Spots the user has visited
+  bucketSpotIds: string[] = [];
+
+  // ✅ UI state
   searchQuery = '';
   tags = ['All', 'Attraction', 'Mall', 'Beach', 'Landmark', 'Museum', 'Park'];
   selectedTag = 'All';
-  originalSpots: any[] = [];
-  visitedSpots: any[] = [];
-  bucketSpotIds: string[] = [];
 
-  // Pagination properties
+  // ✅ Pagination
   currentPage = 1;
   itemsPerPage = 6;
   paginatedSpots: any[] = [];
   totalPages = 1;
 
-  // Search properties
-  isSearching = false;
-  searchResults: any[] = [];
-
-  bucketList: any[] = [];
+  private spotsSubscription: any;
 
   constructor(
     private route: ActivatedRoute,
     private firestore: AngularFirestore,
-    private authService: AuthService,
     private afAuth: AngularFireAuth,
-    private bucketService: BucketService,
     private navCtrl: NavController,
     private toastCtrl: ToastController,
     private modalCtrl: ModalController,
     private alertCtrl: AlertController,
+    private authService: AuthService,
+    private bucketService: BucketService,
     private placesService: PlacesService,
     private pendingSpotService: PendingTouristSpotService,
     private geofencingService: GeofencingService
-  ) { }
+  ) {}
 
-  private spotsSubscription: any;
-
+  // 🔹 Life Cycle Hooks
   async ngOnInit() {
-    this.loadBucketList();
-    this.checkNetworkStatus(); // Check immediately on load
-    window.addEventListener('offline', this.showOfflineAlert);
-    window.addEventListener('online', this.showOnlineToast);
-    // Get Firebase Auth UID
+    this.setupNetworkListeners();
+
     const currentUser = await this.afAuth.currentUser;
     this.userId = this.route.snapshot.paramMap.get('uid') ?? currentUser?.uid ?? null;
-    if (!this.userId) {
-      return;
-    }
-    // Load user profile data
-    this.firestore.collection('users').doc(this.userId).valueChanges().subscribe(data => {
-      this.userData = data;
-    });
-    // Load tourist spots with proper subscription management
+    if (!this.userId) return;
+
+    this.loadUserProfile();
+    this.loadBucketList();
     this.loadSpots();
-    await this.loadVisitedSpots();
-    await this.loadBucketStatus();
+    this.loadVisitedSpots();
+    this.loadBucketStatus();
   }
 
-  async loadBucketStatus() {
-    try {
-      this.bucketSpotIds = await this.bucketService.getBucketSpotIds();
-    } catch (error) {
-      console.error('Error loading bucket status:', error);
-    }
+  ngOnDestroy() {
+    if (this.spotsSubscription) this.spotsSubscription.unsubscribe();
+    window.removeEventListener('offline', this.showOfflineAlert);
+    window.removeEventListener('online', this.showOnlineToast);
+  }
+
+  // 🔹 Firebase Data Loading
+  loadUserProfile() {
+    this.firestore.collection('users').doc(this.userId!).valueChanges().subscribe(data => {
+      this.userData = data;
+    });
   }
 
   loadSpots() {
     this.isLoading = true;
 
-    // Unsubscribe from previous subscription if it exists
-    if (this.spotsSubscription) {
-      this.spotsSubscription.unsubscribe();
-    }
+    if (this.spotsSubscription) this.spotsSubscription.unsubscribe();
 
-    // Create new subscription - sort by userRatingsTotal (ascending) to show hidden gems first
     this.spotsSubscription = this.firestore
       .collection('tourist_spots')
       .valueChanges({ idField: 'id' })
       .subscribe({
-        next: (data) => {
-
-          // Sort by userRatingsTotal (ascending) - least popular first (hidden gems)
-          this.originalSpots = this.sortByUserRatings(data);
-
-          this.applyFilter(); // filter based on current tag
+        next: (spots) => {
+          // Sort ascending by popularity to show hidden gems first
+          this.allSpots = this.sortByPopularity(spots);
+          this.applyFilters();
           this.isLoading = false;
         },
         error: (err) => {
@@ -113,346 +107,18 @@ export class UserDashboardPage implements OnInit, OnDestroy {
         },
       });
   }
-  async loadBucketList() {
-    try {
-      this.bucketList = await this.bucketService.getBucket();
-    } catch (error) {
-      console.error('Error loading bucket list:', error);
-      this.bucketList = [];
-    }
-  }
-  isInBucketList(spotId: string): boolean {
-    return this.bucketList.some(s => s.id === spotId);
-  }
 
-async toggleBucketList(spot: any) {
-  if (this.isInBucketList(spot.id)) {
-    // Remove from bucket list
-    await this.removeFromBucketList(spot.id);
-    this.showRemovedAlert();
-  } else {
-    // Ask before adding
-    const alert = await this.alertCtrl.create({
-      header: 'Add to Bucket List',
-      message: 'Do you want to add this to your bucket list?',
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Yes',
-          handler: async () => {
-            await this.addToBucketList(spot);
-          }
-        }
-      ]
+loadBucketList() {
+  if (!this.userId) return;
+
+  this.firestore
+    .collection(`users/${this.userId}/bucketList`)
+    .valueChanges({ idField: 'id' })
+    .subscribe((bucket) => {
+      this.bucketList = bucket;
+      this.bucketSpotIds = bucket.map((s) => s.id);
     });
-    await alert.present();
-  }
 }
-
-  async addToBucketList(spot: any) {
-    try {
-      await this.bucketService.addToBucket(spot);
-      await this.loadBucketList(); // refresh UI
-    } catch (error) {
-      console.error('Error adding to bucket list:', error);
-    }
-  }
-
-  async removeFromBucketList(spotId: string) {
-    try {
-      await this.bucketService.removeFromBucket(spotId);
-      await this.loadBucketList(); // refresh UI
-    } catch (error) {
-      console.error('Error removing from bucket list:', error);
-    }
-  }
-
-    private async showRemovedAlert() {
-    const alert = await this.alertCtrl.create({
-      header: 'Removed',
-      message: 'Removed from bucket list',
-      buttons: ['OK']
-    });
-    await alert.present();
-  }
-
-  selectTag(tag: string): void {
-    this.selectedTag = tag;
-    this.currentPage = 1; // Reset to first page when changing filter
-    this.applyFilter();
-  }
-
-  openSpotDetail(spotId: string) {
-    this.navCtrl.navigateForward(`/tourist-spot-detail/${spotId}`);
-  }
-  applyFilter(): void {
-    let filteredSpots: any[];
-
-    if (this.selectedTag === 'All') {
-      filteredSpots = this.originalSpots;
-    } else {
-      filteredSpots = this.originalSpots.filter(
-        spot => spot.category?.toLowerCase() === this.selectedTag.toLowerCase()
-      );
-    }
-
-    // Apply search filter if there's a search query
-    if (this.searchQuery.trim()) {
-      const query = this.searchQuery.toLowerCase();
-      filteredSpots = filteredSpots.filter(spot =>
-        spot.name?.toLowerCase().includes(query) ||
-        spot.description?.toLowerCase().includes(query) ||
-        spot.category?.toLowerCase().includes(query)
-      );
-    }
-
-    this.spots = filteredSpots;
-    this.updatePagination();
-  }
-
-  // Pagination methods
-  updatePagination(): void {
-    this.totalPages = Math.ceil(this.spots.length / this.itemsPerPage);
-    this.currentPage = Math.min(this.currentPage, this.totalPages);
-    if (this.currentPage < 1) this.currentPage = 1;
-
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
-    this.paginatedSpots = this.spots.slice(startIndex, endIndex);
-  }
-
-  nextPage(): void {
-    if (this.currentPage < this.totalPages) {
-      this.currentPage++;
-      this.updatePagination();
-    }
-  }
-
-  previousPage(): void {
-    if (this.currentPage > 1) {
-      this.currentPage--;
-      this.updatePagination();
-    }
-  }
-
-  // Search methods
-  onSearchInput(event: any): void {
-    this.searchQuery = event.detail.value || '';
-    this.currentPage = 1; // Reset to first page when searching
-    this.applyFilter();
-  }
-
-  async openSearchModal(): Promise<void> {
-    const modal = await this.modalCtrl.create({
-      component: SearchModalComponent,
-      cssClass: 'search-modal',
-      componentProps: {
-        existingSpots: this.originalSpots
-      }
-    });
-
-    await modal.present();
-
-    const result = await modal.onDidDismiss();
-    if (result.data && result.data.action === 'add') {
-      await this.addTouristSpotToDatabase(result.data.place);
-    }
-  }
-
-  async addTouristSpotToDatabase(googlePlace: any): Promise<void> {
-    try {
-      // Enhanced duplicate detection
-      const isDuplicate = this.isDuplicateSpot(googlePlace);
-
-      if (isDuplicate) {
-        const toast = await this.toastCtrl.create({
-          message: `"${googlePlace.name}" is already in our database!`,
-          duration: 3000,
-          color: 'warning',
-          position: 'top',
-          buttons: [
-            {
-              icon: 'information-circle',
-              side: 'start'
-            }
-          ]
-        });
-        toast.present();
-        return;
-      }
-
-      // Get place details for more information
-      const placeDetails = await this.placesService.getPlaceDetails(googlePlace.place_id).toPromise();
-
-      // Create new tourist spot data for approval
-      const newSpotData = {
-        name: googlePlace.name,
-        description: placeDetails.result?.formatted_address || googlePlace.formatted_address || 'A tourist spot in Cebu, Philippines',
-        category: this.determineCategory(googlePlace.types),
-        location: {
-          lat: googlePlace.geometry?.location?.lat || googlePlace.geometry?.viewport?.northeast?.lat,
-          lng: googlePlace.geometry?.location?.lng || googlePlace.geometry?.viewport?.northeast?.lng
-        },
-        img: '', // Will be populated with Google Places photo if available
-        googlePlaceId: googlePlace.place_id,
-        rating: googlePlace.rating !== undefined ? googlePlace.rating : 0,
-        userRatingsTotal: googlePlace.user_ratings_total !== undefined ? googlePlace.user_ratings_total : 0
-      };
-
-      // Try to get a photo for the spot
-      try {
-        const photoResult = await this.placesService.getPlacePhotos(googlePlace.place_id).toPromise();
-        if (photoResult.result?.photos?.length > 0) {
-          const photo = photoResult.result.photos[0];
-          newSpotData.img = this.placesService.getPhotoUrl(photo.photo_reference);
-        }
-      } catch (photoError) {
-      }
-
-      // Submit for approval instead of directly adding
-      await this.pendingSpotService.submitForApproval(newSpotData);
-
-      const toast = await this.toastCtrl.create({
-        message: `"${googlePlace.name}" has been submitted for approval! We'll notify you once it's reviewed.`,
-        duration: 4000,
-        color: 'success',
-        position: 'top',
-        buttons: [
-          {
-            icon: 'checkmark-circle',
-            side: 'start'
-          }
-        ]
-      });
-      toast.present();
-
-    } catch (error) {
-      console.error('Error submitting tourist spot for approval:', error);
-      this.showAlert('Error', 'Failed to submit tourist spot for approval. Please try again.');
-
-      // Reset search state on error
-      this.searchResults = [];
-      this.isSearching = false;
-    }
-  }
-
-  private isDuplicateSpot(googlePlace: any): boolean {
-    if (!this.originalSpots || this.originalSpots.length === 0) {
-      return false;
-    }
-
-    const placeName = googlePlace.name?.toLowerCase().trim();
-    if (!placeName) return false;
-
-    // Check for exact match
-    const exactMatch = this.originalSpots.find(spot =>
-      spot.name?.toLowerCase().trim() === placeName
-    );
-    if (exactMatch) return true;
-
-    // Check for partial matches (one name contains the other)
-    const partialMatch = this.originalSpots.find(spot => {
-      const existingName = spot.name?.toLowerCase().trim();
-      if (!existingName) return false;
-
-      // Check if one name contains the other (for variations like "SM Seaside" vs "SM Seaside City Cebu")
-      return placeName.includes(existingName) || existingName.includes(placeName);
-    });
-
-    if (partialMatch) return true;
-
-    // Check for similar names (common words match)
-    const placeWords = placeName.split(' ').filter((word: string) => word.length > 2);
-    const similarMatch = this.originalSpots.find(spot => {
-      const existingName = spot.name?.toLowerCase().trim();
-      if (!existingName) return false;
-
-      const existingWords = existingName.split(' ').filter((word: string) => word.length > 2);
-
-      // Check if they share significant words
-      const commonWords = placeWords.filter((word: string) => existingWords.includes(word));
-      return commonWords.length >= Math.min(2, Math.min(placeWords.length, existingWords.length));
-    });
-
-    return !!similarMatch;
-  }
-
-  private sortByUserRatings(spots: any[]): any[] {
-    return spots.sort((a, b) => {
-      // Get userRatingsTotal values, defaulting to 0 if undefined
-      const aRatings = a.userRatingsTotal || 0;
-      const bRatings = b.userRatingsTotal || 0;
-
-      // Sort ascending (least popular first - hidden gems)
-      return aRatings - bRatings;
-    });
-  }
-
-  private determineCategory(types: string[]): string {
-    if (!types || types.length === 0) return 'attraction';
-
-    const typeMap: { [key: string]: string } = {
-      'shopping_mall': 'mall',
-      'amusement_park': 'attraction',
-      'aquarium': 'attraction',
-      'art_gallery': 'museum',
-      'museum': 'museum',
-      'park': 'park',
-      'natural_feature': 'attraction',
-      'tourist_attraction': 'attraction',
-      'point_of_interest': 'attraction',
-      'establishment': 'attraction'
-    };
-
-    for (const type of types) {
-      if (typeMap[type]) {
-        return typeMap[type];
-      }
-    }
-
-    return 'attraction';
-  }
-
-  async addToTrip(spot: any) {
-    try {
-      await this.bucketService.addToBucket(spot);
-
-      // Update bucket status after adding
-      await this.loadBucketStatus();
-
-      // Show success notification
-      const toast = await this.toastCtrl.create({
-        message: `${spot.name} added to bucket list!`,
-        duration: 2000,
-        color: 'success',
-        position: 'top',
-        buttons: [
-          {
-            icon: 'checkmark-circle',
-            side: 'start'
-          }
-        ]
-      });
-      toast.present();
-    } catch (error) {
-      console.error('Error adding to bucket list:', error);
-      const toast = await this.toastCtrl.create({
-        message: 'Failed to add to bucket list. Please try again.',
-        duration: 2000,
-        color: 'danger',
-        position: 'top'
-      });
-      toast.present();
-    }
-  }
-
-  isInBucket(spotId: string): boolean {
-    return this.bucketSpotIds.includes(spotId);
-  }
-
-  async logout() {
-    await this.authService.logoutUser();
-  }
 
   async loadVisitedSpots() {
     if (!this.userId) return;
@@ -465,120 +131,286 @@ async toggleBucketList(spot: any) {
     this.visitedSpots = snapshot?.docs.map(doc => doc.data()) || [];
   }
 
-  goToHome() {
-    this.navCtrl.navigateForward('/home');
-  }
-
-  // Manual refresh method to force reload data
-  async refreshData() {
-    this.loadSpots();
-    await this.loadBucketStatus();
-    await this.loadVisitedSpots();
-  }
-
-  // Handle pull-to-refresh
-  async handleRefresh(event: any) {
-    await this.refreshData();
-    event.target.complete();
-  }
-
-  // Debug method to check current data
-  debugCurrentData() {
-
-    // Show first 5 spots with their userRatingsTotal for debugging
-    this.originalSpots?.slice(0, 5).forEach((spot, index) => {
-    });
-
-  }
-
-  private async showAlert(header: string, message: string): Promise<void> {
-    const alert = await this.alertCtrl.create({
-      header,
-      message,
-      buttons: ['OK']
-    });
-    await alert.present();
-  }
-
-  ngOnDestroy() {
-    // Clean up subscriptions when component is destroyed
-    if (this.spotsSubscription) {
-      this.spotsSubscription.unsubscribe();
+  async loadBucketStatus() {
+    try {
+      this.bucketSpotIds = await this.bucketService.getBucketSpotIds();
+    } catch (err) {
+      console.error('Error loading bucket status:', err);
     }
   }
+
+  // 🔹 Bucket List Logic
+  isInBucketList(spotId: string): boolean {
+    return this.bucketList.some(s => s.id === spotId);
+  }
+
+  async toggleBucketList(spot: any) {
+    if (this.isInBucketList(spot.id)) {
+      await this.removeFromBucketList(spot.id);
+      this.showAlert('Removed', `${spot.name} has been removed from your bucket list.`);
+    } else {
+      const confirmAdd = await this.alertCtrl.create({
+        header: 'Add to Bucket List',
+        message: `Would you like to add ${spot.name} to your bucket list?`,
+        buttons: [
+          { text: 'Cancel', role: 'cancel' },
+          {
+            text: 'Add',
+            handler: async () => {
+              await this.addToBucketList(spot);
+              this.showToast(`${spot.name} added to bucket list!`, 'success');
+            },
+          },
+        ],
+      });
+      await confirmAdd.present();
+    }
+  }
+
+  async addToBucketList(spot: any) {
+    await this.bucketService.addToBucket(spot);
+    await this.loadBucketList();
+  }
+
+  async removeFromBucketList(spotId: string) {
+    await this.bucketService.removeFromBucket(spotId);
+    await this.loadBucketList();
+  }
+
+  // 🔹 Filtering & Searching
+  selectTag(tag: string) {
+    this.selectedTag = tag;
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  onSearchInput(event: any) {
+    this.searchQuery = event.detail.value || '';
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  applyFilters() {
+    let filtered = this.selectedTag === 'All'
+      ? this.allSpots
+      : this.allSpots.filter(spot =>
+          spot.category?.toLowerCase() === this.selectedTag.toLowerCase()
+        );
+
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        spot =>
+          spot.name?.toLowerCase().includes(q) ||
+          spot.description?.toLowerCase().includes(q)
+      );
+    }
+
+    this.filteredSpots = filtered;
+    this.updatePagination();
+  }
+
+  // 🔹 Pagination
+  updatePagination() {
+    this.totalPages = Math.ceil(this.filteredSpots.length / this.itemsPerPage);
+    const start = (this.currentPage - 1) * this.itemsPerPage;
+    const end = start + this.itemsPerPage;
+    this.paginatedSpots = this.filteredSpots.slice(start, end);
+  }
+
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.updatePagination();
+    }
+  }
+
+  previousPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.updatePagination();
+    }
+  }
+
+  // 🔹 Spot Interactions
+  openSpotDetail(spotId: string) {
+    this.navCtrl.navigateForward(`/tourist-spot-detail/${spotId}`);
+  }
+
   goToMyItineraries() {
     this.navCtrl.navigateForward('/my-itineraries');
   }
-  checkNetworkStatus() {
-    if (!navigator.onLine) {
-      this.showOfflineAlert();
+
+  async openSearchModal() {
+    const modal = await this.modalCtrl.create({
+      component: SearchModalComponent,
+      cssClass: 'search-modal',
+      componentProps: { existingSpots: this.allSpots },
+    });
+
+    await modal.present();
+    const result = await modal.onDidDismiss();
+
+    if (result.data?.action === 'add') {
+      await this.addTouristSpotToDatabase(result.data.place);
     }
+  }
+
+  // 🔹 Add New Tourist Spot
+async addTouristSpotToDatabase(place: any) {
+  try {
+    if (this.isDuplicateSpot(place)) {
+      this.showToast(`"${place.name}" already exists in our database.`, 'warning');
+      return;
+    }
+
+    const details = await this.placesService.getPlaceDetails(place.place_id).toPromise();
+
+    // Try to get a photo early
+    let imageUrl = 'assets/default-spot.jpg'; // ✅ fallback image
+    try {
+      const photoRes = await this.placesService.getPlacePhotos(place.place_id).toPromise();
+      if (photoRes.result?.photos?.length > 0) {
+        const ref = photoRes.result.photos[0].photo_reference;
+        imageUrl = this.placesService.getPhotoUrl(ref);
+      }
+    } catch (error) {
+      console.warn('No photo found for this spot');
+    }
+
+    const newSpot = {
+      name: place.name,
+      description:
+        details.result?.formatted_address ||
+        place.formatted_address ||
+        'A tourist spot in Cebu, Philippines',
+      category: this.getCategory(place.types),
+      location: {
+        lat: place.geometry?.location?.lat,
+        lng: place.geometry?.location?.lng,
+      },
+      googlePlaceId: place.place_id,
+      rating: place.rating || 0,
+      userRatingsTotal: place.user_ratings_total || 0,
+      img: imageUrl, // ✅ always defined
+    };
+
+    await this.pendingSpotService.submitForApproval(newSpot);
+    this.showToast(`"${place.name}" submitted for approval!`, 'success');
+  } catch (error) {
+    console.error('Error submitting spot:', error);
+    this.showAlert('Error', 'Something went wrong while submitting. Please try again.');
+  }
+}
+
+
+  // 🔹 Helper Methods
+  private sortByPopularity(spots: any[]) {
+    return spots.sort((a, b) => (a.userRatingsTotal || 0) - (b.userRatingsTotal || 0));
+  }
+
+  private getCategory(types: string[]): string {
+    const typeMap: { [key: string]: string } = {
+      shopping_mall: 'mall',
+      amusement_park: 'attraction',
+      museum: 'museum',
+      park: 'park',
+      tourist_attraction: 'attraction',
+    };
+    for (const t of types) if (typeMap[t]) return typeMap[t];
+    return 'attraction';
+  }
+
+  private isDuplicateSpot(place: any) {
+    const name = place.name?.toLowerCase().trim();
+    return this.allSpots.some(s => s.name?.toLowerCase().trim() === name);
+  }
+
+  // 🔹 Network Status Handling
+  setupNetworkListeners() {
+    this.checkNetworkImmediately();
+    window.addEventListener('offline', this.showOfflineAlert);
+    window.addEventListener('online', this.showOnlineToast);
+  }
+
+  checkNetworkImmediately() {
+    if (!navigator.onLine) this.showOfflineAlert();
   }
 
   showOfflineAlert = async () => {
     const alert = await this.alertCtrl.create({
       header: 'No Internet Connection',
-      message: 'You are currently offline. Some features may not be available. You can still access your itineraries on the map and calendar.',
-      buttons: ['OK']
+      message:
+        'You are offline. Some features may not work. You can still access saved itineraries and data.',
+      buttons: ['OK'],
     });
     await alert.present();
   };
 
   showOnlineToast = async () => {
-    const toast = await this.toastCtrl.create({
-      message: 'You are back online!',
-      duration: 2000,
-      color: 'success',
-      position: 'bottom'
-    });
-    toast.present();
+    this.showToast('You’re back online!', 'success');
   };
 
-  // Geofencing and visit tracking methods
-  
-  /**
-   * Check if a tourist spot has been visited
-   */
-  hasVisited(spotId: string): boolean {
-    return this.geofencingService.hasVisited(spotId);
+  // 🔹 UI Utilities
+  private async showToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2000,
+      color,
+      position: 'top',
+    });
+    toast.present();
   }
 
-  /**
-   * Reset visit status for a spot (Visit Again functionality)
-   */
-  async visitAgain(spot: any): Promise<void> {
-    const alert = await this.alertCtrl.create({
-      header: 'Visit Again?',
-      message: `Reset your visit status for <strong>${spot.name}</strong>? This will allow you to confirm your visit again when you're nearby.`,
-      buttons: [
-        {
-          text: 'Cancel',
-          role: 'cancel'
-        },
-        {
-          text: 'Reset Visit',
-          handler: async () => {
-            await this.geofencingService.resetVisitStatus(spot.id);
-          }
-        }
-      ]
-    });
-
+  private async showAlert(header: string, message: string) {
+    const alert = await this.alertCtrl.create({ header, message, buttons: ['OK'] });
     await alert.present();
   }
 
-  /**
-   * Get visit status indicator for UI
-   */
-  getVisitStatusIcon(spotId: string): string {
-    return this.hasVisited(spotId) ? 'checkmark-circle' : 'location-outline';
+  // 🔹 Logout
+  async logout() {
+    await this.authService.logoutUser();
   }
+  // 🔹 Pull to Refresh Functionality
+async handleRefresh(event: any) {
+  try {
+    await Promise.all([
+      this.loadSpots(),
+      this.loadVisitedSpots(),
+      this.loadBucketList(),
+    ]);
+    event.target.complete(); // stop the refresher spinner
+  } catch (error) {
+    console.error('Error during refresh:', error);
+    event.target.complete();
+  }
+}
 
-  /**
-   * Get visit status color for UI
-   */
-  getVisitStatusColor(spotId: string): string {
-    return this.hasVisited(spotId) ? 'success' : 'medium';
+// 🔹 Check if spot is visited
+hasVisited(spotId: string): boolean {
+  return this.visitedSpots.some(v => v.spotId === spotId || v.id === spotId);
+}
+
+// 🔹 Visit Again logic
+async visitAgain(spot: any) {
+  if (!this.userId) return;
+
+  try {
+    const visitedRef = this.firestore.collection(`users/${this.userId}/visitedSpots`).doc(spot.id);
+    await visitedRef.set({
+      ...spot,
+      visitedAt: new Date(),
+    });
+    this.showToast(`${spot.name} marked as visited again!`, 'success');
+    this.loadVisitedSpots();
+  } catch (err) {
+    console.error('Error marking visit again:', err);
+    this.showToast('Failed to mark visit. Try again later.', 'danger');
   }
+}
+
+isSearching = false;
 
 }
+
+

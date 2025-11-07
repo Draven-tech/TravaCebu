@@ -10,26 +10,24 @@ import { Share } from '@capacitor/share';
 @Injectable({ providedIn: 'root' })
 export class PdfExportService {
 
-  async generateAndUploadPDF(itineraries: any[]): Promise<string> {
-    const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
-    const pdfDocGenerator = pdfMake.createPdf(docDefinition);
+async generateAndUploadPDF(itineraries: any[]): Promise<string> {
+  const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
+  const pdfDocGenerator = (pdfMake as any).createPdf(docDefinition);
 
-    const blob = await new Promise<Blob>((resolve) => {
-      pdfDocGenerator.getBlob((b: Blob) => resolve(b));
-    });
+  const blob = await new Promise<Blob>((resolve) => {
+    pdfDocGenerator.getBlob((b: Blob) => resolve(b));
+  });
 
-    const storage = getStorage(); // Assumes firebase.initializeApp has been called in app startup
-    const filename = `itineraries/itinerary_${Date.now()}.pdf`;
-    const storageRef = ref(storage, filename);
+  const storage = getStorage();
+  const filename = `itineraries/itinerary_${Date.now()}.pdf`;
+  const storageRef = ref(storage, filename);
 
-    // Upload to Firebase Storage
-    await uploadBytes(storageRef, blob);
+  await uploadBytes(storageRef, blob);
+  const url = await getDownloadURL(storageRef);
 
-    // Get the download URL
-    const url = await getDownloadURL(storageRef);
-    return url;
-  }
-  // ✅¬‡ï¸ Called to get a Blob for sharing (instead of direct download)
+  return url;
+}
+  // Called to get a Blob for sharing (instead of direct download)
   async generateFullItineraryBlob(itineraries: any[]): Promise<Blob> {
     const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
     const pdfDocGenerator = pdfMake.createPdf(docDefinition);
@@ -41,7 +39,7 @@ export class PdfExportService {
     });
   }
 
-  // ✅¬‡ï¸ Private: builds layout for multiple itineraries
+  //Private: builds layout for multiple itineraries
   private buildFullItineraryDocDefinition(itineraries: any[]): any {
     const content: any[] = [];
 

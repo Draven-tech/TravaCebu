@@ -25,7 +25,7 @@ export class PlacesService {
     // Always use proxy for all platforms
     return this.http.get(this.proxyUrl, { params: testParams }).pipe(
       catchError(error => {
-        console.error('❌Œ API key test failed:', error);
+        console.error('API key test failed:', error);
         return new Observable(observer => {
           observer.next({ status: 'ERROR', error: error.message });
           observer.complete();
@@ -55,7 +55,7 @@ export class PlacesService {
       tap((resp: any) => {
       }),
       catchError(error => {
-        console.error('❌Œ Error fetching places:', error);
+        console.error('Error fetching places:', error);
         console.error('Error details:', error.status, error.statusText, error.error);
         // Return empty results on error instead of throwing
         return new Observable(observer => {
@@ -86,7 +86,7 @@ export class PlacesService {
       tap((resp: any) => {
       }),
       catchError(error => {
-        console.error('❌Œ Error fetching place details:', error);
+        console.error('Error fetching place details:', error);
         return new Observable(observer => {
           observer.next({ status: 'ERROR', error: error.message });
           observer.complete();
@@ -114,7 +114,7 @@ export class PlacesService {
       tap((resp: any) => {
       }),
       catchError(error => {
-        console.error('❌Œ Error fetching place photos:', error);
+        console.error('Error fetching place photos:', error);
         return new Observable(observer => {
           observer.next({ status: 'ERROR', error: error.message });
           observer.complete();
@@ -162,7 +162,7 @@ export class PlacesService {
         return searchResult;
       }),
       catchError(error => {
-        console.error('❌Œ Error searching place:', error);
+        console.error('Error searching place:', error);
         // Return empty results on error instead of throwing
         return new Observable(observer => {
           observer.next({ results: [], status: 'ERROR', error: error.message });

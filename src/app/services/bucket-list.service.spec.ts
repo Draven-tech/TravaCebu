@@ -1,13 +1,13 @@
 ﻿import { TestBed } from '@angular/core/testing';
 
-import { BucketListService } from './bucket-list.service';
+import { BucketService } from './bucket-list.service';
 
 describe('BucketListService', () => {
-  let service: BucketListService;
+  let service: BucketService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(BucketListService);
+    service = TestBed.inject(BucketService);
   });
 
   it('should be created', () => {

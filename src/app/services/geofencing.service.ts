@@ -1,7 +1,11 @@
 ﻿import { Injectable } from '@angular/core';
-import { BehaviorSubject, Subscription } from 'rxjs';
-import { AlertController, ToastController, Platform } from '@ionic/angular';
+import { BehaviorSubject } from 'rxjs';
+import { ToastController, Platform } from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { AngularFireAuth } from '@angular/fire/compat/auth';
+
+import { BadgeService } from './badge.service';
 
 export interface VisitRecord {
   id?: string;
@@ -11,6 +15,7 @@ export interface VisitRecord {
   visitDate: Date;
   latitude: number;
   longitude: number;
+  accuracy?: number | null;
   confirmed: boolean;
 }
 
@@ -27,11 +32,12 @@ export interface GeofenceSpot {
 })
 export class GeofencingService {
   private isMonitoring = false;
-  private currentPosition: { lat: number; lng: number } | null = null;
+  private currentPosition: { lat: number; lng: number; accuracy?: number | null; timestamp: number } | null = null;
   private monitoredSpots: GeofenceSpot[] = [];
   private visitedSpots: Set<string> = new Set();
   private positionWatchId: string | null = null;
   private checkInterval: any;
+  private dwellStartTimes = new Map<string, number>();
   
   private monitoringStatusSubject = new BehaviorSubject<boolean>(false);
   private visitedSpotsSubject = new BehaviorSubject<Set<string>>(new Set());
@@ -40,12 +46,16 @@ export class GeofencingService {
   public visitedSpots$ = this.visitedSpotsSubject.asObservable();
 
   private readonly DEFAULT_RADIUS = 100;
-  private readonly LOCATION_CHECK_INTERVAL = 10000; // 10 seconds
+  private readonly LOCATION_CHECK_INTERVAL = 10000; 
+  private readonly MIN_DWELL_TIME = 15000;
+  private readonly MAX_ACCEPTABLE_ACCURACY = 30;
 
   constructor(
-    private alertCtrl: AlertController,
     private toastCtrl: ToastController,
-    private platform: Platform
+    private platform: Platform,
+    private firestore: AngularFirestore,
+    private afAuth: AngularFireAuth,
+    private badgeService: BadgeService
   ) {
     this.loadVisitedSpots();
   }
@@ -142,16 +152,20 @@ export class GeofencingService {
     
     this.currentPosition = {
       lat: position.coords.latitude,
-      lng: position.coords.longitude
+      lng: position.coords.longitude,
+      accuracy: position.coords.accuracy ?? null,
+      timestamp: Date.now()
     };
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         this.currentPosition = {
           lat: position.coords.latitude,
-          lng: position.coords.longitude
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy ?? null,
+          timestamp: Date.now()
         };
-        this.checkGeofences();
+        void this.checkGeofences();
       },
       (error) => {
       },
@@ -166,7 +180,7 @@ export class GeofencingService {
 
     this.checkInterval = setInterval(() => {
       if (this.currentPosition) {
-        this.checkGeofences();
+        void this.checkGeofences();
       }
     }, this.LOCATION_CHECK_INTERVAL);
   }
@@ -179,7 +193,9 @@ export class GeofencingService {
     
     this.currentPosition = {
       lat: position.coords.latitude,
-      lng: position.coords.longitude
+      lng: position.coords.longitude,
+      accuracy: position.coords.accuracy ?? null,
+      timestamp: Date.now()
     };
 
     this.positionWatchId = await Geolocation.watchPosition({
@@ -189,61 +205,72 @@ export class GeofencingService {
       if (position) {
         this.currentPosition = {
           lat: position.coords.latitude,
-          lng: position.coords.longitude
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy ?? null,
+          timestamp: Date.now()
         };
-        this.checkGeofences();
+        void this.checkGeofences();
       }
     });
 
     this.checkInterval = setInterval(() => {
       if (this.currentPosition) {
-        this.checkGeofences();
+        void this.checkGeofences();
       }
     }, this.LOCATION_CHECK_INTERVAL);
   }
 
-  private checkGeofences(): void {
-    if (!this.currentPosition || !this.isMonitoring) return;
+  private async checkGeofences(): Promise<void> {
+    if (!this.currentPosition || !this.isMonitoring) {
+      return;
+    }
 
-    this.monitoredSpots.forEach(spot => {
-      if (!this.visitedSpots.has(spot.id)) {
-        const distance = this.calculateDistance(
-          this.currentPosition!.lat,
-          this.currentPosition!.lng,
-          spot.latitude,
-          spot.longitude
-        );
-
-        if (distance <= spot.radius) {
-          this.triggerGeofenceEntry(spot);
-        }
+    for (const spot of this.monitoredSpots) {
+      if (this.visitedSpots.has(spot.id)) {
+        this.dwellStartTimes.delete(spot.id);
+        continue;
       }
-    });
+
+      const distance = this.calculateDistance(
+        this.currentPosition.lat,
+        this.currentPosition.lng,
+        spot.latitude,
+        spot.longitude
+      );
+
+      if (distance <= spot.radius && this.isLocationAccurate()) {
+        await this.handleDwellConfirmation(spot);
+      } else {
+        this.dwellStartTimes.delete(spot.id);
+      }
+    }
   }
 
-  private async triggerGeofenceEntry(spot: GeofenceSpot): Promise<void> {
+  private isLocationAccurate(): boolean {
+    if (!this.currentPosition) {
+      return false;
+    }
 
-    const alert = await this.alertCtrl.create({
-      header: 'Tourist Spot Detected!',
-      message: `You're near <strong>${spot.name}</strong>! Would you like to confirm your visit? This will unlock the ability to post reviews for this location.`,
-      buttons: [
-        {
-          text: 'Not Now',
-          role: 'cancel',
-          cssClass: 'secondary'
-        },
-        {
-          text: 'Confirm Visit',
-          cssClass: 'primary',
-          handler: () => {
-            this.confirmVisit(spot);
-          }
-        }
-      ],
-      cssClass: 'geofence-alert'
-    });
+    if (this.currentPosition.accuracy == null) {
+      return true;
+    }
 
-    await alert.present();
+    return this.currentPosition.accuracy <= this.MAX_ACCEPTABLE_ACCURACY;
+  }
+
+  private async handleDwellConfirmation(spot: GeofenceSpot): Promise<void> {
+    const startTime = this.dwellStartTimes.get(spot.id);
+    const now = Date.now();
+
+    if (!startTime) {
+      this.dwellStartTimes.set(spot.id, now);
+      return;
+    }
+
+    if (now - startTime >= this.MIN_DWELL_TIME) {
+      this.dwellStartTimes.delete(spot.id);
+      await this.confirmVisit(spot);
+    }
   }
 
   private async confirmVisit(spot: GeofenceSpot): Promise<void> {
@@ -252,21 +279,27 @@ export class GeofencingService {
       this.visitedSpotsSubject.next(new Set(this.visitedSpots));
 
       const visitRecord: VisitRecord = {
-        userId: 'current_user', // Replace with actual user ID
+        userId: 'anonymous',
         touristSpotId: spot.id,
         touristSpotName: spot.name,
         visitDate: new Date(),
         latitude: this.currentPosition!.lat,
         longitude: this.currentPosition!.lng,
+        accuracy: this.currentPosition?.accuracy ?? null,
         confirmed: true
       };
 
+      const user = await this.afAuth.currentUser;
+      if (user) {
+        visitRecord.userId = user.uid;
+        await this.persistVisitToFirestore(user.uid, spot, visitRecord);
+      }
+
       await this.saveVisitRecord(visitRecord);
-      
       this.saveVisitedSpots();
 
       const toast = await this.toastCtrl.create({
-        message: `Visit to ${spot.name} confirmed! You can now post reviews for this location.`,
+        message: `Visit to ${spot.name} recorded automatically!`,
         duration: 4000,
         position: 'top',
         color: 'success',
@@ -283,6 +316,43 @@ export class GeofencingService {
         color: 'danger'
       });
       await toast.present();
+    }
+  }
+
+  private async persistVisitToFirestore(userId: string, spot: GeofenceSpot, visitRecord: VisitRecord): Promise<void> {
+    try {
+      const visitedAt = visitRecord.visitDate;
+
+      const visitedRef = this.firestore.collection(`users/${userId}/visitedSpots`).doc(spot.id);
+      await visitedRef.set({
+        spotId: spot.id,
+        name: spot.name,
+        latitude: spot.latitude,
+        longitude: spot.longitude,
+        visitedAt,
+        accuracy: visitRecord.accuracy ?? null,
+        source: 'geofence'
+      }, { merge: true });
+
+      const userDocRef = this.firestore.collection('users').doc(userId);
+      await userDocRef.set({
+        [`visitedSpots.${spot.id}`]: {
+          spotName: spot.name,
+          visitedAt,
+          latitude: spot.latitude,
+          longitude: spot.longitude,
+          source: 'geofence'
+        }
+      }, { merge: true });
+
+      const updatedUserSnapshot = await userDocRef.get().toPromise();
+      const updatedUserData = updatedUserSnapshot?.data();
+
+      if (updatedUserData) {
+        await this.badgeService.evaluateExplorerBadge(userId, updatedUserData);
+      }
+    } catch (error) {
+      console.error('Failed to persist visit to Firestore:', error);
     }
   }
 
@@ -377,10 +447,6 @@ export class GeofencingService {
 
   getMonitoredSpots(): GeofenceSpot[] {
     return [...this.monitoredSpots];
-  }
-
-  async manuallyConfirmVisit(spot: GeofenceSpot): Promise<void> {
-    await this.confirmVisit(spot);
   }
 
   private isLocationAvailable(): boolean {

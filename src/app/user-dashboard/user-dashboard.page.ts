@@ -10,6 +10,7 @@ import { PlacesService } from '../services/places.service';
 import { PendingTouristSpotService } from '../services/pending-tourist-spot.service';
 import { GeofencingService } from '../services/geofencing.service';
 import { SearchModalComponent } from '../modals/search-modal/search-modal.component';
+import { VisitedSpotsModalComponent } from '../modals/visited-spots-modal/visited-spots-modal.component';
 
 @Component({
   selector: 'app-user-dashboard',
@@ -123,12 +124,61 @@ loadBucketList() {
   async loadVisitedSpots() {
     if (!this.userId) return;
 
-    const snapshot = await this.firestore
-      .collection(`users/${this.userId}/visitedSpots`, ref => ref.orderBy('visitedAt', 'desc'))
-      .get()
-      .toPromise();
+    try {
+      const snapshot = await this.firestore
+        .collection(`users/${this.userId}/visitedSpots`, ref => ref.orderBy('visitedAt', 'desc'))
+        .get()
+        .toPromise();
 
-    this.visitedSpots = snapshot?.docs.map(doc => doc.data()) || [];
+      const visitedEntries: any[] =
+        snapshot?.docs.map(doc => {
+          const data = (doc.data() || {}) as any;
+          const spotId = data.spotId || doc.id;
+          return {
+            id: doc.id,
+            spotId,
+            ...data,
+          };
+        }) || [];
+
+      const uniqueSpotIds = Array.from(
+        new Set(
+          visitedEntries
+            .map((entry: any) => entry.spotId)
+            .filter((spotId: any) => Boolean(spotId))
+        )
+      );
+
+      const spotDataMap = new Map<string, any>();
+
+      if (uniqueSpotIds.length) {
+        await Promise.all(
+          uniqueSpotIds.map(async spotId => {
+            try {
+              const docSnapshot = await this.firestore.collection('tourist_spots').doc(spotId).get().toPromise();
+              if (docSnapshot?.exists) {
+                spotDataMap.set(spotId, docSnapshot.data());
+              }
+            } catch (error) {
+              console.warn(`Error fetching tourist spot details for ${spotId}:`, error);
+            }
+          })
+        );
+      }
+
+      this.visitedSpots = visitedEntries.map((entry: any) => {
+        const spotData: any = spotDataMap.get(entry.spotId) || {};
+        return {
+          ...spotData,
+          ...entry,
+          spotId: entry.spotId,
+          name: entry.name || spotData.name || 'Unknown Spot',
+          img: entry.img || spotData.img || 'assets/img/default.png',
+        };
+      });
+    } catch (error) {
+      console.error('Error loading visited spots:', error);
+    }
   }
 
   async loadBucketStatus() {
@@ -391,25 +441,42 @@ hasVisited(spotId: string): boolean {
   return this.visitedSpots.some(v => v.spotId === spotId || v.id === spotId);
 }
 
-// 🔹 Visit Again logic
-async visitAgain(spot: any) {
-  if (!this.userId) return;
+get topVisitedSpots(): any[] {
+  return this.visitedSpots.slice(0, 3);
+}
 
-  try {
-    const visitedRef = this.firestore.collection(`users/${this.userId}/visitedSpots`).doc(spot.id);
-    await visitedRef.set({
-      ...spot,
-      visitedAt: new Date(),
-    });
-    this.showToast(`${spot.name} marked as visited again!`, 'success');
-    this.loadVisitedSpots();
-  } catch (err) {
-    console.error('Error marking visit again:', err);
-    this.showToast('Failed to mark visit. Try again later.', 'danger');
-  }
+async openVisitedSpotsModal(): Promise<void> {
+  const modal = await this.modalCtrl.create({
+    component: VisitedSpotsModalComponent,
+    componentProps: {
+      visitedSpots: this.visitedSpots
+    },
+    cssClass: 'visited-spots-modal',
+    breakpoints: [0, 0.6, 0.9],
+    initialBreakpoint: this.visitedSpots.length > 5 ? 0.9 : 0.6
+  });
+
+  await modal.present();
 }
 
 isSearching = false;
+
+getVisitedDate(visitedAt: any): Date | null {
+  if (!visitedAt) {
+    return null;
+  }
+
+  if (visitedAt.toDate && typeof visitedAt.toDate === 'function') {
+    return visitedAt.toDate();
+  }
+
+  if (visitedAt instanceof Date) {
+    return visitedAt;
+  }
+
+  const timestamp = new Date(visitedAt);
+  return isNaN(timestamp.getTime()) ? null : timestamp;
+}
 
 }
 

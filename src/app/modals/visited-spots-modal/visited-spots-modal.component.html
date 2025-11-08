@@ -1,0 +1,31 @@
+<ion-header>
+  <ion-toolbar color="light">
+    <ion-title>Visited Spots</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="dismiss()">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-list *ngIf="visitedSpots.length; else emptyState" class="visited-spot-list">
+    <ion-item *ngFor="let spot of visitedSpots" lines="none" class="visited-spot-item">
+      <ion-label>
+        <h2>{{ spot.name }}</h2>
+        <p *ngIf="getVisitedDate(spot.visitedAt) as visitedDate">
+          Visited on {{ visitedDate | date: 'mediumDate' }}
+        </p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+
+  <ng-template #emptyState>
+    <div class="empty-state">
+      <ion-icon name="location-outline"></ion-icon>
+      <p>You haven't visited any tourist spots yet. Once you explore Cebu, your visit history will appear here.</p>
+    </div>
+  </ng-template>
+</ion-content>
+

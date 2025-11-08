@@ -1,0 +1,46 @@
+.empty-state {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  color: var(--ion-color-medium);
+
+  ion-icon {
+    font-size: 3rem;
+    display: block;
+    margin: 0 auto 1rem auto;
+  }
+}
+
+.visited-spot-list {
+  margin-top: 0.5rem;
+
+  .visited-spot-item {
+    --background: #FFC409;
+    border-radius: 12px;
+    margin-bottom: 6px;
+    box-shadow: none;
+
+    ion-label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px 0;
+
+      h2 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #2d3748;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #4a5568;
+      }
+    }
+  }
+}
+
+
+
+

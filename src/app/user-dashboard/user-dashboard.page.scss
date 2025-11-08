@@ -67,6 +67,40 @@ ion-searchbar {
   color: #000;
 }
 
+.recently-visited-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+ion-button.see-all-link {
+  --padding-start: 0;
+  --padding-end: 0;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --background: transparent;
+  --color: #1a73e8;
+  text-decoration: underline;
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  &[disabled] {
+    --color: #94a3b8;
+    opacity: 1;
+  }
+}
+
+.no-visited-message {
+  text-align: center;
+  margin: 1.5rem 0 2rem 0;
+
+  p {
+    color: #6b7280;
+    font-size: 0.95rem;
+  }
+}
+
 .category-scroll {
   display: flex;
   overflow-x: auto;
@@ -298,4 +332,36 @@ ion-grid {
 .bucket-action ion-button {
   margin: 0;
   font-size: 0.8rem;
+}
+
+.visited-spot-list {
+  margin-top: 0.5rem;
+  background: transparent;
+
+  .visited-spot-item {
+    --background: #FFC409;
+    border-radius: 12px;
+    margin-bottom: 6px;
+    box-shadow: none;
+
+    ion-label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px 0;
+
+      h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #2d3748;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #4a5568;
+      }
+    }
+  }
 }

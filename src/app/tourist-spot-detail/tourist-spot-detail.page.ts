@@ -320,43 +320,6 @@ export class TouristSpotDetailPage implements OnInit {
   }
 
   /**
-   * Mark spot as visited (manual fallback)
-   */
-  async markAsVisited(): Promise<void> {
-    if (!this.spotData || !this.spotId) return;
-
-    try {
-      const fakeGeofenceSpot = {
-        id: this.spotId,
-        name: this.spotData.name,
-        latitude: this.spotData.location?.lat || 0,
-        longitude: this.spotData.location?.lng || 0,
-        radius: 100
-      };
-
-      await this.geofencingService.manuallyConfirmVisit(fakeGeofenceSpot);
-
-      const toast = await this.toastCtrl.create({
-        message: `✅ Marked ${this.spotData.name} as visited! You can now post reviews.`,
-        duration: 3000,
-        position: 'top',
-        color: 'success'
-      });
-      await toast.present();
-
-    } catch (error) {
-      console.error('Failed to mark as visited:', error);
-      const toast = await this.toastCtrl.create({
-        message: 'Failed to mark as visited. Please try again.',
-        duration: 2000,
-        position: 'top',
-        color: 'danger'
-      });
-      await toast.present();
-    }
-  }
-
-  /**
    * Add spot to bucket list
    */
   async addToBucketList(): Promise<void> {

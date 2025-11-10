@@ -172,6 +172,75 @@
     </ion-card-content>
   </ion-card>
 
+  <!-- Route Summary -->
+  <ion-card class="route-summary-card" *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0">
+    <ion-card-header>
+      <div class="summary-header">
+        <div class="summary-title">
+          <ion-icon name="analytics-outline"></ion-icon>
+          <div>
+            <h2>Route Summary</h2>
+            <p>{{ currentRouteInfo.summary || 'Overview of your curated transport plan' }}</p>
+          </div>
+        </div>
+        <ion-chip color="tertiary" class="stage-count-chip">
+          <ion-icon name="flag-outline" slot="start"></ion-icon>
+          <ion-label>{{ currentRouteInfo.segments.length }} stages</ion-label>
+        </ion-chip>
+      </div>
+    </ion-card-header>
+
+    <ion-card-content>
+      <div class="summary-metrics">
+        <div class="metric">
+          <div class="metric-icon duration">
+            <ion-icon name="time-outline"></ion-icon>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Duration</span>
+            <span class="metric-value">{{ getFormattedTotalDuration() }}</span>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-icon distance">
+            <ion-icon name="navigate-outline"></ion-icon>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Distance</span>
+            <span class="metric-value">{{ getFormattedDistance() }}</span>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-icon fare">
+            <ion-icon name="card-outline"></ion-icon>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Estimated Fare</span>
+            <span class="metric-value">{{ getEstimatedFare() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrapper">
+        <ion-progress-bar class="route-progress" color="success" [value]="getRouteCompletionRatio()"></ion-progress-bar>
+        <div class="progress-label">
+          {{ getRouteCompletionLabel() }}
+        </div>
+      </div>
+
+      <div class="segment-summary">
+        <div class="segment-pill">
+          <ion-icon name="bus-outline"></ion-icon>
+          <span>{{ getRideSegmentCount() }} ride{{ getRideSegmentCount() === 1 ? '' : 's' }}</span>
+        </div>
+        <div class="segment-pill">
+          <ion-icon name="walk-outline"></ion-icon>
+          <span>{{ getSegmentCount('walk') }} walk{{ getSegmentCount('walk') === 1 ? '' : 's' }}</span>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
   <!-- No route selected message -->
   <ion-card *ngIf="!currentRouteInfo || !currentRouteInfo.segments || currentRouteInfo.segments.length === 0">
     <ion-card-content>

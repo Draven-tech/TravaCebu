@@ -54,3 +54,145 @@ ion-content {
     padding: 6px 12px 12px 12px;
   }
 }
+
+.route-summary-card {
+  color: #f4f7ff;
+  position: relative;
+  overflow: hidden;
+
+  ion-card-header,
+  ion-card-content {
+    background: transparent;
+  }
+
+  .summary-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .summary-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    ion-icon {
+      font-size: 32px;
+      color: #ffc107;
+      filter: drop-shadow(0 6px 12px rgba(255, 193, 7, 0.35));
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    p {
+      margin: 4px 0 0;
+      font-size: 0.75rem;
+      color: rgba(244, 247, 255, 0.7);
+    }
+  }
+
+  .stage-count-chip {
+    --background: rgba(103, 163, 255, 0.25);
+    --color: #e0ecff;
+    font-weight: 500;
+  }
+
+  .summary-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .metric {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(6px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .metric-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.12);
+    font-size: 20px;
+
+    ion-icon {
+      color: #fff;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+    }
+  }
+
+  .metric-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .metric-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(244, 247, 255, 0.65);
+  }
+
+  .metric-value {
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+
+  .progress-wrapper {
+    margin-top: 18px;
+  }
+
+  .route-progress {
+    --buffer-background: rgba(255, 255, 255, 0.08);
+    --progress-background: linear-gradient(90deg, #4caf50, #8bc34a);
+    height: 10px;
+    border-radius: 999px;
+    --background: rgba(255, 255, 255, 0.08);
+  }
+
+  .progress-label {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    letter-spacing: 0.3px;
+    color: rgba(244, 247, 255, 0.75);
+  }
+
+  .segment-summary {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .segment-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    font-size: 0.8rem;
+    color: #f4f7ff;
+
+    ion-icon {
+      font-size: 16px;
+    }
+  }
+}

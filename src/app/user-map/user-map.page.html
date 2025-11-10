@@ -1,12 +1,6 @@
 <ion-header *ngIf="!isFullscreen">
   <ion-toolbar color="warning">
     <ion-title>Map</ion-title>
-    <ion-buttons slot="end">
-      <ion-button (click)="showCuratedRouteDetailsSheet()" style="--color: white; font-weight: bold; margin-right: 8px;">
-        <ion-icon name="list"></ion-icon>
-        Route Info
-      </ion-button>
-    </ion-buttons>
   </ion-toolbar>
   
   <!-- Search Bar (show when no itinerary selected) -->
@@ -24,7 +18,7 @@
   
 </ion-header>
 
-<!-- Search Results Dropdown -->
+<!-- //////////////////////////////////////////////// search bar ///////////////////////////////////////////////////////////-->
 <div class="search-results-container" *ngIf="showSearchResults && selectedItineraryIndex < 0">
   <ion-list class="search-results-list">
     <ion-item 
@@ -51,7 +45,7 @@
   </ion-list>
 </div>
 
-<!-- Stage Notification Banner -->
+<!-- /////////////////////////////////////////////// stage notification //////////////////////////////////////////////////-->
 <div *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0 && showStageNotification" 
      class="stage-notification"
      [ngStyle]="{ top: isFullscreen ? '0' : '56px' }">
@@ -64,25 +58,15 @@
   </div>
 </div>
 
+<!-- /////////////////////////////////////////////// map ////////////////////////////////////////////////////////////////////// -->
 <ion-content [class.fullscreen-mode]="isFullscreen">
   <div id="map"></div>
   
-  
-  <!-- Map Controls (show when no itinerary selected) -->
-  <div *ngIf="selectedItineraryIndex < 0 && !isFullscreen" class="map-controls">
-    <ion-button expand="block" color="primary" (click)="navigateNextItineraryStep()" [disabled]="navigating">
-      Navigate Next Itinerary Step
-    </ion-button>
-    <ion-list *ngIf="navigationInstructions.length > 0">
-      <ion-item *ngFor="let instr of navigationInstructions">
-        <div [innerHTML]="instr"></div>
-      </ion-item>
-    </ion-list>
-  </div>
-  
-  <!-- Itinerary Controls (show when itinerary is selected) -->
+  <!-- //////////////////////////////////////////////////////edit here //////////////////////////////////////////////////// -->
+
   <div *ngIf="selectedItineraryIndex >= 0 && !isFullscreen" class="directions-controls">
-    <!-- Auto-loading indicator for jeepney route suggestions -->
+
+    <!-- loading for jeepney routes -->
     <ion-item *ngIf="selectedItineraryIndex >= 0 && availableItineraries.length > 0 && isLoadingJeepneyRoutes" lines="none" style="margin: 16px;">
       <ion-spinner name="crescent" slot="start"></ion-spinner>
       <ion-label>
@@ -91,7 +75,7 @@
       </ion-label>
     </ion-item>
 
-    <!-- Loading indicator for route generation -->
+    <!-- for loading royutes-->
     <ion-item *ngIf="selectedItineraryIndex >= 0 && availableItineraries.length > 0 && isGeneratingRoute" lines="none" style="margin: 16px;">
       <ion-spinner name="crescent" slot="start" color="warning"></ion-spinner>
       <ion-label>
@@ -102,6 +86,8 @@
 
     <!-- Route Information Display -->
     <div *ngIf="currentRouteInfo" class="route-suggestions">
+
+      <!-- for display of travel time and distance -->
       <ion-card>
         <ion-card-header>
           <ion-card-title>Stage-Based Route</ion-card-title>
@@ -110,8 +96,9 @@
           </ion-card-subtitle>
         </ion-card-header>
         
+
+      <!--segments-->
         <ion-card-content>
-          <!-- Direct segments display -->
           <ion-list *ngIf="currentRouteInfo.segments && currentRouteInfo.segments.length > 0">
             <ion-item *ngFor="let segment of currentRouteInfo.segments; let i = index">
               <ion-icon [name]="segment.type === 'jeepney' ? 'bus' : 'walk'" 
@@ -142,6 +129,7 @@
                   <ion-item *ngFor="let route of stageRouteOptions[selectedStageForOptions]; let i = index" 
                             [class.selected-route]="i === 0"
                             (click)="selectStageRoute(selectedStageForOptions, i)">
+                            <!-- segment for walk and icon or take a jeep or bus -->
                     <ion-icon [name]="hasJeepneySegments(route) ? 'bus' : 'walk'" 
                               [color]="hasJeepneySegments(route) ? 'primary' : 'medium'" 
                               slot="start"></ion-icon>
@@ -177,33 +165,6 @@
       </ion-card>
     </div>
 
-    <!-- Legacy Route Suggestions Display -->
-    <div *ngIf="currentRouteInfo && currentRouteInfo.suggestedRoutes && !currentRouteInfo.segments" class="route-suggestions">
-      <ion-card>
-        <ion-card-header>
-          <ion-card-title>Route Suggestions</ion-card-title>
-          <ion-card-subtitle>
-            {{ currentRouteInfo.totalDuration }} • {{ currentRouteInfo.totalDistance }} • {{ currentRouteInfo.totalFare }}
-          </ion-card-subtitle>
-        </ion-card-header>
-        
-        <ion-card-content>
-          <ion-list>
-            <ion-item *ngFor="let route of currentRouteInfo.suggestedRoutes; let i = index" 
-                      [class.selected-route]="i === currentRouteInfo.selectedRouteIndex"
-                      (click)="selectRoute(i)">
-              <ion-label>
-                <h3>{{ route.title }}</h3>
-                <p>{{ route.summary }}</p>
-                <p>{{ route.totalDuration }} • {{ route.totalDistance }} • {{ route.totalFare }}</p>
-              </ion-label>
-              <ion-badge *ngIf="route.isRecommended" color="success" slot="end">Recommended</ion-badge>
-            </ion-item>
-          </ion-list>
-        </ion-card-content>
-      </ion-card>
-    </div>
-
     <!-- No Route Info Message -->
     <ion-card *ngIf="selectedItineraryIndex < 0">
       <ion-card-content>
@@ -213,6 +174,8 @@
       </ion-card-content>
     </ion-card>
   </div>
+
+  <!-- /////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
   
   <!-- Navigation Buttons (Left Side) -->
   <div *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0" 

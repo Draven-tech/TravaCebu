@@ -24,7 +24,6 @@ import { ItineraryModalComponent } from './components/itinerary-modal/itinerary-
 import { ItineraryMapComponent } from './components/itinerary-map/itinerary-map.component';
 import { ViewItineraryModalComponent } from './modals/view-itinerary-modal/view-itinerary-modal.component';
 import { SearchModalComponent } from './modals/search-modal/search-modal.component';
-import { RouteDetailsOverlayComponent } from './components/route-details-overlay/route-details-overlay.component';
 
 
 try {
@@ -41,7 +40,6 @@ try {
     ItineraryMapComponent,
     ItineraryEditorComponent,
     //ViewItineraryModalComponent,
-    RouteDetailsOverlayComponent,
 
     
   ],

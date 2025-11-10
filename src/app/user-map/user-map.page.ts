@@ -9,7 +9,6 @@ import { Geolocation } from '@capacitor/geolocation';
 import { App } from '@capacitor/app';
 import { DaySpotPickerComponent } from '../components/day-spot-picker/day-spot-picker.component';
 import { environment } from '../../environments/environment';
-import { RouteDetailsOverlayComponent } from '../components/route-details-overlay/route-details-overlay.component';
 import { ItineraryControlsModalComponent } from '../modals/itinerary-controls-modal/itinerary-controls-modal.component';
 import { GeofencingService } from '../services/geofencing.service';
 import { Subscription } from 'rxjs';
@@ -58,8 +57,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   // Pin system for route markers
   private routeMarkers: L.Marker[] = [];
   itinerary: ItineraryDay[] = [];
-  navigationInstructions: string[] = [];
-  navigating: boolean = false;
 
   // Add missing properties for template
   selectedTile: string = 'osm';
@@ -472,24 +469,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     await modal.present();
   }
 
-  async showCuratedRouteDetailsSheet(): Promise<void> {
-    if (!this.currentRouteInfo) {
-      await this.showToast('No route information available');
-      return;
-    }
-
-    const modal = await this.modalCtrl.create({
-      component: RouteDetailsOverlayComponent,
-      componentProps: {
-        routeInfo: this.currentRouteInfo,
-        availableRestaurants: this.touristSpots.filter(spot => spot.eventType === 'restaurant'),
-        availableHotels: this.touristSpots.filter(spot => spot.eventType === 'hotel')
-      },
-      backdropDismiss: true
-    });
-    await modal.present();
-  }
-
 
   async showUserLocation(): Promise<void> {
     const userLocation = this.locationTracking.getUserLocation();
@@ -747,10 +726,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     } else {
       this.showToast(`Could not find coordinates for Segment ${segmentIndex + 1}`);
     }
-  }
-
-  async navigateNextItineraryStep(): Promise<void> {
-    // Implementation for navigation
   }
 
   async showStageRouteOptions(stageIndex: number): Promise<void> {

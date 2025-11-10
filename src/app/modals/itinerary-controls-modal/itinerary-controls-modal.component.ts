@@ -50,6 +50,9 @@ export class ItineraryControlsModalComponent implements OnInit {
     this.modalCommunication.selectItinerary(index);
     
     console.log('✅ Modal communication service called');
+
+    // Close the modal after selection
+    this.modalCtrl.dismiss();
   }
 
   onShowUserLocation(): void {
@@ -115,5 +118,93 @@ export class ItineraryControlsModalComponent implements OnInit {
     } else {
       return `${minutes}m`;
     }
+  }
+
+  getEstimatedFare(): string {
+    if (!this.currentRouteInfo?.segments) {
+      return '₱0';
+    }
+
+    const jeepneyCount = this.currentRouteInfo.segments.filter(
+      (segment: any) => (segment.type === 'jeepney' || segment.type === 'bus') && segment.jeepneyCode
+    ).length;
+
+    if (jeepneyCount === 0) {
+      return '₱0';
+    }
+
+    const minFare = jeepneyCount * 12;
+    const maxFare = jeepneyCount * 15;
+
+    return minFare === maxFare ? `₱${minFare}` : `₱${minFare}-${maxFare}`;
+  }
+
+  getFormattedTotalDuration(): string {
+    const totalDuration = this.currentRouteInfo?.totalDuration;
+    if (totalDuration === null || totalDuration === undefined) {
+      return 'N/A';
+    }
+
+    if (typeof totalDuration === 'string') {
+      const parsed = parseFloat(totalDuration);
+      if (isNaN(parsed)) {
+        return totalDuration;
+      }
+      return this.formatDuration(parsed);
+    }
+
+    return this.formatDuration(totalDuration);
+  }
+
+  getFormattedDistance(): string {
+    const totalDistance = this.currentRouteInfo?.totalDistance;
+    if (totalDistance === null || totalDistance === undefined) {
+      return '0 km';
+    }
+
+    const distance = typeof totalDistance === 'number' ? totalDistance : parseFloat(totalDistance);
+
+    if (isNaN(distance)) {
+      return `${totalDistance}`;
+    }
+
+    if (distance >= 1) {
+      return `${distance.toFixed(1)} km`;
+    }
+
+    return `${Math.round(distance * 1000)} m`;
+  }
+
+  getRouteCompletionRatio(): number {
+    const totalSegments = this.currentRouteInfo?.segments?.length;
+    if (!totalSegments || totalSegments === 0) {
+      return 0;
+    }
+
+    const currentStage = Math.min(this.currentSegmentIndex + 1, totalSegments);
+    return Math.min(1, Math.max(0, currentStage / totalSegments));
+  }
+
+  getRouteCompletionLabel(): string {
+    const totalSegments = this.currentRouteInfo?.segments?.length;
+    if (!totalSegments || totalSegments === 0) {
+      return 'Route not started';
+    }
+
+    const currentStage = Math.min(this.currentSegmentIndex + 1, totalSegments);
+    const percentage = Math.round(this.getRouteCompletionRatio() * 100);
+    return `Stage ${currentStage} of ${totalSegments} • ${percentage}% ready`;
+  }
+
+  getSegmentCount(segmentType: 'jeepney' | 'bus' | 'walk'): number {
+    if (!this.currentRouteInfo?.segments) {
+      return 0;
+    }
+
+    return this.currentRouteInfo.segments.filter((segment: any) => segment.type === segmentType).length;
+  }
+
+  getRideSegmentCount(): number {
+    return this.getSegmentCount('jeepney') + this.getSegmentCount('bus');
   }
 }

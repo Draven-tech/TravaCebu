@@ -1182,14 +1182,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.filteredSpots = [];
     this.showSearchResults = false;
     
-    // Center map on the spot
+    // Center map on the spot without opening details
     this.mapManagement.centerOnLocation(spot.location.lat, spot.location.lng, 16);
     
-    // Open spot details sheet
-    this.openSpotSheet(spot);
-    
-    // Show toast
-    this.showToast(`📍 ${spot.name}`);
   }
 
   /**

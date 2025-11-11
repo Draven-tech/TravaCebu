@@ -91,6 +91,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   // Subscriptions
   private locationSubscription?: Subscription;
   private appStateSubscription?: any;
+  private spotsSubscription?: Subscription;
 
   constructor(
     private navCtrl: NavController,
@@ -1087,21 +1088,56 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   async loadTouristSpots(): Promise<void> {
     try {
       const cached = localStorage.getItem('tourist_spots_cache');
+      if (cached && !this.touristSpots.length) {
+        this.touristSpots = JSON.parse(cached);
+      }
+
+      if (this.spotsSubscription) {
+        this.spotsSubscription.unsubscribe();
+      }
+
+      this.spotsSubscription = this.firestore
+        .collection('tourist_spots')
+        .valueChanges({ idField: 'id' })
+        .subscribe({
+          next: (spots) => {
+            this.ngZone.run(() => {
+              this.touristSpots = (spots || []) as any[];
+              localStorage.setItem('tourist_spots_cache', JSON.stringify(this.touristSpots));
+
+              if (this.selectedItineraryIndex < 0) {
+                this.updateMapDisplay();
+              } else if (
+                this.selectedItineraryIndex >= 0 &&
+                this.availableItineraries[this.selectedItineraryIndex]
+              ) {
+                this.mapManagement.showItinerarySpots(
+                  this.availableItineraries[this.selectedItineraryIndex],
+                  this.mapUI
+                );
+              }
+            });
+          },
+          error: async () => {
+            const saved = localStorage.getItem('tourist_spots_cache');
+            if (saved) {
+              this.touristSpots = JSON.parse(saved);
+              if (this.selectedItineraryIndex < 0) {
+                this.updateMapDisplay();
+              }
+            }
+            await this.showToast('Error syncing spots; showing cached data');
+          },
+        });
+    } catch (error) {
+      const cached = localStorage.getItem('tourist_spots_cache');
       if (cached) {
         this.touristSpots = JSON.parse(cached);
-        return;
+        if (this.selectedItineraryIndex < 0) {
+          this.updateMapDisplay();
+        }
       }
-      
-      const spotsSnapshot = await this.firestore.collection('tourist_spots').get().toPromise();
-      this.touristSpots = spotsSnapshot?.docs.map(doc => ({
-        id: doc.id,
-        ...(doc.data() as any)
-      })) || [];
-      
-      localStorage.setItem('tourist_spots_cache', JSON.stringify(this.touristSpots));
-      
-    } catch (error) {
-      await this.showToast('Error loading tourist spots');
+      await this.showToast('Error initializing tourist spots');
     }
   }
 
@@ -1253,8 +1289,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     try {
       localStorage.removeItem('tourist_spots_cache');
       await this.loadTouristSpots();
-      // Update map display after refreshing spots
-      this.updateMapDisplay();
     } catch (error) {
       // Silently handle error
     }
@@ -1308,6 +1342,10 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // Unsubscribe from location updates
     if (this.locationSubscription) {
       this.locationSubscription.unsubscribe();
+    }
+    
+    if (this.spotsSubscription) {
+      this.spotsSubscription.unsubscribe();
     }
     
     // Remove app state listener

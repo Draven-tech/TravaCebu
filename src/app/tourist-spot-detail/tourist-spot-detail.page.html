@@ -102,9 +102,15 @@
       <p>You need to visit this spot in person before you can post a review. This helps ensure authentic experiences!</p>
       
       <div class="suggestion-actions">
-        <ion-button expand="block" fill="outline" color="primary" (click)="addToBucketList()">
-          <ion-icon name="heart-outline"></ion-icon>
-          Add to Bucket List
+        <ion-button
+          expand="block"
+          fill="outline"
+          [color]="isInBucket ? 'danger' : 'primary'"
+          (click)="toggleBucketList()"
+          [disabled]="bucketStatusLoading"
+        >
+          <ion-icon [name]="isInBucket ? 'heart' : 'heart-outline'"></ion-icon>
+          {{ isInBucket ? 'Remove from Bucket List' : 'Add to Bucket List' }}
         </ion-button>
         <p class="suggestion-text">Add this spot to your bucket list, then create an itinerary to visit it!</p>
       </div>

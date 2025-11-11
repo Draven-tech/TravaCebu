@@ -28,6 +28,8 @@ export class TouristSpotDetailPage implements OnInit {
   uploadProgress: number = 0;
   reviewForm!: FormGroup;
   imageUrl: string = '';
+  isInBucket = false;
+  bucketStatusLoading = false;
   
   // Image refresh properties
   isRefreshingImages = false;
@@ -59,8 +61,11 @@ export class TouristSpotDetailPage implements OnInit {
   }
 
   loadSpot() {
-    this.firestore.collection('tourist_spots').doc(this.spotId!).valueChanges().subscribe(data => {
-      this.spotData = data;
+    this.firestore.collection('tourist_spots').doc(this.spotId!).valueChanges().subscribe(async data => {
+      this.spotData = data ? { id: this.spotId, ...data } : null;
+      if (this.spotId) {
+        await this.checkBucketStatus();
+      }
       if (data) {
         // Try to enhance the spot with Google Places images
         this.enhanceSpotWithGoogleImages();
@@ -322,29 +327,55 @@ export class TouristSpotDetailPage implements OnInit {
   /**
    * Add spot to bucket list
    */
-  async addToBucketList(): Promise<void> {
-    if (!this.spotData || !this.spotId) return;
+  async toggleBucketList(): Promise<void> {
+    if (!this.spotData || !this.spotId || this.bucketStatusLoading) return;
 
+    this.bucketStatusLoading = true;
     try {
-      await this.bucketService.addToBucket(this.spotData);
-      
-      const toast = await this.toastCtrl.create({
-        message: `${this.spotData.name} added to your bucket list!`,
-        duration: 2000,
-        position: 'top',
-        color: 'success'
-      });
-      await toast.present();
-      
+      if (this.isInBucket) {
+        await this.bucketService.removeFromBucket(this.spotId);
+        this.isInBucket = false;
+
+        const toast = await this.toastCtrl.create({
+          message: `${this.spotData.name} removed from your bucket list.`,
+          duration: 2000,
+          position: 'top',
+          color: 'medium'
+        });
+        await toast.present();
+      } else {
+        await this.bucketService.addToBucket(this.spotData);
+        this.isInBucket = true;
+
+        const toast = await this.toastCtrl.create({
+          message: `${this.spotData.name} added to your bucket list!`,
+          duration: 2000,
+          position: 'top',
+          color: 'success'
+        });
+        await toast.present();
+      }
     } catch (error) {
-      console.error('Failed to add to bucket list:', error);
+      console.error('Failed to toggle bucket list:', error);
       const toast = await this.toastCtrl.create({
-        message: 'Failed to add to bucket list. Please try again.',
+        message: 'Failed to update bucket list. Please try again.',
         duration: 2000,
         position: 'top',
         color: 'danger'
       });
       await toast.present();
+    } finally {
+      this.bucketStatusLoading = false;
+    }
+  }
+
+  private async checkBucketStatus(): Promise<void> {
+    if (!this.spotId) return;
+    try {
+      this.isInBucket = await this.bucketService.isInBucket(this.spotId);
+    } catch (error) {
+      console.error('Failed to check bucket status:', error);
+      this.isInBucket = false;
     }
   }
 

@@ -21,6 +21,7 @@ export interface VisitRecord {
 
 export interface GeofenceSpot {
   id: string;
+  touristSpotId?: string;
   name: string;
   latitude: number;
   longitude: number;
@@ -275,12 +276,14 @@ export class GeofencingService {
 
   private async confirmVisit(spot: GeofenceSpot): Promise<void> {
     try {
-      this.visitedSpots.add(spot.id);
+      const canonicalSpotId = spot.touristSpotId || spot.id;
+
+      this.visitedSpots.add(canonicalSpotId);
       this.visitedSpotsSubject.next(new Set(this.visitedSpots));
 
       const visitRecord: VisitRecord = {
         userId: 'anonymous',
-        touristSpotId: spot.id,
+        touristSpotId: canonicalSpotId,
         touristSpotName: spot.name,
         visitDate: new Date(),
         latitude: this.currentPosition!.lat,
@@ -292,7 +295,7 @@ export class GeofencingService {
       const user = await this.afAuth.currentUser;
       if (user) {
         visitRecord.userId = user.uid;
-        await this.persistVisitToFirestore(user.uid, spot, visitRecord);
+        await this.persistVisitToFirestore(user.uid, { ...spot, id: canonicalSpotId, touristSpotId: canonicalSpotId }, visitRecord);
       }
 
       await this.saveVisitRecord(visitRecord);
@@ -322,10 +325,12 @@ export class GeofencingService {
   private async persistVisitToFirestore(userId: string, spot: GeofenceSpot, visitRecord: VisitRecord): Promise<void> {
     try {
       const visitedAt = visitRecord.visitDate;
+      const canonicalSpotId = spot.touristSpotId || spot.id;
 
-      const visitedRef = this.firestore.collection(`users/${userId}/visitedSpots`).doc(spot.id);
+      const visitedRef = this.firestore.collection(`users/${userId}/visitedSpots`).doc(canonicalSpotId);
       await visitedRef.set({
-        spotId: spot.id,
+        spotId: canonicalSpotId,
+        touristSpotId: canonicalSpotId,
         name: spot.name,
         latitude: spot.latitude,
         longitude: spot.longitude,
@@ -335,16 +340,6 @@ export class GeofencingService {
       }, { merge: true });
 
       const userDocRef = this.firestore.collection('users').doc(userId);
-      await userDocRef.set({
-        [`visitedSpots.${spot.id}`]: {
-          spotName: spot.name,
-          visitedAt,
-          latitude: spot.latitude,
-          longitude: spot.longitude,
-          source: 'geofence'
-        }
-      }, { merge: true });
-
       const updatedUserSnapshot = await userDocRef.get().toPromise();
       const updatedUserData = updatedUserSnapshot?.data();
 
@@ -357,25 +352,41 @@ export class GeofencingService {
   }
 
   private extractTouristSpotsFromItinerary(itinerary: any[]): GeofenceSpot[] {
-    const spots: GeofenceSpot[] = [];
+    const uniqueSpots = new Map<string, GeofenceSpot>();
     
     itinerary.forEach(day => {
-      if (day.spots && Array.isArray(day.spots)) {
-        day.spots.forEach((spot: any) => {
-          if (spot.location && spot.location.lat && spot.location.lng) {
-            spots.push({
-              id: spot.id || `spot_${Date.now()}_${Math.random()}`,
-              name: spot.name || 'Unknown Spot',
-              latitude: spot.location.lat,
-              longitude: spot.location.lng,
-              radius: this.DEFAULT_RADIUS
-            });
-          }
-        });
+      if (!day?.spots || !Array.isArray(day.spots)) {
+        return;
       }
+
+      day.spots.forEach((spot: any) => {
+        const canonicalSpotId = spot?.touristSpotId || spot?.spotId || spot?.id;
+        if (!canonicalSpotId) {
+          console.warn('[GeofencingService] Skipping itinerary spot without a Firestore document ID. Geofence not created.', spot);
+          return;
+        }
+
+        const lat = spot?.location?.lat;
+        const lng = spot?.location?.lng;
+        if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+          console.warn('[GeofencingService] Skipping itinerary spot without valid coordinates. Geofence not created.', spot);
+          return;
+        }
+
+        if (!uniqueSpots.has(canonicalSpotId)) {
+          uniqueSpots.set(canonicalSpotId, {
+            id: canonicalSpotId,
+            touristSpotId: canonicalSpotId,
+            name: spot?.name || 'Unknown Spot',
+            latitude: lat,
+            longitude: lng,
+            radius: this.DEFAULT_RADIUS
+          });
+        }
+      });
     });
     
-    return spots;
+    return Array.from(uniqueSpots.values());
   }
 
   private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {

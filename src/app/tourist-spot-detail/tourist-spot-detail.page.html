@@ -47,14 +47,38 @@
     </ion-card-content>
   </ion-card>
 
+  <!-- Visit Status Banner -->
+  <div *ngIf="hasVisited()" class="visit-status-banner">
+    <ion-chip color="success" outline="true" class="visit-status-chip">
+      <ion-icon name="checkmark-circle"></ion-icon>
+      <ion-label>Visited</ion-label>
+    </ion-chip>
+    <p class="visit-status-message">Thanks for visiting! Share your experience below.</p>
+  </div>
+
+  <!-- Bucket List Action (Visible for visited spots as well) -->
+  <div *ngIf="hasVisited()" class="review-restriction-container bucket-action-visited">
+    <div class="restriction-card">
+      <ion-button
+        expand="block"
+        fill="outline"
+        [color]="isInBucket ? 'danger' : 'primary'"
+        (click)="toggleBucketList()"
+        [disabled]="bucketStatusLoading"
+      >
+        <ion-icon slot="start" [name]="isInBucket ? 'heart' : 'heart-outline'"></ion-icon>
+        {{ isInBucket ? 'Remove from Bucket List' : 'Add to Bucket List' }}
+      </ion-button>
+      <p class="suggestion-text">
+        Keep this spot in your bucket list to revisit or share with friends!
+      </p>
+    </div>
+  </div>
+
   <!-- Add Review (Only for visited spots) -->
   <div *ngIf="hasVisited()" class="add-review-container">
     <div class="review-header">
       <h2>Add Your Review</h2>
-      <ion-chip color="success" class="visited-indicator">
-        <ion-icon name="checkmark-circle"></ion-icon>
-        <ion-label>Visited</ion-label>
-      </ion-chip>
     </div>
 
 <ion-item lines="none" class="rating-slider" style="flex-direction: column; align-items: flex-start;">

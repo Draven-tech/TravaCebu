@@ -190,8 +190,16 @@ export class ItineraryModalComponent implements OnInit {
 
       // Add spots as events
       for (const spot of day.spots) {
+        const canonicalSpotId = spot.touristSpotId || spot.spotId || spot.id;
+
+        if (!canonicalSpotId) {
+          console.warn('[ItineraryModalComponent] Skipping spot without a Firestore ID when creating calendar events.', spot);
+          continue;
+        }
+
         const startTime = `${day.date}T${spot.timeSlot}:00`;
         const event: CalendarEvent = {
+          id: canonicalSpotId,
           title: spot.name,
           start: startTime,
           end: startTime, // You can calculate end time based on duration
@@ -207,6 +215,8 @@ export class ItineraryModalComponent implements OnInit {
             restaurantRating: spot.chosenRestaurant?.rating || null,
             restaurantVicinity: spot.chosenRestaurant?.vicinity || null,
             mealType: spot.mealType || null,
+            spotId: canonicalSpotId,
+            touristSpotId: canonicalSpotId,
 
             originalStartTime: this.originalStartTime,
             originalEndTime: this.originalEndTime

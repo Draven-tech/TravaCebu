@@ -50,17 +50,16 @@
       <ion-col size="6" *ngFor="let spot of paginatedSpots">
         <ion-card class="tourist-card">
           <div class="clickable-card" (click)="openSpotDetail(spot.id)">
-            <img [src]="spot.img || 'assets/img/default.png'" [alt]="spot.name" />
+            <div class="image-wrapper">
+              <img [src]="spot.img || 'assets/img/default.png'" [alt]="spot.name" />
+              <div class="visited-overlay" *ngIf="hasVisited(spot.id)">
+                <ion-icon name="checkmark-circle"></ion-icon>
+                <span>Visited</span>
+              </div>
+            </div>
 
             <ion-card-header>
               <ion-card-title>{{ spot.name }}</ion-card-title>
-              <!-- Visit Status Indicator -->
-              <div class="visit-status" *ngIf="hasVisited(spot.id)">
-                <ion-chip color="success" size="small">
-                  <ion-icon name="checkmark-circle"></ion-icon>
-                  <ion-label>Visited</ion-label>
-                </ion-chip>
-              </div>
             </ion-card-header>
           </div>
 

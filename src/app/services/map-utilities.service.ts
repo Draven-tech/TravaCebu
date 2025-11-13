@@ -77,6 +77,12 @@ export class MapUtilitiesService {
                 const eventType = event.extendedProps?.type || 'tourist_spot';
                 let category = event.extendedProps?.category || 'GENERAL';
                 let img = event.extendedProps?.img || 'assets/img/default.png';
+                const canonicalSpotId = event.extendedProps?.touristSpotId || event.extendedProps?.spotId || null;
+
+                if (eventType === 'tourist_spot' && !canonicalSpotId) {
+                  console.warn('[MapUtilitiesService] Skipping itinerary event without a Firestore tourist spot ID.', event);
+                  return null;
+                }
                 
                 // Set appropriate category and image based on event type
                 if (eventType === 'restaurant') {
@@ -88,7 +94,9 @@ export class MapUtilitiesService {
                 }
                 
                 return {
-                  id: event.extendedProps?.spotId || event.id || '',
+                  id: canonicalSpotId || event.id || '',
+                  touristSpotId: canonicalSpotId || undefined,
+                  spotId: canonicalSpotId || event.id || '',
                   name: event.title || 'Unknown Spot',
                   description: event.extendedProps?.description || '',
                   category: category,
@@ -105,7 +113,7 @@ export class MapUtilitiesService {
                   rating: event.extendedProps?.rating || null,
                   vicinity: event.extendedProps?.vicinity || null
                 };
-              })
+              }).filter((spot: any) => !!spot)
             }]
           };
           

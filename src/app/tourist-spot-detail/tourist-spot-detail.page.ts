@@ -1,10 +1,12 @@
-﻿import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AlertController, ToastController } from '@ionic/angular';
 import { StorageService } from '../services/storage.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subscription, combineLatest, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { PlacesImageService } from '../services/places-image.service';
 import { GeofencingService } from '../services/geofencing.service';
 import { BucketService } from '../services/bucket-list.service';
@@ -15,7 +17,7 @@ import { BucketService } from '../services/bucket-list.service';
   styleUrls: ['./tourist-spot-detail.page.scss'],
   standalone: false,
 })
-export class TouristSpotDetailPage implements OnInit {
+export class TouristSpotDetailPage implements OnInit, OnDestroy {
   spotId: string | null = null;
   spotData: any;
   reviews: any[] = [];
@@ -30,6 +32,9 @@ export class TouristSpotDetailPage implements OnInit {
   imageUrl: string = '';
   isInBucket = false;
   bucketStatusLoading = false;
+  hasVisitedSpot = false;
+  private visitStatusSub?: Subscription;
+  private geofenceVisitedSub?: Subscription;
   
   // Image refresh properties
   isRefreshingImages = false;
@@ -53,11 +58,24 @@ export class TouristSpotDetailPage implements OnInit {
     if (this.spotId) {
       this.loadSpot();
       this.loadReviews();
+      this.observeVisitStatus();
+      this.geofenceVisitedSub = this.geofencingService.visitedSpots$.subscribe(visitedSet => {
+        if (this.spotId) {
+          if (visitedSet.has(this.spotId)) {
+            this.hasVisitedSpot = true;
+          }
+        }
+      });
     }
     this.reviewForm = this.fb.group({
       name: ['', Validators.required],
       comment: ['', Validators.required],
     });
+  }
+
+  ngOnDestroy(): void {
+    this.visitStatusSub?.unsubscribe();
+    this.geofenceVisitedSub?.unsubscribe();
   }
 
   loadSpot() {
@@ -101,6 +119,11 @@ export class TouristSpotDetailPage implements OnInit {
   }
 
   async addReview() {
+    if (!this.hasVisited()) {
+      this.showAlert('Reviews Locked', 'You need to visit this spot before posting a review.');
+      return;
+    }
+
     if (!this.comment.trim() || this.rating < 1 || this.rating > 5) {
       this.showAlert('Error', 'Please provide a rating and a comment.');
       return;
@@ -181,6 +204,11 @@ export class TouristSpotDetailPage implements OnInit {
   }
 
   async submitReview() {
+    if (!this.hasVisited()) {
+      this.showAlert('Reviews Locked', 'You need to visit this spot before posting a review.');
+      return;
+    }
+
     if (this.reviewForm.invalid) {
       this.showAlert('Error', 'Please fill in all required fields');
       return;
@@ -318,13 +346,6 @@ export class TouristSpotDetailPage implements OnInit {
   // Geofencing and visit tracking methods
 
   /**
-   * Check if user has visited this spot
-   */
-  hasVisited(): boolean {
-    return this.geofencingService.hasVisited(this.spotId || '');
-  }
-
-  /**
    * Add spot to bucket list
    */
   async toggleBucketList(): Promise<void> {
@@ -384,5 +405,72 @@ export class TouristSpotDetailPage implements OnInit {
    */
   canPostReview(): boolean {
     return this.hasVisited();
+  }
+
+  hasVisited(): boolean {
+    if (!this.spotId) {
+      return false;
+    }
+    return this.hasVisitedSpot || this.geofencingService.hasVisited(this.spotId);
+  }
+
+  private observeVisitStatus(): void {
+    if (!this.spotId) {
+      this.hasVisitedSpot = false;
+      return;
+    }
+
+    this.visitStatusSub = this.afAuth.authState.pipe(
+      switchMap(user => {
+        if (!user) {
+          this.hasVisitedSpot = this.geofencingService.hasVisited(this.spotId!);
+          return of(false);
+        }
+
+        const directDoc$ = this.firestore
+          .doc(`users/${user.uid}/visitedSpots/${this.spotId}`)
+          .valueChanges()
+          .pipe(map(doc => !!doc));
+
+        const spotIdQuery$ = this.firestore
+          .collection(`users/${user.uid}/visitedSpots`, ref =>
+            ref.where('spotId', '==', this.spotId).limit(1)
+          )
+          .valueChanges()
+          .pipe(map(results => (results?.length ?? 0) > 0));
+
+        const touristSpotIdQuery$ = this.firestore
+          .collection(`users/${user.uid}/visitedSpots`, ref =>
+            ref.where('touristSpotId', '==', this.spotId).limit(1)
+          )
+          .valueChanges()
+          .pipe(map(results => (results?.length ?? 0) > 0));
+
+        const allVisits$ = this.firestore
+          .collection(`users/${user.uid}/visitedSpots`)
+          .valueChanges({ idField: 'id' })
+          .pipe(
+            map(records =>
+              (records || []).some((record: any) => {
+                const recordId = record?.id;
+                const spotId = record?.spotId;
+                const touristSpotId = record?.touristSpotId;
+                return recordId === this.spotId || spotId === this.spotId || touristSpotId === this.spotId;
+              })
+            )
+          );
+
+        return combineLatest([directDoc$, spotIdQuery$, touristSpotIdQuery$, allVisits$]).pipe(
+          map(matches => matches.some(Boolean))
+        );
+      })
+    ).subscribe(hasVisitedRemote => {
+      if (this.spotId) {
+        const geofenceVisited = this.geofencingService.hasVisited(this.spotId);
+        this.hasVisitedSpot = this.hasVisitedSpot || hasVisitedRemote || geofenceVisited;
+      } else {
+        this.hasVisitedSpot = this.hasVisitedSpot || hasVisitedRemote;
+      }
+    });
   }
 }

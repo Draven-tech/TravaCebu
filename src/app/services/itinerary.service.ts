@@ -7,6 +7,8 @@ import { Geolocation } from '@capacitor/geolocation';
 
 export interface ItinerarySpot {
   id: string;
+  touristSpotId?: string;
+  spotId?: string;
   name: string;
   description?: string;
   category?: string;
@@ -51,8 +53,17 @@ export class ItineraryService {
       return [];
     }
 
+    const normalizedSpots = (spots || [])
+      .map(spot => this.normalizeSpotWithId(spot))
+      .filter((spot): spot is any => !!spot);
+
+    if (normalizedSpots.length === 0) {
+      console.warn('[ItineraryService] No valid tourist spots with Firestore IDs were provided. Aborting itinerary generation.');
+      return [];
+    }
+
     // Sort spots by location proximity for efficient routing
-    const sortedSpots = this.sortSpotsByProximity(spots);
+    const sortedSpots = this.sortSpotsByProximity(normalizedSpots);
     const days: any[] = Array.from({ length: numDays }, () => []);
     sortedSpots.forEach((spot, i) => {
       days[i % numDays].push(spot);
@@ -83,12 +94,26 @@ export class ItineraryService {
       
       for (let i = 0; i < daySpots.length; i++) {
         const spotData = daySpots[i];
+        const canonicalSpotId = spotData?.touristSpotId || spotData?.spotId || spotData?.id;
+
+        if (!canonicalSpotId) {
+          console.warn('[ItineraryService] Skipping itinerary spot without a Firestore ID.', spotData);
+          continue;
+        }
+
+        const normalizedSpotData = {
+          ...spotData,
+          id: canonicalSpotId,
+          touristSpotId: canonicalSpotId,
+          spotId: canonicalSpotId
+        };
+
         const timeSlot = this.formatTime(currentTime);
         const estimatedDuration = `${slotMinutes} min`;
         const mealType = this.getMealType(currentTime);
         
         dayPlan.spots.push({
-          ...spotData,
+          ...normalizedSpotData,
           timeSlot,
           estimatedDuration,
           mealType,
@@ -389,6 +414,26 @@ export class ItineraryService {
 
   private toRad(degrees: number): number {
     return degrees * Math.PI / 180;
+  }
+
+  private normalizeSpotWithId(spot: any): any | null {
+    if (!spot) {
+      return null;
+    }
+
+    const canonicalSpotId = spot.touristSpotId || spot.spotId || spot.id;
+
+    if (!canonicalSpotId) {
+      console.warn('[ItineraryService] Encountered a spot without a Firestore document ID. Spot will be ignored for itinerary generation.', spot);
+      return null;
+    }
+
+    return {
+      ...spot,
+      id: canonicalSpotId,
+      touristSpotId: canonicalSpotId,
+      spotId: canonicalSpotId
+    };
   }
 
   // Sort spots by proximity to create efficient routes

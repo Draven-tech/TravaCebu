@@ -520,17 +520,14 @@ export class BadgeService {
     let uniqueSpotsVisited = 0;
     
     try {
-      // Get user's visited spots from their profile
-      const userDoc = await this.firestore.collection('users').doc(userId).get().toPromise();
-      const userDataFromFirestore = userDoc?.data() as any;
-      
-      // Count unique visited spots
-      if (userDataFromFirestore?.visitedSpots) {
-        uniqueSpotsVisited = Object.keys(userDataFromFirestore.visitedSpots).length;
-      }
-      
+      const visitedSnapshot = await this.firestore
+        .collection(`users/${userId}/visitedSpots`)
+        .get()
+        .toPromise();
+
+      uniqueSpotsVisited = visitedSnapshot?.size ?? 0;
     } catch (error) {
-      console.error('Error getting visited spots:', error);
+      console.error('Error getting visited spots from subcollection:', error);
       uniqueSpotsVisited = 0;
     }
 
@@ -613,32 +610,30 @@ export class BadgeService {
    */
   private async recordSpotVisit(userId: string, spotId: string, spotName: string): Promise<boolean> {
     try {
-      const userRef = this.firestore.collection('users').doc(userId);
-      const userDoc = await userRef.get().toPromise();
-      const userData = userDoc?.data() as any;
+      const visitedRef = this.firestore
+        .collection(`users/${userId}/visitedSpots`)
+        .doc(spotId);
 
-      // Initialize visitedSpots if it doesn't exist
-      const visitedSpots = userData?.visitedSpots || {};
-
-      // Check if this spot was already visited
-      if (visitedSpots[spotId]) {
-        return false; // Already visited
+      const existingVisit = await visitedRef.get().toPromise();
+      if (existingVisit?.exists) {
+        return false;
       }
 
-      // Record the visit with timestamp
-      visitedSpots[spotId] = {
-        spotName: spotName,
-        visitedAt: new Date(),
-        location: userData?.location || null
-      };
+      const userSnapshot = await this.firestore.collection('users').doc(userId).get().toPromise();
+      const userData = userSnapshot?.data() as any;
 
-      // Update user document
-      await userRef.update({
-        visitedSpots: visitedSpots
-      });
+      await visitedRef.set(
+        {
+          spotId,
+          spotName,
+          visitedAt: new Date(),
+          location: userData?.location || null,
+          source: 'badge_service'
+        },
+        { merge: true }
+      );
 
       return true;
-
     } catch (error) {
       console.error('Error recording spot visit:', error);
       return false;

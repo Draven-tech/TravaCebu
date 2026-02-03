@@ -78,7 +78,7 @@ export class ViewItineraryModalComponent {
     });
   }
 
-  getCategoryIcon(category: string): string {
+  /*getCategoryIcon(category: string): string {
     switch (category?.toUpperCase()) {
       case 'RESTAURANT':
         return '🍽️';
@@ -95,9 +95,9 @@ export class ViewItineraryModalComponent {
       default:
         return '📍';
     }
-  }
+  }*/
 
-  getMealTypeIcon(mealType: string): string {
+  /*getMealTypeIcon(mealType: string): string {
     switch (mealType?.toLowerCase()) {
       case 'breakfast':
         return '🌅';
@@ -110,5 +110,5 @@ export class ViewItineraryModalComponent {
       default:
         return '🍽️';
     }
-  }
+  }*/
 }

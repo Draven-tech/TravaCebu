@@ -20,13 +20,13 @@
 
       <!-- Tourist Spots -->
       <div *ngIf="day.spots && day.spots.length > 0" class="section">
-        <h3>📍 Tourist Spots</h3>
+        <h3>Tourist Spots</h3>
                  <div class="spots-list">
            <div *ngFor="let spot of sortByTimeSlot(day.spots); let i = index" class="spot-card">
             <div class="spot-header">
               <span class="spot-number">{{ i + 1 }}.</span>
               <span class="spot-name">{{ spot.name }}</span>
-              <span class="spot-category">{{ getCategoryIcon(spot.category) }} {{ spot.category }}</span>
+
             </div>
             <div class="spot-details">
               <div class="time-duration">
@@ -40,16 +40,15 @@
               <!-- Show chosen restaurant if this spot has a meal type -->
               <div *ngIf="spot.mealType && spot.chosenRestaurant" class="chosen-restaurant">
                 <div class="restaurant-header">
-                  <span class="meal-icon">{{ getMealTypeIcon(spot.mealType) }}</span>
                   <span class="meal-type">{{ spot.mealType | titlecase }}</span>
                 </div>
                 <div class="restaurant-card">
                   <h4>{{ spot.chosenRestaurant.name }}</h4>
                   <p *ngIf="spot.chosenRestaurant.rating" class="rating">
-                    ⭐ {{ spot.chosenRestaurant.rating }}
+                    {{ spot.chosenRestaurant.rating }}
                   </p>
                   <p *ngIf="spot.chosenRestaurant.vicinity" class="address">
-                    📍 {{ spot.chosenRestaurant.vicinity }}
+                    {{ spot.chosenRestaurant.vicinity }}
                   </p>
                 </div>
               </div>
@@ -60,7 +59,7 @@
 
       <!-- Standalone Restaurants -->
       <div *ngIf="day.restaurants && day.restaurants.length > 0" class="section">
-        <h3>🍽️ Restaurants</h3>
+        <h3>Restaurants</h3>
                  <div class="restaurants-list">
            <div *ngFor="let restaurant of sortByTimeSlot(day.restaurants)" class="restaurant-card">
             <div class="restaurant-header">
@@ -69,9 +68,6 @@
             </div>
             <div class="restaurant-details">
               <p *ngIf="restaurant.description" class="description">{{ restaurant.description }}</p>
-              <p *ngIf="restaurant.mealType" class="meal-type">
-                {{ getMealTypeIcon(restaurant.mealType) }} {{ restaurant.mealType | titlecase }}
-              </p>
               <p class="duration">{{ restaurant.estimatedDuration }}</p>
             </div>
           </div>
@@ -80,7 +76,7 @@
 
       <!-- Chosen Hotel -->
       <div *ngIf="day.chosenHotel" class="section">
-        <h3>🏨 Accommodation</h3>
+        <h3>Accommodation</h3>
         <div class="hotel-card">
           <div class="hotel-header">
             <h4>{{ day.chosenHotel.name }}</h4>
@@ -88,10 +84,10 @@
           </div>
           <div class="hotel-details">
             <p *ngIf="day.chosenHotel.rating" class="rating">
-              ⭐ {{ day.chosenHotel.rating }}
+              {{ day.chosenHotel.rating }}
             </p>
             <p *ngIf="day.chosenHotel.vicinity" class="address">
-              📍 {{ day.chosenHotel.vicinity }}
+              {{ day.chosenHotel.vicinity }}
             </p>
             <p *ngIf="day.chosenHotel.description" class="description">
               {{ day.chosenHotel.description }}
@@ -102,7 +98,7 @@
 
       <!-- Standalone Hotels -->
       <div *ngIf="day.hotels && day.hotels.length > 0 && !day.chosenHotel" class="section">
-        <h3>🏨 Hotels</h3>
+        <h3>Hotels</h3>
                  <div class="hotels-list">
            <div *ngFor="let hotel of sortByTimeSlot(day.hotels)" class="hotel-card">
             <div class="hotel-header">
@@ -120,7 +116,6 @@
 
     <!-- No Itinerary Data -->
     <div *ngIf="!itinerary || itinerary.length === 0" class="no-data">
-      <ion-icon name="calendar-outline" size="large"></ion-icon>
       <h3>No Itinerary Data</h3>
       <p>This itinerary doesn't contain any saved data.</p>
     </div>

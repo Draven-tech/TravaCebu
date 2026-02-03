@@ -29,7 +29,7 @@ export class ItineraryControlsModalComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    console.log('🔍 Modal initialized with:', {
+    console.log('Modal initialized with:', {
       availableItineraries: this.availableItineraries,
       availableItinerariesLength: this.availableItineraries?.length,
       selectedItineraryIndex: this.selectedItineraryIndex
@@ -37,19 +37,19 @@ export class ItineraryControlsModalComponent implements OnInit {
   }
 
   onItineraryChange(event: any): void {
-    console.log('🎯 onItineraryChange triggered!', event);
-    console.log('🎯 Event detail:', event.detail);
-    console.log('🎯 Event detail value:', event.detail.value);
+    console.log('onItineraryChange triggered!', event);
+    console.log('Event detail:', event.detail);
+    console.log('Event detail value:', event.detail.value);
     
     const index = parseInt(event.detail.value);
-    console.log('🎯 Parsed index:', index);
-    console.log('🎯 Available itineraries:', this.availableItineraries.length);
-    console.log('🎯 Calling modalCommunication.selectItinerary...');
+    console.log('Parsed index:', index);
+    console.log('Available itineraries:', this.availableItineraries.length);
+    console.log('Calling modalCommunication.selectItinerary...');
     
     // Use service to communicate with parent component
     this.modalCommunication.selectItinerary(index);
     
-    console.log('✅ Modal communication service called');
+    console.log('Modal communication service called');
 
     // Close the modal after selection
     this.modalCtrl.dismiss();
@@ -72,12 +72,12 @@ export class ItineraryControlsModalComponent implements OnInit {
   }
 
   onStopItinerary(): void {
-    console.log('🛑 Stop itinerary requested');
+    console.log('Stop itinerary requested');
     this.modalCtrl.dismiss({ action: 'stopItinerary' });
   }
 
   onCancelRouteGeneration(): void {
-    console.log('❌ Cancel route generation requested');
+    console.log('Cancel route generation requested');
     this.modalCtrl.dismiss({ action: 'cancelRouteGeneration' });
   }
 

@@ -63,7 +63,7 @@
                 <div class="place-details">
                   <span *ngIf="spot.chosenRestaurant.rating">{{ spot.chosenRestaurant.rating }}</span>
                   <span *ngIf="spot.chosenRestaurant.vicinity">{{ spot.chosenRestaurant.vicinity }}</span>
-                  <span class="meal-time">🍽️½ï¸ {{ spot.mealType }} time</span>
+                  <span class="meal-time">{{ spot.mealType }} time</span>
                 </div>
                 <div class="booking-links">
                   <ion-button size="small" fill="outline" color="primary" (click)="viewRestaurantMap(spot.chosenRestaurant)">
@@ -190,7 +190,7 @@
       <ion-toolbar>
         <ion-button expand="block" color="success" (click)="saveItinerary()" [disabled]="saving">
           <ion-spinner *ngIf="saving" name="crescent"></ion-spinner>
-                          <span *ngIf="!saving">Save Itinerary</span>
+            <span *ngIf="!saving">Save Itinerary</span>
         </ion-button>
         <ion-button expand="block" color="secondary" (click)="viewMap()">
           <ion-icon name="map"></ion-icon>

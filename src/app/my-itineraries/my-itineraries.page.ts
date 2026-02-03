@@ -34,6 +34,19 @@ export class MyItinerariesPage implements OnInit {
     private route: ActivatedRoute,
   ) { }
 
+  isOnline(): boolean {
+    return navigator.onLine;
+  }
+
+  async showOfflineAlert() {
+    const alert = await this.alertCtrl.create({
+      header: 'Offline mode',
+      message: 'You need to go online first to make changes to your itinerary.',
+      buttons: ['OK']
+    });
+
+    await alert.present();
+  }
   async ngOnInit() {
     const user = await this.afAuth.currentUser;
     this.userId = user?.uid || null;
@@ -48,6 +61,7 @@ export class MyItinerariesPage implements OnInit {
         });
     }
   }
+
 
   async ionViewWillEnter() {
     // Refresh data when the page becomes visible
@@ -223,6 +237,10 @@ export class MyItinerariesPage implements OnInit {
   }
 
   async deleteItinerary(itinerary: any) {
+    if (!this.isOnline()) {
+      await this.showOfflineAlert();
+      return;
+    }
     const alert = await this.alertCtrl.create({
       header: 'Delete Itinerary',
       message: 'Are you sure you want to delete this itinerary? This action cannot be undone.',
@@ -236,47 +254,47 @@ export class MyItinerariesPage implements OnInit {
           role: 'destructive',
           handler: async () => {
             try {
-              // Check if events have proper Firestore IDs
-              const eventsWithIds = itinerary.events.filter((event: any) => event.id && event.id.length > 0);
-
-              if (eventsWithIds.length > 0) {
-                // Delete events with proper IDs from Firestore
-                const batch = this.firestore.firestore.batch();
-
-                eventsWithIds.forEach((event: any) => {
-                  const eventRef = this.firestore.collection('user_itinerary_events').doc(event.id).ref;
-                  batch.delete(eventRef);
-                });
-
-                await batch.commit();
+              // Nothing to delete
+              if (!itinerary?.events?.length) {
+                this.showToast('This itinerary has no events.', 'warning');
+                return;
               }
 
-              // Always clear from localStorage as well
-              const currentEvents = JSON.parse(localStorage.getItem('user_itinerary_events') || '[]');
-              const updatedEvents = currentEvents.filter((event: any) => {
-                // Remove events that match this itinerary's date
-                const eventDate = event.start?.split('T')[0];
-                return eventDate !== itinerary.date;
+              const batch = this.firestore.firestore.batch();
+
+              itinerary.events.forEach((event: any) => {
+                if (!event.id) return;
+
+                const ref = this.firestore
+                  .collection('user_itinerary_events')
+                  .doc(event.id).ref;
+
+                batch.delete(ref);
               });
 
-              localStorage.setItem('user_itinerary_events', JSON.stringify(updatedEvents));
+              await batch.commit();
 
-              // Reload itineraries to get fresh data
+              const storedEvents = JSON.parse(
+                localStorage.getItem('user_itinerary_events') || '[]'
+              );
+
+              const deletedEventIds = itinerary.events.map((e: any) => e.id);
+
+              const remainingEvents = storedEvents.filter(
+                (event: any) => !deletedEventIds.includes(event.id)
+              );
+
+              localStorage.setItem(
+                'user_itinerary_events',
+                JSON.stringify(remainingEvents)
+              );
+
               await this.loadItineraries();
-
               this.showToast('Itinerary deleted successfully!', 'success');
-            } catch (error) {
-              console.error('Error deleting itinerary:', error);
 
-              // Fallback: Try using calendar service to clear events
-              try {
-                await this.calendarService.clearItineraryEvents();
-                await this.loadItineraries();
-                this.showToast('Itinerary cleared successfully!', 'success');
-              } catch (fallbackError) {
-                console.error('Fallback delete also failed:', fallbackError);
-                this.showToast('Error deleting itinerary', 'danger');
-              }
+            } catch (err) {
+              console.error('Delete itinerary failed:', err);
+              this.showToast('Failed to delete itinerary.', 'danger');
             }
           }
         }
@@ -432,20 +450,20 @@ export class MyItinerariesPage implements OnInit {
     this.presentToast('Link copied to clipboard!');
   }
 
-async shareUrl() {
-  try {
-    this.showToast('Generating PDF, please wait...', 'primary');
-    const url = await this.pdfExportService.generateAndUploadPDF(this.itineraries);
-    this.downloadUrl = url;
-    await Clipboard.write({ string: url });
-    this.showToast('PDF link copied to clipboard!', 'success');
-  } catch (err) {
-    console.error('PDF generation failed:', err);
-    this.showToast('Failed to generate PDF link.', 'danger');
+  async shareUrl() {
+    try {
+      this.showToast('Generating PDF, please wait...', 'primary');
+      const url = await this.pdfExportService.generateAndUploadPDF(this.itineraries);
+      this.downloadUrl = url;
+      await Clipboard.write({ string: url });
+      this.showToast('PDF link copied to clipboard!', 'success');
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      this.showToast('Failed to generate PDF link.', 'danger');
+    }
   }
-}
   async downloadPdf() {
-  await this.pdfExportService.generateAndSavePDF(this.itineraries);
-}
+    await this.pdfExportService.generateAndSavePDF(this.itineraries);
+  }
 
 }

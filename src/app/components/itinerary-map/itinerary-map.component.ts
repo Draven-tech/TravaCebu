@@ -212,7 +212,7 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
             // Create custom icon for hotels
             const hotelIcon = L.divIcon({
               className: 'hotel-marker',
-              html: `<div style="background: #1976D2; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);">🍽️</div>`,
+              html: `<div style="background: #1976D2; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);"></div>`,
               iconSize: [28, 28],
               iconAnchor: [14, 14]
             });
@@ -247,23 +247,23 @@ export class ItineraryMapComponent implements OnInit, OnDestroy, AfterViewInit {
                   <div style="display: flex; flex-direction: column; gap: 8px;">
                     <button onclick="window.addHotelToItinerary('${placeId}')" 
                             style="background: #667eea; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
-                      🍽️“… Add to Itinerary
+                      Add to Itinerary
                     </button>
                     <a href="https://www.booking.com/search.html?ss=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #1976D2; text-decoration: none; padding: 5px 8px; border: 1px solid #1976D2; border-radius: 4px; text-align: center; font-size: 12px;">
-                      🍽️“– Booking.com
+                      Booking.com
                     </a>
                     <a href="https://www.agoda.com/search?q=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #E53E3E; text-decoration: none; padding: 5px 8px; border: 1px solid #E53E3E; border-radius: 4px; text-align: center; font-size: 12px;">
-                      🍽️¨ Agoda.com
+                      Agoda.com
                     </a>
                     <a href="https://www.hotels.com/search.do?q-destination=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #38A169; text-decoration: none; padding: 5px 8px; border: 1px solid #38A169; border-radius: 4px; text-align: center; font-size: 12px;">
-                      🍽️¢ Hotels.com
+                      Hotels.com
                     </a>
                     <a href="https://www.expedia.com/hotels?q=${encodeURIComponent(hotelName)}" 
                        target="_blank" style="color: #805AD5; text-decoration: none; padding: 5px 8px; border: 1px solid #805AD5; border-radius: 4px; text-align: center; font-size: 12px;">
-                      🏨 Expedia
+                      Expedia
                     </a>
                   </div>
                 </div>
@@ -288,7 +288,7 @@ private addRestaurantMarkers() {
               // Create custom icon for restaurants
               const restaurantIcon = L.divIcon({
                 className: 'restaurant-marker',
-                html: `<div style="background: #FF9800; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);">🍽️½ï¸</div>`,
+                html: `<div style="background: #FF9800; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4);"></div>`,
                 iconSize: [28, 28],
                 iconAnchor: [14, 14]
               });
@@ -325,19 +325,19 @@ private addRestaurantMarkers() {
                     <div style="display: flex; flex-direction: column; gap: 6px;">
                       <button onclick="window.addRestaurantToItinerary('${placeId}')" 
                               style="background: #667eea; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
-                        🍽️“… Add to Itinerary
+                        Add to Itinerary
                       </button>
                       <a href="https://www.google.com/search?q=${encodeURIComponent(restaurantName + ' reviews')}" 
                          target="_blank" style="color: #FF9800; text-decoration: none; padding: 4px 6px; border: 1px solid #FF9800; border-radius: 4px; text-align: center; font-size: 11px;">
-                        🍽️” Google Reviews
+                        Google Reviews
                       </a>
                       <a href="https://www.tripadvisor.com/search?q=${encodeURIComponent(restaurantName)}" 
                          target="_blank" style="color: #00AA6C; text-decoration: none; padding: 4px 6px; border: 1px solid #00AA6C; border-radius: 4px; text-align: center; font-size: 11px;">
-                        🍽️½ï¸ TripAdvisor
+                        TripAdvisor
                       </a>
                       <a href="https://www.zomato.com/search?q=${encodeURIComponent(restaurantName)}" 
                          target="_blank" style="color: #E23744; text-decoration: none; padding: 4px 6px; border: 1px solid #E23744; border-radius: 4px; text-align: center; font-size: 11px;">
-                        🍽️• Zomato
+                        Zomato
                       </a>
                     </div>
                   </div>

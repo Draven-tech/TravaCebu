@@ -241,6 +241,7 @@ export class MyItinerariesPage implements OnInit {
       await this.showOfflineAlert();
       return;
     }
+
     const alert = await this.alertCtrl.create({
       header: 'Delete Itinerary',
       message: 'Are you sure you want to delete this itinerary? This action cannot be undone.',
@@ -254,49 +255,50 @@ export class MyItinerariesPage implements OnInit {
           role: 'destructive',
           handler: async () => {
             try {
-              // Nothing to delete
-              if (!itinerary?.events?.length) {
-                this.showToast('This itinerary has no events.', 'warning');
+              const user = await this.afAuth.currentUser;
+
+              if (!user) {
+                this.showToast('Login required.', 'danger');
+                return;
+              }
+
+              const snapshot = await this.firestore
+                .collection('user_itinerary_events', ref =>
+                  ref.where('userId', '==', user.uid)
+                )
+                .get()
+                .toPromise();
+
+              if (!snapshot || snapshot.empty) {
+                this.showToast('No deletable events found.', 'warning');
                 return;
               }
 
               const batch = this.firestore.firestore.batch();
 
-              itinerary.events.forEach((event: any) => {
-                if (!event.id) return;
+              snapshot.docs.forEach(doc => {
+                const data = doc.data() as any;
 
-                const ref = this.firestore
-                  .collection('user_itinerary_events')
-                  .doc(event.id).ref;
-
-                batch.delete(ref);
+                // match itinerary timeframe
+                if (
+                  data.start >= itinerary.start &&
+                  data.end <= itinerary.end
+                ) {
+                  batch.delete(doc.ref);
+                }
               });
 
               await batch.commit();
 
-              const storedEvents = JSON.parse(
-                localStorage.getItem('user_itinerary_events') || '[]'
-              );
-
-              const deletedEventIds = itinerary.events.map((e: any) => e.id);
-
-              const remainingEvents = storedEvents.filter(
-                (event: any) => !deletedEventIds.includes(event.id)
-              );
-
-              localStorage.setItem(
-                'user_itinerary_events',
-                JSON.stringify(remainingEvents)
-              );
-
               await this.loadItineraries();
-              this.showToast('Itinerary deleted successfully!', 'success');
+              this.showToast('Deleted successfully.', 'success');
 
             } catch (err) {
-              console.error('Delete itinerary failed:', err);
-              this.showToast('Failed to delete itinerary.', 'danger');
+              console.error(err);
+              this.showToast('Delete failed.', 'danger');
             }
           }
+
         }
       ]
     });

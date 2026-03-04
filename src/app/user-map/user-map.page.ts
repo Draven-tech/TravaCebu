@@ -32,6 +32,23 @@ import { MapUtilitiesService } from '../services/map-utilities.service';
 import { ItinerarySessionService, ItinerarySession } from '../services/itinerary-session.service';
 import { ModalCommunicationService } from '../services/modal-communication.service';
 
+interface ExpensePlan {
+  transportation?: number;
+  food?: number;
+  accommodation?: number;
+  estimates?: {
+    transportation: number;
+    food: number;
+    accommodation: number;
+  };
+}
+
+interface StopItineraryOptions {
+  persistExpenses?: boolean;
+  showToast?: boolean;
+  expensePlan?: ExpensePlan;
+}
+
 
 @Component({
   selector: 'app-user-map',
@@ -328,7 +345,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           // App is going to background or being closed
           console.log('App going to background - stopping itinerary if active');
           if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
-            this.stopItinerary();
+            void this.stopItinerary({ persistExpenses: false, showToast: false });
           }
         }
       });
@@ -348,7 +365,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       window.addEventListener('beforeunload', () => {
         console.log('Browser closing/refreshing - stopping itinerary if active');
         if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
-          this.stopItinerary();
+          void this.stopItinerary({ persistExpenses: false, showToast: false });
         }
       });
       
@@ -432,6 +449,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       componentProps: {
         availableItineraries: this.availableItineraries,
         selectedItineraryIndex: this.selectedItineraryIndex,
+        selectedItinerary: this.selectedItineraryIndex >= 0 ? this.availableItineraries[this.selectedItineraryIndex] : null,
         currentRouteInfo: this.currentRouteInfo,
         currentSegmentIndex: this.currentSegmentIndex,
         isLocationTrackingActive: this.isLocationTrackingActive,
@@ -460,7 +478,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         } else if (result.data.action === 'showSegmentSelector') {
           this.showSegmentSelector();
         } else if (result.data.action === 'stopItinerary') {
-          this.stopItinerary();
+          void this.stopItinerary({
+            persistExpenses: true,
+            showToast: true,
+            expensePlan: result.data.expensePlan
+          });
         } else if (result.data.action === 'cancelRouteGeneration') {
           this.cancelRouteGeneration();
         }
@@ -516,34 +538,205 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
 
-  stopItinerary(): void {
+  async stopItinerary(options: StopItineraryOptions = {}): Promise<void> {
+    const persistExpenses = options.persistExpenses ?? true;
+    const showToast = options.showToast ?? true;
+
     console.log('Stopping itinerary...');
-    
+
+    const activeItinerary =
+      this.selectedItineraryIndex >= 0 && this.selectedItineraryIndex < this.availableItineraries.length
+        ? this.availableItineraries[this.selectedItineraryIndex]
+        : null;
+
+    if (persistExpenses && activeItinerary) {
+      try {
+        await this.persistItineraryExpenses(activeItinerary, options.expensePlan);
+      } catch (error) {
+        console.error('Error persisting itinerary expenses:', error);
+      }
+    }
+
     // Clear route visualization
     this.mapManagement.clearAllRouteLines();
     this.mapManagement.clearRouteMarkers();
-    
+
     // Reset route state
     this.currentRouteInfo = null;
     this.selectedItineraryIndex = -1;
     this.currentSegmentIndex = 0;
-    
+
     // Reset notification visibility
     this.showStageNotification = true;
-    
+
     // End session
     this.itinerarySession.endSession();
-    
+
     // Clear modal communication
     this.modalCommunication.clearSelection();
-    
+
     // Update map to show all tourist spots
-    this.updateMapDisplay();
-    
-    // Show confirmation
-    this.showToast('Itinerary stopped');
-    
+    await this.updateMapDisplay();
+
+    if (showToast) {
+      await this.showToast('Itinerary stopped');
+    }
+
     console.log('Itinerary stopped successfully');
+  }
+
+  private async persistItineraryExpenses(itinerary: any, expensePlan?: ExpensePlan): Promise<void> {
+    if (!itinerary) {
+      return;
+    }
+
+    const resolvedPlan = this.resolveExpensePlan(itinerary, expensePlan);
+    const itineraryId = itinerary.id || `itinerary_${itinerary.date || Date.now()}`;
+    const itineraryDate = itinerary.date || this.extractDateFromStart(itinerary.start) || this.getLocalDateString(new Date());
+    const allExpenses = await this.budgetService.getExpenses();
+
+    await this.upsertExpenseCategory(
+      allExpenses,
+      'transportation',
+      resolvedPlan.transportation,
+      itineraryId,
+      itineraryDate,
+      `Transportation for ${itinerary.name || itineraryDate}`
+    );
+
+    await this.upsertExpenseCategory(
+      allExpenses,
+      'food',
+      resolvedPlan.food,
+      itineraryId,
+      itineraryDate,
+      `Food for ${itinerary.name || itineraryDate}`
+    );
+
+    await this.upsertExpenseCategory(
+      allExpenses,
+      'accommodation',
+      resolvedPlan.accommodation,
+      itineraryId,
+      itineraryDate,
+      `Accommodation for ${itinerary.name || itineraryDate}`
+    );
+  }
+
+  private async upsertExpenseCategory(
+    allExpenses: any[],
+    category: 'transportation' | 'food' | 'accommodation',
+    amount: number,
+    itineraryId: string,
+    itineraryDate: string,
+    description: string
+  ): Promise<void> {
+    if (!amount || amount <= 0) {
+      return;
+    }
+
+    const existing = allExpenses.find((expense: any) =>
+      expense.category === category &&
+      (expense.itineraryId === itineraryId || this.getLocalDateString(expense.date) === itineraryDate)
+    );
+
+    if (existing?.id) {
+      await this.budgetService.updateExpense(existing.id, {
+        amount,
+        description,
+        date: new Date(`${itineraryDate}T12:00:00`),
+        itineraryId,
+        dayNumber: 1
+      });
+      return;
+    }
+
+    if (category === 'transportation') {
+      await this.budgetService.addTransportationExpense(amount, description, undefined, itineraryId, 1);
+      return;
+    }
+
+    if (category === 'food') {
+      await this.budgetService.addFoodExpense(amount, 'Itinerary Meals', 'Food', itineraryId, 1);
+      return;
+    }
+
+    await this.budgetService.addAccommodationExpense(amount, 'Itinerary Stay', 1, itineraryId, 1);
+  }
+
+  private resolveExpensePlan(itinerary: any, expensePlan?: ExpensePlan): { transportation: number; food: number; accommodation: number } {
+    const defaults = this.computeDefaultExpensePlan(itinerary);
+
+    const transportation =
+      expensePlan?.transportation === null || expensePlan?.transportation === undefined || isNaN(Number(expensePlan?.transportation))
+        ? defaults.transportation
+        : Math.max(0, Number(expensePlan.transportation));
+
+    const food =
+      expensePlan?.food === null || expensePlan?.food === undefined || isNaN(Number(expensePlan?.food))
+        ? defaults.food
+        : Math.max(0, Number(expensePlan.food));
+
+    const accommodation =
+      expensePlan?.accommodation === null || expensePlan?.accommodation === undefined || isNaN(Number(expensePlan?.accommodation))
+        ? defaults.accommodation
+        : Math.max(0, Number(expensePlan.accommodation));
+
+    return { transportation, food, accommodation };
+  }
+
+  private computeDefaultExpensePlan(itinerary: any): { transportation: number; food: number; accommodation: number } {
+    const transportation = this.currentRouteInfo?.segments
+      ? Math.max(0, Math.round(this.budgetService.getEstimatedJeepneyFare(this.currentRouteInfo.segments).average || 0))
+      : 0;
+
+    const hasMeals = (itinerary?.days || []).some((day: any) =>
+      (day?.spots || []).some((spot: any) => !!spot?.mealType)
+    );
+
+    const nights = (itinerary?.days || []).filter((day: any) =>
+      (day?.spots || []).some((spot: any) => spot?.eventType === 'hotel' || !!spot?.hotel)
+    ).length;
+
+    const limits = this.budgetService.getCurrentBudgetLimits();
+    const dayCount = Math.max(1, itinerary?.days?.length || 1);
+
+    return {
+      transportation,
+      food: hasMeals ? Math.max(0, Math.round((limits?.dailyFood || 0) * dayCount)) : 0,
+      accommodation: nights > 0 ? Math.max(0, Math.round((limits?.dailyAccommodation || 0) * nights)) : 0
+    };
+  }
+
+  private getLocalDateString(value: any): string {
+    if (!value) {
+      return '';
+    }
+
+    if (typeof value === 'string') {
+      const datePart = value.split('T')[0];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+        return datePart;
+      }
+    }
+
+    const date = value instanceof Date ? value : new Date(value);
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private extractDateFromStart(start?: string): string {
+    if (!start) {
+      return '';
+    }
+    const datePart = start.split('T')[0];
+    return /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : '';
   }
 
   cancelRouteGeneration(): void {
@@ -1331,7 +1524,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // Stop itinerary if active
     if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
       console.log('Component destroying - stopping active itinerary');
-      this.stopItinerary();
+      void this.stopItinerary({ persistExpenses: false, showToast: false });
     }
     
     // Unsubscribe from location updates

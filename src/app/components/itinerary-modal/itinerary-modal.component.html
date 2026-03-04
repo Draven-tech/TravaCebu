@@ -26,8 +26,8 @@
           <div *ngFor="let spot of sortByTimeSlot(day.spots); let i = index" class="spot-item">
             <div class="spot-name">{{ i + 1 }}. {{ spot.name }}</div>
             <div class="spot-details">
-              <span class="time">{{ spot.timeSlot }}</span>
-              <span class="duration">{{ spot.estimatedDuration }}</span>
+              <span class="time">Time: {{ spot.timeSlot }}</span>
+              <span class="duration">Duration: {{ spot.estimatedDuration }}</span>
             </div>
             <div class="spot-category">{{ spot.category }}</div>
             
@@ -107,11 +107,11 @@
 
           </div>
           
-          <!-- Show Hotel Suggestions Button -->
+          <!-- Hotel Suggestions Button -->
           <div *ngIf="day.spots.length > 0 && !day.chosenHotel" class="suggestions-toggle hotel-toggle">
             <div class="suggestion-buttons">
               <ion-button *ngIf="day.hotelSuggestions && day.hotelSuggestions.length > 0" size="small" fill="outline" color="warning" (click)="toggleSuggestions(getDayKey(dayIndex))">
-                <ion-icon name="bed-outline"></ion-icon>
+                <ion-icon name="bed-outline" color="warning"></ion-icon>
                 {{ areSuggestionsVisible(getDayKey(dayIndex)) ? 'Hide' : 'Show' }} Hotel Options
               </ion-button>
               <ion-button *ngIf="!day.hotelSuggestions || day.hotelSuggestions.length === 0" size="small" fill="outline" color="medium" disabled>
@@ -125,10 +125,10 @@
             </div>
           </div>
           
-          <!-- Selected Hotel Card -->
+          <!-- Hotel Card -->
           <div *ngIf="day.chosenHotel" class="selected-card hotel-card">
             <div class="card-header">
-              <ion-icon name="bed" color="primary"></ion-icon>
+              <ion-icon name="bed" color="warning"></ion-icon>
               <span class="card-title">Selected Hotel (End of Day)</span>
               <ion-button size="small" fill="clear" color="danger" (click)="clearHotelChoice(day)">
                 <ion-icon name="close"></ion-icon>
@@ -148,7 +148,7 @@
                 <a [href]="getAgodaUrl(day.chosenHotel)" target="_blank" class="booking-link">
                   <ion-icon name="bed"></ion-icon> Agoda
                 </a>
-                <ion-button size="small" fill="outline" color="primary" (click)="viewHotelMap(day.chosenHotel)">
+                <ion-button size="small" fill="outline" (click)="viewHotelMap(day.chosenHotel)">
                   <ion-icon name="map"></ion-icon> View on Map
                 </ion-button>
               </div>

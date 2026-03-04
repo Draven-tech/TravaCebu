@@ -1,7 +1,7 @@
 ﻿import { Component, OnInit } from '@angular/core';
 import { NavController, AlertController, ToastController } from '@ionic/angular';
 import { CalendarService, CalendarEvent } from '../services/calendar.service';
-import { BudgetService, BudgetSummary } from '../services/budget.service';
+import { BudgetService } from '../services/budget.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -53,12 +53,9 @@ export class CompletedItinerariesPage implements OnInit {
         };
         itinerary.expenses = [];
         
-        // Try to load expenses with timeout
+        // Try to load expenses
         try {
-          await Promise.race([
-            this.loadItineraryExpenses(itinerary),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
-          ]);
+          await this.loadItineraryExpenses(itinerary);
         } catch (error) {
           // Silently skip expense loading if it fails
         }
@@ -92,6 +89,7 @@ export class CompletedItinerariesPage implements OnInit {
         
         const itinerary = {
           id: `completed_itinerary_${date}`,
+          originalItineraryId: `itinerary_${date}`,
           name: `Completed Trip - ${this.getDateDisplay(date)}`,
           date: date,
           completedDate: new Date(),
@@ -129,17 +127,13 @@ export class CompletedItinerariesPage implements OnInit {
     try {
       // Get all expenses and filter manually since getBudgetSummary might not work with our ID format
       const allExpenses = await this.budgetService.getExpenses();
+      const itineraryIdCandidates = this.getItineraryIdCandidates(itinerary);
       
       // Filter expenses that match this itinerary
       const matchingExpenses = allExpenses.filter(expense => {
-        const matchesId = expense.itineraryId === itinerary.id;
-        const matchesDate = expense.date && new Date(expense.date).toISOString().split('T')[0] === itinerary.date;
-        
-        // Also try to match with the original itinerary ID format (before completion)
-        const originalItineraryId = itinerary.originalItineraryId || this.generateOriginalItineraryId(itinerary);
-        const matchesOriginalId = expense.itineraryId === originalItineraryId;
-        
-        const matches = matchesId || matchesDate || matchesOriginalId;
+        const matchesId = !!expense.itineraryId && itineraryIdCandidates.includes(expense.itineraryId);
+        const matchesDate = this.getLocalDateString(expense.date) === itinerary.date;
+        const matches = matchesId || matchesDate;
         
         return matches;
       });
@@ -227,7 +221,7 @@ export class CompletedItinerariesPage implements OnInit {
     let notes = `=== ${itinerary.name.toUpperCase()} ===\n\n`;
     
     // Add expense summary
-    notes += `🍽️ EXPENSE SUMMARY\n`;
+    notes += `EXPENSE SUMMARY\n`;
     notes += `Total Spent: ₱${itinerary.totalExpenses || 0}\n`;
     notes += `Transportation: ₱${itinerary.expenseBreakdown?.transportation || 0}\n`;
     notes += `Food: ₱${itinerary.expenseBreakdown?.food || 0}\n`;
@@ -252,7 +246,7 @@ export class CompletedItinerariesPage implements OnInit {
 
     // Add detailed expenses
     if (itinerary.expenses && itinerary.expenses.length > 0) {
-      notes += `🍽️“‹ DETAILED EXPENSES\n`;
+      notes += `DETAILED EXPENSES\n`;
       notes += '='.repeat(20) + '\n';
       
       itinerary.expenses.forEach((expense: any) => {
@@ -301,14 +295,14 @@ export class CompletedItinerariesPage implements OnInit {
 
   async viewItineraryDetails(itinerary: any) {
     // Create a simpler text-based alert that works better
-    let message = `🍽️’° EXPENSES:\n`;
+    let message = `EXPENSES:\n`;
     message += `Total: ₱${itinerary.totalExpenses || 0}\n`;
-    message += `🚗 Transportation: ₱${itinerary.expenseBreakdown?.transportation || 0}\n`;
-    message += `🍽️½ï¸ Food: ₱${itinerary.expenseBreakdown?.food || 0}\n`;
-    message += `🍽️¨ Accommodation: ₱${itinerary.expenseBreakdown?.accommodation || 0}\n\n`;
+    message += `Transportation: ₱${itinerary.expenseBreakdown?.transportation || 0}\n`;
+    message += `Food: ₱${itinerary.expenseBreakdown?.food || 0}\n`;
+    message += `Accommodation: ₱${itinerary.expenseBreakdown?.accommodation || 0}\n\n`;
 
     if (itinerary.days && itinerary.days.length > 0) {
-      message += `🍽️“ PLACES VISITED:\n`;
+      message += `PLACES VISITED:\n`;
       itinerary.days.forEach((day: any, dayIndex: number) => {
         if (itinerary.days.length > 1) {
           message += `Day ${day.day || dayIndex + 1}:\n`;
@@ -320,10 +314,10 @@ export class CompletedItinerariesPage implements OnInit {
             message += `${spotIndex + 1}. ${spot.name}${timeInfo}\n`;
             
             if (spot.restaurant && spot.restaurant !== spot.name) {
-              message += `   🍽️½ï¸ ${spot.restaurant}\n`;
+              message += `${spot.restaurant}\n`;
             }
             if (spot.hotel && spot.hotel !== spot.name) {
-              message += `   🍽️¨ ${spot.hotel}\n`;
+              message += `${spot.hotel}\n`;
             }
           });
         }
@@ -333,7 +327,7 @@ export class CompletedItinerariesPage implements OnInit {
 
     // Add detailed expenses if available
     if (itinerary.expenses && itinerary.expenses.length > 0) {
-      message += `🍽️“‹ EXPENSE DETAILS:\n`;
+      message += `EXPENSE DETAILS:\n`;
       
       const expensesByCategory = {
         transportation: itinerary.expenses.filter((e: any) => e.category === 'transportation'),
@@ -343,7 +337,7 @@ export class CompletedItinerariesPage implements OnInit {
 
       Object.entries(expensesByCategory).forEach(([category, expenses]: [string, any[]]) => {
         if (expenses.length > 0) {
-          const categoryIcon = category === 'transportation' ? '🚗' : category === 'food' ? '🍽️½ï¸' : '🍽️¨';
+          const categoryIcon = category === 'transportation' ? '' : category === 'food' ? '' : '';
           message += `${categoryIcon} ${category.toUpperCase()}:\n`;
           
           expenses.forEach((expense: any) => {
@@ -427,9 +421,10 @@ export class CompletedItinerariesPage implements OnInit {
 
       // 2. Delete all budget expenses for this itinerary
       const allExpenses = await this.budgetService.getCurrentExpenses();
+      const itineraryIdCandidates = this.getItineraryIdCandidates(itinerary);
       const itineraryExpenses = allExpenses.filter(expense => 
-        expense.itineraryId === itinerary.id ||
-        (expense.date && new Date(expense.date).toISOString().split('T')[0] === itinerary.date)
+        (expense.itineraryId && itineraryIdCandidates.includes(expense.itineraryId)) ||
+        (expense.date && this.getLocalDateString(expense.date) === itinerary.date)
       );
 
       // Delete each expense
@@ -484,5 +479,40 @@ export class CompletedItinerariesPage implements OnInit {
       return `itinerary_${spotNames.substring(0, 50).replace(/\s+/g, '_')}`;
     }
     return '';
+  }
+
+  private getItineraryIdCandidates(itinerary: any): string[] {
+    const candidates = [
+      itinerary?.id,
+      itinerary?.originalItineraryId,
+      itinerary?.date ? `itinerary_${itinerary.date}` : '',
+      itinerary?.date ? `completed_itinerary_${itinerary.date}` : '',
+      this.generateOriginalItineraryId(itinerary)
+    ].filter((value): value is string => !!value);
+
+    return Array.from(new Set(candidates));
+  }
+
+  private getLocalDateString(value: any): string {
+    if (!value) {
+      return '';
+    }
+
+    if (typeof value === 'string') {
+      const datePart = value.split('T')[0];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+        return datePart;
+      }
+    }
+
+    const date = value instanceof Date ? value : new Date(value);
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

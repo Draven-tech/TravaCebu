@@ -8,6 +8,7 @@ import { ItineraryModalComponent } from '../components/itinerary-modal/itinerary
 import { PdfExportService } from '../services/pdf-export.service';
 import { Clipboard } from '@capacitor/clipboard';
 import { ActivatedRoute } from '@angular/router';
+import { BudgetService } from '../services/budget.service';
 
 @Component({
   selector: 'app-my-itineraries',
@@ -30,23 +31,11 @@ export class MyItinerariesPage implements OnInit {
     private toastCtrl: ToastController,
     private calendarService: CalendarService,
     private pdfExportService: PdfExportService,
+    private budgetService: BudgetService,
     private cdr: ChangeDetectorRef,
     private route: ActivatedRoute,
   ) { }
 
-  isOnline(): boolean {
-    return navigator.onLine;
-  }
-
-  async showOfflineAlert() {
-    const alert = await this.alertCtrl.create({
-      header: 'Offline mode',
-      message: 'You need to go online first to make changes to your itinerary.',
-      buttons: ['OK']
-    });
-
-    await alert.present();
-  }
   async ngOnInit() {
     const user = await this.afAuth.currentUser;
     this.userId = user?.uid || null;
@@ -61,7 +50,6 @@ export class MyItinerariesPage implements OnInit {
         });
     }
   }
-
 
   async ionViewWillEnter() {
     // Refresh data when the page becomes visible
@@ -223,6 +211,10 @@ export class MyItinerariesPage implements OnInit {
 
       await batch.commit();
 
+      if (newStatus === 'completed') {
+        await this.ensureCompletedItineraryExpenses(itinerary);
+      }
+
       // Reload itineraries to get fresh data
       await this.loadItineraries();
 
@@ -236,12 +228,89 @@ export class MyItinerariesPage implements OnInit {
     }
   }
 
-  async deleteItinerary(itinerary: any) {
-    if (!this.isOnline()) {
-      await this.showOfflineAlert();
+  private async ensureCompletedItineraryExpenses(itinerary: any): Promise<void> {
+    const itineraryId = itinerary?.id || (itinerary?.date ? `itinerary_${itinerary.date}` : '');
+    const itineraryDate = itinerary?.date || this.getLocalDateString(itinerary?.start) || this.getLocalDateString(new Date());
+
+    if (!itineraryId || !itineraryDate) {
       return;
     }
 
+    const existingExpenses = await this.budgetService.getExpenses();
+    const existingForItinerary = existingExpenses.filter(expense =>
+      expense.itineraryId === itineraryId || this.getLocalDateString(expense.date) === itineraryDate
+    );
+
+    if (existingForItinerary.length > 0) {
+      return;
+    }
+
+    const limits = this.budgetService.getCurrentBudgetLimits();
+    const events = itinerary?.events || [];
+
+    const rideCount = events.filter((event: any) => event?.extendedProps?.type === 'tourist_spot').length;
+    const mealCount = events.filter((event: any) => event?.extendedProps?.type === 'restaurant').length;
+    const hotelCount = events.filter((event: any) => event?.extendedProps?.type === 'hotel').length;
+
+    const transportationEstimate = Math.max(0, Math.round(rideCount * 13));
+    const foodEstimate = Math.max(0, Math.round(mealCount > 0 ? mealCount * (limits.dailyFood / 2) : 0));
+    const accommodationEstimate = Math.max(0, Math.round(hotelCount > 0 ? hotelCount * limits.dailyAccommodation : 0));
+
+    if (transportationEstimate > 0) {
+      await this.budgetService.addTransportationExpense(
+        transportationEstimate,
+        `Estimated transportation for ${itinerary.title || itinerary.date}`,
+        undefined,
+        itineraryId,
+        1
+      );
+    }
+
+    if (foodEstimate > 0) {
+      await this.budgetService.addFoodExpense(
+        foodEstimate,
+        'Estimated Meals',
+        'Food',
+        itineraryId,
+        1
+      );
+    }
+
+    if (accommodationEstimate > 0) {
+      await this.budgetService.addAccommodationExpense(
+        accommodationEstimate,
+        'Estimated Accommodation',
+        Math.max(1, hotelCount),
+        itineraryId,
+        1
+      );
+    }
+  }
+
+  private getLocalDateString(value: any): string {
+    if (!value) {
+      return '';
+    }
+
+    if (typeof value === 'string') {
+      const datePart = value.split('T')[0];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+        return datePart;
+      }
+    }
+
+    const date = value instanceof Date ? value : new Date(value);
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  async deleteItinerary(itinerary: any) {
     const alert = await this.alertCtrl.create({
       header: 'Delete Itinerary',
       message: 'Are you sure you want to delete this itinerary? This action cannot be undone.',
@@ -255,50 +324,49 @@ export class MyItinerariesPage implements OnInit {
           role: 'destructive',
           handler: async () => {
             try {
-              const user = await this.afAuth.currentUser;
+              // Check if events have proper Firestore IDs
+              const eventsWithIds = itinerary.events.filter((event: any) => event.id && event.id.length > 0);
 
-              if (!user) {
-                this.showToast('Login required.', 'danger');
-                return;
+              if (eventsWithIds.length > 0) {
+                // Delete events with proper IDs from Firestore
+                const batch = this.firestore.firestore.batch();
+
+                eventsWithIds.forEach((event: any) => {
+                  const eventRef = this.firestore.collection('user_itinerary_events').doc(event.id).ref;
+                  batch.delete(eventRef);
+                });
+
+                await batch.commit();
               }
 
-              const snapshot = await this.firestore
-                .collection('user_itinerary_events', ref =>
-                  ref.where('userId', '==', user.uid)
-                )
-                .get()
-                .toPromise();
-
-              if (!snapshot || snapshot.empty) {
-                this.showToast('No deletable events found.', 'warning');
-                return;
-              }
-
-              const batch = this.firestore.firestore.batch();
-
-              snapshot.docs.forEach(doc => {
-                const data = doc.data() as any;
-
-                // match itinerary timeframe
-                if (
-                  data.start >= itinerary.start &&
-                  data.end <= itinerary.end
-                ) {
-                  batch.delete(doc.ref);
-                }
+              // Always clear from localStorage as well
+              const currentEvents = JSON.parse(localStorage.getItem('user_itinerary_events') || '[]');
+              const updatedEvents = currentEvents.filter((event: any) => {
+                // Remove events that match this itinerary's date
+                const eventDate = event.start?.split('T')[0];
+                return eventDate !== itinerary.date;
               });
 
-              await batch.commit();
+              localStorage.setItem('user_itinerary_events', JSON.stringify(updatedEvents));
 
+              // Reload itineraries to get fresh data
               await this.loadItineraries();
-              this.showToast('Deleted successfully.', 'success');
 
-            } catch (err) {
-              console.error(err);
-              this.showToast('Delete failed.', 'danger');
+              this.showToast('Itinerary deleted successfully!', 'success');
+            } catch (error) {
+              console.error('Error deleting itinerary:', error);
+
+              // Fallback: Try using calendar service to clear events
+              try {
+                await this.calendarService.clearItineraryEvents();
+                await this.loadItineraries();
+                this.showToast('Itinerary cleared successfully!', 'success');
+              } catch (fallbackError) {
+                console.error('Fallback delete also failed:', fallbackError);
+                this.showToast('Error deleting itinerary', 'danger');
+              }
             }
           }
-
         }
       ]
     });
@@ -452,20 +520,20 @@ export class MyItinerariesPage implements OnInit {
     this.presentToast('Link copied to clipboard!');
   }
 
-  async shareUrl() {
-    try {
-      this.showToast('Generating PDF, please wait...', 'primary');
-      const url = await this.pdfExportService.generateAndUploadPDF(this.itineraries);
-      this.downloadUrl = url;
-      await Clipboard.write({ string: url });
-      this.showToast('PDF link copied to clipboard!', 'success');
-    } catch (err) {
-      console.error('PDF generation failed:', err);
-      this.showToast('Failed to generate PDF link.', 'danger');
-    }
+async shareUrl() {
+  try {
+    this.showToast('Generating PDF, please wait...', 'primary');
+    const url = await this.pdfExportService.generateAndUploadPDF(this.itineraries);
+    this.downloadUrl = url;
+    await Clipboard.write({ string: url });
+    this.showToast('PDF link copied to clipboard!', 'success');
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    this.showToast('Failed to generate PDF link.', 'danger');
   }
+}
   async downloadPdf() {
-    await this.pdfExportService.generateAndSavePDF(this.itineraries);
-  }
+  await this.pdfExportService.generateAndSavePDF(this.itineraries);
+}
 
 }

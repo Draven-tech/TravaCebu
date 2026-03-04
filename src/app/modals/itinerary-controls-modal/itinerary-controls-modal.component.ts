@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { ModalCommunicationService } from '../../services/modal-communication.service';
+import { BudgetService } from '../../services/budget.service';
 
 @Component({
   selector: 'app-itinerary-controls-modal',
@@ -11,6 +12,7 @@ import { ModalCommunicationService } from '../../services/modal-communication.se
 export class ItineraryControlsModalComponent implements OnInit {
   @Input() availableItineraries: any[] = [];
   @Input() selectedItineraryIndex: number = -1;
+  @Input() selectedItinerary: any = null;
   @Input() currentRouteInfo: any = null;
   @Input() currentSegmentIndex: number = 0;
   @Input() isLocationTrackingActive: boolean = false;
@@ -20,38 +22,36 @@ export class ItineraryControlsModalComponent implements OnInit {
   @Input() isGeneratingRoute: boolean = false;
 
   @Output() itinerarySelected = new EventEmitter<number>();
-  
+
   showScrollIndicator: boolean = false;
+  estimatedExpenses = {
+    transportation: 0,
+    food: 0,
+    accommodation: 0
+  };
+  expenseInputs: {
+    transportation: number | null;
+    food: number | null;
+    accommodation: number | null;
+  } = {
+    transportation: null,
+    food: null,
+    accommodation: null
+  };
 
   constructor(
     private modalCtrl: ModalController,
-    private modalCommunication: ModalCommunicationService
+    private modalCommunication: ModalCommunicationService,
+    private budgetService: BudgetService
   ) {}
 
   ngOnInit(): void {
-    console.log('Modal initialized with:', {
-      availableItineraries: this.availableItineraries,
-      availableItinerariesLength: this.availableItineraries?.length,
-      selectedItineraryIndex: this.selectedItineraryIndex
-    });
+    this.estimatedExpenses = this.computeEstimatedExpenses();
   }
 
   onItineraryChange(event: any): void {
-    console.log('onItineraryChange triggered!', event);
-    console.log('Event detail:', event.detail);
-    console.log('Event detail value:', event.detail.value);
-    
-    const index = parseInt(event.detail.value);
-    console.log('Parsed index:', index);
-    console.log('Available itineraries:', this.availableItineraries.length);
-    console.log('Calling modalCommunication.selectItinerary...');
-    
-    // Use service to communicate with parent component
+    const index = parseInt(event.detail.value, 10);
     this.modalCommunication.selectItinerary(index);
-    
-    console.log('Modal communication service called');
-
-    // Close the modal after selection
     this.modalCtrl.dismiss();
   }
 
@@ -72,12 +72,13 @@ export class ItineraryControlsModalComponent implements OnInit {
   }
 
   onStopItinerary(): void {
-    console.log('Stop itinerary requested');
-    this.modalCtrl.dismiss({ action: 'stopItinerary' });
+    this.modalCtrl.dismiss({
+      action: 'stopItinerary',
+      expensePlan: this.getFinalExpensePlan()
+    });
   }
 
   onCancelRouteGeneration(): void {
-    console.log('Cancel route generation requested');
     this.modalCtrl.dismiss({ action: 'cancelRouteGeneration' });
   }
 
@@ -87,42 +88,41 @@ export class ItineraryControlsModalComponent implements OnInit {
 
   formatItineraryTitle(itinerary: any): string {
     if (!itinerary) return 'Unknown Itinerary';
-    
+
     const dayCount = itinerary.days?.length || 0;
     const spotCount = itinerary.days?.[0]?.spots?.length || 0;
-    
-    if (itinerary.name && itinerary.name !== `Itinerary for Unknown Date`) {
+
+    if (itinerary.name && itinerary.name !== 'Itinerary for Unknown Date') {
       return `${itinerary.name} (${dayCount} day${dayCount > 1 ? 's' : ''}, ${spotCount} spots)`;
     }
-    
+
     return `Itinerary for Unknown Date (${dayCount} day${dayCount > 1 ? 's' : ''}, ${spotCount} spots)`;
   }
 
   getSegmentTitle(segment: any): string {
     if (segment.type === 'jeepney' || segment.type === 'bus') {
-      return `${segment.jeepneyCode || 'Transit'} (${segment.fromName || segment.from} → ${segment.toName || segment.to})`;
-    } else if (segment.type === 'walk') {
-      return `Walk (${segment.fromName || segment.from} → ${segment.toName || segment.to})`;
-    } else {
-      return `${segment.fromName || segment.from} → ${segment.toName || segment.to}`;
+      return `${segment.jeepneyCode || 'Transit'} (${segment.fromName || segment.from} -> ${segment.toName || segment.to})`;
     }
+    if (segment.type === 'walk') {
+      return `Walk (${segment.fromName || segment.from} -> ${segment.toName || segment.to})`;
+    }
+    return `${segment.fromName || segment.from} -> ${segment.toName || segment.to}`;
   }
 
   formatDuration(seconds: number): string {
     if (!seconds) return 'N/A';
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
     }
+    return `${minutes}m`;
   }
 
   getEstimatedFare(): string {
     if (!this.currentRouteInfo?.segments) {
-      return '₱0';
+      return 'PHP 0';
     }
 
     const jeepneyCount = this.currentRouteInfo.segments.filter(
@@ -130,13 +130,13 @@ export class ItineraryControlsModalComponent implements OnInit {
     ).length;
 
     if (jeepneyCount === 0) {
-      return '₱0';
+      return 'PHP 0';
     }
 
     const minFare = jeepneyCount * 12;
     const maxFare = jeepneyCount * 15;
 
-    return minFare === maxFare ? `₱${minFare}` : `₱${minFare}-${maxFare}`;
+    return minFare === maxFare ? `PHP ${minFare}` : `PHP ${minFare}-${maxFare}`;
   }
 
   getFormattedTotalDuration(): string {
@@ -193,7 +193,7 @@ export class ItineraryControlsModalComponent implements OnInit {
 
     const currentStage = Math.min(this.currentSegmentIndex + 1, totalSegments);
     const percentage = Math.round(this.getRouteCompletionRatio() * 100);
-    return `Stage ${currentStage} of ${totalSegments} • ${percentage}% ready`;
+    return `Stage ${currentStage} of ${totalSegments} - ${percentage}% ready`;
   }
 
   getSegmentCount(segmentType: 'jeepney' | 'bus' | 'walk'): number {
@@ -206,5 +206,82 @@ export class ItineraryControlsModalComponent implements OnInit {
 
   getRideSegmentCount(): number {
     return this.getSegmentCount('jeepney') + this.getSegmentCount('bus');
+  }
+
+  getInputOrEstimate(category: 'transportation' | 'food' | 'accommodation'): number {
+    const input = this.expenseInputs[category];
+    if (input === null || input === undefined || isNaN(Number(input))) {
+      return this.estimatedExpenses[category];
+    }
+    return Math.max(0, Number(input));
+  }
+
+  private getFinalExpensePlan() {
+    return {
+      transportation: this.getInputOrEstimate('transportation'),
+      food: this.getInputOrEstimate('food'),
+      accommodation: this.getInputOrEstimate('accommodation'),
+      estimates: { ...this.estimatedExpenses }
+    };
+  }
+
+  private computeEstimatedExpenses(): { transportation: number; food: number; accommodation: number } {
+    return {
+      transportation: this.computeTransportationEstimate(),
+      food: this.computeFoodEstimate(),
+      accommodation: this.computeAccommodationEstimate()
+    };
+  }
+
+  private computeTransportationEstimate(): number {
+    if (!this.currentRouteInfo?.segments) {
+      return 0;
+    }
+    const fareData = this.budgetService.getEstimatedJeepneyFare(this.currentRouteInfo.segments);
+    return Math.max(0, Math.round(fareData.average || 0));
+  }
+
+  private computeFoodEstimate(): number {
+    const itinerary = this.getSelectedItinerary();
+    if (!itinerary?.days || itinerary.days.length === 0) {
+      return 0;
+    }
+
+    const hasMealStops = itinerary.days.some((day: any) =>
+      (day?.spots || []).some((spot: any) => !!spot?.mealType)
+    );
+    if (!hasMealStops) {
+      return 0;
+    }
+
+    const limits = this.budgetService.getCurrentBudgetLimits();
+    return Math.max(0, Math.round((limits?.dailyFood || 0) * itinerary.days.length));
+  }
+
+  private computeAccommodationEstimate(): number {
+    const itinerary = this.getSelectedItinerary();
+    if (!itinerary?.days || itinerary.days.length === 0) {
+      return 0;
+    }
+
+    const nights = itinerary.days.filter((day: any) =>
+      (day?.spots || []).some((spot: any) => spot?.eventType === 'hotel' || !!spot?.hotel)
+    ).length;
+    if (nights === 0) {
+      return 0;
+    }
+
+    const limits = this.budgetService.getCurrentBudgetLimits();
+    return Math.max(0, Math.round((limits?.dailyAccommodation || 0) * nights));
+  }
+
+  private getSelectedItinerary(): any {
+    if (this.selectedItinerary) {
+      return this.selectedItinerary;
+    }
+    if (this.selectedItineraryIndex < 0 || this.selectedItineraryIndex >= this.availableItineraries.length) {
+      return null;
+    }
+    return this.availableItineraries[this.selectedItineraryIndex];
   }
 }

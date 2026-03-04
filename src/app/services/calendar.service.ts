@@ -90,8 +90,8 @@ export class CalendarService {
         const events = snapshot.docs.map((doc: any) => {
           const data = doc.data() as any;
           return {
-            id: doc.id,
-            ...data
+            ...data,
+            id: doc.id
           };
         }) as GlobalEvent[];
         
@@ -211,8 +211,10 @@ export class CalendarService {
       }
 
       const cleanedEvents = events.map(event => {
+        const eventWithoutId: any = { ...event };
+        delete eventWithoutId.id;
         const cleanedEvent = {
-          ...event,
+          ...eventWithoutId,
           userId: user.uid,
           createdAt: new Date()
         };
@@ -269,8 +271,8 @@ export class CalendarService {
         const events = snapshot.docs.map(doc => {
           const data = doc.data() as any;
           return {
-            id: doc.id,
-            ...data
+            ...data,
+            id: doc.id
           };
         }) as CalendarEvent[];
        
@@ -326,8 +328,8 @@ export class CalendarService {
         const events = snapshot.docs.map(doc => {
           const data = doc.data() as any;
           return {
-            id: doc.id,
-            ...data
+            ...data,
+            id: doc.id
           };
         }) as CalendarEvent[];
        
@@ -559,8 +561,8 @@ export class CalendarService {
         const events = snapshot.docs.map(doc => {
           const data = doc.data() as any;
           return {
-            id: doc.id,
-            ...data
+            ...data,
+            id: doc.id
           };
         }) as CalendarEvent[];
        

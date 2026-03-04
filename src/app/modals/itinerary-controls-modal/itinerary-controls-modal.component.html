@@ -62,6 +62,51 @@
     </ion-card-content>
   </ion-card>
 
+  <ion-card *ngIf="selectedItineraryIndex >= 0">
+    <ion-card-header>
+      <ion-card-title>Expense Entry</ion-card-title>
+      <ion-card-subtitle>Leave blank to use estimates</ion-card-subtitle>
+    </ion-card-header>
+
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Transportation (PHP)</ion-label>
+        <ion-input
+          type="number"
+          min="0"
+          inputmode="decimal"
+          [(ngModel)]="expenseInputs.transportation"
+          [placeholder]="estimatedExpenses.transportation.toString()">
+        </ion-input>
+        <ion-note slot="helper">Estimated: PHP {{ estimatedExpenses.transportation | number:'1.0-0' }}</ion-note>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Food (PHP)</ion-label>
+        <ion-input
+          type="number"
+          min="0"
+          inputmode="decimal"
+          [(ngModel)]="expenseInputs.food"
+          [placeholder]="estimatedExpenses.food.toString()">
+        </ion-input>
+        <ion-note slot="helper">Estimated: PHP {{ estimatedExpenses.food | number:'1.0-0' }}</ion-note>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Accommodation (PHP)</ion-label>
+        <ion-input
+          type="number"
+          min="0"
+          inputmode="decimal"
+          [(ngModel)]="expenseInputs.accommodation"
+          [placeholder]="estimatedExpenses.accommodation.toString()">
+        </ion-input>
+        <ion-note slot="helper">Estimated: PHP {{ estimatedExpenses.accommodation | number:'1.0-0' }}</ion-note>
+      </ion-item>
+    </ion-card-content>
+  </ion-card>
+
   <!-- Loading Status Card -->
   <ion-card *ngIf="isLoadingJeepneyRoutes || isGeneratingRoute">
     <ion-card-header>

@@ -25,7 +25,7 @@ export interface ItinerarySpot {
 
 export interface ItineraryDay {
   day: number;
-  date?: string; // Add date for calendar integration
+  date?: string;
   spots: ItinerarySpot[];
   routes: any[];
   hotelSuggestions?: any[];
@@ -41,7 +41,6 @@ export class ItineraryService {
     private placesService: PlacesService
   ) {}
 
-  // Generate itinerary with meal/hotel slots, but no suggestions
   async generateItinerary(
     spots: any[],
     numDays: number,
@@ -62,7 +61,6 @@ export class ItineraryService {
       return [];
     }
 
-    // Sort spots by location proximity for efficient routing
     const sortedSpots = this.sortSpotsByProximity(normalizedSpots);
     const days: any[] = Array.from({ length: numDays }, () => []);
     sortedSpots.forEach((spot, i) => {
@@ -77,7 +75,6 @@ export class ItineraryService {
       
       const dayPlan: ItineraryDay = { day: day + 1, spots: [], routes: [] };
       
-      // Calculate the date for this day
       if (startDate) {
         const dayDate = new Date(startDate);
         dayDate.setDate(dayDate.getDate() + day);
@@ -88,7 +85,7 @@ export class ItineraryService {
       const start = this.parseTime(startTime, startDate);
       const end = this.parseTime(endTime, startDate);
       const totalMinutes = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60));
-      const slotMinutes = Math.max(30, Math.floor(totalMinutes / totalSpots)); // Minimum 30 minutes per spot
+      const slotMinutes = Math.max(30, Math.floor(totalMinutes / totalSpots)); 
       
       let currentTime = new Date(start);
       
@@ -120,11 +117,9 @@ export class ItineraryService {
           durationMinutes: slotMinutes
         });
         
-        // Move to next time slot
         currentTime = new Date(currentTime.getTime() + slotMinutes * 60000);
-        
-        // Generate comprehensive route chain for the day
-        if (i === daySpots.length - 1) { // Only generate routes once at the end of the day
+
+        if (i === daySpots.length - 1) {
           await this.generateCompleteRouteChain(dayPlan);
         }
       }
@@ -135,20 +130,14 @@ export class ItineraryService {
     return itinerary;
   }
 
-  // Fetch and cache restaurant/hotel suggestions for a finalized itinerary
   async fetchSuggestionsForItinerary(itinerary: ItineraryDay[], logFn?: (msg: string) => void): Promise<ItineraryDay[]> {
-    // TEMPORARILY DISABLE CACHING TO FORCE FRESH FETCH
-    // logFn?.('[DEBUG] Caching disabled, fetching fresh suggestions...');
-    
-    // Fetch fresh suggestions
+
     for (const day of itinerary) {
-      // Fetch restaurant suggestions for meal times
       for (const spot of day.spots) {
         if (spot.mealType) {
           try {
             const restRes: any = await this.placesService.getNearbyPlaces(spot.location.lat, spot.location.lng, 'restaurant').toPromise();
             const suggestions = restRes.results || [];
-            // Rank and sort suggestions so UI top 3 are meaningful
             spot.restaurantSuggestions = this.rankPlacesByQualityAndProximity(suggestions, spot.location);
           } catch (error) {
             console.error(`Error fetching restaurants for ${spot.name}:`, error);
@@ -157,13 +146,11 @@ export class ItineraryService {
         }
       }
       
-      // Fetch hotel suggestions for last spot of the day
       if (day.spots.length > 0) {
         const lastSpot = day.spots[day.spots.length - 1];
         try {
           const hotelRes: any = await this.placesService.getNearbyPlaces(lastSpot.location.lat, lastSpot.location.lng, 'lodging').toPromise();
           const suggestions = hotelRes.results || [];
-          // Rank and sort hotel suggestions similarly
           day.hotelSuggestions = this.rankPlacesByQualityAndProximity(suggestions, lastSpot.location);
         } catch (error) {
           console.error(`Error fetching hotels for Day ${day.day}:`, error);
@@ -175,13 +162,11 @@ export class ItineraryService {
     return itinerary;
   }
 
-  // Rank Google Places results by a composite of rating, reviews, proximity, open-now, and price
   private rankPlacesByQualityAndProximity(places: any[], origin: { lat: number; lng: number }): any[] {
     if (!Array.isArray(places) || places.length === 0) {
       return [];
     }
 
-    // Determine max distance for normalization (fallback to 5km if data sparse)
     const locations = places
       .map(p => this.safeGetPlaceLocation(p))
       .filter((loc): loc is { lat: number; lng: number } => !!loc);
@@ -192,18 +177,16 @@ export class ItineraryService {
       const rating: number = typeof place.rating === 'number' ? place.rating : 0;
       const reviews: number = typeof place.user_ratings_total === 'number' ? place.user_ratings_total : 0;
       const openNow: boolean = !!place.opening_hours?.open_now;
-      const priceLevel: number = typeof place.price_level === 'number' ? place.price_level : 2; // 0-4, assume mid if unknown
+      const priceLevel: number = typeof place.price_level === 'number' ? place.price_level : 2; 
       const loc = this.safeGetPlaceLocation(place);
-      const distanceKm = loc ? this.getDistance(origin, loc) : maxDistanceKm; // worst if unknown
+      const distanceKm = loc ? this.getDistance(origin, loc) : maxDistanceKm;
 
-      // Normalize components
       const ratingScore = rating / 5; // 0..1
-      const reviewsScore = Math.min(1, Math.log10(Math.max(1, reviews)) / 3); // saturate ~ at 1000 reviews
-      const proximityScore = 1 - Math.min(1, distanceKm / maxDistanceKm); // closer => higher
-      const openNowBonus = openNow ? 0.08 : 0; // small boost if open
-      const priceScore = 1 - Math.min(1, priceLevel / 4); // cheaper => higher
+      const reviewsScore = Math.min(1, Math.log10(Math.max(1, reviews)) / 3); 
+      const proximityScore = 1 - Math.min(1, distanceKm / maxDistanceKm);
+      const openNowBonus = openNow ? 0.08 : 0;
+      const priceScore = 1 - Math.min(1, priceLevel / 4);
 
-      // Weights tuned for quality first, then proximity
       const score = (
         0.45 * ratingScore +
         0.25 * reviewsScore +
@@ -220,7 +203,6 @@ export class ItineraryService {
   }
 
   private safeGetPlaceLocation(place: any): { lat: number; lng: number } | null {
-    // Google Places NearbySearch returns geometry.location with lat/lng
     const lat = place?.geometry?.location?.lat;
     const lng = place?.geometry?.location?.lng;
     if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
@@ -229,7 +211,6 @@ export class ItineraryService {
     return null;
   }
 
-  // Helper: create a cache key based on spot IDs and time slots
   private getCacheKey(itinerary: ItineraryDay[]): string {
     const key = itinerary.map(day => day.spots.map(s => s.id).join('-')).join('|');
     return 'itinerary_suggestions_' + key;
@@ -240,16 +221,13 @@ export class ItineraryService {
     let d: Date;
     
     if (startDate) {
-      // Use the provided start date
       d = new Date(startDate);
       d.setHours(h, m, 0, 0);
     } else {
-      // Use current date as fallback
       d = new Date();
       d.setHours(h, m, 0, 0);
     }
     
-    // Validate the date is not invalid
     if (isNaN(d.getTime())) {
       console.warn('Invalid date created, using current date as fallback');
       d = new Date();
@@ -260,7 +238,6 @@ export class ItineraryService {
   }
 
   private formatTime(date: Date): string {
-    // Check if date is valid before formatting
     if (isNaN(date.getTime())) {
       console.warn('Invalid date passed to formatTime, returning default time');
       return '09:00';
@@ -310,7 +287,6 @@ export class ItineraryService {
     }
   }
 
-  // Test API connection and return the full response
   async testApiConnection(): Promise<any> {
     try {
       const testResult = await this.placesService.testApiKey().toPromise();
@@ -321,7 +297,6 @@ export class ItineraryService {
     }
   }
 
-  // Update time slots for a day's spots
   updateTimeSlots(day: ItineraryDay, startTime: string = '08:00'): void {
     if (!day.spots || day.spots.length === 0) return;
 
@@ -330,27 +305,21 @@ export class ItineraryService {
     for (let i = 0; i < day.spots.length; i++) {
       const spot = day.spots[i];
       
-      // Only update time if it's not custom
       if (!spot.customTime) {
         spot.timeSlot = this.formatTime(currentTime);
       }
       
-      // Calculate end time for this spot
       const durationMinutes = spot.durationMinutes || 120;
       const endTime = new Date(currentTime.getTime() + durationMinutes * 60000);
       
-      // Update estimated duration
       spot.estimatedDuration = `${durationMinutes} min`;
       
-      // Set current time to end time for next spot
       currentTime = endTime;
     }
   }
 
-  // Find jeepney route between two spots
   private async findJeepneyRoute(fromSpot: ItinerarySpot, toSpot: ItinerarySpot): Promise<any> {
     try {
-      // Find jeepney routes that pass through both spots
       const routesSnap = await this.firestore.collection('jeepney_routes', ref =>
         ref.where('points', 'array-contains', { lat: toSpot.location.lat, lng: toSpot.location.lng })
       ).get().toPromise();
@@ -362,12 +331,10 @@ export class ItineraryService {
       let bestRoute: any = null;
       let minDistance = Infinity;
 
-      // Find the route that has the closest start point to the fromSpot
       for (const doc of routesSnap.docs) {
         const route = doc.data() as any;
         if (!route.points || route.points.length < 2) continue;
 
-        // Find the closest point in the route to fromSpot
         let closestPoint = route.points[0];
         let minDist = this.getDistance(fromSpot.location, closestPoint);
 
@@ -379,7 +346,6 @@ export class ItineraryService {
           }
         }
 
-        // If this route is better than previous best, update
         if (minDist < minDistance) {
           minDistance = minDist;
           bestRoute = {
@@ -398,9 +364,8 @@ export class ItineraryService {
     }
   }
 
-  // Calculate distance between two points
   private getDistance(a: { lat: number, lng: number }, b: { lat: number, lng: number }): number {
-    const R = 6371; // Earth's radius in km
+    const R = 6371;
     const dLat = this.toRad(b.lat - a.lat);
     const dLng = this.toRad(b.lng - a.lng);
     const lat1 = this.toRad(a.lat);
@@ -436,13 +401,11 @@ export class ItineraryService {
     };
   }
 
-  // Sort spots by proximity to create efficient routes
   private sortSpotsByProximity(spots: any[]): any[] {
     if (spots.length <= 1) {
       return spots;
     }
 
-    // Filter out spots without valid location data
     const validSpots = spots.filter(spot => 
       spot.location && 
       typeof spot.location.lat === 'number' && 
@@ -452,24 +415,19 @@ export class ItineraryService {
     );
 
     if (validSpots.length <= 1) {
-      return spots; // Return original if no valid spots to sort
+      return spots;
     }
 
-    // Create a copy to avoid modifying the original array
     const sortedSpots = [...validSpots];
-    
-    // Use a greedy nearest neighbor algorithm with optimization
     const result: any[] = [];
     const unvisited = new Set(sortedSpots.map((_, index) => index));
     
-    // Start with the spot that has the most central location (closest to average)
     const avgLat = sortedSpots.reduce((sum, spot) => sum + spot.location.lat, 0) / sortedSpots.length;
     const avgLng = sortedSpots.reduce((sum, spot) => sum + spot.location.lng, 0) / sortedSpots.length;
     
     let currentIndex = 0;
     let minDistanceToCenter = Infinity;
     
-    // Find the spot closest to the center to start
     for (let i = 0; i < sortedSpots.length; i++) {
       const distance = this.getDistance(
         sortedSpots[i].location,
@@ -484,7 +442,6 @@ export class ItineraryService {
     result.push(sortedSpots[currentIndex]);
     unvisited.delete(currentIndex);
     
-    // Find the nearest unvisited spot repeatedly
     while (unvisited.size > 0) {
       let nearestIndex = -1;
       let minDistance = Infinity;
@@ -506,15 +463,13 @@ export class ItineraryService {
         unvisited.delete(nearestIndex);
         currentIndex = nearestIndex;
       } else {
-        // Fallback: add remaining spots in original order
         for (const index of unvisited) {
           result.push(sortedSpots[index]);
         }
         break;
       }
     }
-    
-    // Add back any spots that were filtered out (invalid locations)
+
     const invalidSpots = spots.filter(spot => 
       !spot.location || 
       typeof spot.location.lat !== 'number' || 
@@ -526,36 +481,30 @@ export class ItineraryService {
     return [...result, ...invalidSpots];
   }
 
-  // Calculate estimated jeepney travel time
   private calculateJeepneyTime(routePoints: any[], startPoint: any, endPoint: any): string {
-    // Find the indices of start and end points in the route
     let startIndex = 0;
     let endIndex = routePoints.length - 1;
 
     for (let i = 0; i < routePoints.length; i++) {
-      if (this.getDistance(routePoints[i], startPoint) < 0.1) { // Within 100m
+      if (this.getDistance(routePoints[i], startPoint) < 0.1) { 
         startIndex = i;
       }
-      if (this.getDistance(routePoints[i], endPoint) < 0.1) { // Within 100m
+      if (this.getDistance(routePoints[i], endPoint) < 0.1) {
         endIndex = i;
       }
     }
 
-    // Calculate distance between start and end
-    const distance = Math.abs(endIndex - startIndex) * 0.5; // Rough estimate: 0.5km per point
-    const timeMinutes = Math.max(10, Math.round(distance * 2)); // Rough estimate: 2 min per km
+    const distance = Math.abs(endIndex - startIndex) * 0.5;
+    const timeMinutes = Math.max(10, Math.round(distance * 2));
 
     return `${timeMinutes} min`;
   }
 
-  // Enhanced route generation with complete chain including user location
   async generateCompleteRouteChain(dayPlan: ItineraryDay): Promise<void> {
     const routeChain: any[] = [];
     
-    // Get user's current location
     const userLocation = await this.getUserLocation();
     
-    // Start from user location to first spot
     if (dayPlan.spots.length > 0) {
       const firstSpot = dayPlan.spots[0];
       const routeToFirst = await this.findJeepneyRoute(
@@ -577,12 +526,10 @@ export class ItineraryService {
       }
     }
     
-    // Generate routes between spots, including restaurants
     for (let i = 0; i < dayPlan.spots.length; i++) {
       const currentSpot = dayPlan.spots[i];
       const nextSpot = dayPlan.spots[i + 1];
-      
-      // If current spot has a chosen restaurant, add route to restaurant
+
       if (currentSpot.chosenRestaurant && currentSpot.chosenRestaurant.location) {
         const routeToRestaurant = await this.findJeepneyRoute(
           currentSpot,
@@ -605,8 +552,7 @@ export class ItineraryService {
             description: `From ${currentSpot.name} to ${currentSpot.chosenRestaurant.name} for ${currentSpot.mealType}`
           });
         }
-        
-        // Route from restaurant to next spot (or hotel if last spot)
+
         if (nextSpot) {
           const routeFromRestaurant = await this.findJeepneyRoute(
             { 
@@ -630,7 +576,6 @@ export class ItineraryService {
           }
         }
       } else if (nextSpot) {
-        // Direct route from current spot to next spot (no restaurant)
         const routeToNext = await this.findJeepneyRoute(currentSpot, nextSpot);
         
         if (routeToNext) {
@@ -648,7 +593,6 @@ export class ItineraryService {
       }
     }
     
-    // Route from last spot to hotel (if hotel is chosen)
     if (dayPlan.chosenHotel && dayPlan.chosenHotel.location && dayPlan.spots.length > 0) {
       const lastSpot = dayPlan.spots[dayPlan.spots.length - 1];
       const routeToHotel = await this.findJeepneyRoute(
@@ -673,17 +617,15 @@ export class ItineraryService {
       }
     }
     
-    // Update the day plan with the complete route chain
     dayPlan.routes = routeChain;
   }
 
-  // Get user's current location using Capacitor Geolocation
   private async getUserLocation(): Promise<{ lat: number; lng: number }> {
     try {
       const position = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 300000 // 5 minutes cache
+        maximumAge: 300000
       });
       
       return {
@@ -692,12 +634,10 @@ export class ItineraryService {
       };
     } catch (error) {
       console.warn('Could not get user location, using default Cebu City center:', error);
-      // Fallback to Cebu City center
       return { lat: 10.3157, lng: 123.8854 };
     }
   }
 
-  // Get Google Directions for a specific route segment
   async getGoogleDirectionsForRoute(fromSpot: any, toSpot: any): Promise<any> {
     const canCall = await this.apiTracker.canCallApiToday('directions', 100);
     if (!canCall) {
@@ -746,16 +686,12 @@ export class ItineraryService {
     }
   }
 
-  // Generate complete route information for a day (both jeepney and Google directions)
   async generateCompleteRouteInfo(dayPlan: ItineraryDay): Promise<void> {
-    // First generate jeepney routes
     await this.generateCompleteRouteChain(dayPlan);
     
-    // Then add Google directions for each route segment
     for (let i = 0; i < dayPlan.routes.length; i++) {
       const route = dayPlan.routes[i];
       
-      // Create spot objects for the route
       const fromSpot = { 
         name: route.from, 
         location: route.startPoint 
@@ -764,11 +700,7 @@ export class ItineraryService {
         name: route.to, 
         location: route.endPoint 
       };
-      
-      // Get Google directions for this segment
       const googleDirections = await this.getGoogleDirectionsForRoute(fromSpot, toSpot);
-      
-      // Add Google directions to the route
       route.googleDirections = googleDirections;
     }
   }

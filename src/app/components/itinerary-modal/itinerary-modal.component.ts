@@ -30,12 +30,11 @@ export class ItineraryModalComponent implements OnInit {
   @Input() originalEndTime: string = '';
   @Input() originalSpots: any[] = [];
 
-  // Store original dates to clear them when editing
   private originalDates: string[] = [];
 
   fetchingSuggestions = false;
   saving = false;
-  suggestionsVisible: { [key: string]: boolean } = {}; // Track which spots show suggestions
+  suggestionsVisible: { [key: string]: boolean } = {};
 
   constructor(
     private modalCtrl: ModalController,
@@ -47,7 +46,6 @@ export class ItineraryModalComponent implements OnInit {
   ) { }
 
   async ngOnInit() {
-    // Auto-fetch suggestions when modal opens
     await this.autoFetchSuggestions();
   }
 
@@ -63,22 +61,19 @@ export class ItineraryModalComponent implements OnInit {
     }
   }
 
-  // Toggle suggestion visibility for a specific spot
   toggleSuggestions(spotKey: string) {
     this.suggestionsVisible[spotKey] = !this.suggestionsVisible[spotKey];
   }
 
-  // Check if suggestions should be visible for a spot
   areSuggestionsVisible(spotKey: string): boolean {
     return !!this.suggestionsVisible[spotKey];
   }
 
-  // Generate unique key for spot
+
   getSpotKey(dayIndex: number, spotIndex: number): string {
     return `day${dayIndex}_spot${spotIndex}`;
   }
 
-  // Generate unique key for day (hotel suggestions)
   getDayKey(dayIndex: number): string {
     return `day${dayIndex}_hotel`;
   }
@@ -92,14 +87,13 @@ export class ItineraryModalComponent implements OnInit {
       const timeA = a.timeSlot || '00:00';
       const timeB = b.timeSlot || '00:00';
 
-      // Convert time strings to comparable values
       const [hoursA, minutesA] = timeA.split(':').map(Number);
       const [hoursB, minutesB] = timeB.split(':').map(Number);
 
       const totalMinutesA = hoursA * 60 + minutesA;
       const totalMinutesB = hoursB * 60 + minutesB;
 
-      return totalMinutesA - totalMinutesB; // Ascending order (earliest first)
+      return totalMinutesA - totalMinutesB;
     });
   }
 
@@ -129,12 +123,11 @@ export class ItineraryModalComponent implements OnInit {
     this.saving = true;
 
     try {
-      // Generate complete route information for each day
       for (const day of this.itinerary) {
         await this.itineraryService.generateCompleteRouteInfo(day);
       }
 
-      // Save to calendar
+
       await this.saveItineraryToCalendar();
 
       this.showAlert('Success', 'Itinerary saved successfully! Your complete route information has been generated.');
@@ -150,7 +143,7 @@ export class ItineraryModalComponent implements OnInit {
 
   private validateItineraryChoices(): { isValid: boolean; message: string } {
     for (const day of this.itinerary) {
-      // Check restaurant choices for each spot
+
       for (const spot of day.spots) {
         if (spot.mealType && !spot.chosenRestaurant) {
           return {
@@ -160,7 +153,6 @@ export class ItineraryModalComponent implements OnInit {
         }
       }
 
-      // Check hotel choice for the day
       if (day.spots.length > 0 && !day.chosenHotel) {
         return {
           isValid: false,
@@ -173,14 +165,11 @@ export class ItineraryModalComponent implements OnInit {
   }
 
   private async saveItineraryToCalendar() {
-    // Get the dates for this itinerary
     const itineraryDates = this.itinerary.map(day => day.date).filter((date): date is string => date !== undefined);
 
-    // Clear events for both original dates and new dates to prevent duplication
     const datesToClear = [...new Set([...this.originalDates, ...itineraryDates])];
     await this.calendarService.clearEventsForDates(datesToClear);
 
-    // Convert itinerary to calendar events
     const events: CalendarEvent[] = [];
 
     for (const day of this.itinerary) {
@@ -188,7 +177,6 @@ export class ItineraryModalComponent implements OnInit {
         throw new Error('Itinerary days must have dates assigned');
       }
 
-      // Add spots as events
       for (const spot of day.spots) {
         const canonicalSpotId = spot.touristSpotId || spot.spotId || spot.id;
 
@@ -202,8 +190,8 @@ export class ItineraryModalComponent implements OnInit {
           id: canonicalSpotId,
           title: spot.name,
           start: startTime,
-          end: startTime, // You can calculate end time based on duration
-          color: '#28a745', // Green for user events
+          end: startTime, 
+          color: '#28a745', 
           textColor: '#fff',
           allDay: false,
           extendedProps: {
@@ -224,31 +212,24 @@ export class ItineraryModalComponent implements OnInit {
         };
         events.push(event);
 
-        // Add restaurant as separate event if chosen
+
         if (spot.chosenRestaurant && spot.chosenRestaurant.name !== 'User will decide on the day') {
-          // Calculate restaurant time based on meal type and spot time
           const spotStartTime = new Date(startTime);
           let restaurantTime: Date;
 
-          // Determine meal time based on spot time and meal type
           const spotHour = spotStartTime.getHours();
           const mealType = spot.mealType?.toLowerCase() || '';
 
           if (mealType.includes('breakfast') || spotHour < 10) {
-            // Breakfast - schedule 30 minutes after spot starts
             restaurantTime = new Date(spotStartTime.getTime() + 30 * 60000);
           } else if (mealType.includes('lunch') || (spotHour >= 10 && spotHour < 14)) {
-            // Lunch - schedule 30 minutes after spot starts
             restaurantTime = new Date(spotStartTime.getTime() + 30 * 60000);
           } else if (mealType.includes('dinner') || spotHour >= 14) {
-            // Dinner - schedule 30 minutes after spot starts
             restaurantTime = new Date(spotStartTime.getTime() + 30 * 60000);
           } else {
-            // Default - schedule 30 minutes after spot starts
             restaurantTime = new Date(spotStartTime.getTime() + 30 * 60000);
           }
 
-          // Format restaurant time manually to avoid timezone issues
           const year = restaurantTime.getFullYear();
           const month = String(restaurantTime.getMonth() + 1).padStart(2, '0');
           const day = String(restaurantTime.getDate()).padStart(2, '0');
@@ -260,7 +241,7 @@ export class ItineraryModalComponent implements OnInit {
             title: `${spot.chosenRestaurant.name}`,
             start: restaurantStartTime,
             end: restaurantStartTime,
-            color: '#ff9800', // Orange for restaurants
+            color: '#ff9800',
             textColor: '#fff',
             allDay: false,
             extendedProps: {
@@ -275,7 +256,6 @@ export class ItineraryModalComponent implements OnInit {
             }
           };
 
-          // Add location coordinates if available
           if (spot.chosenRestaurant.location && spot.chosenRestaurant.location.lat && spot.chosenRestaurant.location.lng) {
             restaurantEvent.extendedProps.location = spot.chosenRestaurant.location;
           }
@@ -283,14 +263,13 @@ export class ItineraryModalComponent implements OnInit {
         }
       }
 
-      // Add hotel as event if chosen
       if (day.chosenHotel) {
         const hotelStartTime = `${day.date}T18:00:00`;
         const hotelEvent: CalendarEvent = {
           title: `${day.chosenHotel.name}`,
           start: hotelStartTime,
           end: hotelStartTime,
-          color: '#3880ff', // Blue for hotels
+          color: '#3880ff',
           textColor: '#fff',
           allDay: false,
           extendedProps: {
@@ -304,7 +283,6 @@ export class ItineraryModalComponent implements OnInit {
           }
         };
 
-        // Add location coordinates if available
         if (day.chosenHotel.location && day.chosenHotel.location.lat && day.chosenHotel.location.lng) {
           hotelEvent.extendedProps.location = day.chosenHotel.location;
         }
@@ -313,13 +291,11 @@ export class ItineraryModalComponent implements OnInit {
       }
     }
 
-    // Save using the calendar service
     await this.calendarService.saveItineraryEvents(events);
-
   }
 
   chooseRestaurant(spot: ItinerarySpot, restaurant: any) {
-    // Ensure restaurant has lat/lng coordinates for pin utilization
+
     if (restaurant.geometry && restaurant.geometry.location) {
       spot.chosenRestaurant = {
         ...restaurant,
@@ -342,7 +318,7 @@ export class ItineraryModalComponent implements OnInit {
   }
 
   chooseHotel(day: ItineraryDay, hotel: any) {
-    // Ensure hotel has lat/lng coordinates for pin utilization
+
     if (hotel.geometry && hotel.geometry.location) {
       day.chosenHotel = {
         ...hotel,
@@ -365,26 +341,23 @@ export class ItineraryModalComponent implements OnInit {
   }
 
   async editItinerary() {
-    // Store the original dates before editing
+
     this.originalDates = this.itinerary.map(day => day.date).filter((date): date is string => date !== undefined);
 
     const modal = await this.modalCtrl.create({
       component: ItineraryEditorComponent,
       componentProps: {
         itinerary: this.itinerary,
-        availableSpots: this.originalSpots // Use the original bucket list spots
+        availableSpots: this.originalSpots
       },
       cssClass: 'itinerary-editor-modal'
     });
     modal.onDidDismiss().then(async result => {
       if (result.data) {
-        // Update the itinerary with the edited data
         this.itinerary = result.data;
 
-        // Force change detection to update the UI immediately
         this.cdr.detectChanges();
 
-        // Show message to remind user to save
         this.showAlert('Itinerary Updated', 'Your itinerary has been updated! Click "Save Itinerary" to save your changes to the calendar.');
       }
     });
@@ -419,7 +392,6 @@ export class ItineraryModalComponent implements OnInit {
       }
       notes += '\n';
     });
-    // Copy to clipboard
     if (navigator.clipboard) {
       navigator.clipboard.writeText(notes).then(() => {
         this.showAlert('Saved!', 'Itinerary copied to clipboard. You can paste it in your notes app.');
@@ -493,7 +465,6 @@ export class ItineraryModalComponent implements OnInit {
   }
 
   private async showAlert(header: string, message: string) {
-    // Create a simple toast-like alert
     const alertDiv = document.createElement('div');
     alertDiv.style.cssText = `
       position: fixed;
@@ -513,7 +484,6 @@ export class ItineraryModalComponent implements OnInit {
     alertDiv.textContent = message;
     document.body.appendChild(alertDiv);
 
-    // Remove after 3 seconds
     setTimeout(() => {
       if (document.body.contains(alertDiv)) {
         document.body.removeChild(alertDiv);
@@ -522,7 +492,6 @@ export class ItineraryModalComponent implements OnInit {
   }
 
   private getItineraryId(): string {
-    // Generate a unique ID for this itinerary based on the spots
     if (this.itinerary && this.itinerary.length > 0) {
       const spotNames = this.itinerary
         .map((day: any) => day.spots.map((spot: any) => spot.name))

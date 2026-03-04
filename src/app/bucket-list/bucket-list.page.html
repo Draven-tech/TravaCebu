@@ -21,35 +21,29 @@
     </ion-item>
   </ion-item-sliding>
 
-  <!-- Spacer to prevent last item being covered -->
   <div class="content-spacer"></div>
 
-  <!-- Beautiful Itinerary Setup Modal -->
   <ion-modal [isOpen]="showSetupModal" (didDismiss)="showSetupModal = false" class="setup-modal">
     <ng-template>
       <div class="setup-container">
-        <!-- Header -->
         <div class="setup-header">
           <div class="header-content">
-            <ion-icon name="calendar-outline" class="header-icon"></ion-icon>
+            <!--<ion-icon name="calendar-outline" class="header-icon"></ion-icon>-->
             <h1 class="setup-title">Plan Your Adventure</h1>
             <p class="setup-subtitle">Customize your perfect itinerary</p>
           </div>
         </div>
 
-        <!-- Content -->
         <div class="setup-content">
-          <!-- Days Selection -->
           <div class="setup-section">
             <div class="section-header">
-              <ion-icon name="calendar" class="section-icon"></ion-icon>
               <h3>How many days?</h3>
             </div>
 
               <div class="days-slider">
                 <ion-item lines="none" class="slider-item">
                   <ion-label position="stacked">Select Duration</ion-label>
-                  <ion-range min="1" max="14" step="1" snaps="true" ticks="true" color="warning"
+                  <ion-range min="1" max="14" step="1" snaps="true" ticks="true"
                     [(ngModel)]="setup.days" class="custom-slider">
                     <ion-label slot="start">1</ion-label>
                     <ion-label slot="end">14</ion-label>
@@ -62,11 +56,8 @@
               </div>
             </div>
 
-
-          <!-- Date Selection -->
           <div class="setup-section">
             <div class="section-header">
-              <ion-icon name="calendar" class="section-icon"></ion-icon>
               <h3>When do you want to start?</h3>
             </div>
             <div class="date-selector">
@@ -79,10 +70,8 @@
             </div>
           </div>
 
-          <!-- Time Selection -->
           <div class="setup-section">
             <div class="section-header">
-              <ion-icon name="time" class="section-icon"></ion-icon>
               <h3>What time do you want to start?</h3>
             </div>
             <div class="time-selector">
@@ -96,7 +85,6 @@
 
           <div class="setup-section">
             <div class="section-header">
-              <ion-icon name="moon" class="section-icon"></ion-icon>
               <h3>What time do you want to end?</h3>
             </div>
             <div class="time-selector">
@@ -108,7 +96,6 @@
             </div>
           </div>
 
-          <!-- Summary -->
           <div class="setup-summary">
             <div class="summary-card">
               <ion-icon name="information-circle" class="summary-icon"></ion-icon>
@@ -122,9 +109,8 @@
           </div>
         </div>
 
-        <!-- Action Buttons -->
         <div class="setup-actions">
-          <ion-button expand="block" color="primary" size="large" (click)="confirmItinerarySetup()"
+          <ion-button expand="block" size="large" (click)="confirmItinerarySetup()"
             class="generate-btn">
             <ion-icon name="rocket" slot="start"></ion-icon>
             Proceed

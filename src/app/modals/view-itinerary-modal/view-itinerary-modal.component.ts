@@ -42,14 +42,13 @@ export class ViewItineraryModalComponent {
       const timeA = a.timeSlot || '00:00';
       const timeB = b.timeSlot || '00:00';
       
-      // Convert time strings to comparable values
       const [hoursA, minutesA] = timeA.split(':').map(Number);
       const [hoursB, minutesB] = timeB.split(':').map(Number);
       
       const totalMinutesA = hoursA * 60 + minutesA;
       const totalMinutesB = hoursB * 60 + minutesB;
       
-      return totalMinutesA - totalMinutesB; // Ascending order (earliest first)
+      return totalMinutesA - totalMinutesB;
     });
   }
 
@@ -77,38 +76,4 @@ export class ViewItineraryModalComponent {
       hour12: true 
     });
   }
-
-  /*getCategoryIcon(category: string): string {
-    switch (category?.toUpperCase()) {
-      case 'RESTAURANT':
-        return '🍽️';
-      case 'HOTEL':
-        return '🏨';
-      case 'ATTRACTION':
-        return '🎯';
-      case 'SHOPPING':
-        return '🛍️';
-      case 'CULTURAL':
-        return '🏛️';
-      case 'NATURE':
-        return '🌿';
-      default:
-        return '📍';
-    }
-  }*/
-
-  /*getMealTypeIcon(mealType: string): string {
-    switch (mealType?.toLowerCase()) {
-      case 'breakfast':
-        return '🌅';
-      case 'lunch':
-        return '☀️';
-      case 'dinner':
-        return '🌙';
-      case 'snack':
-        return '🍿';
-      default:
-        return '🍽️';
-    }
-  }*/
 }

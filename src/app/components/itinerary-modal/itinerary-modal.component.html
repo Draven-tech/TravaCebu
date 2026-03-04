@@ -86,17 +86,18 @@
                 <div *ngFor="let rest of (spot.restaurantSuggestions || []) | slice:0:3; trackBy: trackByPlaceId" class="suggestion-card">
                   <div class="suggestion-name">{{ getPlaceName(rest) }}</div>
                   <div class="suggestion-details">
-                    <span *ngIf="getPlaceRating(rest)">{{ getPlaceRating(rest) }}</span>
+                     <ion-icon name="star" color="warning"></ion-icon>
+                     <span *ngIf="getPlaceRating(rest)">{{ getPlaceRating(rest) }}</span>
                     <span *ngIf="getPlaceVicinity(rest)">{{ getPlaceVicinity(rest) }}</span>
                   </div>
                   <div class="suggestion-actions">
-                    <ion-button size="small" fill="outline" color="success" (click)="chooseRestaurant(spot, rest)">
+                    <ion-button size="small" fill="outline" (click)="chooseRestaurant(spot, rest)">
                       <ion-icon name="add"></ion-icon> Add to Itinerary
                     </ion-button>
-                    <ion-button size="small" fill="outline" color="primary" (click)="viewRestaurantMap(rest)">
+                    <ion-button size="small" fill="outline" (click)="viewRestaurantMap(rest)">
                       <ion-icon name="map-outline"></ion-icon> Map
                     </ion-button>
-                    <ion-button size="small" fill="outline" color="warning" (click)="searchRestaurant(rest)">
+                    <ion-button size="small" fill="outline" (click)="searchRestaurant(rest)">
                       <ion-icon name="search-outline"></ion-icon> Search
                     </ion-button>
                   </div>
@@ -109,7 +110,7 @@
           <!-- Show Hotel Suggestions Button -->
           <div *ngIf="day.spots.length > 0 && !day.chosenHotel" class="suggestions-toggle hotel-toggle">
             <div class="suggestion-buttons">
-              <ion-button *ngIf="day.hotelSuggestions && day.hotelSuggestions.length > 0" size="small" fill="outline" color="primary" (click)="toggleSuggestions(getDayKey(dayIndex))">
+              <ion-button *ngIf="day.hotelSuggestions && day.hotelSuggestions.length > 0" size="small" fill="outline" color="warning" (click)="toggleSuggestions(getDayKey(dayIndex))">
                 <ion-icon name="bed-outline"></ion-icon>
                 {{ areSuggestionsVisible(getDayKey(dayIndex)) ? 'Hide' : 'Show' }} Hotel Options
               </ion-button>
@@ -168,13 +169,13 @@
                   <span *ngIf="getPlaceVicinity(hotel)">{{ getPlaceVicinity(hotel) }}</span>
                 </div>
                 <div class="suggestion-actions">
-                  <ion-button size="small" fill="outline" color="success" (click)="chooseHotel(day, hotel)">
+                  <ion-button size="small" fill="outline" (click)="chooseHotel(day, hotel)">
                     <ion-icon name="add"></ion-icon> Add to Itinerary
                   </ion-button>
-                  <ion-button size="small" fill="outline" color="primary" (click)="viewHotelMap(hotel)">
+                  <ion-button size="small" fill="outline" (click)="viewHotelMap(hotel)">
                     <ion-icon name="map-outline"></ion-icon> Map
                   </ion-button>
-                  <ion-button size="small" fill="outline" color="warning" (click)="searchHotel(hotel)">
+                  <ion-button size="small" fill="outline" (click)="searchHotel(hotel)">
                     <ion-icon name="search-outline"></ion-icon> Search
                   </ion-button>
                 </div>

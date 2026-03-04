@@ -9,38 +9,8 @@ import { Share } from '@capacitor/share';
 
 @Injectable({ providedIn: 'root' })
 export class PdfExportService {
-
-async generateAndUploadPDF(itineraries: any[]): Promise<string> {
-  const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
-  const pdfDocGenerator = (pdfMake as any).createPdf(docDefinition);
-
-  const blob = await new Promise<Blob>((resolve) => {
-    pdfDocGenerator.getBlob((b: Blob) => resolve(b));
-  });
-
-  const storage = getStorage();
-  const filename = `itineraries/itinerary_${Date.now()}.pdf`;
-  const storageRef = ref(storage, filename);
-
-  await uploadBytes(storageRef, blob);
-  const url = await getDownloadURL(storageRef);
-
-  return url;
-}
-  // Called to get a Blob for sharing (instead of direct download)
-  async generateFullItineraryBlob(itineraries: any[]): Promise<Blob> {
-    const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
-    const pdfDocGenerator = pdfMake.createPdf(docDefinition);
-
-    return new Promise<Blob>((resolve, reject) => {
-      pdfDocGenerator.getBlob((blob: Blob) => {
-        resolve(blob);
-      });
-    });
-  }
-
-  //Private: builds layout for multiple itineraries
-  private buildFullItineraryDocDefinition(itineraries: any[]): any {
+  
+   private buildFullItineraryDocDefinition(itineraries: any[]): any {
     const content: any[] = [];
 
     itineraries.forEach((itinerary, index) => {
@@ -55,7 +25,7 @@ async generateAndUploadPDF(itineraries: any[]): Promise<string> {
         if (event.extendedProps?.restaurant) {
           restaurantLines.push(`Restaurant: ${event.extendedProps.restaurant}`);
           restaurantLines.push(`Rating: ${event.extendedProps.restaurantRating || 'N/A'}`);
-          restaurantLines.push(`Vicinity: ${event.extendedProps.restaurantVicinity || 'N/A'}`);
+          restaurantLines.push(`Location: ${event.extendedProps.restaurantLocation || 'N/A'}`);
         }
 
         content.push(
@@ -88,6 +58,35 @@ async generateAndUploadPDF(itineraries: any[]): Promise<string> {
       }
     };
   }
+
+async generateAndUploadPDF(itineraries: any[]): Promise<string> {
+  const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
+  const pdfDocGenerator = (pdfMake as any).createPdf(docDefinition);
+
+  const blob = await new Promise<Blob>((resolve) => {
+    pdfDocGenerator.getBlob((b: Blob) => resolve(b));
+  });
+
+  const storage = getStorage();
+  const filename = `itineraries/itinerary_${Date.now()}.pdf`;
+  const storageRef = ref(storage, filename);
+
+  await uploadBytes(storageRef, blob);
+  const url = await getDownloadURL(storageRef);
+
+  return url;
+}
+  async generateFullItineraryBlob(itineraries: any[]): Promise<Blob> {
+    const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
+    const pdfDocGenerator = pdfMake.createPdf(docDefinition);
+
+    return new Promise<Blob>((resolve, reject) => {
+      pdfDocGenerator.getBlob((blob: Blob) => {
+        resolve(blob);
+      });
+    });
+  }
+
   async generateFullItineraryPDFMobile(itineraries: any[]): Promise<void> {
     const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
     const pdfDocGenerator = pdfMake.createPdf(docDefinition);
@@ -98,7 +97,7 @@ async generateAndUploadPDF(itineraries: any[]): Promise<string> {
 
     const file = new File([blob], 'Full-Itinerary.pdf', { type: 'application/pdf' });
 
-    // Try native mobile share
+
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
         title: 'My Travel Itinerary',
@@ -106,7 +105,6 @@ async generateAndUploadPDF(itineraries: any[]): Promise<string> {
         files: [file],
       });
     } else {
-      // Fallback: Open the PDF in a new browser tab
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
     }
@@ -116,14 +114,12 @@ async generateAndUploadPDF(itineraries: any[]): Promise<string> {
     const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
     const pdfDocGenerator = pdfMake.createPdf(docDefinition);
 
-    // Get PDF as Base64
     const base64Data = await new Promise<string>((resolve) => {
       pdfDocGenerator.getBase64((data: string) => resolve(data));
     });
 
     const fileName = `Itinerary_${Date.now()}.pdf`;
 
-    // Save to public Downloads folder
     const saved = await Filesystem.writeFile({
       path: `Download/${fileName}`,
       data: base64Data,

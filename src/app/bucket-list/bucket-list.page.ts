@@ -31,14 +31,6 @@ export class BucketListPage implements OnInit {
     private itineraryService: ItineraryService
   ) { }
 
-  async ngOnInit() {
-    await this.loadBucketList();
-  }
-
-  async ionViewWillEnter() {
-    await this.loadBucketList();
-  }
-
   async loadBucketList() {
     this.isLoading = true;
     try {
@@ -51,10 +43,17 @@ export class BucketListPage implements OnInit {
     }
   }
 
+  async ngOnInit() {
+    await this.loadBucketList();
+  }
+
+  async ionViewWillEnter() {
+    await this.loadBucketList();
+  }
+
   async remove(spotId: string) {
     try {
       await this.bucketService.removeFromBucket(spotId);
-      // Reload the bucket list to update the UI
       await this.loadBucketList();
     } catch (error) {
       console.error('Error removing spot:', error);
@@ -65,14 +64,13 @@ export class BucketListPage implements OnInit {
   async clear() {
     try {
       await this.bucketService.clearBucket();
-      // Reload the bucket list to update the UI
       await this.loadBucketList();
     } catch (error) {
       console.error('Error clearing bucket list:', error);
       this.showAlert('Error', 'Failed to clear bucket list.');
     }
   }
-  
+
   async goToHome() {
     const user = await this.afAuth.currentUser;
     if (user) {
@@ -90,7 +88,7 @@ export class BucketListPage implements OnInit {
 
   openItinerarySetup() {
     if (this.spots.length === 0) {
-      this.showAlert('Empty Bucket List', 'Please add some tourist spots to your bucket list first!');
+      this.showAlert('Empty Bucket List', 'Please add tourist spots to your bucket list first!');
       return;
     }
     this.setup = { days: 1, startDate: this.getTodayString(), startTime: '1970-01-01T08:00', endTime: '1970-01-01T18:00' };
@@ -112,8 +110,8 @@ export class BucketListPage implements OnInit {
     }
 
     this.showSetupModal = false;
-    
-    // Generate the original itinerary (like it was before)
+
+
     await this.generateItinerary(this.setup.days, this.setup.startTime, this.setup.endTime, this.setup.startDate);
   }
 
@@ -122,12 +120,8 @@ export class BucketListPage implements OnInit {
       this.showAlert('Empty Bucket List', 'Please add some tourist spots first!');
       return;
     }
-    
-    // Extract time from ISO strings (e.g., "1970-01-01T08:00" -> "08:00")
     const startTimeOnly = startTime.substring(11, 16);
     const endTimeOnly = endTime.substring(11, 16);
-    
-    // Use the new itinerary service with full spot objects and start date
     this.itinerary = await this.itineraryService.generateItinerary(this.spots, days, startTimeOnly, endTimeOnly, startDate);
     this.editing = false;
     this.showItinerary();
@@ -142,7 +136,7 @@ export class BucketListPage implements OnInit {
         originalEndTime: this.setup.endTime,
         editable: true,
         onEdit: () => this.editItinerary(),
-        originalSpots: this.spots 
+        originalSpots: this.spots
       },
       cssClass: 'itinerary-modal'
     });
@@ -155,7 +149,6 @@ export class BucketListPage implements OnInit {
 
   getTimeDisplay(timeString: string): string {
     if (!timeString) return 'Not set';
-    // Extract time from ISO string (e.g., "1970-01-01T08:00" -> "8:00 AM")
     const time = timeString.substring(11, 16);
     const [hours, minutes] = time.split(':').map(Number);
     const period = hours >= 12 ? 'PM' : 'AM';
@@ -166,11 +159,11 @@ export class BucketListPage implements OnInit {
   getDateDisplay(dateString: string): string {
     if (!dateString) return 'Not set';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   }
 

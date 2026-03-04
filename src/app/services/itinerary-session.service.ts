@@ -26,13 +26,9 @@ export class ItinerarySessionService {
   private sessionsHistory: ItinerarySession[] = [];
 
   constructor() {
-    // Load any existing session from localStorage
     this.loadSessionFromStorage();
   }
 
-  /**
-   * Start a new itinerary session
-   */
   startSession(selectedItineraryIndex: number, selectedItinerary: any): ItinerarySession {
     const sessionId = this.generateSessionId();
     const totalSegments = selectedItinerary?.segments?.length || 0;
@@ -60,9 +56,6 @@ export class ItinerarySessionService {
     return newSession;
   }
 
-  /**
-   * Update current segment in active session
-   */
   updateCurrentSegment(segmentIndex: number): void {
     const currentSession = this.currentSessionSubject.value;
     if (!currentSession || !currentSession.isActive) {
@@ -82,9 +75,6 @@ export class ItinerarySessionService {
     console.log('📍 Current segment updated:', segmentIndex);
   }
 
-  /**
-   * Mark a segment as completed
-   */
   markSegmentCompleted(segmentIndex: number): void {
     const currentSession = this.currentSessionSubject.value;
     if (!currentSession || !currentSession.isActive) {
@@ -115,9 +105,6 @@ export class ItinerarySessionService {
     console.log('✅ Segment completed:', segmentIndex, `Progress: ${percentage}%`);
   }
 
-  /**
-   * End the current session
-   */
   endSession(): void {
     const currentSession = this.currentSessionSubject.value;
     if (currentSession && currentSession.isActive) {
@@ -127,7 +114,6 @@ export class ItinerarySessionService {
         lastUpdated: new Date()
       };
 
-      // Update in history
       const sessionIndex = this.sessionsHistory.findIndex(s => s.id === currentSession.id);
       if (sessionIndex !== -1) {
         this.sessionsHistory[sessionIndex] = endedSession;
@@ -140,31 +126,19 @@ export class ItinerarySessionService {
     }
   }
 
-  /**
-   * Get current active session
-   */
   getCurrentSession(): ItinerarySession | null {
     return this.currentSessionSubject.value;
   }
 
-  /**
-   * Check if there's an active session
-   */
   hasActiveSession(): boolean {
     const session = this.currentSessionSubject.value;
     return session !== null && session.isActive;
   }
 
-  /**
-   * Get session history
-   */
   getSessionsHistory(): ItinerarySession[] {
     return [...this.sessionsHistory];
   }
 
-  /**
-   * Resume a previous session
-   */
   resumeSession(sessionId: string): boolean {
     const session = this.sessionsHistory.find(s => s.id === sessionId);
     if (session) {
@@ -183,9 +157,6 @@ export class ItinerarySessionService {
     return false;
   }
 
-  /**
-   * Clear all sessions
-   */
   clearAllSessions(): void {
     this.sessionsHistory = [];
     this.currentSessionSubject.next(null);
@@ -193,9 +164,6 @@ export class ItinerarySessionService {
     console.log('🗑️ All sessions cleared');
   }
 
-  /**
-   * Get session statistics
-   */
   getSessionStats(): {
     totalSessions: number;
     activeSession: boolean;
@@ -222,7 +190,6 @@ export class ItinerarySessionService {
     };
   }
 
-  // Private helper methods
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
@@ -240,15 +207,13 @@ export class ItinerarySessionService {
       const stored = localStorage.getItem('current_itinerary_session');
       if (stored) {
         const session = JSON.parse(stored);
-        // Check if session is still valid (not too old)
         const sessionAge = Date.now() - new Date(session.startTime).getTime();
-        const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+        const maxAge = 24 * 60 * 60 * 1000;
 
         if (sessionAge < maxAge && session.isActive) {
           this.currentSessionSubject.next(session);
           console.log('📱 Session loaded from storage:', session);
         } else {
-          // Session is too old, clear it
           this.clearSessionFromStorage();
         }
       }

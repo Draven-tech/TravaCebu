@@ -1,428 +1,441 @@
 .itinerary-container {
-      padding: 16px;
-    }
-    .day-section {
-      margin-bottom: 24px;
-    }
-    .day-title {
-      color: #000000;
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin: 16px 0 12px 0;
-      border-bottom: 2px solid #facc01;
-      padding-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+  padding: 16px;
+}
 
-    .day-date {
-      color: #666;
-      font-size: 0.9rem;
-      font-weight: 500;
-      background: rgba(231, 76, 60, 0.1);
-      padding: 4px 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(231, 76, 60, 0.2);
-    }
+.day-section {
+  margin-bottom: 24px;
+}
 
-    .spot-item {
-      background: #f8f9fa;
-      border-radius: 12px;
-      padding: 16px;
-      margin: 12px 0;
-      border-left: 4px solid #facc01;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .spot-name {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #2D3748;
-      margin-bottom: 8px;
-    }
-    .spot-details {
-      margin-bottom: 6px;
-    }
-    .time, .duration {
-      color: #6c757d;
-      font-size: 0.9rem;
-      margin-right: 16px;
-    }
-    .spot-category {
-      color: #e74c3c;
-      font-size: 0.85rem;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
+.day-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 16px 0 12px 0;
+  border-bottom: 2px solid #facc01;
+  padding-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-    .selected-card {
-      background: #ffffff;
-      border-radius: 12px;
-      margin: 12px 0;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      border: 2px solid;
-      overflow: hidden;
-    }
+.day-date {
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: rgba(231, 76, 60, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(231, 76, 60, 0.2);
+}
 
-    .restaurant-card {
-      border-color: #FF9800;
-    }
+.spot-item {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+  border-left: 4px solid #facc01;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
 
-    .hotel-card {
-      border-color: #1976D2;
-    }
+.spot-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2D3748;
+  margin-bottom: 8px;
+}
 
-    .card-header {
-      display: flex;
-      align-items: center;
-      padding: 12px 16px;
-      background: rgba(0,0,0,0.05);
-      border-bottom: 1px solid rgba(0,0,0,0.1);
-    }
+.spot-details {
+  margin-bottom: 6px;
+}
 
-    .card-title {
-      flex: 1;
-      font-weight: 600;
-      margin-left: 8px;
-      color: #2D3748;
-    }
+.time,
+.duration {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-right: 16px;
+}
 
-    .card-content {
-      padding: 16px;
-    }
+.spot-category {
+  color: #e74c3c;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
 
-    .place-name {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #2D3748;
-      margin-bottom: 8px;
-    }
+.selected-card {
+  background: #ffffff;
+  border-radius: 12px;
+  margin: 12px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 2px solid;
+  overflow: hidden;
+}
 
-    .place-details {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 12px;
-      font-size: 0.9rem;
-      color: #666;
-    }
+.restaurant-card {
+  border-color: #FF9800;
+}
 
-    .meal-time, .check-in-time {
-      color: #FF9800;
-      font-weight: 600;
-    }
+.hotel-card {
+  border-color: #1976D2;
+}
 
-    .booking-links {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
 
-    .booking-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 6px 12px;
-      background: #f8f9fa;
-      border: 1px solid #dee2e6;
-      border-radius: 6px;
-      color: #495057;
-      text-decoration: none;
-      font-size: 0.85rem;
-      transition: all 0.2s;
-    }
+.card-title {
+  flex: 1;
+  font-weight: 600;
+  margin-left: 8px;
+  color: #2D3748;
+}
 
-    .booking-link:hover {
-      background: #e9ecef;
-      border-color: #adb5bd;
-    }
+.card-content {
+  padding: 16px;
+}
 
-    .suggestions-section {
-      margin-top: 16px;
-      padding: 16px;
-      background: #f8f9fa;
-      border-radius: 12px;
-      border: 1px solid #dee2e6;
-      overflow-x: auto;
-      max-width: 100%;
-      box-sizing: border-box;
-    }
+.place-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2D3748;
+  margin-bottom: 8px;
+}
 
-    .suggestions-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-      font-weight: 600;
-      color: #2D3748;
-    }
+.place-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: #666;
+}
 
-    .suggestions-grid {
-      display: grid;
-      gap: 12px;
-      margin-bottom: 12px;
-      max-width: 100%;
-      box-sizing: border-box;
-    }
+.meal-time,
+.check-in-time {
+  color: #FF9800;
+  font-weight: 600;
+}
 
-    .suggestion-card {
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 12px;
-      border: 1px solid #dee2e6;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      max-width: 100%;
-      box-sizing: border-box;
-      overflow-x: auto;
-    }
+.booking-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
-    .suggestion-name {
-      font-weight: 600;
-      color: #2D3748;
-      margin-bottom: 6px;
-    }
+.booking-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  color: #495057;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
 
-    .suggestion-details {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
-      color: #666;
-    }
+.booking-link:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
 
-    .suggestion-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      width: 100%;
-      box-sizing: border-box;
-    }
+.suggestions-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #dee2e6;
+  overflow-x: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 
-    .suggestion-actions ion-button {
-      flex: 1 1 40%;
-      min-width: 90px;
-      max-width: 100%;
-      font-size: 0.7rem;
-      color: rgb(104, 104, 104);
-      --border-color: rgb(104, 104, 104);
-    }
+.suggestions-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #2D3748;
+}
 
-    .no-suggestions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 12px;
-      padding: 12px;
-      background: #f8f9fa;
-      border-radius: 8px;
-      color: #6c757d;
-      font-style: italic;
-    }
+.suggestions-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 
-    :global(.map-modal) {
-      --height: 90%;
-      --width: 90%;
-      --max-width: 800px;
-    }
+.suggestion-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+}
 
-    .route-chain {
-      margin-top: 12px;
-    }
+.suggestion-name {
+  font-weight: 600;
+  color: #2D3748;
+  margin-bottom: 6px;
+}
 
-    .jeepney-route-info {
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 8px;
-      border-left: 4px solid;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+.suggestion-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  color: #666;
+}
 
-    .route-user-to-spot {
-      border-left-color: #28a745;
-      background: linear-gradient(135deg, #f8fff9, #ffffff);
-    }
+.suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
 
-    .route-spot-to-restaurant {
-      border-left-color: #ffc107;
-      background: linear-gradient(135deg, #fffbf0, #ffffff);
-    }
+.suggestion-actions ion-button {
+  flex: 1 1 40%;
+  min-width: 90px;
+  max-width: 100%;
+  font-size: 0.7rem;
+  color: rgb(104, 104, 104);
+  --border-color: rgb(104, 104, 104);
+}
 
-    .route-restaurant-to-spot {
-      border-left-color: #007bff;
-      background: linear-gradient(135deg, #f0f8ff, #ffffff);
-    }
+.no-suggestions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  color: #6c757d;
+  font-style: italic;
+}
 
-    .route-spot-to-spot {
-      border-left-color: #007bff;
-      background: linear-gradient(135deg, #f0f8ff, #ffffff);
-    }
+:global(.map-modal) {
+  --height: 90%;
+  --width: 90%;
+  --max-width: 800px;
+}
 
-    .route-spot-to-hotel {
-      border-left-color: #6c757d;
-      background: linear-gradient(135deg, #f8f9fa, #ffffff);
-    }
+.route-chain {
+  margin-top: 12px;
+}
 
-    .route-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
+.jeepney-route-info {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-left: 4px solid;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
-    .route-title {
-      font-weight: 600;
-      color: #2D3748;
-      font-size: 0.9rem;
-    }
+.route-user-to-spot {
+  border-left-color: #28a745;
+  background: linear-gradient(135deg, #f8fff9, #ffffff);
+}
 
-    .route-details {
-      font-size: 0.85rem;
-    }
+.route-spot-to-restaurant {
+  border-left-color: #ffc107;
+  background: linear-gradient(135deg, #fffbf0, #ffffff);
+}
 
-    .route-code {
-      color: #e74c3c;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
+.route-restaurant-to-spot {
+  border-left-color: #007bff;
+  background: linear-gradient(135deg, #f0f8ff, #ffffff);
+}
 
-    .route-time {
-      color: #28a745;
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
+.route-spot-to-spot {
+  border-left-color: #007bff;
+  background: linear-gradient(135deg, #f0f8ff, #ffffff);
+}
 
-    .route-direction {
-      color: #495057;
-      margin-bottom: 6px;
-      line-height: 1.3;
-    }
+.route-spot-to-hotel {
+  border-left-color: #6c757d;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+}
 
-    .route-description {
-      display: flex;
-      align-items: flex-start;
-      gap: 6px;
-      color: #6c757d;
-      font-size: 0.8rem;
-      margin-bottom: 4px;
-      line-height: 1.3;
-    }
+.route-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
 
-    .meal-info {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: #ffc107;
-      font-weight: 500;
-      font-size: 0.8rem;
-      margin-top: 4px;
-    }
+.route-title {
+  font-weight: 600;
+  color: #2D3748;
+  font-size: 0.9rem;
+}
 
-    .google-directions-info {
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 12px;
-      margin-top: 12px;
-      border: 1px solid #e9ecef;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+.route-details {
+  font-size: 0.85rem;
+}
 
-    .route-steps {
-      margin-top: 8px;
-    }
+.route-code {
+  color: #e74c3c;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
 
-    .direction-step {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 6px 0;
-      border-bottom: 1px solid #f8f9fa;
-    }
+.route-time {
+  color: #28a745;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
 
-    .direction-step:last-child {
-      border-bottom: none;
-    }
+.route-direction {
+  color: #495057;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
 
-    .direction-step ion-icon {
-      margin-top: 2px;
-      flex-shrink: 0;
-    }
+.route-description {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: #6c757d;
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
 
-    .direction-step span {
-      flex: 1;
-      font-size: 0.85rem;
-      line-height: 1.3;
-    }
+.meal-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffc107;
+  font-weight: 500;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
 
-    .step-details {
-      margin-top: 2px;
-      color: #6c757d;
-      font-size: 0.75rem;
-    }
+.google-directions-info {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
-    .no-local-route, .no-google-directions {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding: 16px;
-      color: #6c757d;
-      font-size: 0.85rem;
-      text-align: center;
-    }
+.route-steps {
+  margin-top: 8px;
+}
 
-    .no-local-route ion-icon, .no-google-directions ion-icon {
-      font-size: 2rem;
-      opacity: 0.5;
-    }
+.direction-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f8f9fa;
+}
 
-    .suggestions-toggle {
-      margin: 12px 0;
-      text-align: center;
-    }
+.direction-step:last-child {
+  border-bottom: none;
+}
 
-    .suggestions-toggle.hotel-toggle {
-      margin-top: 16px;
-      padding-top: 16px;
-      border-top: 1px solid #dee2e6;
-    }
+.direction-step ion-icon {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
 
-    .suggestions-toggle ion-button {
-      font-size: 0.9rem;
-      --padding-start: 12px;
-      --padding-end: 12px;
-    }
+.direction-step span {
+  flex: 1;
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
 
-    .suggestion-buttons {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-    }
+.step-details {
+  margin-top: 2px;
+  color: #6c757d;
+  font-size: 0.75rem;
+}
 
-    .suggestion-buttons ion-button {
-      flex: 1;
-      min-width: 120px;
-      font-size: 0.8rem;
-    }
+.no-local-route,
+.no-google-directions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: #6c757d;
+  font-size: 0.85rem;
+  text-align: center;
+}
 
+.no-local-route ion-icon,
+.no-google-directions ion-icon {
+  font-size: 2rem;
+  opacity: 0.5;
+}
 
-    .loading-suggestions {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      padding: 24px;
-      background: #f8f9fa;
-      margin: 16px;
-      border-radius: 12px;
-      border: 1px solid #dee2e6;
-    }
+.suggestions-toggle {
+  margin: 12px 0;
+  text-align: center;
+}
 
-    .loading-suggestions span {
-      color: #6c757d;
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
+.suggestions-toggle.hotel-toggle {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #dee2e6;
+}
+
+.suggestions-toggle ion-button {
+  font-size: 0.9rem;
+  --padding-start: 12px;
+  --padding-end: 12px;
+}
+
+.suggestion-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.suggestion-buttons ion-button {
+  flex: 1;
+  min-width: 120px;
+  font-size: 0.8rem;
+}
+
+.loading-suggestions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  background: #f8f9fa;
+  margin: 16px;
+  border-radius: 12px;
+  border: 1px solid #dee2e6;
+}
+
+.loading-suggestions span {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.itinerary-footer ion-button {
+  --background: linear-gradient(45deg, #f1c40f, #f39c12);
+  --color: #000000;
+}

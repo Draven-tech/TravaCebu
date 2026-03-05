@@ -1,9 +1,12 @@
+// Remove unused imports/global styles
+// ::ng-deep .itinerary-modal (unused - no matching HTML)
+
 .bucket-header {
   --background: transparent;
   box-shadow: none;
 
   .bucket-header-content {
-    background: #FFE066;
+    background: linear-gradient(45deg, #f1c40f, #f39c12);
     padding: 16px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     display: flex;
@@ -20,17 +23,25 @@
   }
 }
 
-ion-content {
+.bucket-content {
   background: #ffffff;
   animation: fadeIn 0.8s ease-out;
   position: relative;
-  overflow: hidden;
-  padding: 16px;
-  padding-bottom: 140px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
+  --padding-bottom: 140px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(231, 76, 60, 0.08) 0%, transparent 50%),
+                radial-gradient(circle, rgba(46, 204, 113, 0.05) 30%, transparent 70%),
+                radial-gradient(circle, rgba(230, 126, 34, 0.04) 60%, transparent 90%);
+    z-index: 0;
+    pointer-events: none;
+  }
 }
 
 .clear-text-button {
@@ -40,21 +51,8 @@ ion-content {
   padding: 6px 12px;
   border-radius: 8px;
   transition: background 0.2s;
-}
-
-.footer-fixed {
-  padding: 18px;
-  padding-bottom: 80px;
-  --background: transparent;
-  border-top: none;
-  box-shadow: none;
-
-  ion-button.generate-itinerary-btn {
-    --border-radius: 12px;
-    font-weight: 600;
-    font-size: 1rem;
-    margin-top: 16px;
-  }
+  cursor: pointer;
+  display: inline-block;
 }
 
 .spot-sliding-card {
@@ -62,7 +60,7 @@ ion-content {
 
   ion-item {
     border-radius: 12px;
-    --background: #FFE066;
+    --background: linear-gradient(45deg, #f1c40f, #f0a733);
     --padding-start: 12px;
     --padding-end: 12px;
     --min-height: 100px;
@@ -81,211 +79,51 @@ ion-content {
       object-fit: cover;
     }
   }
-}
 
-ion-label h3 {
-  font-size: 1rem;
-  font-weight: bold;
-  color: #2d3748;
-  margin: 0;
-}
-
-ion-content::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(231, 76, 60, 0.08) 0%, transparent 50%),
-    radial-gradient(circle, rgba(46, 204, 113, 0.05) 30%, transparent 70%),
-    radial-gradient(circle, rgba(230, 126, 34, 0.04) 60%, transparent 90%);
-  z-index: 0;
-}
-
-.floating-buttons {
-  position: fixed;
-  bottom: 80px; 
-  left: 0;
-  right: 0;
-  padding: 0 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 99;
-}
-
-ion-card {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-  margin: 16px;
-  border: 1px solid #f3e7d3;
-  animation: slideUp 0.6s ease-out;
-  position: relative;
-  z-index: 1;
-
-  img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 16px 16px 0 0;
-  }
-}
-ion-button {
-  margin: 8px 16px;
-  --border-radius: 12px;
-  font-weight: 600;
-  --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-ion-button.generate-itinerary-btn {
-  --background: #f8c647;
-  --color: #030303;
-  margin-top: 16px;
-}
-
-
-ion-button.my-itineraries-btn {
-  --background: #888888;
-  --color: #030303;
-
-}
-
-ion-fab-button {
-  --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  --background: linear-gradient(45deg, #e74c3c, #2ecc71);
-  --color: white;
-}
-
-
-.admin-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 18px 0 18px;
-  background: #e74c3c;
-  min-height: 64px;
-  margin-bottom: 8px;
-  border-radius: 0 0 18px 18px;
-  box-shadow: 0 2px 12px rgba(44, 62, 80, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  position: relative;
-  z-index: 1;
-}
-
-.admin-title {
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #fff;
-  letter-spacing: 1px;
-  text-shadow: 0 2px 8px rgba(44, 62, 80, 0.35), 0 0 2px #e74c3c;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  ion-label h3 {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #2d3748;
+    margin: 0;
   }
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-
-.tab-btn {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 8px 0;
+.footer-fixed {
+  padding-bottom: 85px;
+  --background: transparent;
+  border-top: none;
+  box-shadow: none;
 
   ion-button {
-    flex-direction: column;
-    text-align: center;
-    --padding-start: 0;
-    --padding-end: 0;
-    --color: #2D3748;
-    --background: #FFD144;
-    --background-hover: #FFE066;
-    --background-activated: #FFC107;
-    --border-radius: 16px;
-    --box-shadow:
-      0 4px 8px rgba(0, 0, 0, 0.1),
-      inset 0 2px 4px rgba(255, 255, 255, 0.3),
-      inset 0 -2px 4px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    width: 60px;
-    height: 60px;
-    margin: 0;
-
-    &:hover {
-      --box-shadow:
-        0 6px 12px rgba(0, 0, 0, 0.15),
-        inset 0 2px 4px rgba(255, 255, 255, 0.4),
-        inset 0 -2px 4px rgba(0, 0, 0, 0.1);
-      transform: translateY(-2px);
-    }
-
-    &:active {
-      --box-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.1),
-        inset 0 2px 4px rgba(0, 0, 0, 0.1);
-      transform: translateY(0);
-    }
-  }
-
-  ion-icon {
-    font-size: 24px;
-    margin-bottom: 4px;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
-  }
-
-  ion-label {
-    font-size: 0.7rem;
-    margin-top: 0;
+    margin: 8px 16px;
+    --border-radius: 12px;
     font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .generate-itinerary-btn {
+    --background: #f8c647;
+    --color: #030303;
+    margin-top: 5px;
+  }
+
+  .my-itineraries-btn {
+    --background: #888888;
+    --color: #030303;
   }
 }
 
-
-::ng-deep .itinerary-modal {
-  --height: 80vh;
-  --width: 90vw;
-  --border-radius: 16px;
-
-  .modal-wrapper {
-    border-radius: 16px;
-  }
-}
-
-
+// Setup Modal Styles
 ::ng-deep .setup-modal {
   --height: 90vh;
   --width: 95vw;
   --border-radius: 20px;
+  --backdrop-opacity: 0.5;
 
   .modal-wrapper {
     border-radius: 20px;
     overflow: hidden;
     --background: transparent;
-  }
-  ion-modal {
-    --backdrop-opacity: 0.5;
   }
 }
 
@@ -293,40 +131,27 @@ ion-fab-button {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #b1b0b0;
   position: relative;
   overflow: hidden;
-}
 
-.setup-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-  pointer-events: none;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    pointer-events: none;
+  }
 }
 
 .setup-header {
   background: #ffcd03;
-  padding: 10px 10px 10px;
+  padding: 20px 20px 30px;
   text-align: center;
   position: relative;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.header-content {
-  position: relative;
-  z-index: 2;
-}
-
-.header-icon {
-  font-size: 48px;
-  color: white;
-  margin-bottom: 10px;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
 }
 
 .setup-title {
@@ -365,79 +190,78 @@ ion-fab-button {
   display: flex;
   align-items: center;
   margin-bottom: 20px;
+
+  h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin: 0;
+  }
 }
 
-.section-header h3 {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #2d3748;
-  margin: 0;
-}
+.days-slider {
+  background: #fff;
+  border: 2px solid var(--ion-color-warning);
+  border-radius: 16px;
+  padding: 18px 20px;
 
- .days-slider {
-    background: #fff;
-    border: 2px solid var(--ion-color-warning);
-    border-radius: 16px;
-    padding: 18px 20px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  .slider-item {
+    --background: transparent;
 
-    .slider-item {
-      --background: transparent;
+    ion-label {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--ion-color-medium);
+    }
 
-      ion-label {
-        font-weight: 600;
-        font-size: 1.1rem;
-        color: var(--ion-color-medium);
-      }
+    ion-range.custom-slider {
+      margin-top: 10px;
+      --bar-background: #f4b94250;
+      --bar-background-active: var(--ion-color-warning);
+      --knob-background: var(--ion-color-warning);
+      --knob-size: 28px;
+      --knob-border-radius: 50%;
+      --pin-background: var(--ion-color-warning);
+      --pin-color: #fff;
+      --height: 28px;
 
-      ion-range.custom-slider {
-        margin-top: 10px;
-        --bar-background: #f4b94250;
-        --bar-background-active: var(--ion-color-warning);
-        --knob-background: var(--ion-color-warning);
-        --knob-size: 28px;
-        --knob-border-radius: 50%;
-        --pin-background: var(--ion-color-warning);
-        --pin-color: #fff;
-        --height: 28px;
-      }
-
-      ion-range::part(bar) {
+      &::part(bar) {
         height: 8px;
         border-radius: 10px;
       }
     }
-
-    .selected-days {
-      text-align: center;
-      margin-top: 14px;
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--ion-color-warning);
-    }
   }
 
-.time-selector {
+  .selected-days {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--ion-color-warning);
+  }
+}
+
+.time-selector,
+.date-selector {
   margin-bottom: 16px;
 }
 
-.time-input, .date-input {
+.time-input,
+.date-input {
   --background: rgba(255, 255, 255, 0.95);
   --border-radius: 16px;
-  --border-style: solid;
   --padding-start: 16px;
   --padding-end: 16px;
   --padding-top: 12px;
   --padding-bottom: 12px;
   --color: #2d3748;
-  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.1);
-}
 
-.time-input ion-label, .date-input ion-label {
-  color: #2d3748 !important;
-  font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 8px;
+  ion-label {
+    color: #2d3748 !important;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
 }
 
 .custom-datetime {
@@ -447,7 +271,6 @@ ion-fab-button {
   border-radius: 12px;
   padding: 14px;
   border: 2px solid #f39c12;
-  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.1);
 }
 
 .setup-summary {
@@ -461,7 +284,6 @@ ion-fab-button {
   display: flex;
   align-items: center;
   color: white;
-  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
 }
 
 .summary-icon {
@@ -470,16 +292,18 @@ ion-fab-button {
   opacity: 0.9;
 }
 
-.summary-content h4 {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-}
+.summary-content {
+  h4 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+  }
 
-.summary-content p {
-  margin: 4px 0;
-  opacity: 0.9;
-  font-size: 0.95rem;
+  p {
+    margin: 4px 0;
+    opacity: 0.9;
+    font-size: 0.95rem;
+  }
 }
 
 .spots-count {
@@ -489,31 +313,40 @@ ion-fab-button {
 
 .setup-actions {
   padding: 20px;
-  background: white;
-  border-top: 1px solid #e2e8f0;
-}
 
-.generate-btn {
-  --background: linear-gradient(45deg, #f1c40f, #f39c12);
-  --color: #2d3748;
-  --border-radius: 16px;
-  --box-shadow: 0 8px 24px rgba(241, 196, 15, 0.3);
-  font-weight: 700;
-  font-size: 1.1rem;
-  height: 56px;
-  margin-bottom: 12px;
-  transition: all 0.3s ease;
+  .generate-btn {
+    --background: linear-gradient(45deg, #f1c40f, #f39c12);
+    --color: #000000;
+    --border-radius: 16px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    height: 56px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
 
-  &:hover {
-    --box-shadow: 0 12px 32px rgba(241, 196, 15, 0.4);
-    transform: translateY(-2px);
+    &:hover {
+      --box-shadow: 0 12px 32px rgba(241, 196, 15, 0.4);
+      transform: translateY(-2px);
+    }
+  }
+
+  .cancel-btn {
+    --color: #64748b;
+    font-weight: 600;
+    font-size: 1rem;
   }
 }
 
-.cancel-btn {
-  --color: #64748b;
-  font-weight: 600;
-  font-size: 1rem;
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInUp {
@@ -521,13 +354,8 @@ ion-fab-button {
     opacity: 0;
     transform: translateY(30px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.calendar-content {
-  --background: #f8f9fa;
 }

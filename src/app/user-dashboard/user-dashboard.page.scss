@@ -1,41 +1,46 @@
-ion-content {
-  --background: #ffffff;
-  background: #ffffff;
-  --padding-bottom: 80px;
+.header-toolbar {
+  --background: linear-gradient(45deg, #f1c40f, #f39c12);
+  --color: #2d3748;
+  box-shadow: none;
 }
-.my-itineraries-btn{
-    color: #747474;
+
+ion-content {
+  --padding-bottom: 80px;
+
+}
+
+.my-itineraries-btn {
+  color: #747474;
   font-weight: 600;
   font-size: 0.9rem;
   padding: 6px 12px;
   border-radius: 8px;
   transition: background 0.2s;
 }
-// Search Modal Styling
+
 ::ng-deep .search-modal {
   --height: 90%;
   --border-radius: 16px 16px 0 0;
-  
+
   .modal-wrapper {
     border-radius: 16px 16px 0 0;
   }
-  
+
   ion-header {
     border-radius: 16px 16px 0 0;
   }
-  
+
   ion-toolbar {
     --background: #ffc409;
     --color: #000;
     border-radius: 16px 16px 0 0;
   }
-  
+
   ion-title {
     font-weight: 600;
   }
 }
 
-// Search Bar Styling
 ion-searchbar {
   --background: #ffffff;
   --border-radius: 25px;
@@ -43,17 +48,17 @@ ion-searchbar {
   --color: #000000;
   --placeholder-color: #666666;
   margin: 10px 0;
-  
+
   &::ng-deep {
     .searchbar-input {
       border-radius: 25px !important;
       background: #ffffff !important;
     }
-    
+
     .searchbar-search-icon {
       color: #666666;
     }
-    
+
     .searchbar-clear-button {
       color: #666666;
     }
@@ -64,7 +69,6 @@ ion-searchbar {
   font-size: 1.4rem;
   font-weight: bold;
   margin-top: 1rem;
-  color: #000;
 }
 
 .recently-visited-header {
@@ -123,32 +127,31 @@ ion-chip {
   background-color: #FFD144;
 }
 
-// Search Section
 .search-section {
   margin: 20px 0;
-  
+
   .search-card {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 16px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    
+
     .search-content {
       text-align: center;
       padding: 20px;
-      
-                           .search-icon {
-          font-size: 3rem;
-          color: #FFD144;
-          margin-bottom: 15px;
-        }
-      
+
+      .search-icon {
+        font-size: 3rem;
+        color: #FFD144;
+        margin-bottom: 15px;
+      }
+
       h3 {
         color: #2D3748;
         font-weight: 700;
         margin: 0 0 10px 0;
         font-size: 1.3rem;
       }
-      
+
       p {
         color: #718096;
         margin: 0 0 20px 0;
@@ -158,18 +161,17 @@ ion-chip {
   }
 }
 
-// Loading State
 .loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
-  
+
   ion-spinner {
     margin-bottom: 15px;
   }
-  
+
   p {
     color: #718096;
     margin: 0;
@@ -177,7 +179,6 @@ ion-chip {
   }
 }
 
-// Empty State
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -185,20 +186,20 @@ ion-chip {
   justify-content: center;
   padding: 60px 20px;
   text-align: center;
-  
+
   .empty-icon {
     font-size: 4rem;
     color: #CBD5E0;
     margin-bottom: 20px;
   }
-  
+
   h3 {
     color: #2D3748;
     font-weight: 600;
     margin: 0 0 10px 0;
     font-size: 1.2rem;
   }
-  
+
   p {
     color: #718096;
     margin: 0;
@@ -206,7 +207,6 @@ ion-chip {
   }
 }
 
-// Tourist Cards Grid
 ion-grid {
   padding: 0;
   margin-bottom: 20px;
@@ -220,7 +220,7 @@ ion-grid {
   justify-content: space-between;
   border-radius: 12px;
   overflow: hidden;
-  background: #FFD144; 
+  --background: linear-gradient(45deg, #f1c40f, #f39c12);
 
   .clickable-card {
     display: flex;
@@ -280,59 +280,56 @@ ion-grid {
 
     ion-button {
       font-size: 12px;
-      --color: #000000; // ✅ black text
-      --background: transparent; // keep it clear so yellow shows
+      --color: #000000;
+      --background: transparent;
       --padding-start: 0;
       --padding-end: 0;
     }
   }
 }
 
-
-
-// Pagination
 .pagination-container {
   display: flex;
+  flex-direction: row !important;
   align-items: center;
   justify-content: center;
-  padding: 20px 0;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  margin: 20px 0;
-  
+  gap: 16px;
+  flex-wrap: nowrap; 
+  width: 100%;
+
   ion-button {
     --color: #FFD144;
     font-weight: 600;
-    
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
     &:disabled {
       --color: #CBD5E0;
     }
   }
-  
+
   .page-info {
-    margin: 0 20px;
-    color: #2D3748;
+    color: #000000;
     font-weight: 600;
     font-size: 0.9rem;
+    white-space: nowrap;
   }
 }
 
-
-
-// Responsive adjustments
 @media (max-width: 576px) {
   .tourist-card .clickable-card img {
     height: 100px;
   }
-  
+
   .tourist-card .bucket-action ion-button {
     font-size: 0.7rem;
   }
-  
+
   .pagination-container {
     flex-direction: column;
     gap: 10px;
-    
+
     .page-info {
       margin: 0;
     }

@@ -1,7 +1,9 @@
 <ion-header class="bucket-header">
+  <ion-toolbar>
   <div class="bucket-header-content">
     <h2>My Bucket List</h2>
   </div>
+  </ion-toolbar>
 </ion-header>
 
 <ion-content fullscreen class="bucket-content ion-padding">
@@ -28,7 +30,6 @@
       <div class="setup-container">
         <div class="setup-header">
           <div class="header-content">
-            <!--<ion-icon name="calendar-outline" class="header-icon"></ion-icon>-->
             <h1 class="setup-title">Plan Your Adventure</h1>
             <p class="setup-subtitle">Customize your perfect itinerary</p>
           </div>
@@ -110,7 +111,7 @@
         </div>
 
         <div class="setup-actions">
-          <ion-button expand="block" size="large" (click)="confirmItinerarySetup()"
+          <ion-button expand="block" (click)="confirmItinerarySetup()"
             class="generate-btn">
             <ion-icon name="rocket" slot="start"></ion-icon>
             Proceed
@@ -126,7 +127,6 @@
 
 <ion-footer class="footer-fixed">
   <ion-button expand="block" (click)="goToMyItineraries()" class="my-itineraries-btn">
-    <ion-icon name="calendar-outline" slot="start"></ion-icon>
     My Itineraries
   </ion-button>
   <ion-button expand="block" (click)="openItinerarySetup()" class="generate-itinerary-btn">

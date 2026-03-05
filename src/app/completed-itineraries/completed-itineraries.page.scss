@@ -203,12 +203,9 @@ ion-content {
   ion-button {
   --color: #666;
   --border-color: #666;
-  }
-}
-
-.action-buttons ion-button {
   flex: 1;
   font-size: 0.85rem;
+  }
 }
 
 .empty-state {

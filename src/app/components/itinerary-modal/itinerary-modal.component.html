@@ -2,7 +2,7 @@
       <ion-toolbar color="warning">
         <ion-title style="font-size: 1.2rem; font-weight: 700;">Your Itinerary</ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="editItinerary()" fill="solid" color="primary" size="small" aria-label="Edit Itinerary">
+          <ion-button (click)="editItinerary()" fill="solid" size="small" aria-label="Edit Itinerary">
             <ion-icon name="create-outline" slot="start"></ion-icon>
             Edit
           </ion-button>
@@ -42,7 +42,7 @@
                   <ion-icon name="restaurant-outline"></ion-icon>
                   No Options Available
                 </ion-button>
-                <ion-button size="small" fill="outline" color="warning" (click)="skipRestaurant(spot)">
+                <ion-button size="small" fill="clear" color="medium" (click)="skipRestaurant(spot)">
                   <ion-icon name="close-circle-outline"></ion-icon>
                   Skip for now
                 </ion-button>
@@ -118,7 +118,7 @@
                 <ion-icon name="bed-outline"></ion-icon>
                 No Options Available
               </ion-button>
-              <ion-button size="small" fill="outline" color="warning" (click)="skipHotel(day)">
+              <ion-button size="small" fill="clear" color="medium" (click)="skipHotel(day)">
                 <ion-icon name="close-circle-outline"></ion-icon>
                 Skip for now
               </ion-button>
@@ -187,22 +187,18 @@
       </div>
     </ion-content>
 
-    <ion-footer>
+    <ion-footer class="itinerary-footer">
       <ion-toolbar>
-        <ion-button expand="block" color="success" (click)="saveItinerary()" [disabled]="saving">
+        <ion-button expand="block" class="save-itinerary-button" (click)="saveItinerary()" [disabled]="saving">
           <ion-spinner *ngIf="saving" name="crescent"></ion-spinner>
             <span *ngIf="!saving">Save Itinerary</span>
         </ion-button>
-        <ion-button expand="block" color="secondary" (click)="viewMap()">
+        <ion-button expand="block" class="view-map-button" (click)="viewMap()">
           <ion-icon name="map"></ion-icon>
-          View Map & Distances
+           View Map & Distances
         </ion-button>
-        <ion-button expand="block" color="warning" (click)="saveToNotes()">
+        <ion-button expand="block" class="save-to-notes-button" (click)="saveToNotes()">
           Save to Notes
-        </ion-button>
-
-        <ion-button expand="block" fill="clear" (click)="close()">
-          Close
         </ion-button>
       </ion-toolbar>
     </ion-footer>

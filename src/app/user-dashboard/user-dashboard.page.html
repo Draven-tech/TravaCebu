@@ -1,5 +1,5 @@
 <ion-header>
-  <ion-toolbar color="warning">
+  <ion-toolbar class="header-toolbar">
     <ion-buttons slot="start">
       <ion-avatar>
         <img src="assets/img/car.png" />
@@ -95,7 +95,6 @@
     <div class="page-info">
       Page {{ currentPage }} of {{ totalPages }}
     </div>
-
     <ion-button fill="clear" [disabled]="currentPage === totalPages" (click)="nextPage()">
       Next
       <ion-icon name="chevron-forward"></ion-icon>
@@ -110,7 +109,7 @@
           <ion-icon name="search-outline" class="search-icon"></ion-icon>
           <h3>Can't find your desired tourist spot?</h3>
           <p>Search for tourist spots in Cebu and add them to our database!</p>
-          <ion-button expand="block" style="--background: #FFD144; --color: #000000;" (click)="openSearchModal()">
+          <ion-button expand="block" style="--background: linear-gradient(45deg, #f1c40f, #f39c12); --color: #000000;" (click)="openSearchModal()">
             <ion-icon name="add-circle-outline" slot="start"></ion-icon>
             Search & Add New Tourist Spot
           </ion-button>

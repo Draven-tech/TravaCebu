@@ -3,7 +3,6 @@ import { ActivatedRoute } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { NavController, ToastController, ModalController, AlertController } from '@ionic/angular';
-
 import { AuthService } from '../services/auth.service';
 import { BucketService } from '../services/bucket-list.service';
 import { PlacesService } from '../services/places.service';
@@ -19,24 +18,22 @@ import { VisitedSpotsModalComponent } from '../modals/visited-spots-modal/visite
   standalone: false,
 })
 export class UserDashboardPage implements OnInit, OnDestroy {
-  // ✅ User and app state
+
   userId: string | null = null;
   userData: any = null;
   isLoading = true;
 
-  // ✅ Data arrays
-  allSpots: any[] = [];       // All spots from Firestore
-  filteredSpots: any[] = [];  // Spots after filtering/search
-  bucketList: any[] = [];     // User’s saved spots
-  visitedSpots: any[] = [];   // Spots the user has visited
+  allSpots: any[] = [];       
+  filteredSpots: any[] = [];  
+  bucketList: any[] = [];     
+  visitedSpots: any[] = [];
   bucketSpotIds: string[] = [];
 
-  // ✅ UI state
+
   searchQuery = '';
   tags = ['All', 'Attraction', 'Mall', 'Beach', 'Landmark', 'Museum', 'Park'];
   selectedTag = 'All';
 
-  // ✅ Pagination
   currentPage = 1;
   itemsPerPage = 6;
   paginatedSpots: any[] = [];
@@ -59,7 +56,6 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     private geofencingService: GeofencingService
   ) {}
 
-  // 🔹 Life Cycle Hooks
   async ngOnInit() {
     this.setupNetworkListeners();
 
@@ -80,7 +76,6 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     window.removeEventListener('online', this.showOnlineToast);
   }
 
-  // 🔹 Firebase Data Loading
   loadUserProfile() {
     this.firestore.collection('users').doc(this.userId!).valueChanges().subscribe(data => {
       this.userData = data;
@@ -97,7 +92,6 @@ export class UserDashboardPage implements OnInit, OnDestroy {
       .valueChanges({ idField: 'id' })
       .subscribe({
         next: (spots) => {
-          // Sort ascending by popularity to show hidden gems first
           this.allSpots = this.sortByPopularity(spots);
           this.applyFilters();
           this.isLoading = false;
@@ -189,7 +183,6 @@ loadBucketList() {
     }
   }
 
-  // 🔹 Bucket List Logic
   isInBucketList(spotId: string): boolean {
     return this.bucketList.some(s => s.id === spotId);
   }
@@ -227,7 +220,6 @@ loadBucketList() {
     await this.loadBucketList();
   }
 
-  // 🔹 Filtering & Searching
   selectTag(tag: string) {
     this.selectedTag = tag;
     this.currentPage = 1;
@@ -260,7 +252,6 @@ loadBucketList() {
     this.updatePagination();
   }
 
-  // 🔹 Pagination
   updatePagination() {
     this.totalPages = Math.ceil(this.filteredSpots.length / this.itemsPerPage);
     const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -282,7 +273,6 @@ loadBucketList() {
     }
   }
 
-  // 🔹 Spot Interactions
   openSpotDetail(spotId: string) {
     this.navCtrl.navigateForward(`/tourist-spot-detail/${spotId}`);
   }
@@ -306,7 +296,6 @@ loadBucketList() {
     }
   }
 
-  // 🔹 Add New Tourist Spot
 async addTouristSpotToDatabase(place: any) {
   try {
     if (this.isDuplicateSpot(place)) {
@@ -316,8 +305,7 @@ async addTouristSpotToDatabase(place: any) {
 
     const details = await this.placesService.getPlaceDetails(place.place_id).toPromise();
 
-    // Try to get a photo early
-    let imageUrl = 'assets/default-spot.jpg'; // ✅ fallback image
+    let imageUrl = 'assets/default-spot.jpg';
     try {
       const photoRes = await this.placesService.getPlacePhotos(place.place_id).toPromise();
       if (photoRes.result?.photos?.length > 0) {
@@ -342,7 +330,7 @@ async addTouristSpotToDatabase(place: any) {
       googlePlaceId: place.place_id,
       rating: place.rating || 0,
       userRatingsTotal: place.user_ratings_total || 0,
-      img: imageUrl, // ✅ always defined
+      img: imageUrl,
     };
 
     await this.pendingSpotService.submitForApproval(newSpot);
@@ -353,8 +341,6 @@ async addTouristSpotToDatabase(place: any) {
   }
 }
 
-
-  // 🔹 Helper Methods
   private sortByPopularity(spots: any[]) {
     return spots.sort((a, b) => (a.userRatingsTotal || 0) - (b.userRatingsTotal || 0));
   }
@@ -376,7 +362,6 @@ async addTouristSpotToDatabase(place: any) {
     return this.allSpots.some(s => s.name?.toLowerCase().trim() === name);
   }
 
-  // 🔹 Network Status Handling
   setupNetworkListeners() {
     this.checkNetworkImmediately();
     window.addEventListener('offline', this.showOfflineAlert);
@@ -401,7 +386,6 @@ async addTouristSpotToDatabase(place: any) {
     this.showToast('You’re back online!', 'success');
   };
 
-  // 🔹 UI Utilities
   private async showToast(message: string, color: string) {
     const toast = await this.toastCtrl.create({
       message,
@@ -417,11 +401,10 @@ async addTouristSpotToDatabase(place: any) {
     await alert.present();
   }
 
-  // 🔹 Logout
   async logout() {
     await this.authService.logoutUser();
   }
-  // 🔹 Pull to Refresh Functionality
+
 async handleRefresh(event: any) {
   try {
     await Promise.all([
@@ -436,7 +419,6 @@ async handleRefresh(event: any) {
   }
 }
 
-// 🔹 Check if spot is visited
 hasVisited(spotId: string): boolean {
   return this.visitedSpots.some(v => v.spotId === spotId || v.id === spotId);
 }

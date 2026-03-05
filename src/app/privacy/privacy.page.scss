@@ -17,7 +17,6 @@ h1 {
 
 .last-updated {
   text-align: center;
-  color: #666;
   font-style: italic;
   margin-bottom: 30px;
 }
@@ -27,7 +26,6 @@ section {
 }
 
 h2 {
-  color: #333;
   font-size: 1.3rem;
   font-weight: 600;
   margin-bottom: 15px;
@@ -38,12 +36,10 @@ h2 {
 h3 {
   font-size: 1.1rem;
   margin: 15px 0 10px;
-  color: #555;
 }
 
 p {
   margin-bottom: 15px;
-  color: #444;
   text-align: justify; // neat block alignment
 }
 
@@ -54,8 +50,8 @@ ul {
 
 li {
   margin-bottom: 10px;
-  color: #444;
   line-height: 1.6;
+  font-size: small;
 }
 
 a {

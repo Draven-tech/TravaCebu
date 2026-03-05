@@ -17,6 +17,14 @@ export class MapManagementService {
 
   constructor() { }
 
+  private escapeForSingleQuotedJs(value: string): string {
+    return String(value)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\r/g, '')
+      .replace(/\n/g, '\\n');
+  }
+
   /**
    * Initialize the map with default settings
    */
@@ -426,12 +434,13 @@ export class MapManagementService {
    * Create spot popup content
    */
   private createSpotPopup(spot: any): string {
+    const escapedSpotName = this.escapeForSingleQuotedJs(spot.name || '');
     return `
       <div style="min-width: 200px;">
         <h4 style="margin: 0 0 8px 0; color: #333;">${spot.name}</h4>
         <p style="margin: 4px 0; color: #666;">${spot.description || 'No description available'}</p>
         <div style="margin-top: 12px;">
-          <button onclick="window.openSpotDetails('${spot.name}')" 
+          <button onclick="window.openSpotDetails('${escapedSpotName}')" 
                   style="background: #ff6b35; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer;">
             View Details
           </button>

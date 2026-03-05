@@ -8,6 +8,14 @@ export class MapUIService {
 
   constructor() { }
 
+  private escapeForSingleQuotedJs(value: string): string {
+    return String(value)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\r/g, '')
+      .replace(/\n/g, '\\n');
+  }
+
   /**
    * Create marker icon for tourist spot
    */
@@ -46,6 +54,7 @@ export class MapUIService {
    * Create itinerary spot popup
    */
   createItinerarySpotPopup(spot: any, order: number): string {
+    const escapedSpotName = this.escapeForSingleQuotedJs(spot.name || '');
     return `
       <div style="min-width: 250px;">
         <h4 style="margin: 0 0 8px 0; color: #333;">${order}. ${spot.name}</h4>
@@ -58,7 +67,7 @@ export class MapUIService {
         ${spot.mealType ? `<p style="margin: 4px 0; color: #ff6b35;"><strong>Meal:</strong> ${spot.mealType}</p>` : ''}
         ${spot.category ? `<p style="margin: 4px 0; color: #666;"><strong>Type:</strong> ${spot.category}</p>` : ''}
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-          <button onclick="window.openItinerarySpotDetails('${spot.name}')" 
+          <button onclick="window.openItinerarySpotDetails('${escapedSpotName}')" 
                   style="background: #ff6b35; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">
             📍View Details
           </button>
@@ -71,6 +80,7 @@ export class MapUIService {
    * Create direction spot popup
    */
   async createDirectionSpotPopup(spot: any, order: number, jeepneyCode?: string): Promise<string> {
+    const escapedSpotName = this.escapeForSingleQuotedJs(spot.name || '');
     // Add restaurant-specific information
     let restaurantInfo = '';
     if (spot.eventType === 'restaurant' && spot.restaurant) {
@@ -108,7 +118,7 @@ export class MapUIService {
           jeepneyCode.includes('No transit data') ? 
             `<div style="margin: 8px 0; padding: 12px; background: rgba(255, 152, 0, 0.1); border-radius: 8px; border-left: 4px solid #ff9800;">
               <p style="margin: 0 0 8px 0; color: #ff9800; font-weight: bold;">Sorry, we could not calculate and fetch transit directions to this location.</p>
-              <button onclick="window.getWalkingDirections('${spot.name}')" 
+              <button onclick="window.getWalkingDirections('${escapedSpotName}')" 
                       style="background: #4caf50; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
                 Get Walking Directions
               </button>
@@ -119,7 +129,7 @@ export class MapUIService {
           : ''
         }
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-          <button onclick="window.openItinerarySpotDetails('${spot.name}')" 
+          <button onclick="window.openItinerarySpotDetails('${escapedSpotName}')" 
                   style="background: #ff6b35; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">
             📍“ View Details
           </button>

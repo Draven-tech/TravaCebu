@@ -1424,6 +1424,48 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         this.openSpotSheet(spot);
       }
     };
+
+    (window as any).openItinerarySpotDetails = (spotName: string) => {
+      const spot = this.findSpotByName(spotName);
+      if (spot) {
+        this.openSpotSheet(spot);
+      } else {
+        this.showToast('Spot details not available');
+      }
+    };
+
+    (window as any).getWalkingDirections = (spotName: string) => {
+      const spot = this.findSpotByName(spotName);
+      if (!spot?.location?.lat || !spot?.location?.lng) {
+        this.showToast('Unable to get directions for this spot');
+        return;
+      }
+      this.mapManagement.centerOnLocation(spot.location.lat, spot.location.lng, 16);
+    };
+  }
+
+  private findSpotByName(spotName: string): any | null {
+    const fromTouristSpots = this.touristSpots.find(s => s?.name === spotName);
+    if (fromTouristSpots) {
+      return fromTouristSpots;
+    }
+
+    if (
+      this.selectedItineraryIndex >= 0 &&
+      this.selectedItineraryIndex < this.availableItineraries.length
+    ) {
+      const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
+      const itinerarySpots =
+        selectedItinerary?.days?.flatMap((day: any) =>
+          Array.isArray(day?.spots) ? day.spots : Object.values(day?.spots || {})
+        ) || [];
+      const fromItinerary = itinerarySpots.find((s: any) => s?.name === spotName);
+      if (fromItinerary) {
+        return fromItinerary;
+      }
+    }
+
+    return null;
   }
 
   /**

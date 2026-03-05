@@ -109,6 +109,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   private locationSubscription?: Subscription;
   private appStateSubscription?: any;
   private spotsSubscription?: Subscription;
+  private savedExpensePlan: ExpensePlan | null = null;
+  private savedExpensePlanItineraryIndex: number = -1;
 
   constructor(
     private navCtrl: NavController,
@@ -450,6 +452,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         availableItineraries: this.availableItineraries,
         selectedItineraryIndex: this.selectedItineraryIndex,
         selectedItinerary: this.selectedItineraryIndex >= 0 ? this.availableItineraries[this.selectedItineraryIndex] : null,
+        expensePlanDraft:
+          this.selectedItineraryIndex === this.savedExpensePlanItineraryIndex ? this.savedExpensePlan : null,
         currentRouteInfo: this.currentRouteInfo,
         currentSegmentIndex: this.currentSegmentIndex,
         isLocationTrackingActive: this.isLocationTrackingActive,
@@ -483,6 +487,10 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
             showToast: true,
             expensePlan: result.data.expensePlan
           });
+        } else if (result.data.action === 'saveExpensePlan') {
+          this.savedExpensePlan = result.data.expensePlan || null;
+          this.savedExpensePlanItineraryIndex = this.selectedItineraryIndex;
+          this.showToast('Expense plan saved');
         } else if (result.data.action === 'cancelRouteGeneration') {
           this.cancelRouteGeneration();
         }
@@ -541,6 +549,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   async stopItinerary(options: StopItineraryOptions = {}): Promise<void> {
     const persistExpenses = options.persistExpenses ?? true;
     const showToast = options.showToast ?? true;
+    const savedPlanForCurrentItinerary =
+      this.selectedItineraryIndex === this.savedExpensePlanItineraryIndex ? this.savedExpensePlan : null;
+    const expensePlan = options.expensePlan ?? savedPlanForCurrentItinerary ?? undefined;
 
     console.log('Stopping itinerary...');
 
@@ -551,7 +562,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
     if (persistExpenses && activeItinerary) {
       try {
-        await this.persistItineraryExpenses(activeItinerary, options.expensePlan);
+        await this.persistItineraryExpenses(activeItinerary, expensePlan);
       } catch (error) {
         console.error('Error persisting itinerary expenses:', error);
       }
@@ -571,6 +582,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
     // End session
     this.itinerarySession.endSession();
+    this.savedExpensePlan = null;
+    this.savedExpensePlanItineraryIndex = -1;
 
     // Clear modal communication
     this.modalCommunication.clearSelection();

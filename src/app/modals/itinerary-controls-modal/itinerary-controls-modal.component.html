@@ -76,7 +76,7 @@
           min="0"
           inputmode="decimal"
           [(ngModel)]="expenseInputs.transportation"
-          [placeholder]="estimatedExpenses.transportation.toString()">
+          [placeholder]="'Estimated: PHP ' + (estimatedExpenses.transportation | number:'1.0-0')">
         </ion-input>
         <ion-note slot="helper">Estimated: PHP {{ estimatedExpenses.transportation | number:'1.0-0' }}</ion-note>
       </ion-item>
@@ -88,7 +88,7 @@
           min="0"
           inputmode="decimal"
           [(ngModel)]="expenseInputs.food"
-          [placeholder]="estimatedExpenses.food.toString()">
+          [placeholder]="'Estimated: PHP ' + (estimatedExpenses.food | number:'1.0-0')">
         </ion-input>
         <ion-note slot="helper">Estimated: PHP {{ estimatedExpenses.food | number:'1.0-0' }}</ion-note>
       </ion-item>
@@ -100,10 +100,20 @@
           min="0"
           inputmode="decimal"
           [(ngModel)]="expenseInputs.accommodation"
-          [placeholder]="estimatedExpenses.accommodation.toString()">
+          [placeholder]="'Estimated: PHP ' + (estimatedExpenses.accommodation | number:'1.0-0')">
         </ion-input>
         <ion-note slot="helper">Estimated: PHP {{ estimatedExpenses.accommodation | number:'1.0-0' }}</ion-note>
       </ion-item>
+
+      <ion-button
+        expand="block"
+        color="success"
+        fill="outline"
+        (click)="onSaveExpensePlan()"
+        style="margin-top: 16px;">
+        <ion-icon name="save-outline" slot="start"></ion-icon>
+        Save Expenses
+      </ion-button>
     </ion-card-content>
   </ion-card>
 

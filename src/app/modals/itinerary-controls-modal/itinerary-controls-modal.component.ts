@@ -20,6 +20,11 @@ export class ItineraryControlsModalComponent implements OnInit {
   @Input() locationStatusText: string = '';
   @Input() isLoadingJeepneyRoutes: boolean = false;
   @Input() isGeneratingRoute: boolean = false;
+  @Input() expensePlanDraft: {
+    transportation?: number;
+    food?: number;
+    accommodation?: number;
+  } | null = null;
 
   @Output() itinerarySelected = new EventEmitter<number>();
 
@@ -30,9 +35,9 @@ export class ItineraryControlsModalComponent implements OnInit {
     accommodation: 0
   };
   expenseInputs: {
-    transportation: number | null;
-    food: number | null;
-    accommodation: number | null;
+    transportation: number | string | null;
+    food: number | string | null;
+    accommodation: number | string | null;
   } = {
     transportation: null,
     food: null,
@@ -47,6 +52,13 @@ export class ItineraryControlsModalComponent implements OnInit {
 
   ngOnInit(): void {
     this.estimatedExpenses = this.computeEstimatedExpenses();
+    if (this.expensePlanDraft) {
+      this.expenseInputs = {
+        transportation: this.expensePlanDraft.transportation ?? null,
+        food: this.expensePlanDraft.food ?? null,
+        accommodation: this.expensePlanDraft.accommodation ?? null
+      };
+    }
   }
 
   onItineraryChange(event: any): void {
@@ -74,6 +86,13 @@ export class ItineraryControlsModalComponent implements OnInit {
   onStopItinerary(): void {
     this.modalCtrl.dismiss({
       action: 'stopItinerary',
+      expensePlan: this.getFinalExpensePlan()
+    });
+  }
+
+  onSaveExpensePlan(): void {
+    this.modalCtrl.dismiss({
+      action: 'saveExpensePlan',
       expensePlan: this.getFinalExpensePlan()
     });
   }
@@ -210,10 +229,17 @@ export class ItineraryControlsModalComponent implements OnInit {
 
   getInputOrEstimate(category: 'transportation' | 'food' | 'accommodation'): number {
     const input = this.expenseInputs[category];
-    if (input === null || input === undefined || isNaN(Number(input))) {
+    if (input === null || input === undefined) {
       return this.estimatedExpenses[category];
     }
-    return Math.max(0, Number(input));
+    if (typeof input === 'string' && input.trim() === '') {
+      return this.estimatedExpenses[category];
+    }
+    const parsedInput = Number(input);
+    if (!Number.isFinite(parsedInput)) {
+      return this.estimatedExpenses[category];
+    }
+    return Math.max(0, parsedInput);
   }
 
   private getFinalExpensePlan() {

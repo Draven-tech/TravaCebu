@@ -147,8 +147,11 @@
     <div *ngIf="reviews.length > 0; else noReviewsTemplate">
       <ion-card *ngFor="let review of reviews" class="review-card">
         <ion-card-header>
-          <ion-card-title>{{ review.username }}</ion-card-title>
-          <ion-card-subtitle>⭐ {{ review.rating }}</ion-card-subtitle>
+          <ion-card-title>{{ review.username || 'Anonymous' }}</ion-card-title>
+          <div class="review-rating">
+          <ion-icon name="star" color="warning"></ion-icon>
+          <ion-card-subtitle> {{ review.rating }}</ion-card-subtitle>
+          </div>
         </ion-card-header>
         <ion-card-content>
           <p class="review-comment">{{ review.comment }}</p>

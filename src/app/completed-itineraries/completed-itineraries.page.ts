@@ -1,8 +1,11 @@
 ﻿import { Component, OnInit } from '@angular/core';
-import { NavController, AlertController, ToastController } from '@ionic/angular';
+import { NavController, AlertController, ToastController, ModalController } from '@ionic/angular';
 import { CalendarService, CalendarEvent } from '../services/calendar.service';
 import { BudgetService } from '../services/budget.service';
 import { Subscription } from 'rxjs';
+import { ViewItineraryModalComponent, ViewItinerarySpot, ViewItineraryDay } from '../modals/view-itinerary-modal/view-itinerary-modal.component';
+import { Clipboard } from '@capacitor/clipboard';
+import { PdfExportService} from '../services/pdf-export.service';
 
 @Component({
   selector: 'app-completed-itineraries',
@@ -13,7 +16,8 @@ import { Subscription } from 'rxjs';
 export class CompletedItinerariesPage implements OnInit {
   completedItineraries: any[] = [];
   isLoading = true;
-  
+    downloadUrl: string = '';
+
   private subscriptions: Subscription[] = [];
 
   constructor(
@@ -21,8 +25,10 @@ export class CompletedItinerariesPage implements OnInit {
     private calendarService: CalendarService,
     private budgetService: BudgetService,
     private alertCtrl: AlertController,
-    private toastCtrl: ToastController
-  ) {}
+    private toastCtrl: ToastController,
+    private modalCtrl: ModalController,
+    private pdfExportService: PdfExportService,
+  ) { }
 
   async ngOnInit() {
     await this.loadCompletedItineraries();
@@ -34,15 +40,15 @@ export class CompletedItinerariesPage implements OnInit {
 
   async loadCompletedItineraries() {
     this.isLoading = true;
-    
+
     try {
       // Load ALL events (including completed) from calendar service
       const allEvents = await this.calendarService.loadAllItineraryEvents();
       const completedEvents = allEvents.filter(event => event.status === 'completed');
-      
+
       // Group completed events into itineraries
       this.completedItineraries = this.groupEventsIntoItineraries(completedEvents);
-      
+
       for (const itinerary of this.completedItineraries) {
         // Set default values first
         itinerary.totalExpenses = 0;
@@ -52,7 +58,7 @@ export class CompletedItinerariesPage implements OnInit {
           accommodation: 0
         };
         itinerary.expenses = [];
-        
+
         // Try to load expenses
         try {
           await this.loadItineraryExpenses(itinerary);
@@ -60,7 +66,7 @@ export class CompletedItinerariesPage implements OnInit {
           // Silently skip expense loading if it fails
         }
       }
-      
+
     } catch (error) {
       console.error('Error loading completed itineraries:', error);
       this.showToast('Failed to load completed itineraries', 'danger');
@@ -119,7 +125,7 @@ export class CompletedItinerariesPage implements OnInit {
             }))
           }]
         };
-        
+
         itineraries.push(itinerary);
       }
     });
@@ -132,13 +138,13 @@ export class CompletedItinerariesPage implements OnInit {
       // Get all expenses and filter manually since getBudgetSummary might not work with our ID format
       const allExpenses = await this.budgetService.getExpenses();
       const itineraryIdCandidates = this.getItineraryIdCandidates(itinerary);
-      
+
       // Filter expenses that match this itinerary
       const matchingExpenses = allExpenses.filter(expense => {
         const matchesId = !!expense.itineraryId && itineraryIdCandidates.includes(expense.itineraryId);
         const matchesDate = this.getLocalDateString(expense.date) === itinerary.date;
         const matches = matchesId || matchesDate;
-        
+
         return matches;
       });
       
@@ -161,7 +167,7 @@ export class CompletedItinerariesPage implements OnInit {
       const totalAccommodation = sumCategoryWithPriority('accommodation');
       
       const totalExpenses = totalTransportation + totalFood + totalAccommodation;
-      
+
       itinerary.totalExpenses = totalExpenses;
       itinerary.expenseBreakdown = {
         transportation: totalTransportation,
@@ -169,7 +175,7 @@ export class CompletedItinerariesPage implements OnInit {
         accommodation: totalAccommodation
       };
       itinerary.expenses = matchingExpenses;
-      
+
     } catch (error) {
       console.error('Error loading expenses for itinerary:', error);
       // Set default values on error
@@ -185,193 +191,146 @@ export class CompletedItinerariesPage implements OnInit {
 
   getDateDisplay(dateString: string): string {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   }
+ 
+async viewItinerary(completedItinerary: any) {
+  // Convert the completed itinerary to the format expected by ViewItineraryModalComponent
+  const itineraryDays = this.convertToViewItineraryFormat(completedItinerary);
+  
+  const modal = await this.modalCtrl.create({
+    component: ViewItineraryModalComponent,
+    componentProps: {
+      itinerary: itineraryDays
+    },
+    cssClass: 'view-itinerary-modal'
+  });
 
-  async exportItinerary(itinerary: any) {
-    const alert = await this.alertCtrl.create({
-      header: 'Export Itinerary',
-      subHeader: itinerary.name,
-      buttons: [
-        {
-          text: 'Copy to Notes',
-          handler: () => {
-            this.exportToNotes(itinerary);
-          }
-        },
-        {
-          text: 'Share Link',
-          handler: () => {
-            this.shareItinerary(itinerary);
-          }
-        },
-        {
-          text: 'Cancel',
-          role: 'cancel'
-        }
-      ]
-    });
+  await modal.present();
+}
 
-    await alert.present();
+private convertToViewItineraryFormat(completedItinerary: any): ViewItineraryDay[] {
+  // If there are no days, return empty array
+  if (!completedItinerary.days || completedItinerary.days.length === 0) {
+    return [];
   }
 
-  private exportToNotes(itinerary: any) {
-    let notes = `=== ${itinerary.name.toUpperCase()} ===\n\n`;
+  // Map each day to the ViewItineraryDay format
+  return completedItinerary.days.map((day: any, index: number) => {
+    // Separate spots, restaurants, and hotels from the day's spots
+    const touristSpots: ViewItinerarySpot[] = [];
+    const restaurants: ViewItinerarySpot[] = [];
+    const hotels: ViewItinerarySpot[] = [];
     
-    // Add expense summary
-    notes += `EXPENSE SUMMARY\n`;
-    notes += `Total Spent: ₱${itinerary.totalExpenses || 0}\n`;
-    notes += `Transportation: ₱${itinerary.expenseBreakdown?.transportation || 0}\n`;
-    notes += `Food: ₱${itinerary.expenseBreakdown?.food || 0}\n`;
-    notes += `Accommodation: ₱${itinerary.expenseBreakdown?.accommodation || 0}\n\n`;
-    
-    // Add itinerary details
-    itinerary.days?.forEach((day: any) => {
-      notes += `DAY ${day.day}\n`;
-      notes += '='.repeat(20) + '\n';
-      
-      day.spots?.forEach((spot: any, index: number) => {
-        notes += `${index + 1}. ${spot.name}\n`;
-        if (spot.timeSlot) notes += `   Time: ${spot.timeSlot}\n`;
-        if (spot.duration) notes += `   Duration: ${spot.duration}\n`;
-        if (spot.restaurant) notes += `   Restaurant: ${spot.restaurant}\n`;
-        if (spot.hotel) notes += `   Hotel: ${spot.hotel}\n`;
-        notes += '\n';
-      });
-      
-      notes += '\n';
-    });
+    // Find the chosen hotel if any
+    let chosenHotel: any = null;
 
-    // Add detailed expenses
-    if (itinerary.expenses && itinerary.expenses.length > 0) {
-      notes += `DETAILED EXPENSES\n`;
-      notes += '='.repeat(20) + '\n';
-      
-      itinerary.expenses.forEach((expense: any) => {
-        notes += `${expense.category.toUpperCase()}: ₱${expense.amount}\n`;
-        notes += `   ${expense.description}\n`;
-        notes += `   Date: ${new Date(expense.date).toLocaleDateString()}\n\n`;
-      });
-    }
-
-    // Copy to clipboard
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(notes).then(() => {
-        this.showToast('Itinerary copied to clipboard!', 'success');
-      }).catch(() => {
-        this.showAlert('Export Generated', 'Please manually copy the itinerary.');
-      });
-    } else {
-      this.showAlert('Export Generated', 'Please manually copy the itinerary.');
-    }
-  }
-
-  private shareItinerary(itinerary: any) {
-    // Create a shareable link (simplified version)
-    const shareData = {
-      title: itinerary.name,
-      text: `Check out my completed Cebu itinerary! Total expenses: ₱${itinerary.totalExpenses || 0}`,
-      url: window.location.origin + '/shared-itinerary/' + itinerary.id
-    };
-
-    if (navigator.share) {
-      navigator.share(shareData).catch(() => {
-        this.copyShareLink(shareData.url);
-      });
-    } else {
-      this.copyShareLink(shareData.url);
-    }
-  }
-
-  private copyShareLink(url: string) {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(() => {
-        this.showToast('Share link copied to clipboard!', 'success');
-      });
-    }
-  }
-
-  async viewItineraryDetails(itinerary: any) {
-    // Create a simpler text-based alert that works better
-    let message = `EXPENSES:\n`;
-    message += `Total: ₱${itinerary.totalExpenses || 0}\n`;
-    message += `Transportation: ₱${itinerary.expenseBreakdown?.transportation || 0}\n`;
-    message += `Food: ₱${itinerary.expenseBreakdown?.food || 0}\n`;
-    message += `Accommodation: ₱${itinerary.expenseBreakdown?.accommodation || 0}\n\n`;
-
-    if (itinerary.days && itinerary.days.length > 0) {
-      message += `PLACES VISITED:\n`;
-      itinerary.days.forEach((day: any, dayIndex: number) => {
-        if (itinerary.days.length > 1) {
-          message += `Day ${day.day || dayIndex + 1}:\n`;
-        }
-        
-        if (day.spots && day.spots.length > 0) {
-          day.spots.forEach((spot: any, spotIndex: number) => {
-            const timeInfo = spot.timeSlot ? ` (${spot.timeSlot})` : '';
-            message += `${spotIndex + 1}. ${spot.name}${timeInfo}\n`;
-            
-            if (spot.restaurant && spot.restaurant !== spot.name) {
-              message += `${spot.restaurant}\n`;
-            }
-            if (spot.hotel && spot.hotel !== spot.name) {
-              message += `${spot.hotel}\n`;
-            }
-          });
-        }
-        message += `\n`;
-      });
-    }
-
-    // Add detailed expenses if available
-    if (itinerary.expenses && itinerary.expenses.length > 0) {
-      message += `EXPENSE DETAILS:\n`;
-      
-      const expensesByCategory = {
-        transportation: itinerary.expenses.filter((e: any) => e.category === 'transportation'),
-        food: itinerary.expenses.filter((e: any) => e.category === 'food'),
-        accommodation: itinerary.expenses.filter((e: any) => e.category === 'accommodation')
+    // Process each spot in the day
+    day.spots?.forEach((spot: any) => {
+      // Create base spot object
+      const viewSpot: ViewItinerarySpot = {
+        id: spot.id || `spot_${Date.now()}_${Math.random()}`,
+        name: spot.name || 'Unknown Spot',
+        description: spot.description || '',
+        category: spot.category || 'GENERAL',
+        timeSlot: spot.timeSlot || '09:00',
+        estimatedDuration: this.formatDuration(spot.duration || spot.estimatedDuration || '2 hours'),
+        location: spot.location || { lat: 0, lng: 0 },
+        mealType: spot.mealType,
+        chosenRestaurant: spot.chosenRestaurant || null
       };
 
-      Object.entries(expensesByCategory).forEach(([category, expenses]: [string, any[]]) => {
-        if (expenses.length > 0) {
-          const categoryIcon = category === 'transportation' ? '' : category === 'food' ? '' : '';
-          message += `${categoryIcon} ${category.toUpperCase()}:\n`;
-          
-          expenses.forEach((expense: any) => {
-            const date = new Date(expense.date).toLocaleDateString();
-            message += `• ₱${expense.amount} - ${expense.description} (${date})\n`;
-          });
-          message += `\n`;
+      // Check if this is Fort San Pedro, Anjo World Theme Park (tourist spots)
+      if (spot.name === 'Fort San Pedro' || 
+          spot.name === 'Anjo World Theme Park' || 
+          spot.category === 'tourist_spot' || 
+          spot.type === 'tourist_spot') {
+        touristSpots.push(viewSpot);
+      }
+      // Check if this is McDonald's or Jollibee (restaurants)
+      else if (spot.name === 'McDonald\'s' || 
+               spot.name === 'Jollibee' || 
+               spot.category === 'restaurant' || 
+               spot.type === 'restaurant' ||
+               spot.restaurant) {
+        restaurants.push(viewSpot);
+      }
+      // Check if this is a hotel
+      else if (spot.name.includes('Inn') || 
+               spot.name.includes('Hotel') || 
+               spot.category === 'hotel' || 
+               spot.type === 'hotel' ||
+               spot.hotel) {
+        
+        // Check if this is the chosen hotel (Travelbee Minglanilla Inn)
+        if (spot.isChosen || spot.name === 'Travelbee Minglanilla Inn') {
+          chosenHotel = {
+            ...viewSpot,
+            name: spot.hotel || spot.name,
+            vicinity: spot.vicinity,
+            rating: spot.rating,
+            description: spot.description || 'Check-in: Evening'
+          };
+        } else {
+          hotels.push(viewSpot);
         }
-      });
-    }
-
-    const alert = await this.alertCtrl.create({
-      header: itinerary.name,
-      subHeader: `Completed on ${this.getDateDisplay(itinerary.date)}`,
-      message: message,
-      buttons: [
-        {
-          text: 'Export',
-          handler: () => {
-            this.exportItinerary(itinerary);
-          }
-        },
-        {
-          text: 'Close',
-          role: 'cancel'
-        }
-      ]
+      }
+      // Default to tourist spot if no specific category
+      else {
+        touristSpots.push(viewSpot);
+      }
     });
 
-    await alert.present();
+    // Sort each array by timeSlot
+    touristSpots.sort((a, b) => this.compareTime(a.timeSlot, b.timeSlot));
+    restaurants.sort((a, b) => this.compareTime(a.timeSlot, b.timeSlot));
+    hotels.sort((a, b) => this.compareTime(a.timeSlot, b.timeSlot));
+
+    // Create the ViewItineraryDay object
+    return {
+      day: index + 1,
+      date: day.date || completedItinerary.date,
+      spots: touristSpots,
+      restaurants: restaurants,
+      hotels: hotels,
+      chosenHotel: chosenHotel
+    };
+  });
+}
+
+// Helper method to format duration
+private formatDuration(duration: string | number): string {
+  if (!duration) return '2 hours';
+  
+  // If it's a number (minutes), convert to readable format
+  if (typeof duration === 'number') {
+    if (duration >= 60) {
+      const hours = Math.floor(duration / 60);
+      const minutes = duration % 60;
+      return minutes > 0 ? `${hours} hr ${minutes} min` : `${hours} hours`;
+    }
+    return `${duration} min`;
   }
+  
+  // If it's already a string, return as is
+  return duration;
+}
+
+// Helper method to compare time strings
+private compareTime(timeA: string, timeB: string): number {
+  const [hoursA, minutesA] = (timeA || '00:00').split(':').map(Number);
+  const [hoursB, minutesB] = (timeB || '00:00').split(':').map(Number);
+  
+  const totalMinutesA = hoursA * 60 + minutesA;
+  const totalMinutesB = hoursB * 60 + minutesB;
+  
+  return totalMinutesA - totalMinutesB;
+}
 
   async deleteItinerary(itinerary: any) {
     const alert = await this.alertCtrl.create({

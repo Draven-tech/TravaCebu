@@ -46,14 +46,11 @@ export class MyItinerariesPage implements OnInit {
         .collection('user_itinerary_events', ref => ref.where('id', '==', itineraryId))
         .get()
         .subscribe(snapshot => {
-          // Process and display the itinerary
         });
     }
   }
 
   async ionViewWillEnter() {
-    // Refresh data when the page becomes visible
-    // This ensures we get the latest data after editing an itinerary
     await this.loadItineraries();
   }
 
@@ -67,20 +64,16 @@ export class MyItinerariesPage implements OnInit {
         return;
       }
 
-      // Force refresh from Firestore to ensure we get the latest data
       const events = await this.calendarService.forceRefreshFromFirestore();
 
       if (events && events.length > 0) {
-        // Sort events by start date in descending order
         events.sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
 
-        // Group events into itineraries
         this.itineraries = this.groupEventsIntoItineraries(events);
       } else {
         this.itineraries = [];
       }
 
-      // Force change detection after loading
       this.cdr.detectChanges();
     } catch (error) {
       console.error('Error loading itineraries:', error);
@@ -106,7 +99,6 @@ export class MyItinerariesPage implements OnInit {
     // Convert grouped events to itineraries
     groupedEvents.forEach((dayEvents, groupKey) => {
       if (dayEvents.length > 0) {
-        // Sort events by start time to get proper time range
         dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
         const firstEvent = dayEvents[0];
@@ -114,7 +106,6 @@ export class MyItinerariesPage implements OnInit {
         const date = firstEvent.start.split('T')[0];
         const itineraryId = firstEvent.extendedProps?.itineraryGroupId || `itinerary_${date}`;
 
-        // Use the actual event times (which reflect the current date)
         let startTime = firstEvent.start;
         let endTime = lastEvent.end;
 
@@ -139,7 +130,6 @@ export class MyItinerariesPage implements OnInit {
   }
 
   async viewItinerary(itinerary: any) {
-    // Convert itinerary back to the format expected by ViewItineraryModalComponent
     const itineraryDays = this.convertToItineraryDays(itinerary);
 
     const modal = await this.modalCtrl.create({
@@ -154,8 +144,6 @@ export class MyItinerariesPage implements OnInit {
   }
 
   async editItinerary(itinerary: any) {
-    // Load all tourist spots from the main collection (same as user dashboard)
-    // This ensures we have all possible spots to choose from
     let originalSpots: any[] = [];
     try {
       const touristSpotsSnapshot = await this.firestore
@@ -177,14 +165,13 @@ export class MyItinerariesPage implements OnInit {
       originalSpots = [];
     }
 
-    // Convert itinerary back to the format expected by ItineraryModalComponent for editing
     const itineraryDays = this.convertToItineraryDays(itinerary, originalSpots);
 
     const modal = await this.modalCtrl.create({
       component: ItineraryModalComponent,
       componentProps: {
         itinerary: itineraryDays,
-        originalSpots: originalSpots, // Pass the full bucket list as available spots
+        originalSpots: originalSpots,
         isEditMode: true
       },
       cssClass: 'itinerary-modal'
@@ -192,7 +179,6 @@ export class MyItinerariesPage implements OnInit {
 
     await modal.present();
 
-    // Handle the result when modal is dismissed
     const result = await modal.onDidDismiss();
     if (result.data && result.data.saved) {
       this.showToast('Itinerary updated successfully!', 'success');
@@ -202,8 +188,6 @@ export class MyItinerariesPage implements OnInit {
   async toggleStatus(itinerary: any) {
     try {
       const newStatus = itinerary.status === 'completed' ? 'active' : 'completed';
-
-      // Update all events in this itinerary
       const batch = this.firestore.firestore.batch();
 
       itinerary.events.forEach((event: any) => {
@@ -217,7 +201,6 @@ export class MyItinerariesPage implements OnInit {
         await this.ensureCompletedItineraryExpenses(itinerary);
       }
 
-      // Reload itineraries to get fresh data
       await this.loadItineraries();
 
       this.showToast(
@@ -348,11 +331,9 @@ export class MyItinerariesPage implements OnInit {
           role: 'destructive',
           handler: async () => {
             try {
-              // Check if events have proper Firestore IDs
               const eventsWithIds = itinerary.events.filter((event: any) => event.id && event.id.length > 0);
 
               if (eventsWithIds.length > 0) {
-                // Delete events with proper IDs from Firestore
                 const batch = this.firestore.firestore.batch();
 
                 eventsWithIds.forEach((event: any) => {
@@ -363,24 +344,20 @@ export class MyItinerariesPage implements OnInit {
                 await batch.commit();
               }
 
-              // Always clear from localStorage as well
               const currentEvents = JSON.parse(localStorage.getItem('user_itinerary_events') || '[]');
               const updatedEvents = currentEvents.filter((event: any) => {
-                // Remove events that match this itinerary's date
                 const eventDate = event.start?.split('T')[0];
                 return eventDate !== itinerary.date;
               });
 
               localStorage.setItem('user_itinerary_events', JSON.stringify(updatedEvents));
 
-              // Reload itineraries to get fresh data
               await this.loadItineraries();
 
               this.showToast('Itinerary deleted successfully!', 'success');
             } catch (error) {
               console.error('Error deleting itinerary:', error);
 
-              // Fallback: Try using calendar service to clear events
               try {
                 await this.calendarService.clearItineraryEvents();
                 await this.loadItineraries();
@@ -399,26 +376,23 @@ export class MyItinerariesPage implements OnInit {
   }
 
   private convertToItineraryDays(itinerary: any, originalSpots: any[] = []): any[] {
-    // This is a simplified conversion - you might need to adjust based on your actual data structure
     const dayEvents = itinerary.events || [];
     const spots = dayEvents.filter((event: any) => event?.extendedProps?.type === 'tourist_spot');
 
-    // Extract restaurants and hotels from events
     const restaurants = dayEvents.filter((event: any) => event?.extendedProps?.type === 'restaurant');
     const hotels = dayEvents.filter((event: any) => event?.extendedProps?.type === 'hotel');
 
-    // Find chosen hotel for this day
     const chosenHotel = hotels.find((hotel: any) => hotel?.extendedProps?.isChosen) || null;
 
     return [{
       day: 1,
       date: itinerary.date,
       spots: spots.map((event: any) => {
-        // Try to find the original spot data to get proper image
+
         const originalSpot = originalSpots.find(spot => spot.name === event.title);
 
         return {
-          id: event.extendedProps?.spotId || event.id || '', // Use spotId from extendedProps if available
+          id: event.extendedProps?.spotId || event.id || '',
           name: event.title || 'Unknown Spot',
           description: event.extendedProps?.description || originalSpot?.description || '',
           category: event.extendedProps?.category || originalSpot?.category || 'GENERAL',
@@ -426,7 +400,7 @@ export class MyItinerariesPage implements OnInit {
           estimatedDuration: event.extendedProps?.duration || '2 hours',
           durationMinutes: event.extendedProps?.durationMinutes || 120,
           location: event.extendedProps?.location || originalSpot?.location || { lat: 0, lng: 0 },
-          img: originalSpot?.img || event.extendedProps?.img || 'assets/img/default.png', // Use original spot image if available
+          img: originalSpot?.img || event.extendedProps?.img || 'assets/img/default.png',
           mealType: event.extendedProps?.mealType || null,
           chosenRestaurant: event.extendedProps?.restaurant ? {
             name: event.extendedProps.restaurant,

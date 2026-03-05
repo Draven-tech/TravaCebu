@@ -27,6 +27,12 @@ ion-content {
     font-size: 14px;
     height: 34px;
   }
+}
+.itinerary-actions {
+  ion-button {
+    --color: #666;
+    --border-color: #666;
+  }
 
   ion-icon {
     font-size: 16px;

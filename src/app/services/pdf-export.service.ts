@@ -123,7 +123,7 @@ async generateAndUploadPDF(itineraries: any[]): Promise<string> {
     const saved = await Filesystem.writeFile({
       path: `Download/${fileName}`,
       data: base64Data,
-      directory: Directory.ExternalStorage, // ✅œ… saves outside app sandbox
+      directory: Directory.ExternalStorage,
     });
 
     alert(`PDF saved to Downloads folder: ${fileName}`);

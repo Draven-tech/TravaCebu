@@ -13,7 +13,7 @@ export class WelcomePage {
   constructor(
     private router: Router,
     private afAuth: AngularFireAuth
-  ) {}
+  ) { }
 
   ionViewWillEnter() {
     this.afAuth.authState.subscribe(user => {

@@ -17,7 +17,6 @@
 <ion-content class="ion-padding" [scrollEvents]="true">
 
   <span class="my-itineraries-btn" (click)="goToMyItineraries()">My Itineraries</span>
-
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content pullingIcon="chevron-down-circle-outline" pullingText="Pull to refresh"
       refreshingSpinner="circles" refreshingText="Refreshing...">
@@ -66,7 +65,7 @@
                 {{ isInBucketList(spot.id) ? 'ADDED TO BUCKET LIST' : 'ADD TO BUCKET LIST' }}
               </span>
             </ion-button>
-            
+
           </ion-card-content>
         </ion-card>
       </ion-col>
@@ -100,7 +99,8 @@
           <ion-icon name="search-outline" class="search-icon"></ion-icon>
           <h3>Can't find your desired tourist spot?</h3>
           <p>Search for tourist spots in Cebu and add them to our database!</p>
-          <ion-button expand="block" style="--background: linear-gradient(45deg, #f1c40f, #f39c12); --color: #000000;" (click)="openSearchModal()">
+          <ion-button expand="block" style="--background: linear-gradient(45deg, #f1c40f, #f39c12); --color: #000000;"
+            (click)="openSearchModal()">
             <ion-icon name="add-circle-outline" slot="start"></ion-icon>
             Search & Add New Tourist Spot
           </ion-button>
@@ -112,22 +112,13 @@
   <!-- Recently Visited Section -->
   <div class="recently-visited-header">
     <h2 class="title">Recently Visited</h2>
-    <ion-button
-      class="see-all-link"
-      fill="clear"
-      size="small"
-      (click)="openVisitedSpotsModal()"
-    >
+    <ion-button class="see-all-link" fill="clear" size="small" (click)="openVisitedSpotsModal()">
       See all
     </ion-button>
   </div>
 
   <ion-list *ngIf="visitedSpots.length > 0" class="visited-spot-list">
-    <ion-item
-      *ngFor="let spot of topVisitedSpots"
-      lines="none"
-      class="visited-spot-item"
-    >
+    <ion-item *ngFor="let spot of topVisitedSpots" lines="none" class="visited-spot-item">
       <ion-label>
         <h3>{{ spot.name }}</h3>
         <p *ngIf="getVisitedDate(spot.visitedAt) as visitedDate">

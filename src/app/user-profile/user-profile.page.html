@@ -36,7 +36,11 @@
     <img [src]="userData?.photoURL || 'assets/img/default.png'" />
   </ion-avatar>
   <div class="user-text">
-    <h2>{{ userData?.fullName || 'John Doe' }}</h2>
+    <h2>
+      {{ (userData?.firstName && userData?.lastName)
+          ? (userData.firstName + ' ' + userData.lastName)
+          : 'John Doe' }}
+    </h2>
     <p>@{{ userData?.username || 'username' }}</p>
     <p class="bio" *ngIf="userData?.bio; else noBio">{{ userData.bio }}</p>
     <ng-template #noBio>
@@ -126,7 +130,7 @@
               </ion-card-header>
               <ion-card-content>
                 <div class="itinerary-spots">
-                  <h4>📍 Places visited ({{ getTouristSpotsCount(post.sharedItinerary.spots) }} tourist spots):</h4>
+                  <h4>Places visited ({{ getTouristSpotsCount(post.sharedItinerary.spots) }} tourist spots):</h4>
                   <div class="spots-list">
                     <div *ngFor="let spot of getTouristSpotsOnly(post.sharedItinerary.spots); let i = index" class="spot-item">
                       <span class="spot-number">{{ i + 1 }}.</span>
@@ -231,7 +235,7 @@
               </ion-card-header>
               <ion-card-content>
                 <div class="itinerary-spots">
-                  <h4>📍 Places visited ({{ getTouristSpotsCount(post.sharedItinerary.spots) }} tourist spots):</h4>
+                  <h4>Places visited ({{ getTouristSpotsCount(post.sharedItinerary.spots) }} tourist spots):</h4>
                   <div class="spots-list">
                     <div *ngFor="let spot of getTouristSpotsOnly(post.sharedItinerary.spots); let i = index" class="spot-item">
                       <span class="spot-number">{{ i + 1 }}.</span>

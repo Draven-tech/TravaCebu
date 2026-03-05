@@ -18,11 +18,13 @@ import { ModalController, AlertController } from '@ionic/angular';
   ]
 })
 export class EditProfileModalComponent {
-  @Input() fullName!: string;
+  @Input() firstName!: string;
+  @Input() lastName!: string;
   @Input() username!: string;
   @Input() bio: string = '';
 
-  updatedFullName: string = '';
+  updatedFirstName: string = '';
+  updatedLastName: string = '';
   updatedUsername: string = '';
   updatedBio: string = ''; 
 
@@ -34,7 +36,8 @@ export class EditProfileModalComponent {
   ) {}
 
   ngOnInit() {
-    this.updatedFullName = this.fullName;
+    this.updatedFirstName = this.firstName;
+    this.updatedLastName = this.lastName;
     this.updatedUsername = this.username;
     this.updatedBio = this.bio;
   }
@@ -50,14 +53,16 @@ export class EditProfileModalComponent {
 
     try {
       await this.firestore.collection('users').doc(uid).update({
-        fullName: this.updatedFullName,
+        firstName: this.updatedFirstName,
+        lastName: this.updatedLastName,
         username: this.updatedUsername,
         bio: this.updatedBio
       });
 
       this.showAlert('Success', 'Profile updated successfully!');
       this.modalCtrl.dismiss({
-        fullName: this.updatedFullName,
+        firstName: this.updatedFirstName,
+        lastName: this.updatedLastName,
         username: this.updatedUsername,
         bio: this.updatedBio
       });

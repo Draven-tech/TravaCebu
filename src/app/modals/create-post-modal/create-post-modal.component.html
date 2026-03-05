@@ -22,7 +22,7 @@
         <img [src]="userData?.photoURL || 'assets/img/default.png'" />
       </ion-avatar>
       <div class="user-details">
-        <h4>{{ userData?.fullName || 'Anonymous' }}</h4>
+        <h4>@{{ userData?.username || 'anonymous' }}</h4>
         <p>Public Post</p>
       </div>
     </div>

@@ -7,9 +7,16 @@
 
 <div class="edit-profile-form">
   <div class="form-group">
-    <label class="floating-label" [class.filled]="updatedFullName">
-      <span>Full Name</span>
-      <input type="text" [(ngModel)]="updatedFullName" name="fullName" class="native-input" />
+    <label class="floating-label" [class.filled]="updatedFirstName">
+      <span>First Name</span>
+      <input type="text" [(ngModel)]="updatedFirstName" name="firstName" class="native-input" />
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label class="floating-label" [class.filled]="updatedLastName">
+      <span>Last Name</span>
+      <input type="text" [(ngModel)]="updatedLastName" name="lastName" class="native-input" />
     </label>
   </div>
 

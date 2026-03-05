@@ -7,17 +7,32 @@
 
     <form class="custom-form">
       <div class="form-group">
-        <label class="floating-label" [class.filled]="fullName">
-          <span>Full Name</span>
+        <label class="floating-label" [class.filled]="firstName">
+          <span>First Name</span>
           <input 
             type="text" 
-            [(ngModel)]="fullName" 
-            name="fullName" 
+            [(ngModel)]="firstName" 
+            name="firstName" 
             required 
             (focus)="onInputFocus($event)"
             (blur)="onInputBlur($event)"
             inputmode="text"
-            autocomplete="name" />
+            autocomplete="given-name" />
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label class="floating-label" [class.filled]="lastName">
+          <span>Last Name</span>
+          <input 
+            type="text" 
+            [(ngModel)]="lastName" 
+            name="lastName" 
+            required 
+            (focus)="onInputFocus($event)"
+            (blur)="onInputBlur($event)"
+            inputmode="text"
+            autocomplete="family-name" />
         </label>
       </div>
 

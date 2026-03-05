@@ -17,7 +17,8 @@ export class RegisterPage implements OnInit {
   email: string = '';
   password: string = '';
   confirmPassword: string = '';
-  fullName: string = '';
+  firstName: string = '';
+  lastName: string = '';
   username: string = '';
   agreed: boolean = false;
   showPassword = false;
@@ -63,7 +64,7 @@ export class RegisterPage implements OnInit {
 
   async register() {
     // Validate form
-    if (!this.fullName || !this.username || !this.email || !this.password || !this.confirmPassword) {
+    if (!this.firstName || !this.lastName || !this.username || !this.email || !this.password || !this.confirmPassword) {
       await this.showAlert('Missing Information', 'Please fill in all required fields.');
       return;
     }
@@ -94,7 +95,8 @@ export class RegisterPage implements OnInit {
           await this.firestore.collection('users').doc(user.uid).set({
             uid: user.uid,
             email: this.email,
-            fullName: this.fullName,
+            firstName: this.firstName,
+            lastName: this.lastName,
             username: this.username,
             createdAt: new Date(),
             photoURL: null

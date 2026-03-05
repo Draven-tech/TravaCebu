@@ -142,14 +142,14 @@ export class CreatePostModalComponent {
       if (this.selectedImage) {
         const filePath = `posts/${currentUser.uid}_${Date.now()}_${this.selectedImage.name}`;
         imageUrl = await this.storageService.uploadFile(filePath, this.selectedImage);
-      }
+      } 
 
       const selectedSpot = this.getSelectedSpot();
       const selectedItinerary = this.getSelectedItinerary();
       
       const postData: any = {
         userId: currentUser.uid,
-        userName: this.userData?.fullName || 'Anonymous',
+        userName: this.userData?.username || 'anonymous',
         userPhotoURL: this.userData?.photoURL || 'assets/img/default.png',
         content: this.postContent.trim(),
         imageUrl: imageUrl || null,

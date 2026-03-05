@@ -423,7 +423,8 @@ async viewProfilePicture() {
     component: EditProfileModalComponent,
     cssClass: 'edit-profile-modal-class fullscreen',
     componentProps: {
-      fullName: this.userData?.fullName,
+      firstName: this.userData?.firstName,
+      lastName: this.userData?.lastName,
       username: this.userData?.username,
       bio: this.userData?.bio
     },
@@ -436,7 +437,8 @@ async viewProfilePicture() {
   const { data } = await modal.onWillDismiss();
   if (data) {
     // update the view with returned data if needed
-    this.userData.fullName = data.fullName;
+    this.userData.firstName = data.firstName;
+    this.userData.lastName = data.lastName;
     this.userData.username = data.username;
     this.userData.bio = data.bio;
     

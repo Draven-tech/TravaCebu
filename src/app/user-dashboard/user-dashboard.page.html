@@ -7,7 +7,11 @@
     </ion-buttons>
     <ion-title>
       <div style="font-size: small;">Welcome!</div>
-      <strong>{{ userData?.fullName || 'Guest' }}</strong>
+      <strong>
+        {{ (userData?.firstName && userData?.lastName)
+            ? (userData.firstName + ' ' + userData.lastName)
+            : 'Guest' }}
+      </strong>
     </ion-title>
     <ion-buttons slot="end">
     </ion-buttons>

@@ -89,12 +89,13 @@ ion-content {
 }
 
 .total-expense {
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-  color: white;
+  background: linear-gradient(135deg, #e6db44 0%, #dbc45d 100%);
+  color: rgb(0, 0, 0);
   padding: 16px;
   border-radius: 12px;
   text-align: center;
   margin-bottom: 16px;
+
 }
 
 .total-expense h3 {
@@ -102,6 +103,7 @@ ion-content {
   font-size: 1rem;
   font-weight: 600;
   opacity: 0.9;
+
 }
 
 .total-amount {
@@ -124,7 +126,7 @@ ion-content {
   gap: 6px;
   border-left: 3px solid;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  min-width: 0; // Allow flex items to shrink
+  min-width: 0;
 }
 
 .expense-item.transportation {
@@ -132,18 +134,18 @@ ion-content {
 }
 
 .expense-item.food {
-  border-left-color: #4CAF50;
+  border-left-color: #FF9800;
 }
 
 .expense-item.accommodation {
-  border-left-color: #2196F3;
+  border-left-color: #FF9800;
 }
 
 .expense-details {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-width: 0; // Allow text to wrap/shrink
+  min-width: 0;
 }
 
 .expense-label {
@@ -197,6 +199,11 @@ ion-content {
   display: flex;
   gap: 8px;
   margin-top: 16px;
+
+  ion-button {
+  --color: #666;
+  --border-color: #666;
+  }
 }
 
 .action-buttons ion-button {

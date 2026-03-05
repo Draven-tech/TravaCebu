@@ -1,11 +1,11 @@
 .spot-detail-content {
   --padding-start: 0;
   --padding-end: 0;
-  --padding-bottom: 100px; // Extra space for bottom navigation
-  background-color: #121212;
+  --padding-bottom: 100px;
+  background-color: #646464;
   color: #fff;
   position: relative;
-  z-index: 1; // Ensure content doesn't overlap navigation
+  z-index: 1;
 }
 
 .spot-header-img {
@@ -22,7 +22,6 @@
     transition: opacity 0.3s ease;
   }
 
-  // Image Help Overlay
   .image-help-overlay {
     position: absolute;
     bottom: 8px;
@@ -54,25 +53,21 @@
   }
 }
 
-// Spin animation for refresh button
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-// Header refresh button animation
 ion-toolbar {
   ion-icon.spinning {
     animation: spin 1s linear infinite;
   }
 }
 
-// Ensure bottom navigation is visible
 ion-page {
   position: relative;
 }
 
-// Make sure content doesn't interfere with bottom nav
 ion-content {
   --overflow: auto;
 }
@@ -100,7 +95,7 @@ ion-content {
 }
 
 .add-review-container {
-  background: #1e1e1e;
+  background: #464646;
   margin: 16px;
   padding: 16px;
   border-radius: 12px;
@@ -250,7 +245,7 @@ ion-content {
 
   .review-card {
     background: #222;
-    color: #fff;
+    --color: #fff;
     margin-bottom: 16px;
     border-radius: 12px;
   }
@@ -267,10 +262,27 @@ ion-content {
     margin-top: 12px;
     border-radius: 10px;
   }
+  .review-rating {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
 
+    ion-card-subtitle {
+      color: #f1c40f;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+  }
   .no-review-msg {
     text-align: center;
     margin-top: 20px;
     color: #888;
+
+  }
+  ion-card-title {
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 600;
   }
 }

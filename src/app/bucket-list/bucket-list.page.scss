@@ -2,11 +2,11 @@
 // ::ng-deep .itinerary-modal (unused - no matching HTML)
 
 .bucket-header {
-  --background: transparent;
+  --background: linear-gradient(45deg, #f1c40f, #f39c12);
   box-shadow: none;
 
   .bucket-header-content {
-    background: linear-gradient(45deg, #f1c40f, #f39c12);
+
     padding: 16px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     display: flex;

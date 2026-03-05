@@ -191,8 +191,8 @@ export class ItineraryModalComponent implements OnInit {
           id: canonicalSpotId,
           title: spot.name,
           start: startTime,
-          end: startTime, 
-          color: '#28a745', 
+          end: startTime,
+          color: '#28a745',
           textColor: '#fff',
           allDay: false,
           extendedProps: {

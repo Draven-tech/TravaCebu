@@ -17,33 +17,29 @@
 <ion-content class="ion-padding" [scrollEvents]="true">
 
   <span class="my-itineraries-btn" (click)="goToMyItineraries()">My Itineraries</span>
-  <!-- Pull to Refresh -->
+
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content pullingIcon="chevron-down-circle-outline" pullingText="Pull to refresh"
       refreshingSpinner="circles" refreshingText="Refreshing...">
     </ion-refresher-content>
   </ion-refresher>
-  <!-- Searchbar -->
+
   <ion-searchbar placeholder="Search tourist spots..." [(ngModel)]="searchQuery"
     (ionInput)="onSearchInput($event)"></ion-searchbar>
 
-  <!-- Section Title -->
   <h2 class="title">Plan Your Trip</h2>
 
-  <!-- Categories -->
   <div class="category-scroll">
     <ion-chip *ngFor="let tag of tags" [color]="selectedTag === tag ? 'dark' : 'warning'" (click)="selectTag(tag)">
       <ion-label>{{ tag }}</ion-label>
     </ion-chip>
   </div>
 
-  <!-- Loading State -->
   <div class="loading-container" *ngIf="isLoading">
     <ion-spinner name="crescent"></ion-spinner>
     <p>Loading tourist spots...</p>
   </div>
 
-  <!-- Tourist Spot Cards -->
   <ion-grid *ngIf="!isLoading && paginatedSpots.length > 0">
     <ion-row>
       <ion-col size="6" *ngFor="let spot of paginatedSpots">
@@ -63,7 +59,6 @@
           </div>
 
           <ion-card-content class="bucket-action">
-            <!-- Bucket List Button -->
             <ion-button fill="clear" size="small" (click)="toggleBucketList(spot); $event.stopPropagation()">
               <ion-icon [name]="isInBucketList(spot.id) ? 'checkmark-circle' : 'heart-outline'">
               </ion-icon>
@@ -78,20 +73,17 @@
     </ion-row>
   </ion-grid>
 
-  <!-- Empty State -->
   <div class="empty-state" *ngIf="!isLoading && paginatedSpots.length === 0 && !isSearching">
     <ion-icon name="location-outline" class="empty-icon"></ion-icon>
     <h3>No tourist spots found</h3>
     <p>Try changing your search or category filter</p>
   </div>
 
-  <!-- Pagination -->
   <div class="pagination-container" *ngIf="totalPages > 1">
     <ion-button fill="clear" [disabled]="currentPage === 1" (click)="previousPage()">
       <ion-icon name="chevron-back"></ion-icon>
       Previous
     </ion-button>
-
     <div class="page-info">
       Page {{ currentPage }} of {{ totalPages }}
     </div>
@@ -101,7 +93,6 @@
     </ion-button>
   </div>
 
-  <!-- Search for New Tourist Spots Section -->
   <div class="search-section" *ngIf="!isSearching">
     <ion-card class="search-card">
       <ion-card-content>

@@ -490,7 +490,21 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         } else if (result.data.action === 'saveExpensePlan') {
           this.savedExpensePlan = result.data.expensePlan || null;
           this.savedExpensePlanItineraryIndex = this.selectedItineraryIndex;
-          this.showToast('Expense plan saved');
+          const activeItinerary =
+            this.selectedItineraryIndex >= 0 && this.selectedItineraryIndex < this.availableItineraries.length
+              ? this.availableItineraries[this.selectedItineraryIndex]
+              : null;
+
+          if (activeItinerary && this.savedExpensePlan) {
+            void this.persistItineraryExpenses(activeItinerary, this.savedExpensePlan)
+              .then(() => this.showToast('Expense plan saved'))
+              .catch((error) => {
+                console.error('Error saving expense plan:', error);
+                this.showToast('Expense plan draft saved (sync failed)');
+              });
+          } else {
+            this.showToast('Expense plan saved');
+          }
         } else if (result.data.action === 'cancelRouteGeneration') {
           this.cancelRouteGeneration();
         }

@@ -452,7 +452,7 @@ export class CalendarService {
           const eventData = doc.data() as CalendarEvent;
           const eventDate = eventData.start.split('T')[0];
           
-          if (dates.includes(eventDate)) {
+          if (dates.includes(eventDate) && eventData.status !== 'completed') {
             batch.delete(doc.ref);
             hasEventsToDelete = true;
           }
@@ -468,7 +468,7 @@ export class CalendarService {
         const events = JSON.parse(savedEvents) as CalendarEvent[];
         const filteredEvents = events.filter(event => {
           const eventDate = event.start.split('T')[0];
-          return !dates.includes(eventDate);
+          return !dates.includes(eventDate) || event.status === 'completed';
         });
         localStorage.setItem('user_itinerary_events', JSON.stringify(filteredEvents));
       }
@@ -647,22 +647,23 @@ export class CalendarService {
       const itineraries: any[] = [];
       const groupedEvents = new Map<string, CalendarEvent[]>();
 
-      // Group events by date
+      // Group by explicit itinerary group when available; fallback to date.
       completedEvents.forEach(event => {
-        const date = event.start.split('T')[0];
-        if (!groupedEvents.has(date)) {
-          groupedEvents.set(date, []);
+        const groupKey = event.extendedProps?.itineraryGroupId || event.start.split('T')[0];
+        if (!groupedEvents.has(groupKey)) {
+          groupedEvents.set(groupKey, []);
         }
-        groupedEvents.get(date)!.push(event);
+        groupedEvents.get(groupKey)!.push(event);
       });
 
       // Convert grouped events to itineraries
-      groupedEvents.forEach((dayEvents, date) => {
+      groupedEvents.forEach((dayEvents, groupKey) => {
         if (dayEvents.length > 0) {
           dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+          const date = dayEvents[0].start.split('T')[0];
           
           const itinerary = {
-            id: `completed_itinerary_${date}`,
+            id: `completed_itinerary_${groupKey}`,
             name: `My Cebu Adventure - ${this.getDateDisplay(date)}`,
             date: date,
             spots: dayEvents.map(event => ({

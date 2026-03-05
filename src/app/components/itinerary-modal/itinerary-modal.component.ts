@@ -171,6 +171,7 @@ export class ItineraryModalComponent implements OnInit {
     await this.calendarService.clearEventsForDates(datesToClear);
 
     const events: CalendarEvent[] = [];
+    const itineraryGroupId = `itinerary_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     for (const day of this.itinerary) {
       if (!day.date) {
@@ -205,6 +206,7 @@ export class ItineraryModalComponent implements OnInit {
             mealType: spot.mealType || null,
             spotId: canonicalSpotId,
             touristSpotId: canonicalSpotId,
+            itineraryGroupId,
 
             originalStartTime: this.originalStartTime,
             originalEndTime: this.originalEndTime
@@ -252,7 +254,8 @@ export class ItineraryModalComponent implements OnInit {
               rating: spot.chosenRestaurant.rating || null,
               mealType: spot.mealType || '',
               isChosen: true,
-              isItineraryEvent: true
+              isItineraryEvent: true,
+              itineraryGroupId
             }
           };
 
@@ -279,7 +282,8 @@ export class ItineraryModalComponent implements OnInit {
             vicinity: day.chosenHotel.vicinity || '',
             rating: day.chosenHotel.rating || null,
             isChosen: true,
-            isItineraryEvent: true
+            isItineraryEvent: true,
+            itineraryGroupId
           }
         };
 

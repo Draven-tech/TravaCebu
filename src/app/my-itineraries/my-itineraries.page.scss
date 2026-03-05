@@ -28,16 +28,6 @@ ion-content {
     height: 34px;
   }
 }
-.itinerary-actions {
-  ion-button {
-    --color: #666;
-    --border-color: #666;
-  }
-
-  ion-icon {
-    font-size: 16px;
-  }
-}
 
 .empty-state {
   display: flex;
@@ -86,16 +76,14 @@ ion-content {
         ion-card-title {
           font-size: 1.1rem;
           font-weight: 600;
-          color: #333;
           margin-bottom: 4px;
         }
         
         ion-card-subtitle {
           display: flex;
           align-items: center;
-          color: #666;
+
           font-size: 0.9rem;
-          
           ion-icon {
             margin-right: 4px;
           }
@@ -122,11 +110,11 @@ ion-content {
         align-items: center;
         margin-bottom: 8px;
         font-size: 0.9rem;
-        color: #666;
+
         
         ion-icon {
           margin-right: 8px;
-          color: #999;
+
           min-width: 16px;
         }
       }
@@ -143,9 +131,12 @@ ion-content {
         --padding-start: 8px;
         --padding-end: 8px;
         font-size: 0.8rem;
+        --color: #a5a5a5;
+        --border-color: #a5a5a5;
         
         ion-icon {
           margin-right: 4px;
+          font-size: 16px;
         }
       }
     }

@@ -13,13 +13,11 @@ export class WelcomePage {
   constructor(
     private router: Router,
     private afAuth: AngularFireAuth
-  ) {}
+  ) { }
 
-  // Ionic lifecycle: runs every time the page is entered
   ionViewWillEnter() {
     this.afAuth.authState.subscribe(user => {
       if (user) {
-        // Already signed in → skip welcome
         this.router.navigateByUrl(`/user-dashboard/${user.uid}`, { replaceUrl: true });
       }
     });

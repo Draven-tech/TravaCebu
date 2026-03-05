@@ -34,7 +34,7 @@
             <!-- Show Suggestions Button for spots with meal times -->
             <div *ngIf="spot.mealType && !spot.chosenRestaurant" class="suggestions-toggle">
               <div class="suggestion-buttons">
-                <ion-button *ngIf="spot.restaurantSuggestions?.length > 0" size="small" fill="outline" color="warning" (click)="toggleSuggestions(getSpotKey(dayIndex, i))">
+                <ion-button *ngIf="spot.restaurantSuggestions?.length > 0" size="small" fill="outline" expand="block" class="suggestion-action-btn" (click)="toggleSuggestions(getSpotKey(dayIndex, i))">
                   <ion-icon name="restaurant-outline"></ion-icon>
                   {{ areSuggestionsVisible(getSpotKey(dayIndex, i)) ? 'Hide' : 'Show' }} Restaurant Options
                 </ion-button>
@@ -42,7 +42,7 @@
                   <ion-icon name="restaurant-outline"></ion-icon>
                   No Options Available
                 </ion-button>
-                <ion-button size="small" fill="clear" color="medium" (click)="skipRestaurant(spot)">
+                <ion-button size="small" fill="outline" expand="block" class="suggestion-action-btn" (click)="skipRestaurant(spot)">
                   <ion-icon name="close-circle-outline"></ion-icon>
                   Skip for now
                 </ion-button>
@@ -110,15 +110,15 @@
           <!-- Hotel Suggestions Button -->
           <div *ngIf="day.spots.length > 0 && !day.chosenHotel" class="suggestions-toggle hotel-toggle">
             <div class="suggestion-buttons">
-              <ion-button *ngIf="day.hotelSuggestions && day.hotelSuggestions.length > 0" size="small" fill="outline" color="warning" (click)="toggleSuggestions(getDayKey(dayIndex))">
-                <ion-icon name="bed-outline" color="warning"></ion-icon>
+              <ion-button *ngIf="day.hotelSuggestions && day.hotelSuggestions.length > 0" size="small" fill="outline" expand="block" class="suggestion-action-btn" (click)="toggleSuggestions(getDayKey(dayIndex))">
+                <ion-icon name="bed-outline"></ion-icon>
                 {{ areSuggestionsVisible(getDayKey(dayIndex)) ? 'Hide' : 'Show' }} Hotel Options
               </ion-button>
               <ion-button *ngIf="!day.hotelSuggestions || day.hotelSuggestions.length === 0" size="small" fill="outline" color="medium" disabled>
                 <ion-icon name="bed-outline"></ion-icon>
                 No Options Available
               </ion-button>
-              <ion-button size="small" fill="clear" color="medium" (click)="skipHotel(day)">
+              <ion-button size="small" fill="outline" expand="block" class="suggestion-action-btn" (click)="skipHotel(day)">
                 <ion-icon name="close-circle-outline"></ion-icon>
                 Skip for now
               </ion-button>

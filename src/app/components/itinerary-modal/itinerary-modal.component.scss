@@ -408,17 +408,6 @@
       font-size: 0.8rem;
     }
 
-    .suggestion-buttons .skip-for-now-btn {
-      --border-width: 1.5px;
-      --border-style: dashed;
-      --border-color: #6c757d;
-      --color: #495057;
-      --background: rgba(108, 117, 125, 0.08);
-      --background-hover: rgba(108, 117, 125, 0.14);
-      --background-activated: rgba(108, 117, 125, 0.18);
-      font-weight: 600;
-      letter-spacing: 0.2px;
-    }
 
     .loading-suggestions {
       display: flex;

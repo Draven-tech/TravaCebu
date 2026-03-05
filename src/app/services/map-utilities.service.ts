@@ -28,26 +28,28 @@ export class MapUtilitiesService {
         // Silently handle cache errors
       }
 
-      // Group events by date
+      // Group by explicit itinerary group when available; fallback to date.
       events.forEach(event => {
-        const date = event.start.split('T')[0]; 
-        if (!groupedEvents.has(date)) {
-          groupedEvents.set(date, []);
+        const groupKey = event.extendedProps?.itineraryGroupId || event.start.split('T')[0];
+        if (!groupedEvents.has(groupKey)) {
+          groupedEvents.set(groupKey, []);
         }
-        groupedEvents.get(date)!.push(event);
+        groupedEvents.get(groupKey)!.push(event);
       });
 
       // Convert grouped events to itineraries
-      groupedEvents.forEach((dayEvents, date) => {
+      groupedEvents.forEach((dayEvents) => {
         if (dayEvents.length > 0) {
           // Sort events by start time
           dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
           
           const firstEvent = dayEvents[0];
           const lastEvent = dayEvents[dayEvents.length - 1];
+          const date = firstEvent.start.split('T')[0];
+          const itineraryId = firstEvent.extendedProps?.itineraryGroupId || `itinerary_${date}`;
           
           const itinerary = {
-            id: `itinerary_${date}`,
+            id: itineraryId,
             name: `Itinerary for ${this.getDateDisplay(date)}`,
             start: firstEvent.start,
             end: lastEvent.end,

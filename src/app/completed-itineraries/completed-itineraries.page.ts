@@ -73,23 +73,27 @@ export class CompletedItinerariesPage implements OnInit {
     const itineraries: any[] = [];
     const groupedEvents = new Map<string, CalendarEvent[]>();
 
-    // Group events by date
+    // Group by explicit itinerary group when available; fallback to date.
     events.forEach(event => {
-      const date = event.start.split('T')[0];
-      if (!groupedEvents.has(date)) {
-        groupedEvents.set(date, []);
+      const groupKey = event.extendedProps?.itineraryGroupId || event.start.split('T')[0];
+      if (!groupedEvents.has(groupKey)) {
+        groupedEvents.set(groupKey, []);
       }
-      groupedEvents.get(date)!.push(event);
+      groupedEvents.get(groupKey)!.push(event);
     });
 
     // Convert grouped events to itineraries
-    groupedEvents.forEach((dayEvents, date) => {
+    groupedEvents.forEach((dayEvents, groupKey) => {
       if (dayEvents.length > 0) {
         dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        const date = dayEvents[0].start.split('T')[0];
+        const originalItineraryId = dayEvents[0].extendedProps?.itineraryGroupId || `itinerary_${date}`;
         
         const itinerary = {
-          id: `completed_itinerary_${date}`,
-          originalItineraryId: `itinerary_${date}`,
+          id: `completed_itinerary_${groupKey}`,
+          originalItineraryId,
+          itineraryGroupId: dayEvents[0].extendedProps?.itineraryGroupId || null,
+          eventIds: dayEvents.map(event => event.id).filter((id): id is string => !!id),
           name: `Completed Trip - ${this.getDateDisplay(date)}`,
           date: date,
           completedDate: new Date(),
@@ -138,24 +142,23 @@ export class CompletedItinerariesPage implements OnInit {
         return matches;
       });
       
-      // Calculate totals manually
-      let totalTransportation = 0;
-      let totalFood = 0;
-      let totalAccommodation = 0;
-      
-      matchingExpenses.forEach(expense => {
-        switch (expense.category) {
-          case 'transportation':
-            totalTransportation += expense.amount;
-            break;
-          case 'food':
-            totalFood += expense.amount;
-            break;
-          case 'accommodation':
-            totalAccommodation += expense.amount;
-            break;
+      const sumCategoryWithPriority = (category: 'transportation' | 'food' | 'accommodation'): number => {
+        const categoryExpenses = matchingExpenses.filter(expense => expense.category === category);
+        if (categoryExpenses.length === 0) {
+          return 0;
         }
-      });
+
+        const userEntered = categoryExpenses.filter(expense =>
+          !String(expense.description || '').toLowerCase().includes('estimated')
+        );
+        const selected = userEntered.length > 0 ? userEntered : categoryExpenses;
+        return selected.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+      };
+
+      // Prioritize user-entered entries; use estimates only when a category has no user entry.
+      const totalTransportation = sumCategoryWithPriority('transportation');
+      const totalFood = sumCategoryWithPriority('food');
+      const totalAccommodation = sumCategoryWithPriority('accommodation');
       
       const totalExpenses = totalTransportation + totalFood + totalAccommodation;
       
@@ -387,13 +390,18 @@ export class CompletedItinerariesPage implements OnInit {
           handler: async () => {
             try {
               await this.performItineraryDeletion(itinerary);
-              this.showToast('Itinerary deleted successfully', 'success');
+              await this.showToast('Itinerary deleted successfully', 'success');
               
               // Refresh the list
-              await this.loadCompletedItineraries();
+              try {
+                await this.loadCompletedItineraries();
+              } catch (refreshError) {
+                console.warn('Deleted itinerary but failed to refresh list:', refreshError);
+                await this.showToast('Deleted, but list refresh failed. Please reopen page.', 'warning');
+              }
             } catch (error) {
               console.error('Error deleting itinerary:', error);
-              this.showToast('Failed to delete itinerary', 'danger');
+              await this.showToast('Failed to delete itinerary', 'danger');
             }
           }
         }
@@ -405,32 +413,53 @@ export class CompletedItinerariesPage implements OnInit {
 
   private async performItineraryDeletion(itinerary: any): Promise<void> {
     try {
-      // 1. Delete all calendar events for this itinerary
-      const allEvents = await this.calendarService.loadAllItineraryEvents();
-      const itineraryEvents = allEvents.filter(event => {
-        const eventDate = event.start.split('T')[0];
-        return eventDate === itinerary.date;
-      });
+      // 1. Delete only calendar events for the selected itinerary card
+      const eventIds: string[] = Array.isArray(itinerary?.eventIds) ? itinerary.eventIds.filter(Boolean) : [];
+      if (eventIds.length > 0) {
+        for (const eventId of eventIds) {
+          try {
+            await this.calendarService.deleteEvent(eventId);
+          } catch (error) {
+            console.warn('Skipping failed event deletion:', eventId, error);
+          }
+        }
+      } else {
+        // Fallback for legacy items without eventIds in memory
+        const allEvents = await this.calendarService.loadAllItineraryEvents();
+        const itineraryEvents = allEvents.filter(event => {
+          const eventGroupId = event.extendedProps?.itineraryGroupId || '';
+          if (itinerary?.itineraryGroupId && eventGroupId) {
+            return eventGroupId === itinerary.itineraryGroupId;
+          }
+          return event.start?.split('T')[0] === itinerary?.date;
+        });
 
-      // Delete each calendar event
-      for (const event of itineraryEvents) {
-        if (event.id) {
-          await this.calendarService.deleteEvent(event.id);
+        for (const event of itineraryEvents) {
+          if (event.id) {
+            try {
+              await this.calendarService.deleteEvent(event.id);
+            } catch (error) {
+              console.warn('Skipping failed event deletion:', event.id, error);
+            }
+          }
         }
       }
 
       // 2. Delete all budget expenses for this itinerary
       const allExpenses = await this.budgetService.getCurrentExpenses();
       const itineraryIdCandidates = this.getItineraryIdCandidates(itinerary);
-      const itineraryExpenses = allExpenses.filter(expense => 
-        (expense.itineraryId && itineraryIdCandidates.includes(expense.itineraryId)) ||
-        (expense.date && this.getLocalDateString(expense.date) === itinerary.date)
+      const itineraryExpenses = allExpenses.filter(expense =>
+        !!expense.itineraryId && itineraryIdCandidates.includes(expense.itineraryId)
       );
 
       // Delete each expense
       for (const expense of itineraryExpenses) {
         if (expense.id) {
-          await this.budgetService.deleteExpense(expense.id);
+          try {
+            await this.budgetService.deleteExpense(expense.id);
+          } catch (error) {
+            console.warn('Skipping failed expense deletion:', expense.id, error);
+          }
         }
       }
 
@@ -484,6 +513,7 @@ export class CompletedItinerariesPage implements OnInit {
   private getItineraryIdCandidates(itinerary: any): string[] {
     const candidates = [
       itinerary?.id,
+      itinerary?.itineraryGroupId,
       itinerary?.originalItineraryId,
       itinerary?.date ? `itinerary_${itinerary.date}` : '',
       itinerary?.date ? `completed_itinerary_${itinerary.date}` : '',

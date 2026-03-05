@@ -150,6 +150,9 @@ export class BudgetService {
           ...updates,
           updatedAt: new Date()
         });
+
+      // Keep local cache in sync after updates
+      this.loadExpenses();
     } catch (error) {
       console.error('Error updating expense:', error);
       throw error;
@@ -403,28 +406,40 @@ export class BudgetService {
 
   // Ensure expenses are loaded and return them
   async getExpenses(): Promise<BudgetExpense[]> {
-    // If no expenses are loaded yet, wait for them to load
-    if (this.expensesSubject.value.length === 0) {
-      return new Promise((resolve) => {
-        // Wait for the first emission of expenses
-        const subscription = this.expensesSubject.subscribe(expenses => {
-          if (expenses.length > 0 || subscription.closed) {
-            subscription.unsubscribe();
-            resolve(expenses);
-          }
-        });
-        
-        // Also set a timeout to resolve even if no expenses exist
-        setTimeout(() => {
-          if (!subscription.closed) {
-            subscription.unsubscribe();
-            resolve(this.expensesSubject.value);
-          }
-        }, 3000);
-      });
+    if (this.expensesSubject.value.length > 0) {
+      return this.expensesSubject.value;
     }
-    
-    return this.expensesSubject.value;
+
+    try {
+      const userId = await this.authService.getCurrentUid();
+      if (!userId) {
+        return [];
+      }
+
+      const snapshot = await this.firestore
+        .collection('budget_expenses', ref =>
+          ref.where('userId', '==', userId).orderBy('date', 'desc')
+        )
+        .get()
+        .toPromise();
+
+      const fetchedExpenses: BudgetExpense[] = (snapshot?.docs || []).map(doc => {
+        const expense = doc.data() as any;
+        return {
+          id: doc.id,
+          ...expense,
+          date: expense.date?.toDate?.() || new Date(expense.date || Date.now()),
+          createdAt: expense.createdAt?.toDate?.() || new Date(expense.createdAt || Date.now()),
+          updatedAt: expense.updatedAt?.toDate?.() || new Date(expense.updatedAt || Date.now())
+        } as BudgetExpense;
+      });
+
+      this.expensesSubject.next(fetchedExpenses);
+      return fetchedExpenses;
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      return this.expensesSubject.value;
+    }
   }
 
   // Get current budget limits

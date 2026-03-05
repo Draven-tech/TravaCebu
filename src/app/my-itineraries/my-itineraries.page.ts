@@ -94,30 +94,32 @@ export class MyItinerariesPage implements OnInit {
     const itineraries: any[] = [];
     const groupedEvents = new Map<string, CalendarEvent[]>();
 
-    // Group events by date
+    // Group by explicit itinerary group when available; fallback to date.
     events.forEach(event => {
-      const date = event.start.split('T')[0]; // Get just the date part
-      if (!groupedEvents.has(date)) {
-        groupedEvents.set(date, []);
+      const groupKey = event.extendedProps?.itineraryGroupId || event.start.split('T')[0];
+      if (!groupedEvents.has(groupKey)) {
+        groupedEvents.set(groupKey, []);
       }
-      groupedEvents.get(date)!.push(event);
+      groupedEvents.get(groupKey)!.push(event);
     });
 
     // Convert grouped events to itineraries
-    groupedEvents.forEach((dayEvents, date) => {
+    groupedEvents.forEach((dayEvents, groupKey) => {
       if (dayEvents.length > 0) {
         // Sort events by start time to get proper time range
         dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
         const firstEvent = dayEvents[0];
         const lastEvent = dayEvents[dayEvents.length - 1];
+        const date = firstEvent.start.split('T')[0];
+        const itineraryId = firstEvent.extendedProps?.itineraryGroupId || `itinerary_${date}`;
 
         // Use the actual event times (which reflect the current date)
         let startTime = firstEvent.start;
         let endTime = lastEvent.end;
 
         const itinerary = {
-          id: `itinerary_${date}`,
+          id: itineraryId,
           title: `Itinerary for ${this.getDateDisplay(date)}`,
           start: startTime,
           end: endTime,
@@ -231,19 +233,31 @@ export class MyItinerariesPage implements OnInit {
   private async ensureCompletedItineraryExpenses(itinerary: any): Promise<void> {
     const itineraryId = itinerary?.id || (itinerary?.date ? `itinerary_${itinerary.date}` : '');
     const itineraryDate = itinerary?.date || this.getLocalDateString(itinerary?.start) || this.getLocalDateString(new Date());
+    const itineraryIdCandidates = this.getItineraryIdCandidates(itinerary);
 
     if (!itineraryId || !itineraryDate) {
       return;
     }
 
     const existingExpenses = await this.budgetService.getExpenses();
-    const existingForItinerary = existingExpenses.filter(expense =>
-      expense.itineraryId === itineraryId || this.getLocalDateString(expense.date) === itineraryDate
-    );
+    const existingForItinerary = existingExpenses.filter(expense => {
+      const matchesId = !!expense.itineraryId && itineraryIdCandidates.includes(expense.itineraryId);
+      const matchesDate = this.getLocalDateString(expense.date) === itineraryDate;
+      return matchesId || matchesDate;
+    });
 
-    if (existingForItinerary.length > 0) {
-      return;
-    }
+    const hasCategoryData = (category: 'transportation' | 'food' | 'accommodation'): boolean => {
+      const categoryExpenses = existingForItinerary.filter(expense => expense.category === category);
+      if (categoryExpenses.length === 0) {
+        return false;
+      }
+
+      // If any non-estimated entry exists, prefer it and do not auto-fill this category.
+      const hasUserEntered = categoryExpenses.some(expense =>
+        !String(expense.description || '').toLowerCase().includes('estimated')
+      );
+      return hasUserEntered || categoryExpenses.length > 0;
+    };
 
     const limits = this.budgetService.getCurrentBudgetLimits();
     const events = itinerary?.events || [];
@@ -256,7 +270,7 @@ export class MyItinerariesPage implements OnInit {
     const foodEstimate = Math.max(0, Math.round(mealCount > 0 ? mealCount * (limits.dailyFood / 2) : 0));
     const accommodationEstimate = Math.max(0, Math.round(hotelCount > 0 ? hotelCount * limits.dailyAccommodation : 0));
 
-    if (transportationEstimate > 0) {
+    if (!hasCategoryData('transportation') && transportationEstimate > 0) {
       await this.budgetService.addTransportationExpense(
         transportationEstimate,
         `Estimated transportation for ${itinerary.title || itinerary.date}`,
@@ -266,7 +280,7 @@ export class MyItinerariesPage implements OnInit {
       );
     }
 
-    if (foodEstimate > 0) {
+    if (!hasCategoryData('food') && foodEstimate > 0) {
       await this.budgetService.addFoodExpense(
         foodEstimate,
         'Estimated Meals',
@@ -276,7 +290,7 @@ export class MyItinerariesPage implements OnInit {
       );
     }
 
-    if (accommodationEstimate > 0) {
+    if (!hasCategoryData('accommodation') && accommodationEstimate > 0) {
       await this.budgetService.addAccommodationExpense(
         accommodationEstimate,
         'Estimated Accommodation',
@@ -308,6 +322,16 @@ export class MyItinerariesPage implements OnInit {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private getItineraryIdCandidates(itinerary: any): string[] {
+    const candidates = [
+      itinerary?.id,
+      itinerary?.date ? `itinerary_${itinerary.date}` : '',
+      itinerary?.date ? `completed_itinerary_${itinerary.date}` : ''
+    ].filter((value): value is string => !!value);
+
+    return Array.from(new Set(candidates));
   }
 
   async deleteItinerary(itinerary: any) {

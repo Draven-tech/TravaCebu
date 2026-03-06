@@ -80,7 +80,7 @@ export class RoutePlanningService {
           // No transit route found - add fallback message instead of creating walking segment
           segments.push({
             type: 'walk',
-            description: `⚠️ No transit data available for this segment`,
+            description: ` No transit data available for this segment`,
             duration: 0,
             distance: 0,
             from: { lat: from.lat || from.location?.lat, lng: from.lng || from.location?.lng },
@@ -407,7 +407,7 @@ export class RoutePlanningService {
           
           // Update loading progress
           if (loadingCallback) {
-            await loadingCallback(`🔍 Finding routes for Stage ${spotIndex + 1}: ${spot.name}`);
+            await loadingCallback(` Finding routes for Stage ${spotIndex + 1}: ${spot.name}`);
           }
           
           // Get all available transit routes (jeepney and bus) for this stage using Google Maps API
@@ -449,7 +449,7 @@ export class RoutePlanningService {
           } else {
             // No transit route found - try OSRM walking route as fallback
             if (loadingCallback) {
-              await loadingCallback(`🚶 No transit found. Generating walking route for Stage ${spotIndex + 1}...`);
+              await loadingCallback(` No transit found. Generating walking route for Stage ${spotIndex + 1}...`);
             }
             
             const walkingRoute = await this.createWalkingRouteWithOSRM(fromPoint, spot);

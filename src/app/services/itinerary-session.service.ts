@@ -52,7 +52,7 @@ export class ItinerarySessionService {
     this.sessionsHistory.unshift(newSession);
     this.saveSessionToStorage(newSession);
 
-    console.log('🚀 New itinerary session started:', newSession);
+    console.log('New itinerary session started:', newSession);
     return newSession;
   }
 
@@ -72,7 +72,7 @@ export class ItinerarySessionService {
     this.currentSessionSubject.next(updatedSession);
     this.saveSessionToStorage(updatedSession);
 
-    console.log('📍 Current segment updated:', segmentIndex);
+    console.log('Current segment updated:', segmentIndex);
   }
 
   markSegmentCompleted(segmentIndex: number): void {
@@ -102,7 +102,7 @@ export class ItinerarySessionService {
     this.currentSessionSubject.next(updatedSession);
     this.saveSessionToStorage(updatedSession);
 
-    console.log('✅ Segment completed:', segmentIndex, `Progress: ${percentage}%`);
+    console.log('Segment completed:', segmentIndex, `Progress: ${percentage}%`);
   }
 
   endSession(): void {
@@ -122,7 +122,7 @@ export class ItinerarySessionService {
       this.currentSessionSubject.next(null);
       this.clearSessionFromStorage();
 
-      console.log('🏁 Session ended:', endedSession);
+      console.log('Session ended:', endedSession);
     }
   }
 
@@ -151,7 +151,7 @@ export class ItinerarySessionService {
       this.currentSessionSubject.next(resumedSession);
       this.saveSessionToStorage(resumedSession);
 
-      console.log('🔄 Session resumed:', resumedSession);
+      console.log('Session resumed:', resumedSession);
       return true;
     }
     return false;
@@ -161,7 +161,7 @@ export class ItinerarySessionService {
     this.sessionsHistory = [];
     this.currentSessionSubject.next(null);
     this.clearSessionFromStorage();
-    console.log('🗑️ All sessions cleared');
+    console.log('All sessions cleared');
   }
 
   getSessionStats(): {
@@ -212,7 +212,7 @@ export class ItinerarySessionService {
 
         if (sessionAge < maxAge && session.isActive) {
           this.currentSessionSubject.next(session);
-          console.log('📱 Session loaded from storage:', session);
+          console.log('Session loaded from storage:', session);
         } else {
           this.clearSessionFromStorage();
         }

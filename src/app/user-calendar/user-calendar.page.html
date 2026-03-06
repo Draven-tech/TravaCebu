@@ -27,19 +27,6 @@
         </ion-button>
       </div>
       
-      <!-- View Toggle -->
-      <div class="view-toggle">
-        <ion-segment [(ngModel)]="viewMode" mode="ios" color="warning">
-          <ion-segment-button value="grid">
-            <ion-icon name="grid-outline"></ion-icon>
-            <ion-label>Grid</ion-label>
-          </ion-segment-button>
-          <ion-segment-button value="agenda">
-            <ion-icon name="list-outline"></ion-icon>
-            <ion-label>Agenda</ion-label>
-          </ion-segment-button>
-        </ion-segment>
-      </div>
     </div>
 
     <!-- Loading State -->
@@ -50,7 +37,7 @@
     </div>
 
     <!-- Grid View -->
-    <div *ngIf="!isLoading && !isNavigating && viewMode === 'grid'" class="grid-view">
+    <div *ngIf="!isLoading && !isNavigating" class="grid-view">
       <!-- Calendar Grid -->
       <div class="calendar-grid">
         <!-- Day Headers -->
@@ -88,88 +75,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Agenda View -->
-    <div *ngIf="!isLoading && !isNavigating && viewMode === 'agenda'" class="agenda-view">
-      <!-- Month Navigation Tabs -->
-      <div class="month-tabs">
-        <div class="month-tab" 
-             *ngFor="let month of getMonthTabs()" 
-             [ngClass]="{ 'active': month.isCurrent }"
-             (click)="goToMonth(month.date)">
-          {{ month.name }}
-        </div>
-      </div>
-
-      <!-- Selected Date Info -->
-      <div class="selected-date-info">
-        <div class="date-circle">
-          <span class="day-name">{{ getSelectedDayName() }}</span>
-          <span class="day-number">{{ getSelectedDayNumber() }}</span>
-        </div>
-        <div class="date-status">
-          <span *ngIf="getEventsForSelectedDate().length === 0">Nothing planned.</span>
-          <span *ngIf="getEventsForSelectedDate().length > 0">{{ getEventsForSelectedDate().length }} event(s) planned</span>
-        </div>
-      </div>
-
-      <!-- Events List -->
-      <div class="events-list">
-        <div *ngFor="let weekGroup of eventsGroupedByWeek; trackBy: trackByWeekGroup" class="week-group">
-          <!-- Week Separator -->
-          <div class="week-separator">
-            {{ getWeekRange(weekGroup.weekStart) }}
-          </div>
-          
-          <!-- Date Groups for this week -->
-          <div *ngFor="let dateGroup of weekGroup.dateGroups; trackBy: trackByDateGroup" class="date-group">
-            <!-- Date Header -->
-            <div class="date-header">
-              <div class="event-date">
-                <span class="day-name">{{ getEventDayName(dateGroup.events[0]) }}</span>
-                <span class="day-number">{{ getEventDayNumber(dateGroup.events[0]) }}</span>
-              </div>
-              <div class="date-status">
-                <span *ngIf="dateGroup.events.length === 0">Nothing planned.</span>
-                <span *ngIf="dateGroup.events.length > 0">{{ dateGroup.events.length }} event(s)</span>
-              </div>
-            </div>
-            
-            <!-- Events for this date -->
-            <div *ngFor="let event of dateGroup.events; trackBy: trackByEventId" 
-                 class="event-item" 
-                 [ngClass]="{
-                   'itinerary-event': event.createdByType === 'user' && (event.eventType === 'user_itinerary' || event.eventType === 'tourist_spot' || event.eventType === 'restaurant' || event.eventType === 'hotel'),
-                   'full-itinerary-event': dateGroup.events.length > 1
-                 }"
-                 (click)="onEventClick(event, $event)">
-              <div class="event-content">
-                <div class="event-title">{{ event.name }}</div>
-                <div class="event-time" *ngIf="getEventTime(event)">
-                  {{ getEventTime(event) }}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Show message for empty weeks -->
-          <div *ngIf="weekGroup.dateGroups.length === 0" class="empty-week">
-            <div class="empty-week-message">
-              <ion-icon name="calendar-outline"></ion-icon>
-              <span>No events this week</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- No Events Message -->
-        <div *ngIf="sortedEvents.length === 0" class="no-events">
-          <ion-icon name="calendar-outline" class="no-events-icon"></ion-icon>
-          <h4>No events this month</h4>
-          <p>Create an itinerary from your bucket list to add events to your calendar!</p>
-        </div>
-      </div>
-    </div>
-
 
   </div>
 </ion-content>

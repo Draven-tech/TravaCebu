@@ -268,6 +268,10 @@ export class CreatePostModalComponent {
       return obj.map(item => this.removeUndefinedValues(item));
     }
     
+    if (obj instanceof Date) {
+      return obj;
+    }
+
     if (typeof obj === 'object') {
       const cleaned: any = {};
       for (const key in obj) {

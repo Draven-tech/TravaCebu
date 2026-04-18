@@ -15,7 +15,6 @@ import { BadgeService, Badge } from '../services/badge.service';
 import { BadgeDetailModalComponent } from '../modals/badge-detail-modal/badge-detail-modal.component';
 import { BucketService } from '../services/bucket-list.service';
 
-// Post interface
 interface Post {
   id?: string;
   userId: string;
@@ -29,7 +28,7 @@ interface Post {
   comments?: Comment[];
   timestamp: any;
   isPublic: boolean;
-  liked?: boolean; // For UI state
+  liked?: boolean;
   postType?: 'regular' | 'shared_itinerary';
   sharedItinerary?: {
     itineraryId: string;
@@ -66,15 +65,14 @@ export class UserProfilePage implements OnInit {
   uploading: boolean = false;
   activeTab = 'tab-1';
   
-  // Posts data
   posts: Post[] = [];
   userPosts: Post[] = [];
   loadingPosts = false;
 
-  // Badge data
   userBadges: Badge[] = [];
   loadingBadges = false;
-  badgesLoaded = false; // Flag to prevent multiple loads
+  badgesSubscriptionInitialized = false;
+  badgesEvaluated = false;
 
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
 
@@ -95,37 +93,31 @@ export class UserProfilePage implements OnInit {
   ) {}
 
   async ngOnInit() {
-    // Get Firebase Auth UID
     const currentUser = await this.afAuth.currentUser;
     this.userId = this.route.snapshot.paramMap.get('uid') ?? currentUser?.uid ?? null;
     if (!this.userId) {
       return;
     }
     
-    // Load user profile data
     this.firestore.collection('users').doc(this.userId).valueChanges().subscribe(async (data) => {
       this.userData = data;
       
-      // Only evaluate badges once when data is first loaded
-      if (this.userId && data && !this.badgesLoaded) {
+      if (this.userId && data && !this.badgesEvaluated) {
         await this.badgeService.evaluateAllBadges(this.userId, data);
-        this.badgesLoaded = true;
+        this.badgesEvaluated = true;
       }
     });
 
     this.menuCtrl.enable(true, 'main-menu');
     
-    // Load posts
     this.loadPosts();
     
-    // Load badges
     this.loadBadges();
   }
 
   async loadPosts() {
     this.loadingPosts = true;
     try {
-      // Load all public posts for feed
       this.firestore.collection('posts', ref => 
         ref.where('isPublic', '==', true).orderBy('timestamp', 'desc').limit(20)
       ).snapshotChanges().subscribe(async (changes) => {
@@ -133,7 +125,6 @@ export class UserProfilePage implements OnInit {
         this.posts = await this.processPosts(posts);
         });
 
-      // Load user's posts
       this.firestore.collection('posts', ref => 
         ref.where('userId', '==', this.userId).orderBy('timestamp', 'desc')
       ).snapshotChanges().subscribe(async (changes) => {
@@ -149,18 +140,18 @@ export class UserProfilePage implements OnInit {
   }
 
   async loadBadges() {
-    if (!this.userId || this.badgesLoaded) return;
+    if (!this.userId || this.badgesSubscriptionInitialized) return;
     
     this.loadingBadges = true;
     try {
       this.badgeService.getUserBadges(this.userId).subscribe(badges => {
         this.userBadges = badges;
-        this.badgesLoaded = true;
-        });
+        this.badgesSubscriptionInitialized = true;
+        this.loadingBadges = false;
+      });
     } catch (error) {
       console.error('Error loading badges:', error);
       this.showAlert('Error', 'Failed to load badges');
-    } finally {
       this.loadingBadges = false;
     }
   }
@@ -209,7 +200,7 @@ export class UserProfilePage implements OnInit {
 
     const { data } = await modal.onWillDismiss();
     if (data && data.success) {
-      this.loadPosts(); // Reload posts after creating
+      this.loadPosts(); 
     }
   }
 
@@ -221,20 +212,17 @@ export class UserProfilePage implements OnInit {
     const postRef = this.firestore.collection('posts').doc(post.id);
     
     if (post.liked) {
-      // Unlike
       const updatedLikes = (post.likes || []).filter(id => id !== currentUserId);
       await postRef.update({ likes: updatedLikes });
       post.likes = updatedLikes;
       post.liked = false;
     } else {
-      // Like
       const updatedLikes = [...(post.likes || []), currentUserId];
       await postRef.update({ likes: updatedLikes });
       post.likes = updatedLikes;
       post.liked = true;
     }
     
-    // Evaluate social butterfly badge for the post owner when their post gets liked/unliked
     if (post.userId !== currentUserId) {
       try {
         const postOwnerDoc = await this.firestore.collection('users').doc(post.userId).get().toPromise();
@@ -269,7 +257,6 @@ export class UserProfilePage implements OnInit {
           text: 'Copy Link',
           icon: 'link-outline',
           handler: () => {
-            // Implement copy link functionality
             this.showAlert('Success', 'Link copied to clipboard');
           }
         },
@@ -277,7 +264,6 @@ export class UserProfilePage implements OnInit {
           text: 'Share via...',
           icon: 'share-outline',
           handler: () => {
-            // Implement native sharing
             this.showAlert('Info', 'Native sharing coming soon');
           }
         },
@@ -441,13 +427,11 @@ async viewProfilePicture() {
 
   const { data } = await modal.onWillDismiss();
   if (data) {
-    // update the view with returned data if needed
     this.userData.firstName = data.firstName;
     this.userData.lastName = data.lastName;
     this.userData.username = data.username;
     this.userData.bio = data.bio;
     
-    // Re-evaluate badges after profile update and refresh display
     if (this.userId) {
       await this.badgeService.evaluateAllBadges(this.userId, this.userData);
       this.refreshBadges();
@@ -471,7 +455,6 @@ async viewProfilePicture() {
     await this.firestore.collection('users').doc(uid).update({ photoURL: url });
     this.userData.photoURL = url;
 
-    // Re-evaluate badges after profile picture update and refresh display
     await this.badgeService.evaluateAllBadges(uid, this.userData);
     this.refreshBadges();
 
@@ -518,7 +501,6 @@ async viewProfilePicture() {
       return badge.lockedIcon;
     }
     
-    // For bucket list badge, use the appropriate tier icon
     if (badge.id === 'bucket_list') {
       switch (badge.tier) {
         case 'bronze': return 'assets/badges/bronzeBucketListBadge.png';
@@ -528,7 +510,6 @@ async viewProfilePicture() {
       }
     }
     
-    // For photo enthusiast badge, use the appropriate tier icon
     if (badge.id === 'photo_enthusiast') {
       switch (badge.tier) {
         case 'bronze': return 'assets/badges/bronzePhotoEnthusiastBadge.png';
@@ -538,7 +519,6 @@ async viewProfilePicture() {
       }
     }
     
-    // For social butterfly badge, use the appropriate tier icon
     if (badge.id === 'social_butterfly') {
       switch (badge.tier) {
         case 'bronze': return 'assets/badges/bronzeSocialButterflyBadge.png';
@@ -548,7 +528,6 @@ async viewProfilePicture() {
       }
     }
     
-    // For explorer badge, use the appropriate tier icon
     if (badge.id === 'explorer') {
       switch (badge.tier) {
         case 'bronze': return 'assets/badges/bronzeExplorerBadge.png';
@@ -568,34 +547,25 @@ async viewProfilePicture() {
 
   async refreshBadges() {
     if (!this.userId) return;
-    
-    // Reset the flag to allow reloading
-    this.badgesLoaded = false;
-    
-    // Reload badges
-    this.badgeService.getUserBadges(this.userId).subscribe(badges => {
-      this.userBadges = badges;
-      this.badgesLoaded = true;
-    });
+
+    if (!this.badgesSubscriptionInitialized) {
+      this.loadBadges();
+    }
   }
 
   async evaluateBadges() {
     if (!this.userId || !this.userData) return;
     
-    // Manually trigger badge evaluation
     await this.badgeService.evaluateAllBadges(this.userId, this.userData);
     
-    // Refresh the display
     this.refreshBadges();
   }
 
   async forceEvaluateBucketListBadge() {
     if (!this.userId || !this.userData) return;
     
-    // Manually trigger bucket list badge evaluation
     await this.badgeService.evaluateAllBadges(this.userId, this.userData);
     
-    // Refresh the display
     this.refreshBadges();
   }
 
@@ -649,24 +619,21 @@ async viewProfilePicture() {
 
       for (const spot of sharedItinerary.spots) {
         try {
-          // Only copy tourist spots, skip restaurants and hotels
           const spotType = spot.type || 'tourist_spot';
           if (spotType !== 'tourist_spot') {
             skippedCount++;
             continue;
           }
 
-          // Create a spot object that matches the bucket list format
           const spotData = {
             id: this.generateSpotId(spot.name),
             name: spot.name,
-            img: 'assets/img/default-spot.png', // Default image
+            img: 'assets/img/default-spot.png',
             category: 'tourist_spot',
             location: spot.location || 'Cebu, Philippines',
             description: `Shared from ${sharedItinerary.itineraryName}`
           };
 
-          // Check if spot is already in bucket list
           const isAlreadyAdded = await this.bucketService.isInBucket(spotData.id);
           
           if (!isAlreadyAdded) {
@@ -704,7 +671,6 @@ async viewProfilePicture() {
   }
 
   private generateSpotId(spotName: string): string {
-    // Generate a simple ID from the spot name
     return spotName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
   }
 

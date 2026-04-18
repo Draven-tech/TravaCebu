@@ -240,8 +240,8 @@ export class BadgeService {
     let tier: 'bronze' | 'silver' | 'gold' | 'locked' = currentTier;
     let unlocked = currentUnlocked;
     
-    if (isComplete && currentTier === 'locked') {
-      tier = 'bronze';
+    if (isComplete && currentTier !== 'gold') {
+      tier = 'gold';
       unlocked = true;
     }
 

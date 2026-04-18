@@ -69,6 +69,7 @@ export class BadgeDetailModalComponent {
 
   getTierColor(): string {
     if (!this.badge.isUnlocked) return '#999';
+    if (this.badge.id === 'profile_complete') return '#ffd700';
     
     switch (this.badge.tier) {
       case 'bronze': return '#cd7f32';
@@ -80,6 +81,7 @@ export class BadgeDetailModalComponent {
 
   getTierText(): string {
     if (!this.badge.isUnlocked) return 'Locked';
+    if (this.badge.id === 'profile_complete') return 'Gold';
     return this.badge.tier.charAt(0).toUpperCase() + this.badge.tier.slice(1);
   }
 

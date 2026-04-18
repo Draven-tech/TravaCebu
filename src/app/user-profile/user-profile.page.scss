@@ -1,5 +1,5 @@
 .user-profile-content {
-  --background: #ffffff;
+  --background: var(--ion-background-color);
 }
 
 ion-content {
@@ -7,8 +7,8 @@ ion-content {
   flex-direction: column;
   align-items: center;
   padding: 16px;
-  background: #ffffff;
-  padding-top: 140px;
+  background: var(--ion-background-color);
+  padding-top: 12px;
   overflow-y: auto;
 }
 
@@ -71,22 +71,23 @@ ion-content {
 }
 
 
-//////////////////////////////////////////////////////// profile buuble on top ///////////////////////////////////
+//////////////////////////////////////////////////////// profile bubble on top (scrolls with content) ///////////////////////////////////
 
 .profile-bubble {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
   width: 90%;
   max-width: 420px;
-  background: #fff;
+  margin: 0 auto;
+  /* Push bubble below status bar on notched devices */
+  margin-top: 12px;
+  margin-top: calc(12px + constant(safe-area-inset-top));
+  margin-top: calc(12px + env(safe-area-inset-top));
+  background: var(--ion-card-background);
   border-radius: 24px;
   padding: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
-  z-index: 1000;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 
   ion-avatar {
     width: 64px;
@@ -103,7 +104,7 @@ ion-content {
   }
 
     ion-menu-button {
-    --color: #000; // or any color you prefer
+    --color: var(--ion-text-color);
   }
 
   .user-text {
@@ -113,18 +114,18 @@ ion-content {
       font-size: 1rem;
       font-weight: 600;
       margin: 0;
-      color: #000;
+      color: var(--ion-text-color);
     }
 
     p {
       font-size: 0.75rem;
-      color: #666;
+      color: var(--ion-color-step-600);
       margin: 2px 0 0;
     }
 
     .bio {
       font-size: 0.8rem;
-      color: #000000;
+      color: var(--ion-text-color);
       margin-top: 6px;
     }
   }
@@ -140,7 +141,7 @@ ion-content {
   text-align: center;
 
   ion-button {
-    --color: #000;
+    --color: var(--ion-text-color);
     font-weight: bold;
   }
 }
@@ -154,34 +155,34 @@ ion-menu {
   border-radius: 20px;
 
   ion-header {
-    --background: #ffffff;
+    --background: var(--ion-card-background);
 
     ion-toolbar {
-      --background: #ffffff;
-      --color: #ffffff;
+      --background: var(--ion-card-background);
+      --color: var(--ion-text-color);
       font-weight: bold;
-      border-bottom: 1px solid #e0e0e0;
+      border-bottom: 1px solid var(--ion-border-color);
       border-radius: 20px 20px 0 0;
     }
 
     ion-title {
-      color: #000000;
+      color: var(--ion-text-color);
     }
   }
 
   ion-content {
-    --background: #ffffff;
+    --background: var(--ion-card-background);
 
     ion-list {
       ion-item {
         --background: transparent;
-        --color: #000000;
+        --color: var(--ion-text-color);
         font-weight: 500;
         --min-height: 50px;
         border-bottom: none;
 
         ion-icon {
-          color: #000000;
+          color: var(--ion-text-color);
           margin-right: 8px;
         }
 
@@ -195,21 +196,20 @@ ion-menu {
 
 
 ion-menu.light-menu {
-  color-scheme: light;
   border-radius: 20px !important;
   --width: 260px;
 
   ion-header, ion-toolbar, ion-content, ion-list, ion-item {
-    --background: #fff !important;
-    background: #fff !important;
-    color: #000 !important;
+    --background: var(--ion-card-background) !important;
+    background: var(--ion-card-background) !important;
+    color: var(--ion-text-color) !important;
     border-radius: 20px !important;
     box-shadow: none !important;
     border: none !important;
   }
 
   ion-title {
-    color: #000 !important;
+    color: var(--ion-text-color) !important;
   }
 
   ion-item:hover {
@@ -273,19 +273,19 @@ ion-menu.light-menu ion-list {
   justify-content: space-between;
   padding: 12px;
   gap: 12px;
-  background-color: #ffffff;
-  margin-top: 100px;
+  background-color: var(--ion-card-background);
+  margin-top: 12px; /* Right under profile bubble */
   position: relative;
   z-index: 999;
 
   button {
     flex: 1;
     padding: 12px;
-    background-color: #fff;
+    background-color: var(--ion-item-background);
     border: none;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    color: #444;
+    color: var(--ion-color-step-600);
     font-size: 15px;
     font-weight: 600;
     transition: all 0.3s ease;
@@ -314,7 +314,7 @@ ion-menu.light-menu ion-list {
 .tab-content-container {
   width: 100%;
   max-width: 600px;
-  margin-top: 20px;
+  margin-top: 12px; /* Right under tabs */
   padding-bottom: 100px; /* Add space for bottom nav */
 }
 
@@ -352,28 +352,28 @@ ion-menu.light-menu ion-list {
   .no-posts {
     text-align: center;
     padding: 60px 20px;
-    background: #ffffff;
+    background: var(--ion-card-background);
     border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
 
     ion-icon {
       font-size: 64px;
-      color: #ccc;
+      color: var(--ion-color-step-400);
       margin-bottom: 16px;
     }
 
     h3 {
       margin: 0 0 8px 0;
       font-size: 1.2rem;
-      color: #333;
+      color: var(--ion-text-color);
       font-weight: 600;
     }
 
     p {
       margin: 0 0 20px 0;
       font-size: 0.9rem;
-      color: #666;
+      color: var(--ion-color-step-600);
       line-height: 1.4;
     }
 
@@ -387,7 +387,7 @@ ion-menu.light-menu ion-list {
 }
 
 .post-card {
-  background: #ffffff;
+  background: var(--ion-card-background);
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
@@ -403,7 +403,7 @@ ion-menu.light-menu ion-list {
     display: flex;
     align-items: center;
     padding: 16px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--ion-border-color);
 
     .post-avatar {
       width: 40px;
@@ -419,18 +419,18 @@ ion-menu.light-menu ion-list {
         margin: 0;
         font-size: 0.95rem;
         font-weight: 600;
-        color: #000;
+        color: var(--ion-text-color);
       }
 
       .post-time {
         margin: 2px 0 0;
         font-size: 0.75rem;
-        color: #666;
+        color: var(--ion-color-step-600);
       }
     }
 
     ion-button {
-      --color: #666;
+      --color: var(--ion-color-step-600);
       --background: transparent;
       --padding-start: 8px;
       --padding-end: 8px;
@@ -446,7 +446,7 @@ ion-menu.light-menu ion-list {
       margin: 0 0 12px 0;
       font-size: 0.95rem;
       line-height: 1.5;
-      color: #333;
+      color: var(--ion-text-color);
     }
 
     .post-image {
@@ -462,11 +462,11 @@ ion-menu.light-menu ion-list {
       align-items: center;
       margin-top: 12px;
       padding: 8px 12px;
-      background: #fff3cd;
-      border: 1px solid #ffeaa7;
+      background: rgba(255, 209, 68, 0.2);
+      border: 1px solid rgba(255, 209, 68, 0.5);
       border-radius: 8px;
       font-size: 0.85rem;
-      color: #856404;
+      color: var(--ion-color-step-700);
 
       ion-icon {
         margin-right: 6px;
@@ -483,12 +483,12 @@ ion-menu.light-menu ion-list {
     display: flex;
     align-items: center;
     padding: 12px 16px;
-    border-top: 1px solid #f0f0f0;
-    background: #fafafa;
+    border-top: 1px solid var(--ion-border-color);
+    background: var(--ion-item-background);
 
     ion-button {
       flex: 1;
-      --color: #666;
+      --color: var(--ion-color-step-600);
       --background: transparent;
       --padding-start: 8px;
       --padding-end: 8px;
@@ -557,7 +557,7 @@ ion-menu.light-menu ion-list {
 .loading-badges {
   text-align: center;
   padding: 60px 20px;
-  background: #ffffff;
+  background: var(--ion-card-background);
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
@@ -569,7 +569,7 @@ ion-menu.light-menu ion-list {
   p {
     margin: 0;
     font-size: 0.9rem;
-    color: #666;
+    color: var(--ion-color-step-600);
   }
 }
 
@@ -583,21 +583,21 @@ ion-menu.light-menu ion-list {
 
   ion-icon {
     font-size: 64px;
-    color: #ccc;
+    color: var(--ion-color-step-400);
     margin-bottom: 16px;
   }
 
   h3 {
     margin: 0 0 8px 0;
     font-size: 1.2rem;
-    color: #333;
+    color: var(--ion-text-color);
     font-weight: 600;
   }
 
   p {
     margin: 0;
     font-size: 0.9rem;
-    color: #666;
+    color: var(--ion-color-step-600);
     line-height: 1.4;
   }
 }
@@ -768,7 +768,7 @@ ion-menu.light-menu ion-list {
     margin: 0;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    background: var(--ion-card-background);
 
     ion-card-header {
       padding-bottom: 8px;
@@ -791,7 +791,7 @@ ion-menu.light-menu ion-list {
 
       ion-card-subtitle {
         font-size: 0.85rem;
-        color: #666;
+        color: var(--ion-color-step-600);
         margin-top: 4px;
         margin-bottom: 0;
       }
@@ -805,7 +805,7 @@ ion-menu.light-menu ion-list {
           margin: 0 0 12px 0;
           font-size: 0.9rem;
           font-weight: 600;
-          color: #000;
+          color: var(--ion-text-color);
           display: flex;
           align-items: center;
 
@@ -820,7 +820,7 @@ ion-menu.light-menu ion-list {
             display: flex;
             align-items: center;
             padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid var(--ion-border-color);
 
             &:last-child {
               border-bottom: none;
@@ -837,14 +837,14 @@ ion-menu.light-menu ion-list {
             .spot-name {
               flex: 1;
               font-size: 0.9rem;
-              color: #000;
+              color: var(--ion-text-color);
               font-weight: 500;
             }
 
             .spot-time {
               font-size: 0.8rem;
-              color: #666;
-              background: #f8f9fa;
+              color: var(--ion-color-step-600);
+              background: var(--ion-item-background);
               padding: 4px 8px;
               border-radius: 6px;
               font-weight: 500;
@@ -856,12 +856,12 @@ ion-menu.light-menu ion-list {
       .other-items-note {
         margin-top: 12px;
         padding: 8px 12px;
-        background: #f8f9fa;
+        background: var(--ion-item-background);
         border-radius: 6px;
         display: flex;
         align-items: center;
         font-size: 0.8rem;
-        color: #666;
+        color: var(--ion-color-step-600);
 
         ion-icon {
           margin-right: 6px;
@@ -872,7 +872,7 @@ ion-menu.light-menu ion-list {
       .itinerary-actions {
         margin-top: 16px;
         padding-top: 12px;
-        border-top: 1px solid #f0f0f0;
+        border-top: 1px solid var(--ion-border-color);
 
         ion-button {
           --border-radius: 8px;
@@ -883,8 +883,8 @@ ion-menu.light-menu ion-list {
 
           &[disabled] {
             --opacity: 0.6;
-            --background: #e9ecef;
-            --color: #6c757d;
+            --background: var(--ion-color-step-100);
+            --color: var(--ion-color-step-500);
           }
         }
       }

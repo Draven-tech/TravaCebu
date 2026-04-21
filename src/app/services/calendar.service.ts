@@ -44,6 +44,48 @@ export class CalendarService {
     private afAuth: AngularFireAuth
   ) { }
 
+  private getUserItineraryCollection(userId: string) {
+    return this.firestore.collection(`users/${userId}/itinerary`);
+  }
+
+  private toIsoDate(value: any): string {
+    if (!value) return '';
+    if (typeof value === 'string') {
+      const datePart = value.split('T')[0];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
+      const parsed = new Date(value);
+      if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
+      return '';
+    }
+    const parsed = value?.toDate ? value.toDate() : new Date(value);
+    return isNaN(parsed.getTime()) ? '' : parsed.toISOString().split('T')[0];
+  }
+
+  private normalizeItineraryEvents(rawEvents: any[], itineraryDocId: string): CalendarEvent[] {
+    if (!Array.isArray(rawEvents)) return [];
+    return rawEvents.map((event: any, index: number) => {
+      const normalized: CalendarEvent = {
+        ...(event || {}),
+        id: `${itineraryDocId}_${index}`
+      };
+      normalized.extendedProps = {
+        ...(event?.extendedProps || {}),
+        itineraryDocId
+      };
+      return normalized;
+    });
+  }
+
+  private summarizeItinerary(events: CalendarEvent[]) {
+    const validEvents = (events || []).filter((event) => !!event?.start);
+    validEvents.sort((a, b) => String(a.start).localeCompare(String(b.start)));
+    const start = validEvents[0]?.start || '';
+    const end = validEvents[validEvents.length - 1]?.end || validEvents[validEvents.length - 1]?.start || start;
+    const date = this.toIsoDate(start);
+    const dates = Array.from(new Set(validEvents.map((event) => this.toIsoDate(event.start)).filter(Boolean))).sort();
+    return { start, end, date, dates };
+  }
+
   /**
    * GLOBAL EVENT METHODS - NEW UNIFIED SYSTEM
    */
@@ -234,15 +276,25 @@ export class CalendarService {
       });
 
       localStorage.setItem('user_itinerary_events', JSON.stringify(cleanedEvents));
+      const itineraryGroupId =
+        cleanedEvents[0]?.extendedProps?.itineraryGroupId ||
+        `itinerary_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const itineraryName =
+        cleanedEvents[0]?.extendedProps?.itineraryName ||
+        `Itinerary ${new Date().toLocaleDateString('en-US')}`;
+      const status = cleanedEvents[0]?.status || 'active';
+      const summary = this.summarizeItinerary(cleanedEvents);
 
-      const batch = this.firestore.firestore.batch();
-      
-      cleanedEvents.forEach(event => {
-        const eventRef = this.firestore.collection('user_itinerary_events').doc().ref;
-        batch.set(eventRef, event);
-      });
-
-      await batch.commit();
+      await this.getUserItineraryCollection(user.uid).doc(itineraryGroupId).set({
+        userId: user.uid,
+        itineraryGroupId,
+        itineraryName,
+        status,
+        ...summary,
+        events: cleanedEvents,
+        updatedAt: new Date(),
+        createdAt: new Date()
+      }, { merge: true });
       
     } catch (error) {
       console.error('Error saving itinerary events:', error);
@@ -260,28 +312,18 @@ export class CalendarService {
         return this.loadFromLocalStorage();
       }
 
-      const snapshot = await this.firestore
-        .collection('user_itinerary_events', ref => 
-          ref.where('userId', '==', user.uid)
-        )
-        .get()
-        .toPromise();
-
-      if (snapshot && !snapshot.empty) {
-        const events = snapshot.docs.map(doc => {
-          const data = doc.data() as any;
-          return {
-            ...data,
-            id: doc.id
-          };
-        }) as CalendarEvent[];
-       
-        const activeEvents = events.filter(event => event.status !== 'completed');
-        localStorage.setItem('user_itinerary_events', JSON.stringify(activeEvents));
-        return activeEvents;
+      const snapshot = await this.getUserItineraryCollection(user.uid).get().toPromise();
+      if (!snapshot || snapshot.empty) {
+        return this.loadFromLocalStorage();
       }
-
-      return this.loadFromLocalStorage();
+      const itineraries = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      const activeEvents = itineraries
+        .filter((itinerary: any) => itinerary.status !== 'completed')
+        .reduce((acc: CalendarEvent[], itinerary: any) => {
+          return acc.concat(this.normalizeItineraryEvents(itinerary.events || [], itinerary.id));
+        }, []);
+      localStorage.setItem('user_itinerary_events', JSON.stringify(activeEvents));
+      return activeEvents;
       
     } catch (error) {
       console.error('Error loading itinerary events:', error);
@@ -316,30 +358,18 @@ export class CalendarService {
       }
 
       localStorage.removeItem('user_itinerary_events');
-
-      const snapshot = await this.firestore
-        .collection('user_itinerary_events', ref => 
-          ref.where('userId', '==', user.uid)
-        )
-        .get()
-        .toPromise();
-
-      if (snapshot && !snapshot.empty) {
-        const events = snapshot.docs.map(doc => {
-          const data = doc.data() as any;
-          return {
-            ...data,
-            id: doc.id
-          };
-        }) as CalendarEvent[];
-       
-        const activeEvents = events.filter(event => event.status !== 'completed');
-        localStorage.setItem('user_itinerary_events', JSON.stringify(activeEvents));
-        
-        return activeEvents;
+      const snapshot = await this.getUserItineraryCollection(user.uid).get().toPromise();
+      if (!snapshot || snapshot.empty) {
+        return [];
       }
-
-      return [];
+      const itineraries = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      const activeEvents = itineraries
+        .filter((itinerary: any) => itinerary.status !== 'completed')
+        .reduce((acc: CalendarEvent[], itinerary: any) => {
+          return acc.concat(this.normalizeItineraryEvents(itinerary.events || [], itinerary.id));
+        }, []);
+      localStorage.setItem('user_itinerary_events', JSON.stringify(activeEvents));
+      return activeEvents;
       
     } catch (error) {
       console.error('Error force refreshing from Firestore:', error);
@@ -360,12 +390,21 @@ export class CalendarService {
       if (!event.id) {
         throw new Error('Event ID is required for update');
       }
+      const [itineraryDocId, eventIndexText] = event.id.split('_');
+      const eventIndex = Number(eventIndexText);
+      if (!itineraryDocId || Number.isNaN(eventIndex)) {
+        throw new Error('Invalid itinerary event ID format');
+      }
 
-      const updatedEvent = {
-        ...event,
-        userId: user.uid,
-        updatedAt: new Date()
-      };
+      const itineraryRef = this.getUserItineraryCollection(user.uid).doc(itineraryDocId);
+      const itinerarySnap = await itineraryRef.get().toPromise();
+      if (!itinerarySnap?.exists) throw new Error('Itinerary not found');
+      const itineraryData = itinerarySnap.data() as any;
+      const events = Array.isArray(itineraryData?.events) ? [...itineraryData.events] : [];
+      const updatedEvent: any = { ...event };
+      delete updatedEvent.id;
+      updatedEvent.userId = user.uid;
+      updatedEvent.updatedAt = new Date();
 
       if (updatedEvent.extendedProps) {
         const cleanedExtendedProps: any = {};
@@ -378,10 +417,13 @@ export class CalendarService {
         updatedEvent.extendedProps = cleanedExtendedProps;
       }
 
-      await this.firestore
-        .collection('user_itinerary_events')
-        .doc(event.id)
-        .update(updatedEvent);
+      events[eventIndex] = updatedEvent;
+      const summary = this.summarizeItinerary(events as CalendarEvent[]);
+      await itineraryRef.update({
+        events,
+        ...summary,
+        updatedAt: new Date()
+      });
 
       const savedEvents = localStorage.getItem('user_itinerary_events');
       if (savedEvents) {
@@ -403,12 +445,7 @@ export class CalendarService {
     try {
       const user = await this.afAuth.currentUser;
       if (user) {
-        const snapshot = await this.firestore
-          .collection('user_itinerary_events', ref => 
-            ref.where('userId', '==', user.uid)
-          )
-          .get()
-          .toPromise();
+        const snapshot = await this.getUserItineraryCollection(user.uid).get().toPromise();
 
         if (snapshot && !snapshot.empty) {
           const batch = this.firestore.firestore.batch();
@@ -437,28 +474,39 @@ export class CalendarService {
         return;
       }
 
-      const snapshot = await this.firestore
-        .collection('user_itinerary_events', ref => 
-          ref.where('userId', '==', user.uid)
-        )
-        .get()
-        .toPromise();
+      const snapshot = await this.getUserItineraryCollection(user.uid).get().toPromise();
 
       if (snapshot && !snapshot.empty) {
         const batch = this.firestore.firestore.batch();
-        let hasEventsToDelete = false;
+        let hasChanges = false;
 
         snapshot.docs.forEach(doc => {
-          const eventData = doc.data() as CalendarEvent;
-          const eventDate = eventData.start.split('T')[0];
-          
-          if (dates.includes(eventDate) && eventData.status !== 'completed') {
-            batch.delete(doc.ref);
-            hasEventsToDelete = true;
+          const itineraryData = doc.data() as any;
+          if (itineraryData?.status === 'completed') {
+            return;
+          }
+          const existingEvents = Array.isArray(itineraryData?.events) ? itineraryData.events : [];
+          const filteredEvents = existingEvents.filter((event: any) => {
+            const eventDate = this.toIsoDate(event?.start);
+            return !dates.includes(eventDate);
+          });
+
+          if (filteredEvents.length !== existingEvents.length) {
+            hasChanges = true;
+            if (filteredEvents.length === 0) {
+              batch.delete(doc.ref);
+            } else {
+              const summary = this.summarizeItinerary(filteredEvents);
+              batch.update(doc.ref, {
+                events: filteredEvents,
+                ...summary,
+                updatedAt: new Date()
+              });
+            }
           }
         });
 
-        if (hasEventsToDelete) {
+        if (hasChanges) {
           await batch.commit();
         }
       }
@@ -488,14 +536,11 @@ export class CalendarService {
       if (!user) {
         throw new Error('User not authenticated');
       }
-
-      await this.firestore
-        .collection('user_itinerary_events')
-        .doc(eventId)
-        .update({
-          status: status,
-          updatedAt: new Date()
-        });
+      const itineraryDocId = eventId.includes('_') ? eventId.substring(0, eventId.lastIndexOf('_')) : eventId;
+      await this.getUserItineraryCollection(user.uid).doc(itineraryDocId).update({
+        status,
+        updatedAt: new Date()
+      });
 
       const savedEvents = localStorage.getItem('user_itinerary_events');
       if (savedEvents) {
@@ -522,10 +567,8 @@ export class CalendarService {
         throw new Error('User not authenticated');
       }
 
-      await this.firestore
-        .collection('user_itinerary_events')
-        .doc(eventId)
-        .delete();
+      const itineraryDocId = eventId.includes('_') ? eventId.substring(0, eventId.lastIndexOf('_')) : eventId;
+      await this.getUserItineraryCollection(user.uid).doc(itineraryDocId).delete();
 
       const savedEvents = localStorage.getItem('user_itinerary_events');
       if (savedEvents) {
@@ -550,26 +593,14 @@ export class CalendarService {
         return [];
       }
 
-      const snapshot = await this.firestore
-        .collection('user_itinerary_events', ref => 
-          ref.where('userId', '==', user.uid)
-        )
-        .get()
-        .toPromise();
-
-      if (snapshot && !snapshot.empty) {
-        const events = snapshot.docs.map(doc => {
-          const data = doc.data() as any;
-          return {
-            ...data,
-            id: doc.id
-          };
-        }) as CalendarEvent[];
-       
-        return events;
+      const snapshot = await this.getUserItineraryCollection(user.uid).get().toPromise();
+      if (!snapshot || snapshot.empty) {
+        return [];
       }
-
-      return [];
+      const itineraries = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      return itineraries.reduce((acc: CalendarEvent[], itinerary: any) => {
+        return acc.concat(this.normalizeItineraryEvents(itinerary.events || [], itinerary.id));
+      }, []);
       
     } catch (error) {
       console.error('Error loading all itinerary events:', error);
@@ -694,5 +725,24 @@ export class CalendarService {
       day: 'numeric',
       year: 'numeric'
     });
+  }
+
+  async updateItineraryStatus(itineraryGroupId: string, status: 'active' | 'completed'): Promise<void> {
+    const user = await this.afAuth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    await this.getUserItineraryCollection(user.uid).doc(itineraryGroupId).update({
+      status,
+      updatedAt: new Date()
+    });
+  }
+
+  async deleteItinerary(itineraryGroupId: string): Promise<void> {
+    const user = await this.afAuth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    await this.getUserItineraryCollection(user.uid).doc(itineraryGroupId).delete();
   }
 }

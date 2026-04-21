@@ -41,13 +41,7 @@ export class MyItinerariesPage implements OnInit {
     this.userId = user?.uid || null;
     await this.loadItineraries();
     const itineraryId = this.route.snapshot.paramMap.get('id');
-    if (itineraryId) {
-      this.firestore
-        .collection('user_itinerary_events', ref => ref.where('id', '==', itineraryId))
-        .get()
-        .subscribe(snapshot => {
-        });
-    }
+    if (itineraryId) {}
   }
 
   async ionViewWillEnter() {
@@ -188,14 +182,7 @@ export class MyItinerariesPage implements OnInit {
   async toggleStatus(itinerary: any) {
     try {
       const newStatus = itinerary.status === 'completed' ? 'active' : 'completed';
-      const batch = this.firestore.firestore.batch();
-
-      itinerary.events.forEach((event: any) => {
-        const eventRef = this.firestore.collection('user_itinerary_events').doc(event.id).ref;
-        batch.update(eventRef, { status: newStatus });
-      });
-
-      await batch.commit();
+      await this.calendarService.updateItineraryStatus(itinerary.id, newStatus);
 
       if (newStatus === 'completed') {
         await this.ensureCompletedItineraryExpenses(itinerary);
@@ -331,26 +318,7 @@ export class MyItinerariesPage implements OnInit {
           role: 'destructive',
           handler: async () => {
             try {
-              const eventsWithIds = itinerary.events.filter((event: any) => event.id && event.id.length > 0);
-
-              if (eventsWithIds.length > 0) {
-                const batch = this.firestore.firestore.batch();
-
-                eventsWithIds.forEach((event: any) => {
-                  const eventRef = this.firestore.collection('user_itinerary_events').doc(event.id).ref;
-                  batch.delete(eventRef);
-                });
-
-                await batch.commit();
-              }
-
-              const currentEvents = JSON.parse(localStorage.getItem('user_itinerary_events') || '[]');
-              const updatedEvents = currentEvents.filter((event: any) => {
-                const eventDate = event.start?.split('T')[0];
-                return eventDate !== itinerary.date;
-              });
-
-              localStorage.setItem('user_itinerary_events', JSON.stringify(updatedEvents));
+              await this.calendarService.deleteItinerary(itinerary.id);
 
               await this.loadItineraries();
 

@@ -38,6 +38,25 @@
         <div class="setup-content">
           <div class="setup-section">
             <div class="section-header">
+              <h3>Itinerary name (optional)</h3>
+            </div>
+            <div class="time-selector">
+              <ion-item class="time-input" lines="none">
+                <ion-label position="stacked">Name</ion-label>
+                <ion-input
+                  type="text"
+                  [placeholder]="defaultNamePlaceholder"
+                  [(ngModel)]="setup.itineraryName">
+                </ion-input>
+              </ion-item>
+              <p class="ion-padding-start ion-padding-end" style="font-size: 12px; opacity: 0.75; margin-top: 0;">
+                Leave blank to use {{ defaultNamePlaceholder }}.
+              </p>
+            </div>
+          </div>
+
+          <div class="setup-section">
+            <div class="section-header">
               <h3>How many days?</h3>
             </div>
 

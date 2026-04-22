@@ -5,6 +5,7 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AlertController, ModalController, LoadingController } from '@ionic/angular';
 import { ItineraryModalComponent } from '../components/itinerary-modal/itinerary-modal.component';
 import { ItineraryService, ItineraryDay } from '../services/itinerary.service';
+import { CalendarService } from '../services/calendar.service';
 
 @Component({
   selector: 'app-bucket-list',
@@ -17,7 +18,14 @@ export class BucketListPage implements OnInit {
   itinerary: ItineraryDay[] = [];
   showSetupModal = false;
   showCustomDays = false;
-  setup = { days: 1, startDate: this.getTodayString(), startTime: '1970-01-01T08:00', endTime: '1970-01-01T18:00' };
+  defaultNamePlaceholder = 'Itinerary 1';
+  setup = {
+    itineraryName: '',
+    days: 1,
+    startDate: this.getTodayString(),
+    startTime: '1970-01-01T08:00',
+    endTime: '1970-01-01T18:00'
+  };
   editing = false;
   isLoading = false;
 
@@ -28,7 +36,8 @@ export class BucketListPage implements OnInit {
     private alertCtrl: AlertController,
     private modalCtrl: ModalController,
     private loadingCtrl: LoadingController,
-    private itineraryService: ItineraryService
+    private itineraryService: ItineraryService,
+    private calendarService: CalendarService
   ) { }
 
   async loadBucketList() {
@@ -86,12 +95,19 @@ export class BucketListPage implements OnInit {
     this.navCtrl.navigateForward('/my-itineraries');
   }
 
-  openItinerarySetup() {
+  async openItinerarySetup() {
     if (this.spots.length === 0) {
       this.showAlert('Empty Bucket List', 'Please add tourist spots to your bucket list first!');
       return;
     }
-    this.setup = { days: 1, startDate: this.getTodayString(), startTime: '1970-01-01T08:00', endTime: '1970-01-01T18:00' };
+    this.defaultNamePlaceholder = await this.calendarService.getNextDefaultItineraryName();
+    this.setup = {
+      itineraryName: '',
+      days: 1,
+      startDate: this.getTodayString(),
+      startTime: '1970-01-01T08:00',
+      endTime: '1970-01-01T18:00'
+    };
     this.showSetupModal = true;
   }
 
@@ -128,10 +144,13 @@ export class BucketListPage implements OnInit {
   }
 
   async showItinerary() {
+    const trimmed = (this.setup.itineraryName || '').trim();
+    const itineraryName = trimmed || (await this.calendarService.getNextDefaultItineraryName());
     const modal = await this.modalCtrl.create({
       component: ItineraryModalComponent,
       componentProps: {
         itinerary: this.itinerary,
+        itineraryName,
         originalStartTime: this.setup.startTime,
         originalEndTime: this.setup.endTime,
         editable: true,

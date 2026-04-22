@@ -209,6 +209,12 @@ body:has(.stage-notification) ion-content {
   --border-radius: 16px 16px 0 0;
 }
 
+.view-itinerary-modal,
+.event-details-modal {
+  --background: var(--ion-background-color);
+  --color: var(--ion-text-color);
+}
+
 // Ensure modals have proper backdrop
 ion-modal {
   --backdrop-opacity: 0.5;

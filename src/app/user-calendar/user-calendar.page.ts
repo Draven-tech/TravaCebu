@@ -447,7 +447,7 @@ export class UserCalendarPage implements OnInit {
               name: event.name,
               description: event.description,
               rating: null,
-              vicinity: event.location
+              vicinity: this.displayLocationString(event.location)
             };
           }
           break;
@@ -511,6 +511,18 @@ export class UserCalendarPage implements OnInit {
     groups.push(currentGroup);
     
     return groups;
+  }
+
+  private displayLocationString(loc: unknown): string {
+    if (loc == null) return '';
+    if (typeof loc === 'string') return loc;
+    if (typeof loc === 'object' && 'lat' in (loc as object) && 'lng' in (loc as object)) {
+      const o = loc as { lat: number; lng: number };
+      if (typeof o.lat === 'number' && typeof o.lng === 'number') {
+        return `${o.lat.toFixed(5)}, ${o.lng.toFixed(5)}`;
+      }
+    }
+    return '';
   }
 
   private getMealTypeFromTime(time: string): string {

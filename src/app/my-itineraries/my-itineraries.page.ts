@@ -105,7 +105,7 @@ export class MyItinerariesPage implements OnInit {
 
         const itinerary = {
           id: itineraryId,
-          title: `Itinerary for ${this.getDateDisplay(date)}`,
+          title: firstEvent.extendedProps?.itineraryName || `Itinerary for ${this.getDateDisplay(date)}`,
           start: startTime,
           end: endTime,
           date: date,

@@ -48,6 +48,22 @@ export class CalendarService {
     return this.firestore.collection(`users/${userId}/itinerary`);
   }
 
+  /** Count of saved itinerary documents (for default naming: Itinerary 1, 2, …). */
+  async getUserItineraryDocumentCount(): Promise<number> {
+    const user = await this.afAuth.currentUser;
+    if (!user) {
+      return 0;
+    }
+    const snap = await this.getUserItineraryCollection(user.uid).get().toPromise();
+    return snap?.size ?? 0;
+  }
+
+  /** Next default name if the user leaves the name field blank. */
+  async getNextDefaultItineraryName(): Promise<string> {
+    const count = await this.getUserItineraryDocumentCount();
+    return `Itinerary ${count + 1}`;
+  }
+
   private toIsoDate(value: any): string {
     if (!value) return '';
     if (typeof value === 'string') {
@@ -281,7 +297,7 @@ export class CalendarService {
         `itinerary_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const itineraryName =
         cleanedEvents[0]?.extendedProps?.itineraryName ||
-        `Itinerary ${new Date().toLocaleDateString('en-US')}`;
+        (await this.getNextDefaultItineraryName());
       const status = cleanedEvents[0]?.status || 'active';
       const summary = this.summarizeItinerary(cleanedEvents);
 
@@ -639,9 +655,23 @@ export class CalendarService {
     };
   }
 
-  /**
-   * Convert CalendarEvent to GlobalEvent format
-   */
+  private displayLocationFromExtendedProps(extendedProps: any): string {
+    if (!extendedProps) return '';
+    const vicinity = extendedProps.vicinity;
+    if (typeof vicinity === 'string' && vicinity.trim()) {
+      return vicinity.trim();
+    }
+    const loc = extendedProps.location;
+    if (typeof loc === 'string' && loc.trim()) {
+      return loc.trim();
+    }
+    if (loc && typeof loc === 'object' && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+      return `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
+    }
+    return '';
+  }
+
+  
   calendarEventToGlobalEvent(calendarEvent: CalendarEvent, createdByType: 'admin' | 'user'): GlobalEvent {
     return {
       id: calendarEvent.id,
@@ -649,7 +679,7 @@ export class CalendarService {
       description: calendarEvent.extendedProps?.description || '',
       date: calendarEvent.start.split('T')[0],
       time: calendarEvent.start.split('T')[1]?.substring(0, 5) || '',
-      location: calendarEvent.extendedProps?.location || '',
+      location: this.displayLocationFromExtendedProps(calendarEvent.extendedProps),
       spotId: calendarEvent.extendedProps?.spotId || '',
       imageUrl: calendarEvent.extendedProps?.imageUrl || '',
       createdBy: calendarEvent.userId || '',

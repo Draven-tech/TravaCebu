@@ -26,6 +26,7 @@ interface PlaceSuggestion {
 })
 export class ItineraryModalComponent implements OnInit {
   @Input() itinerary: ItineraryDay[] = [];
+  @Input() itineraryName: string = '';
   @Input() originalStartTime: string = '';
   @Input() originalEndTime: string = '';
   @Input() originalSpots: any[] = [];
@@ -172,6 +173,7 @@ export class ItineraryModalComponent implements OnInit {
 
     const events: CalendarEvent[] = [];
     const itineraryGroupId = `itinerary_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const finalItineraryName = (this.itineraryName || '').trim() || (await this.calendarService.getNextDefaultItineraryName());
 
     for (const day of this.itinerary) {
       if (!day.date) {
@@ -197,6 +199,7 @@ export class ItineraryModalComponent implements OnInit {
           allDay: false,
           extendedProps: {
             type: 'tourist_spot',
+            itineraryName: finalItineraryName,
             description: spot.description || '',
             category: spot.category || 'GENERAL',
             duration: spot.estimatedDuration || '2 hours',
@@ -248,6 +251,7 @@ export class ItineraryModalComponent implements OnInit {
             allDay: false,
             extendedProps: {
               type: 'restaurant',
+              itineraryName: finalItineraryName,
               description: `${spot.mealType} at ${spot.chosenRestaurant.name}`,
               restaurant: spot.chosenRestaurant.name || '',
               vicinity: spot.chosenRestaurant.vicinity || '',
@@ -277,6 +281,7 @@ export class ItineraryModalComponent implements OnInit {
           allDay: false,
           extendedProps: {
             type: 'hotel',
+            itineraryName: finalItineraryName,
             description: 'Hotel check-in',
             hotel: day.chosenHotel.name || '',
             vicinity: day.chosenHotel.vicinity || '',

@@ -1,6 +1,6 @@
 ﻿import { Component, Input } from '@angular/core';
 import { ModalController, IonicModule } from '@ionic/angular';
-import { Badge } from '../../services/badge.service';
+import { Badge, isMetalTierBadgeId, TierHistoryRow } from '../../services/badge.service';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
 })
 export class BadgeDetailModalComponent {
   @Input() badge!: Badge;
+  showTierHistory = false;
 
   constructor(private modalCtrl: ModalController) {}
 
@@ -89,11 +90,58 @@ export class BadgeDetailModalComponent {
     return (this.badge.progress / this.badge.maxProgress) * 100;
   }
 
-  getFormattedDate(): string {
-    if (!this.badge.achievedAt) return '';
-    
-    const date = new Date(this.badge.achievedAt);
-    return date.toLocaleDateString('en-US', {
+  isMetalTier(): boolean {
+    return isMetalTierBadgeId(this.badge.id);
+  }
+
+  /** Clock for profile + metal badges; shown even when locked (panel can be empty until earned). */
+  showHistoryEntryButton(): boolean {
+    return isMetalTierBadgeId(this.badge.id) || this.badge.id === 'profile_complete';
+  }
+
+  profileHistoryColumnLabel(): string {
+    return this.badge.id === 'profile_complete' ? 'Milestone' : 'Tier';
+  }
+
+  historyRowTierColor(row: TierHistoryRow): string {
+    if (row.tier === 'profile_complete' || row.tier === 'gold') {
+      return '#b8860b';
+    }
+    if (row.tier === 'silver') {
+      return '#5c6b7a';
+    }
+    if (row.tier === 'bronze') {
+      return '#a0522d';
+    }
+    return '#2c3e50';
+  }
+
+  emptyHistoryMessage(): string {
+    if (!this.badge.isUnlocked) {
+      if (this.badge.id === 'profile_complete') {
+        return 'No entries yet. Complete your profile to see the date here.';
+      }
+      return 'No entries yet. Progress this badge to record tier dates here.';
+    }
+    return 'No history recorded yet.';
+  }
+
+  toggleTierHistory(): void {
+    this.showTierHistory = !this.showTierHistory;
+  }
+
+  tierLabel(row: TierHistoryRow): string {
+    if (row.tier === 'profile_complete') {
+      return 'Profile complete';
+    }
+    return row.tier.charAt(0).toUpperCase() + row.tier.slice(1);
+  }
+
+  formatTierDate(d: Date): string {
+    if (!d || isNaN(d.getTime())) {
+      return '—';
+    }
+    return d.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

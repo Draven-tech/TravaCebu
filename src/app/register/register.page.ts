@@ -97,6 +97,10 @@ export class RegisterPage implements OnInit {
             email: this.email,
             firstName: this.firstName,
             lastName: this.lastName,
+            fullName: [this.firstName, this.lastName]
+              .map((s) => (s || '').trim())
+              .filter(Boolean)
+              .join(' '),
             username: this.username,
             createdAt: new Date(),
             photoURL: null

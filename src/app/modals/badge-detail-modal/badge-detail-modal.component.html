@@ -26,10 +26,43 @@
         <!-- Description -->
         <p class="badge-description">{{ badge.description }}</p>
 
-        <!-- Achievement Date -->
-        <div class="achievement-date" *ngIf="badge.isUnlocked && badge.achievedAt">
-          <ion-icon name="calendar"></ion-icon>
-          <span>Achieved on {{ getFormattedDate() }}</span>
+        <button
+          *ngIf="showHistoryEntryButton()"
+          type="button"
+          class="tier-history-button"
+          (click)="toggleTierHistory()"
+          [attr.aria-label]="'Achievement history'"
+          [attr.aria-expanded]="showTierHistory"
+          [attr.title]="'Achievement history'"
+        >
+          <ion-icon name="time" aria-hidden="true"></ion-icon>
+        </button>
+
+        <div class="tier-history-panel" *ngIf="showHistoryEntryButton() && showTierHistory">
+          <table class="tier-history-table" *ngIf="badge.tierHistory && badge.tierHistory.length > 0">
+            <thead>
+              <tr>
+                <th scope="col">{{ profileHistoryColumnLabel() }}</th>
+                <th class="history-date-header" scope="col">Date achieved</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of badge.tierHistory">
+                <td>
+                  <span class="history-tier" [style.color]="historyRowTierColor(row)">{{
+                    tierLabel(row)
+                  }}</span>
+                </td>
+                <td class="history-date-cell">{{ formatTierDate(row.at) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p
+            *ngIf="!badge.tierHistory || badge.tierHistory.length === 0"
+            class="empty-tier-history"
+          >
+            {{ emptyHistoryMessage() }}
+          </p>
         </div>
 
         <!-- Status Message -->

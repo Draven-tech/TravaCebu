@@ -119,6 +119,85 @@
     padding: 0 10px;
   }
 
+  .tier-history-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 16px;
+    padding: 0;
+    border: 1px solid #cfe2ff;
+    border-radius: 50%;
+    background: #f0f6ff;
+    color: #1565c0;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: #e3f0ff;
+    }
+
+    ion-icon {
+      font-size: 1.35rem;
+    }
+  }
+
+  .tier-history-panel {
+    margin-bottom: 20px;
+  }
+
+  .tier-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    text-align: left;
+    background: #fafbfc;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    th {
+      color: #495057;
+      font-weight: 600;
+      width: 38%;
+      background: #f1f3f5;
+    }
+
+    /* Testing: high-contrast blue for date column (revert or refine after confirming data shows) */
+    th.history-date-header,
+    .history-date-cell {
+      color: #000000;
+      font-weight: 600;
+    }
+
+    tbody tr:last-child th,
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  .history-tier {
+    font-weight: 700;
+  }
+
+  .empty-tier-history {
+    margin: 0;
+    padding: 14px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #6c757d;
+    line-height: 1.4;
+    background: #f8f9fa;
+    border-radius: 10px;
+  }
+
   .achievement-date {
     display: flex;
     align-items: center;

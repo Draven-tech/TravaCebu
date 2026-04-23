@@ -1,5 +1,7 @@
-﻿import { Component, ViewChild, OnInit, ElementRef  } from '@angular/core';
+﻿import { Component, ViewChild, OnInit, ElementRef, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { debounceTime } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AuthService } from '../services/auth.service';
@@ -59,7 +61,7 @@ interface Comment {
   styleUrls: ['./user-profile.page.scss'],
   standalone: false,
 })
-export class UserProfilePage implements OnInit {
+export class UserProfilePage implements OnInit, OnDestroy {
   userId: string | null = null;
   userData: any = null;
   uploading: boolean = false;
@@ -72,7 +74,7 @@ export class UserProfilePage implements OnInit {
   userBadges: Badge[] = [];
   loadingBadges = false;
   badgesSubscriptionInitialized = false;
-  badgesEvaluated = false;
+  private userDocSubscription: Subscription | null = null;
 
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
 
@@ -99,20 +101,36 @@ export class UserProfilePage implements OnInit {
       return;
     }
     
-    this.firestore.collection('users').doc(this.userId).valueChanges().subscribe(async (data) => {
-      this.userData = data;
-      
-      if (this.userId && data && !this.badgesEvaluated) {
-        await this.badgeService.evaluateAllBadges(this.userId, data);
-        this.badgesEvaluated = true;
-      }
-    });
+    this.userDocSubscription = this.firestore
+      .collection('users')
+      .doc(this.userId)
+      .valueChanges()
+      .pipe(debounceTime(400))
+      .subscribe(async (data) => {
+        this.userData = data;
+        if (!this.userId || !data) {
+          return;
+        }
+        const me = await this.afAuth.currentUser;
+        if (me?.uid !== this.userId) {
+          return;
+        }
+        try {
+          await this.badgeService.evaluateAllBadges(this.userId, data);
+        } catch (e) {
+          console.error('Badge evaluation on user doc change failed:', e);
+        }
+      });
 
     this.menuCtrl.enable(true, 'main-menu');
     
     this.loadPosts();
     
     this.loadBadges();
+  }
+
+  ngOnDestroy() {
+    this.userDocSubscription?.unsubscribe();
   }
 
   async loadPosts() {
@@ -431,8 +449,18 @@ async viewProfilePicture() {
     this.userData.lastName = data.lastName;
     this.userData.username = data.username;
     this.userData.bio = data.bio;
-    
+    this.userData.fullName = [data.firstName, data.lastName]
+      .map((s) => (s || '').trim())
+      .filter(Boolean)
+      .join(' ');
+
     if (this.userId) {
+      const fresh = await this.firestore
+        .collection('users')
+        .doc(this.userId)
+        .get()
+        .toPromise();
+      this.userData = { ...this.userData, ...(fresh?.data() as object) };
       await this.badgeService.evaluateAllBadges(this.userId, this.userData);
       this.refreshBadges();
     }

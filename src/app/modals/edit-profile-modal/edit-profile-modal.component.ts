@@ -52,9 +52,14 @@ export class EditProfileModalComponent {
     }
 
     try {
+      const fullName = [this.updatedFirstName, this.updatedLastName]
+        .map((s) => (s || '').trim())
+        .filter(Boolean)
+        .join(' ');
       await this.firestore.collection('users').doc(uid).update({
         firstName: this.updatedFirstName,
         lastName: this.updatedLastName,
+        fullName: fullName || null,
         username: this.updatedUsername,
         bio: this.updatedBio
       });

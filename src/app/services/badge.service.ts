@@ -4,6 +4,17 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 
+export interface TierHistoryRow {
+  tier: 'bronze' | 'silver' | 'gold' | 'profile_complete';
+  at: Date;
+}
+
+export interface TierAchievedAtStored {
+  bronze?: any;
+  silver?: any;
+  gold?: any;
+}
+
 export interface Badge {
   id: string;
   title: string;
@@ -15,6 +26,8 @@ export interface Badge {
   maxProgress: number;
   isUnlocked: boolean;
   achievedAt?: Date;
+  /** Metal badges: per-tier dates. Profile Complete: one row when unlocked. */
+  tierHistory: TierHistoryRow[];
 }
 
 export interface UserBadgeProgress {
@@ -29,32 +42,41 @@ export interface UserBadgeProgress {
     progress: number;
     unlocked: boolean;
     achievedAt?: Date;
+    tierAchievedAt?: TierAchievedAtStored;
   };
   photo_enthusiast: {
     tier: 'bronze' | 'silver' | 'gold' | 'locked';
     progress: number;
     unlocked: boolean;
     achievedAt?: Date;
+    tierAchievedAt?: TierAchievedAtStored;
   };
   social_butterfly: {
     tier: 'bronze' | 'silver' | 'gold' | 'locked';
     progress: number;
     unlocked: boolean;
     achievedAt?: Date;
+    tierAchievedAt?: TierAchievedAtStored;
   };
   explorer: {
     tier: 'bronze' | 'silver' | 'gold' | 'locked';
     progress: number;
     unlocked: boolean;
     achievedAt?: Date;
+    tierAchievedAt?: TierAchievedAtStored;
   };
+}
+
+const METAL_TIER_BADGE_ID_LIST = ['bucket_list', 'photo_enthusiast', 'social_butterfly', 'explorer'] as const;
+
+export function isMetalTierBadgeId(badgeId: string): boolean {
+  return (METAL_TIER_BADGE_ID_LIST as readonly string[]).includes(badgeId);
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class BadgeService {
-  
   private readonly BADGE_DEFINITIONS = {
     profile_complete: {
       id: 'profile_complete',
@@ -110,21 +132,133 @@ export class BadgeService {
           const definition = this.BADGE_DEFINITIONS[badgeId as keyof typeof this.BADGE_DEFINITIONS];
           const userProgress = progress[badgeId as keyof UserBadgeProgress];
           
-                     return {
-             id: definition.id,
-             title: definition.title,
-             description: definition.description,
-             icon: this.getBadgeIcon(badgeId, userProgress?.tier || 'locked'),
-             lockedIcon: definition.lockedIcon,
-             tier: userProgress?.tier || 'locked',
-             progress: userProgress?.progress || 0,
-             maxProgress: definition.maxProgress,
-             isUnlocked: userProgress?.unlocked || false,
-             achievedAt: userProgress?.achievedAt ? this.convertFirestoreTimestamp(userProgress.achievedAt) : undefined
-           };
+          return {
+            id: definition.id,
+            title: definition.title,
+            description: definition.description,
+            icon: this.getBadgeIcon(badgeId, userProgress?.tier || 'locked'),
+            lockedIcon: definition.lockedIcon,
+            tier: userProgress?.tier || 'locked',
+            progress: userProgress?.progress || 0,
+            maxProgress: definition.maxProgress,
+            isUnlocked: userProgress?.unlocked || false,
+            achievedAt: userProgress?.achievedAt ? this.convertFirestoreTimestamp(userProgress.achievedAt) : undefined,
+            tierHistory: this.buildDisplayTierHistory(badgeId, userProgress)
+          };
         });
       })
     );
+  }
+
+  private tierRank(tier: string): number {
+    const m: Record<string, number> = { locked: 0, bronze: 1, silver: 2, gold: 3 };
+    return m[tier] ?? 0;
+  }
+
+  private cloneTierAchievedMapFromDb(raw: any): Record<string, any> {
+    const out: Record<string, any> = {};
+    if (!raw || typeof raw !== 'object') {
+      return out;
+    }
+    (['bronze', 'silver', 'gold'] as const).forEach((k) => {
+      if (raw[k] != null) {
+        out[k] = raw[k];
+      }
+    });
+    return out;
+  }
+
+  /**
+   * Display-only tier history. Prefers per-tier `tierAchievedAt`; for legacy data without it,
+   * uses `achievedAt` once and ties it to the current tier.
+   */
+  private buildDisplayTierHistory(badgeId: string, userProgress: any): TierHistoryRow[] {
+    if (badgeId === 'profile_complete') {
+      if (userProgress?.unlocked && userProgress.achievedAt) {
+        return [
+          {
+            tier: 'profile_complete',
+            at: this.convertFirestoreTimestamp(userProgress.achievedAt)
+          }
+        ];
+      }
+      return [];
+    }
+    if (!isMetalTierBadgeId(badgeId)) {
+      return [];
+    }
+    const fromDoc = this.cloneTierAchievedMapFromDb(userProgress?.tierAchievedAt);
+    const hasAny = ['bronze', 'silver', 'gold'].some((k) => fromDoc[k] != null);
+    if (!hasAny && userProgress?.unlocked && userProgress.tier && userProgress.tier !== 'locked' && userProgress.achievedAt) {
+      fromDoc[userProgress.tier] = userProgress.achievedAt;
+    }
+    const order: Array<'bronze' | 'silver' | 'gold'> = ['bronze', 'silver', 'gold'];
+    return order
+      .filter((t) => fromDoc[t] != null)
+      .map((tier) => ({ tier, at: this.convertFirestoreTimestamp(fromDoc[tier]) }));
+  }
+
+  private buildTierAchievedMapForUpdate(currentRaw: any, previousTier: string, newTier: 'bronze' | 'silver' | 'gold' | 'locked'): Record<string, any> {
+    const base = this.cloneTierAchievedMapFromDb(currentRaw);
+    const p = this.tierRank(previousTier);
+    const n = this.tierRank(newTier);
+    if (n > p && newTier !== 'locked') {
+      base[newTier] = new Date();
+    }
+    return base;
+  }
+
+  private buildMetalTierBadgeState(
+    currentBadges: any,
+    currentTier: string,
+    newTier: 'bronze' | 'silver' | 'gold' | 'locked',
+    wasUnlocked: boolean,
+    unlocked: boolean,
+    progress: number
+  ) {
+    const shouldStampAchievedAt =
+      this.tierRank(newTier) > this.tierRank(currentTier) || (unlocked && !wasUnlocked);
+    const newAchievedAt = shouldStampAchievedAt
+      ? new Date()
+      : this.toDateOrUndefined(currentBadges?.achievedAt);
+    const tierMap = this.buildTierAchievedMapForUpdate(
+      currentBadges?.tierAchievedAt,
+      currentTier,
+      newTier
+    );
+    if (newTier !== 'locked' && unlocked) {
+      const t = newTier;
+      if (!tierMap[t]) {
+        if (newAchievedAt) {
+          tierMap[t] = newAchievedAt;
+        } else {
+          const fallback = this.toDateOrUndefined(currentBadges?.achievedAt) ?? new Date();
+          tierMap[t] = fallback;
+        }
+      }
+    }
+    return {
+      tier: newTier,
+      progress,
+      unlocked,
+      achievedAt: newAchievedAt,
+      tierAchievedAt: tierMap
+    };
+  }
+
+  /** Coerce existing Firestore/Date values; otherwise undefined (omit in write). */
+  private toDateOrUndefined(value: any): Date | undefined {
+    if (value == null) {
+      return undefined;
+    }
+    if (value instanceof Date) {
+      return value;
+    }
+    if (value?.toDate && typeof value.toDate === 'function') {
+      return value.toDate();
+    }
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? undefined : d;
   }
 
   private getBadgeIcon(badgeId: string, tier: string): string {
@@ -260,11 +394,28 @@ export class BadgeService {
   }
 
   /**
+   * App stores firstName/lastName (and sometimes fullName). Count name as present if
+   * fullName is set, or first + last are set (edit profile + register do not set fullName).
+   */
+  private hasProfileDisplayName(userData: any): boolean {
+    if (!userData) {
+      return false;
+    }
+    if (String(userData.fullName || '').trim().length > 0) {
+      return true;
+    }
+    if (String(userData.firstName || '').trim() && String(userData.lastName || '').trim()) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Check if user profile is complete
    */
   private isProfileComplete(userData: any): boolean {
     return !!(
-      userData?.fullName?.trim() &&
+      this.hasProfileDisplayName(userData) &&
       userData?.username?.trim() &&
       userData?.bio?.trim() &&
       userData?.photoURL &&
@@ -279,12 +430,54 @@ export class BadgeService {
     let completedFields = 0;
     const totalFields = 4;
 
-    if (userData?.fullName?.trim()) completedFields++;
-    if (userData?.username?.trim()) completedFields++;
-    if (userData?.bio?.trim()) completedFields++;
-    if (userData?.photoURL && userData?.photoURL !== 'assets/img/default.png') completedFields++;
+    if (this.hasProfileDisplayName(userData)) {
+      completedFields++;
+    }
+    if (userData?.username?.trim()) {
+      completedFields++;
+    }
+    if (userData?.bio?.trim()) {
+      completedFields++;
+    }
+    if (userData?.photoURL && userData?.photoURL !== 'assets/img/default.png') {
+      completedFields++;
+    }
 
     return Math.round((completedFields / totalFields) * 100);
+  }
+
+  /**
+   * Firestore does not allow `undefined` in field values; strip before write.
+   */
+  private deepOmitUndefined<T>(value: T): T {
+    if (value === undefined) {
+      return value as T;
+    }
+    if (value === null) {
+      return value;
+    }
+    if (value instanceof Date) {
+      return value;
+    }
+    if (typeof value !== 'object') {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => this.deepOmitUndefined(item))
+        .filter((item) => item !== undefined) as T;
+    }
+    if (typeof (value as any).toDate === 'function') {
+      return value;
+    }
+    const out: Record<string, any> = {};
+    for (const k of Object.keys(value as object)) {
+      const v = this.deepOmitUndefined((value as any)[k]);
+      if (v !== undefined) {
+        out[k] = v;
+      }
+    }
+    return out as T;
   }
 
   /**
@@ -292,10 +485,26 @@ export class BadgeService {
    */
   private async updateUserBadge(userId: string, badgeId: string, progress: any): Promise<void> {
     const userRef = this.firestore.collection('users').doc(userId);
-    
-    await userRef.update({
-      [`badges.${badgeId}`]: progress
-    });
+    const cleaned = this.deepOmitUndefined(progress) as any;
+
+    try {
+      await userRef.update({
+        [`badges.${badgeId}`]: cleaned
+      });
+    } catch (e: any) {
+      const msg = typeof e?.message === 'string' ? e.message : '';
+      const isMissingDoc =
+        e?.code === 'not-found' || msg.includes('No document to update') || msg.includes('NOT_FOUND');
+      if (isMissingDoc) {
+        await userRef.set(
+          { badges: { [badgeId]: cleaned } } as any,
+          { merge: true }
+        );
+        return;
+      }
+      console.error(`[BadgeService] updateUserBadge failed for ${badgeId}:`, e);
+      throw e;
+    }
   }
 
   /**
@@ -316,11 +525,20 @@ export class BadgeService {
    * Evaluate all badges for current user
    */
   async evaluateAllBadges(userId: string, userData: any): Promise<void> {
-    await this.evaluateProfileCompletionBadge(userId, userData);
-    await this.evaluateBucketListBadge(userId, userData);
-    await this.evaluatePhotoEnthusiastBadge(userId, userData);
-    await this.evaluateSocialButterflyBadge(userId, userData);
-    await this.evaluateExplorerBadge(userId, userData);
+    const steps: Array<() => Promise<void>> = [
+      () => this.evaluateProfileCompletionBadge(userId, userData),
+      () => this.evaluateBucketListBadge(userId, userData),
+      () => this.evaluatePhotoEnthusiastBadge(userId, userData),
+      () => this.evaluateSocialButterflyBadge(userId, userData),
+      () => this.evaluateExplorerBadge(userId, userData)
+    ];
+    for (const run of steps) {
+      try {
+        await run();
+      } catch (e) {
+        console.error('[BadgeService] evaluateAllBadges step failed:', e);
+      }
+    }
   }
 
   /**
@@ -365,12 +583,11 @@ export class BadgeService {
         (tier !== currentTier) || 
         (bucketListCount !== currentBadges.progress) || 
         (unlocked !== currentUnlocked)) {
-      await this.updateUserBadge(userId, 'bucket_list', {
-        tier,
-        progress: bucketListCount,
-        unlocked,
-        achievedAt: unlocked && !currentUnlocked ? new Date() : currentBadges?.achievedAt
-      });
+      await this.updateUserBadge(
+        userId,
+        'bucket_list',
+        this.buildMetalTierBadgeState(currentBadges, currentTier, tier, currentUnlocked, unlocked, bucketListCount)
+      );
     }
   }
 
@@ -420,12 +637,11 @@ export class BadgeService {
         (tier !== currentTier) || 
         (photoCount !== currentBadges.progress) || 
         (unlocked !== currentUnlocked)) {
-      await this.updateUserBadge(userId, 'photo_enthusiast', {
-        tier,
-        progress: photoCount,
-        unlocked,
-        achievedAt: unlocked && !currentUnlocked ? new Date() : currentBadges?.achievedAt
-      });
+      await this.updateUserBadge(
+        userId,
+        'photo_enthusiast',
+        this.buildMetalTierBadgeState(currentBadges, currentTier, tier, currentUnlocked, unlocked, photoCount)
+      );
     }
   }
 
@@ -504,12 +720,11 @@ export class BadgeService {
         (tier !== currentTier) || 
         (progress !== currentBadges.progress) || 
         (unlocked !== currentUnlocked)) {
-      await this.updateUserBadge(userId, 'social_butterfly', {
-        tier,
-        progress,
-        unlocked,
-        achievedAt: unlocked && !currentUnlocked ? new Date() : currentBadges?.achievedAt
-      });
+      await this.updateUserBadge(
+        userId,
+        'social_butterfly',
+        this.buildMetalTierBadgeState(currentBadges, currentTier, tier, currentUnlocked, unlocked, progress)
+      );
     }
   }
 
@@ -554,12 +769,18 @@ export class BadgeService {
         (tier !== currentTier) || 
         (uniqueSpotsVisited !== currentBadges.progress) || 
         (unlocked !== currentUnlocked)) {
-      await this.updateUserBadge(userId, 'explorer', {
-        tier,
-        progress: uniqueSpotsVisited,
-        unlocked,
-        achievedAt: unlocked && !currentUnlocked ? new Date() : currentBadges?.achievedAt
-      });
+      await this.updateUserBadge(
+        userId,
+        'explorer',
+        this.buildMetalTierBadgeState(
+          currentBadges,
+          currentTier,
+          tier,
+          currentUnlocked,
+          unlocked,
+          uniqueSpotsVisited
+        )
+      );
     }
   }
 

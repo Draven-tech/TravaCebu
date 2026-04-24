@@ -36,16 +36,41 @@ export class CommentsModalComponent {
     }
   }
 
+  private commentAuthorName(
+    profile: any,
+    authUser: { displayName: string | null; email: string | null; photoURL: string | null }
+  ): string {
+    const full = String(profile?.fullName || '').trim();
+    if (full) return full;
+    const fromParts = [profile?.firstName, profile?.lastName]
+      .map((s: string) => String(s || '').trim())
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    if (fromParts) return fromParts;
+    const username = String(profile?.username || '').trim();
+    if (username) return username;
+    const display = String(authUser.displayName || '').trim();
+    if (display) return display;
+    const emailLocal = String(authUser.email || '').split('@')[0].trim();
+    if (emailLocal) return emailLocal;
+    return 'Anonymous';
+  }
+
   async addComment() {
     if (!this.newComment.trim()) return;
 
     const currentUser = await this.afAuth.currentUser;
     if (!currentUser) return;
 
+    const userSnap = await this.firestore.collection('users').doc(currentUser.uid).get().toPromise();
+    const profile = userSnap?.data() as any;
+
     const commentData = {
       userId: currentUser.uid,
-      userName: this.userData?.fullName || 'Anonymous',
-      userPhotoURL: this.userData?.photoURL || 'assets/img/default.png',
+      userName: this.commentAuthorName(profile, currentUser),
+      userPhotoURL:
+        profile?.photoURL || currentUser.photoURL || 'assets/img/default.png',
       content: this.newComment.trim(),
       timestamp: new Date()
     };
@@ -58,11 +83,8 @@ export class CommentsModalComponent {
       
       // Evaluate social butterfly badge for the commenter
       try {
-        const userDoc = await this.firestore.collection('users').doc(currentUser.uid).get().toPromise();
-        const userData = userDoc?.data();
-        
-        if (userData) {
-          await this.badgeService.evaluateSocialButterflyBadge(currentUser.uid, userData);
+        if (profile) {
+          await this.badgeService.evaluateSocialButterflyBadge(currentUser.uid, profile);
         }
       } catch (error) {
         console.error('Error evaluating social butterfly badge:', error);

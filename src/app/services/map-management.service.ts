@@ -1,5 +1,6 @@
 ﻿import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
+import { MapUIService } from './map-ui.service';
 
 @Injectable({
   providedIn: 'root'
@@ -14,8 +15,9 @@ export class MapManagementService {
   private routeLine?: L.Polyline;
   private routeLines: (L.Polyline | L.Marker)[] = [];
   private routeMarkers: L.Marker[] = [];
+  private spotIconRefreshHandle?: ReturnType<typeof setTimeout>;
 
-  constructor() { }
+  constructor(private mapUI: MapUIService) { }
 
   private escapeForSingleQuotedJs(value: string): string {
     return String(value)
@@ -66,6 +68,8 @@ export class MapManagementService {
           this.map.invalidateSize();
         }
       }, 300);
+
+      this.map.on('zoomend', () => this.queueSpotIconRefresh());
       
       return this.map;
       
@@ -85,6 +89,10 @@ export class MapManagementService {
   /////////////////////////////// onTileChange ////////////////////////////////////
 
   clearAllMarkers(): void {
+    if (this.spotIconRefreshHandle) {
+      clearTimeout(this.spotIconRefreshHandle);
+      this.spotIconRefreshHandle = undefined;
+    }
     this.markers.forEach(marker => {
       if (this.map) {
         this.map.removeLayer(marker);
@@ -210,9 +218,15 @@ export class MapManagementService {
           const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
           
           if (!locationMap.has(locationKey)) {
+            const z = this.map?.getZoom() ?? 12;
             const marker = L.marker([spot.location.lat, spot.location.lng], {
-              icon: mapUI.getRouteMarkerIcon(spot, spotIndex)
+              icon: this.mapUI.getRouteMarkerIcon(spot, spotIndex, z)
             });
+            (marker as L.Marker & { __travaSpot?: { mode: 'itinerary'; spot: any; order: number } }).__travaSpot = {
+              mode: 'itinerary',
+              spot,
+              order: spotIndex
+            };
             
             const popupContent = mapUI.createItinerarySpotPopup(spot, spotIndex);
             marker.bindPopup(popupContent);
@@ -225,6 +239,7 @@ export class MapManagementService {
       }
       
       this.fitToMarkers();
+      this.queueSpotIconRefresh();
       
     } catch (error) {
       // Silently handle errors
@@ -247,9 +262,14 @@ export class MapManagementService {
         const locationKey = `${spot.location.lat.toFixed(4)},${spot.location.lng.toFixed(4)}`;
         
         if (!locationMap.has(locationKey)) {
+          const z = this.map?.getZoom() ?? 12;
           const marker = L.marker([spot.location.lat, spot.location.lng], {
-            icon: mapUI.getMarkerIconForSpot(spot)
+            icon: this.mapUI.getMarkerIconForSpot(spot, z)
           });
+          (marker as L.Marker & { __travaSpot?: { mode: 'tourist'; spot: any } }).__travaSpot = {
+            mode: 'tourist',
+            spot
+          };
           
           const popupContent = this.createSpotPopup(spot);
           marker.bindPopup(popupContent);
@@ -260,9 +280,41 @@ export class MapManagementService {
       }
       
       this.fitToMarkers();
+      this.queueSpotIconRefresh();
       
     } catch (error) {
       // Silently handle error
+    }
+  }
+
+  private queueSpotIconRefresh(): void {
+    if (!this.map) {
+      return;
+    }
+    if (this.spotIconRefreshHandle) {
+      clearTimeout(this.spotIconRefreshHandle);
+    }
+    this.spotIconRefreshHandle = setTimeout(() => {
+      this.spotIconRefreshHandle = undefined;
+      this.refreshSpotMarkerIcons();
+    }, 80);
+  }
+
+  private refreshSpotMarkerIcons(): void {
+    if (!this.map || this.markers.length === 0) {
+      return;
+    }
+    const z = this.map.getZoom();
+    for (const m of this.markers) {
+      const meta = (m as L.Marker & { __travaSpot?: { mode: string; spot: any; order?: number } }).__travaSpot;
+      if (!meta) {
+        continue;
+      }
+      if (meta.mode === 'tourist') {
+        m.setIcon(this.mapUI.getMarkerIconForSpot(meta.spot, z));
+      } else if (meta.mode === 'itinerary' && meta.order != null) {
+        m.setIcon(this.mapUI.getRouteMarkerIcon(meta.spot, meta.order, z));
+      }
     }
   }
 
@@ -393,6 +445,10 @@ export class MapManagementService {
    * Remove the map
    */
   removeMap(): void {
+    if (this.spotIconRefreshHandle) {
+      clearTimeout(this.spotIconRefreshHandle);
+      this.spotIconRefreshHandle = undefined;
+    }
     if (this.map) {
       this.map.remove();
       this.map = null as any;

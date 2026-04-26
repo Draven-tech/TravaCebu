@@ -16,37 +16,76 @@ export class MapUIService {
       .replace(/\n/g, '\\n');
   }
 
+  /** Scale spot markers when zoomed out so crowded pins stay readable; user marker unchanged. */
+  private spotIconScaleForZoom(zoom: number): number {
+    if (zoom >= 14) {
+      return 1;
+    }
+    if (zoom <= 9) {
+      return 0.5;
+    }
+    return 0.5 + ((zoom - 9) / 5) * 0.5;
+  }
+
+  private px(scale: number, v: number, min = 1): number {
+    return Math.max(min, Math.round(v * scale));
+  }
+
+  private fs(scale: number, v: number, minPx: number): number {
+    return Math.max(minPx, Math.round(v * scale));
+  }
+
   /**
    * Create marker icon for tourist spot
+   * @param zoom map zoom level; omit or pass high value for full-size (e.g. exports)
    */
-  getMarkerIconForSpot(spot: any): L.DivIcon {
-    const iconColor = this.getIconColor(spot);
-    const iconName = this.getIconName(spot);
+  getMarkerIconForSpot(spot: any, zoom?: number): L.DivIcon {
+    const scale = zoom != null ? this.spotIconScaleForZoom(zoom) : 1;
+    const w = this.px(scale, 30);
+    const h = this.px(scale, 40);
+    const ax = this.px(scale, 15);
+    const ay = this.px(scale, 40);
+    const src = this.getSpotMarkerAssetPath(spot);
     const markerStyle = this.getMarkerStyle(spot);
-    
+
     return L.divIcon({
-      html: this.createCustomMarkerHTML(iconColor, iconName, markerStyle),
+      html: `
+        <div class="marker-container map-spot-png-wrap ${markerStyle}" style="
+          position: relative;
+          width: ${w}px;
+          height: ${h}px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          line-height: 0;
+        ">
+          <img src="${src}" alt="" width="${w}" height="${h}"
+            style="object-fit: contain; display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));" />
+        </div>`,
       className: 'custom-marker',
-      iconSize: [30, 40],
-      iconAnchor: [15, 40],
-      popupAnchor: [0, -40]
+      iconSize: [w, h],
+      iconAnchor: [ax, ay],
+      popupAnchor: [0, -ay]
     });
   }
 
   /**
-   * Create route marker icon
+   * Itinerary-order pins on the map (PNG + badge), zoom-scaled like tourist spots.
    */
-  getRouteMarkerIcon(spot: any, order: number): L.DivIcon {
-    const iconColor = this.getIconColor(spot);
-    const iconSymbol = this.getIconSymbol(this.getIconName(spot));
-    const markerStyle = this.getMarkerStyle(spot);
-    
+  getRouteMarkerIcon(spot: any, order: number, zoom?: number): L.DivIcon {
+    const scale = zoom != null ? this.spotIconScaleForZoom(zoom) : 1;
+    const w = this.px(scale, 35);
+    const h = this.px(scale, 45);
+    const ax = this.px(scale, 17);
+    const ay = this.px(scale, 45);
+
     return L.divIcon({
-      html: this.createRouteMarkerHTML(iconColor, iconSymbol, markerStyle, order),
+      html: this.createRouteMarkerPngHTML(spot, order, scale),
       className: 'route-marker',
-      iconSize: [35, 45],
-      iconAnchor: [17, 45],
-      popupAnchor: [0, -45]
+      iconSize: [w, h],
+      iconAnchor: [ax, ay],
+      popupAnchor: [0, -ay]
     });
   }
 
@@ -138,39 +177,16 @@ export class MapUIService {
     `;
   }
 
-  //////////////////////////////////////////////////////////////////////////////////////////
-  private getIconColor(spot: any): string {
-    if (spot.eventType === 'restaurant') return '#ff9800';
-    if (spot.eventType === 'hotel') return '#1976d2';
-    if (spot.eventType === 'attraction') return '#4caf50';
-    if (spot.eventType === 'shopping') return '#9c27b0';
-    if (spot.eventType === 'entertainment') return '#f44336';
-    return '#666666';
+  /** PNG under `src/assets/map/` for map pins (hotel / restaurant / default spot). */
+  private getSpotMarkerAssetPath(spot: any): string {
+    if (spot?.eventType === 'hotel') {
+      return 'assets/map/hotel.png';
+    }
+    if (spot?.eventType === 'restaurant') {
+      return 'assets/map/restaurant.png';
+    }
+    return 'assets/map/spot.png';
   }
-
-  private getIconName(spot: any): string {
-    if (spot.eventType === 'restaurant') return 'restaurant';
-    if (spot.eventType === 'hotel') return 'hotel';
-    if (spot.eventType === 'attraction') return 'attraction';
-    if (spot.eventType === 'shopping') return 'shopping';
-    if (spot.eventType === 'entertainment') return 'entertainment';
-    return 'place';
-  }
-
-  private getIconSymbol(iconName: string): string {
-    const symbols: { [key: string]: string } = {
-      restaurant: 'R',
-      hotel: 'H',
-      attraction: 'A',
-      shopping: 'S',
-      entertainment: 'E',
-      place: 'P'
-    };
-    return symbols[iconName] || 'P';
-  }
-
-/////////////////////////////////////////////////////////////////////////////////////
-
 
   /**
    * Get marker style based on spot type
@@ -184,142 +200,59 @@ export class MapUIService {
     return 'default-marker';
   }
 
+  private createRouteMarkerPngHTML(spot: any, order: number, scale: number): string {
+    const w = this.px(scale, 35);
+    const h = this.px(scale, 45);
+    const src = this.getSpotMarkerAssetPath(spot);
+    const markerStyle = this.getMarkerStyle(spot);
+    const badge = this.px(scale, 18);
+    const badgeFs = this.fs(scale, 10, 7);
+    const badgeOff = this.px(scale, 8);
+    const badgeBorder = Math.max(1, this.px(scale, 2));
 
-
-  /**
-   * Create custom marker HTML
-   */
-  private createCustomMarkerHTML(iconColor: string, iconName: string, markerStyle: string): string {
     return `
-      <div class="marker-container ${markerStyle}" style="
+      <div class="route-marker-container map-spot-png-wrap ${markerStyle}" style="
         position: relative;
-        width: 30px;
-        height: 40px;
+        width: ${w}px;
+        height: ${h}px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: transform 0.2s ease;
+        line-height: 0;
       ">
-        <div style="
-          width: 24px;
-          height: 24px;
-          background: ${iconColor};
+        <img src="${src}" alt="" width="${w}" height="${h}"
+          style="object-fit: contain; display: block; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.35));" />
+        <span style="
+          position: absolute;
+          top: -${badgeOff}px;
+          right: -${badgeOff}px;
+          background: #ff4444;
+          color: white;
           border-radius: 50%;
+          width: ${badge}px;
+          height: ${badge}px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: white;
-          font-size: 12px;
+          font-size: ${badgeFs}px;
           font-weight: bold;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          border: 2px solid white;
-        ">
-          ${this.getIconSymbol(iconName)}
-        </div>
-        <div style="
-          position: absolute;
-          bottom: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 0;
-          height: 0;
-          border-left: 6px solid transparent;
-          border-right: 6px solid transparent;
-          border-top: 12px solid ${iconColor};
-        "></div>
+          border: ${badgeBorder}px solid white;
+          box-sizing: border-box;
+        ">${order}</span>
       </div>
     `;
   }
 
-  /**
-   * Create route marker HTML
-   */
-  private createRouteMarkerHTML(iconColor: string, iconSymbol: string, markerStyle: string, order: number): string {
-    return `
-      <div class="route-marker-container ${markerStyle}" style="
-        position: relative;
-        width: 35px;
-        height: 45px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: transform 0.2s ease;
-      ">
-        <div style="
-          width: 28px;
-          height: 28px;
-          background: ${iconColor};
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 14px;
-          font-weight: bold;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-          border: 3px solid white;
-          position: relative;
-        ">
-          <span style="
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: #ff4444;
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: bold;
-            border: 2px solid white;
-          ">${order}</span>
-          ${iconSymbol}
-        </div>
-        <div style="
-          position: absolute;
-          bottom: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 0;
-          height: 0;
-          border-left: 7px solid transparent;
-          border-right: 7px solid transparent;
-          border-top: 14px solid ${iconColor};
-        "></div>
-      </div>
-    `;
-  }
-
-  /**
-   * Create user location marker
-   */
   createUserLocationMarker(lat: number, lng: number, isReal: boolean = true): L.Marker {
+    const size = 28;
+    const half = size / 2;
     const icon = L.divIcon({
-      html: `
-        <div style="
-          width: 20px;
-          height: 20px;
-          background: ${isReal ? '#4caf50' : '#ff9800'};
-          border-radius: 50%;
-          border: 3px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 10px;
-        ">
-          ${isReal ? 'L' : 'L'}
-        </div>
-      `,
-      className: 'user-location-marker',
-      iconSize: [20, 20],
-      iconAnchor: [10, 10]
+      html: `<img src="assets/map/user.png" alt="" width="${size}" height="${size}" style="object-fit:contain;display:block;" />`,
+      className: 'user-location-marker' + (isReal ? '' : ' user-location-marker--mock'),
+      iconSize: [size, size],
+      iconAnchor: [half, half],
+      popupAnchor: [0, -half]
     });
 
     return L.marker([lat, lng], { icon });

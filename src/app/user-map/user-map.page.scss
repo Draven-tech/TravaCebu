@@ -155,9 +155,20 @@ ion-select {
 }
 
 .user-location-marker {
-  background: #28a745 !important;
-  border: 2px solid white !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  line-height: 0 !important;
+}
+
+.user-location-marker img {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+
+.user-location-marker--mock img {
+  outline: 3px solid #ff9800;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .route-marker {

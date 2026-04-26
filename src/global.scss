@@ -52,6 +52,27 @@
   margin-bottom: 20px;
 }
 
+/* Centered popup (not bottom sheet) — completion modal */
+ion-modal.itinerary-completion-modal {
+  --backdrop-opacity: 0.55;
+  --width: min(94vw, 440px);
+  --height: min(88vh, 640px);
+  --max-width: 440px;
+  --max-height: 88vh;
+  --border-radius: 16px;
+  --box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+
+ion-modal.itinerary-completion-modal::part(content) {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+ion-modal.itinerary-completion-modal ion-content {
+  --background: var(--ion-background-color, #fff);
+  --overflow: auto;
+}
+
 /* Scroll indicator */
 .scroll-indicator {
   position: sticky;

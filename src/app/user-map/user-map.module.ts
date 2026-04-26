@@ -11,11 +11,13 @@ import { TouristSpotSheetComponent } from '../components/tourist-spot-sheet/tour
 import { DaySpotPickerComponent } from '../components/day-spot-picker/day-spot-picker.component';
 import { ComponentsModule } from '../components/components.module';
 import { ItineraryControlsModalComponent } from '../modals/itinerary-controls-modal/itinerary-controls-modal.component';
+import { ItineraryCompletionModalComponent } from '../modals/itinerary-completion-modal/itinerary-completion-modal.component';
 
 @NgModule({
   declarations: [
     UserMapPage,
-    ItineraryControlsModalComponent
+    ItineraryControlsModalComponent,
+    ItineraryCompletionModalComponent
   ],
   imports: [
     CommonModule,

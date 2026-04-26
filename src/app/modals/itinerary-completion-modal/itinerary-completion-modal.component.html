@@ -1,0 +1,98 @@
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-title>Complete itinerary</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <p class="lead">
+    Review your trip below, then tap Done to end navigation. Saved expenses from itinerary controls will be kept.
+  </p>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-subtitle>Trip</ion-card-subtitle>
+      <ion-card-title>{{ itineraryTitle }}</ion-card-title>
+    </ion-card-header>
+  </ion-card>
+
+  <ion-card *ngIf="routeInfo">
+    <ion-card-header>
+      <ion-card-subtitle>Route summary</ion-card-subtitle>
+      <ion-card-title>Your plan</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-list lines="none">
+        <ion-item>
+          <ion-icon name="time-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <p>Total duration</p>
+            <h3>{{ getFormattedTotalDuration() }}</h3>
+          </ion-label>
+        </ion-item>
+        <ion-item>
+          <ion-icon name="navigate-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <p>Distance</p>
+            <h3>{{ getFormattedDistance() }}</h3>
+          </ion-label>
+        </ion-item>
+        <ion-item>
+          <ion-icon name="card-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <p>Est. jeepney fare</p>
+            <h3>{{ getEstimatedFare() }}</h3>
+          </ion-label>
+        </ion-item>
+      </ion-list>
+      <p *ngIf="routeInfo.summary" class="summary-text">{{ routeInfo.summary }}</p>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card *ngIf="segmentSummaries.length > 0" class="itinerary-detail-card">
+    <ion-card-header>
+      <ion-card-subtitle>Stages · {{ segmentSummaries.length }} total</ion-card-subtitle>
+      <ion-card-title>Itinerary detail</ion-card-title>
+    </ion-card-header>
+    <ion-card-content class="ion-no-padding">
+      <div
+        class="itinerary-detail-box"
+        [class.itinerary-detail-box--expanded]="itineraryDetailExpanded"
+        role="region"
+        aria-label="Itinerary stages, scrollable">
+        <ion-list lines="full" class="itinerary-detail-list">
+          <ion-item *ngFor="let seg of segmentSummaries; let i = index">
+            <ion-icon [name]="seg.icon" slot="start" color="medium"></ion-icon>
+            <ion-label class="ion-text-wrap">
+              <p class="stage-index">Stage {{ i + 1 }}</p>
+              <h3 class="segment-title">{{ seg.title }}</h3>
+              <p *ngIf="seg.detail" class="segment-detail">{{ seg.detail }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </div>
+      <div class="itinerary-detail-toggle" *ngIf="showDetailExpandToggle">
+        <ion-button
+          fill="clear"
+          size="small"
+          color="warning"
+          (click)="toggleItineraryDetailExpanded()">
+          <ion-icon
+            [name]="itineraryDetailExpanded ? 'chevron-up-outline' : 'chevron-down-outline'"
+            slot="start">
+          </ion-icon>
+          {{ itineraryDetailExpanded ? 'Show less' : 'Expand list' }}
+        </ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</ion-content>
+
+<ion-footer class="ion-no-border">
+  <ion-toolbar class="done-footer-toolbar">
+    <ion-button expand="block" color="warning" class="done-button" (click)="done()">
+      <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+      Done
+    </ion-button>
+  </ion-toolbar>
+</ion-footer>

@@ -1,0 +1,82 @@
+.lead {
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--ion-color-medium-shade);
+  margin-bottom: 16px;
+}
+
+.summary-text {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+}
+
+.stage-index {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ion-color-medium);
+  margin-bottom: 4px;
+}
+
+.segment-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.segment-detail {
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+  margin-top: 4px;
+}
+
+.itinerary-detail-card {
+  margin-bottom: 8px;
+}
+
+.itinerary-detail-box {
+  margin: 0 16px 0;
+  border: 1px solid var(--ion-color-step-150, rgba(0, 0, 0, 0.12));
+  border-radius: 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--ion-color-step-50, var(--ion-background-color, #fff));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  max-height: 168px;
+  transition: max-height 0.25s ease;
+}
+
+.itinerary-detail-box--expanded {
+  max-height: min(42vh, 340px);
+}
+
+.itinerary-detail-list {
+  margin: 0;
+  padding: 4px 0 8px;
+  background: transparent;
+}
+
+.itinerary-detail-list ion-item {
+  --background: transparent;
+  --padding-start: 12px;
+  --inner-padding-end: 12px;
+}
+
+.itinerary-detail-toggle {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 8px;
+}
+
+.done-footer-toolbar {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 8px;
+  --padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+  --background: var(--ion-background-color, #fff);
+}
+
+.done-button {
+  margin: 0;
+}

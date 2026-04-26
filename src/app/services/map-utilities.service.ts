@@ -47,10 +47,13 @@ export class MapUtilitiesService {
           const lastEvent = dayEvents[dayEvents.length - 1];
           const date = firstEvent.start.split('T')[0];
           const itineraryId = firstEvent.extendedProps?.itineraryGroupId || `itinerary_${date}`;
-          
+          const trimmedItineraryName = (firstEvent.extendedProps?.itineraryName || '').trim();
+
           const itinerary = {
             id: itineraryId,
-            name: `Itinerary for ${this.getDateDisplay(date)}`,
+            /** User-chosen name from calendar; use for display instead of date-only titles. */
+            itineraryName: trimmedItineraryName || undefined,
+            name: trimmedItineraryName || `Itinerary for ${this.getDateDisplay(date)}`,
             start: firstEvent.start,
             end: lastEvent.end,
             date: date,

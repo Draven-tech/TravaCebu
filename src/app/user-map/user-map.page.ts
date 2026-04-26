@@ -10,6 +10,7 @@ import { App } from '@capacitor/app';
 import { DaySpotPickerComponent } from '../components/day-spot-picker/day-spot-picker.component';
 import { environment } from '../../environments/environment';
 import { ItineraryControlsModalComponent } from '../modals/itinerary-controls-modal/itinerary-controls-modal.component';
+import { ItineraryCompletionModalComponent } from '../modals/itinerary-completion-modal/itinerary-completion-modal.component';
 import { GeofencingService } from '../services/geofencing.service';
 import { Subscription } from 'rxjs';
 
@@ -273,6 +274,22 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
     
     return `Itinerary for Unknown Date (${dayCount} day${dayCount > 1 ? 's' : ''}, ${spotCount} spots)`;
+  }
+
+  /** Short heading for completion modal: user itinerary name only, no date / day counts. */
+  private getItineraryCompletionHeading(itinerary: any): string {
+    if (!itinerary) {
+      return 'Your trip';
+    }
+    const fromProp = (itinerary.itineraryName || '').trim();
+    if (fromProp) {
+      return fromProp;
+    }
+    const rawName = (itinerary.name || '').trim();
+    if (rawName && !rawName.startsWith('Itinerary for ')) {
+      return rawName;
+    }
+    return 'Your trip';
   }
 
   async showDirectionsAndRoutes(): Promise<void> {
@@ -559,6 +576,47 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return this.getSegmentTitle(segment);
   }
 
+
+  /**
+   * Green check on map: show completion summary, then optionally end session via stopItinerary().
+   */
+  async openItineraryCompletionModal(): Promise<void> {
+    if (!this.currentRouteInfo?.segments?.length) {
+      return;
+    }
+
+    const activeItinerary =
+      this.selectedItineraryIndex >= 0 && this.selectedItineraryIndex < this.availableItineraries.length
+        ? this.availableItineraries[this.selectedItineraryIndex]
+        : null;
+
+    let routeSnapshot: any = null;
+    if (this.currentRouteInfo) {
+      try {
+        routeSnapshot = JSON.parse(JSON.stringify(this.currentRouteInfo));
+      } catch {
+        routeSnapshot = this.currentRouteInfo;
+      }
+    }
+
+    const modal = await this.modalCtrl.create({
+      component: ItineraryCompletionModalComponent,
+      componentProps: {
+        itineraryTitle: this.getItineraryCompletionHeading(activeItinerary),
+        routeInfo: routeSnapshot
+      },
+      cssClass: 'itinerary-completion-modal',
+      backdropDismiss: true
+    });
+
+    modal.onDidDismiss().then((result) => {
+      if (result.data?.endTrip) {
+        void this.stopItinerary();
+      }
+    });
+
+    await modal.present();
+  }
 
   async stopItinerary(options: StopItineraryOptions = {}): Promise<void> {
     const persistExpenses = options.persistExpenses ?? true;

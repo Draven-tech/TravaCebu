@@ -556,6 +556,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   getSegmentTitle(segment: any): string {
     if (segment.type === 'jeepney' || segment.type === 'bus') {
       return `${segment.jeepneyCode || 'Transit'} (${segment.fromName || segment.from} → ${segment.toName || segment.to})`;
+    } else if (segment.type === 'visit_stop') {
+      return segment.description || `Enjoy your visit at ${segment.toName || 'this destination'}`;
     } else if (segment.type === 'walk') {
       return `Walk (${segment.fromName || segment.from} → ${segment.toName || segment.to})`;
     } else {
@@ -1124,6 +1126,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     try {
       // Clear all existing route lines
       this.mapManagement.clearAllRouteLines();
+      this.mapManagement.clearRouteMarkers();
       
       // Get the current segment
       const segment = this.currentRouteInfo.segments[this.currentSegmentIndex];
@@ -1135,6 +1138,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         this.drawJeepneySegment(segment);
       } else if (segment.type === 'walk') {
         this.drawWalkingSegment(segment);
+      } else if (segment.type === 'visit_stop') {
+        this.drawVisitStopSegment(segment);
       }
       
       // Center map on the segment
@@ -1361,6 +1366,40 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       this.mapManagement.addRouteMarker(walkMarker);
     }
+  }
+
+  private drawVisitStopSegment(segment: any): void {
+    const lat = segment?.to?.lat || segment?.from?.lat;
+    const lng = segment?.to?.lng || segment?.from?.lng;
+    if (!lat || !lng) return;
+
+    const visitMarker = L.marker([lat, lng], {
+      icon: L.divIcon({
+        html: `<div style="
+          background: #FFC107;
+          color: #111;
+          border: 2px solid #fff;
+          border-radius: 999px;
+          padding: 4px 10px;
+          font-size: 12px;
+          font-weight: 700;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+          text-align: center;
+          white-space: nowrap;
+        ">Enjoy Visit</div>`,
+        iconSize: [90, 28],
+        iconAnchor: [45, 14]
+      })
+    });
+
+    visitMarker.bindPopup(`
+      <div style="text-align: center;">
+        <strong>Visit Stop</strong><br>
+        <small>${segment.description || 'Enjoy your visit here'}</small>
+      </div>
+    `);
+
+    this.mapManagement.addRouteMarker(visitMarker);
   }
 
   async loadTouristSpots(): Promise<void> {

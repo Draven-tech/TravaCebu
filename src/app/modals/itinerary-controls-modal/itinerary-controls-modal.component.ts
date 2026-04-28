@@ -122,6 +122,9 @@ export class ItineraryControlsModalComponent implements OnInit {
     if (segment.type === 'jeepney' || segment.type === 'bus') {
       return `${segment.jeepneyCode || 'Transit'} (${segment.fromName || segment.from} -> ${segment.toName || segment.to})`;
     }
+    if (segment.type === 'visit_stop') {
+      return segment.description || `Enjoy your visit at ${segment.toName || 'destination'}`;
+    }
     if (segment.type === 'walk') {
       return `Walk (${segment.fromName || segment.from} -> ${segment.toName || segment.to})`;
     }

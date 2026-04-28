@@ -5,7 +5,7 @@ import { environment } from '../../environments/environment';
 import * as L from 'leaflet';
 
 export interface RouteSegment {
-  type: 'walk' | 'jeepney' | 'bus';
+  type: 'walk' | 'jeepney' | 'bus' | 'visit_stop';
   description: string;
   duration: number;
   distance: number;
@@ -508,6 +508,12 @@ export class RoutePlanningService {
               totalDuration += straightLineDistance / 1.1;
             }
           }
+
+          // Insert a dedicated visit stage after arriving at each spot.
+          const visitSegment = this.createVisitSegment(spot);
+          if (visitSegment) {
+            segments.push(visitSegment);
+          }
         }
       }
 
@@ -526,6 +532,25 @@ export class RoutePlanningService {
     } catch (error) {
       return null;
     }
+  }
+
+  private createVisitSegment(spot: any): RouteSegment | null {
+    const spotLat = spot?.location?.lat;
+    const spotLng = spot?.location?.lng;
+    if (!spot?.name || !spotLat || !spotLng) {
+      return null;
+    }
+
+    return {
+      type: 'visit_stop',
+      description: `Enjoy your visit here at ${spot.name}`,
+      duration: 0,
+      distance: 0,
+      from: { lat: spotLat, lng: spotLng },
+      to: { lat: spotLat, lng: spotLng },
+      jeepneyCode: undefined,
+      polyline: undefined
+    };
   }
 
   /**

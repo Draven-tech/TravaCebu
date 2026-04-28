@@ -101,8 +101,8 @@
         <ion-card-content>
           <ion-list *ngIf="currentRouteInfo.segments && currentRouteInfo.segments.length > 0">
             <ion-item *ngFor="let segment of currentRouteInfo.segments; let i = index">
-              <ion-icon [name]="segment.type === 'jeepney' ? 'bus' : 'walk'" 
-                        [color]="segment.type === 'jeepney' ? 'primary' : 'medium'" 
+              <ion-icon [name]="segment.type === 'jeepney' ? 'bus' : (segment.type === 'visit_stop' ? 'location' : 'walk')" 
+                        [color]="segment.type === 'jeepney' ? 'primary' : (segment.type === 'visit_stop' ? 'warning' : 'medium')" 
                         slot="start"></ion-icon>
               <ion-label>
                 <h3>{{ segment.description }}</h3>
@@ -136,8 +136,9 @@
                     <ion-label>
                       <h3>Option {{ i + 1 }}</h3>
                       <p *ngFor="let segment of route.segments">
-                        <span *ngIf="segment.type === 'jeepney'">🚌 {{ segment.jeepneyCode }} - {{ segment.description }}</span>
-                        <span *ngIf="segment.type === 'walk'">🚶‍♂️ {{ segment.description }}</span>
+                        <span *ngIf="segment.type === 'jeepney'">{{ segment.jeepneyCode }} - {{ segment.description }}</span>
+                        <span *ngIf="segment.type === 'walk'"> {{ segment.description }}</span>
+                        <span *ngIf="segment.type === 'visit_stop'"> {{ segment.description }}</span>
                       </p>
                       <p>{{ formatDuration(route.totalDuration) }} • {{ (route.totalDistance / 1000).toFixed(1) }} km</p>
                     </ion-label>

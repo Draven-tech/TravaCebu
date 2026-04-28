@@ -1,0 +1,16 @@
+USER PROFILE + BADGE SYNC UPDATE
+================================
+
+ONE-SENTENCE DESCRIPTION
+--------------------------
+The profile page now keeps Firestore user data and badge progress in sync by re-running badge evaluation whenever the user document changes, with a short debounce, and it cleans up the listener when you leave the page.
+
+REMARKS (BEFORE / UPDATED / HOW IT WORKS NOW)
+---------------------------------------------
+Before: Badge logic ran only on the first valueChanges emit (using a badgesEvaluated flag), so later profile changes or manual Firebase edits often never updated badges.
+
+Updated: The one-time flag was removed, valueChanges is debounced and used to call evaluateAllBadges on each real user-doc update, the subscription is stored and unsubscribed in ngOnDestroy, and after edit profile the app refreshes the user from Firestore before evaluating.
+
+Now: Whenever the users/{uid} document changes (or after you save profile or photo), badges are recalculated against current data, and leaving the page stops the live listener to avoid extra work and duplicate subscriptions.
+
+Related files: src/app/user-profile/user-profile.page.ts, src/app/services/badge.service.ts, register + edit profile (fullName / first+last name).

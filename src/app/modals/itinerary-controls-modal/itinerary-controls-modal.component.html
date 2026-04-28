@@ -196,8 +196,8 @@
     <ion-card-content>
       <!-- Current segment info -->
       <ion-item *ngIf="currentRouteInfo.segments[currentSegmentIndex]" lines="none">
-        <ion-icon [name]="currentRouteInfo.segments[currentSegmentIndex].type === 'jeepney' ? 'bus' : 'walk'" 
-                  [color]="currentRouteInfo.segments[currentSegmentIndex].type === 'jeepney' ? 'primary' : 'medium'" 
+        <ion-icon [name]="currentRouteInfo.segments[currentSegmentIndex].type === 'jeepney' ? 'bus' : (currentRouteInfo.segments[currentSegmentIndex].type === 'visit_stop' ? 'location' : 'walk')" 
+                  [color]="currentRouteInfo.segments[currentSegmentIndex].type === 'jeepney' ? 'primary' : (currentRouteInfo.segments[currentSegmentIndex].type === 'visit_stop' ? 'warning' : 'medium')" 
                   slot="start"></ion-icon>
         <ion-label>
           <h3>{{ getSegmentTitle(currentRouteInfo.segments[currentSegmentIndex]) }}</h3>

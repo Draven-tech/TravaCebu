@@ -50,6 +50,12 @@ interface StopItineraryOptions {
   expensePlan?: ExpensePlan;
 }
 
+interface ResumableSessionMeta {
+  title: string;
+  dayLabel: string;
+  stageLabel: string;
+}
+
 
 @Component({
   selector: 'app-user-map',
@@ -105,13 +111,24 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   
   // Stage notification visibility
   showStageNotification: boolean = true;
+  hasResumableSession: boolean = false;
+  resumableSessionMeta: ResumableSessionMeta = {
+    title: '',
+    dayLabel: '',
+    stageLabel: ''
+  };
 
   // Subscriptions
   private locationSubscription?: Subscription;
   private appStateSubscription?: any;
   private spotsSubscription?: Subscription;
+  private geofenceVisitsSubscription?: Subscription;
+  private hasInitializedItinerarySelectionSubscription: boolean = false;
   private savedExpensePlan: ExpensePlan | null = null;
   private savedExpensePlanItineraryIndex: number = -1;
+  private readonly itineraryProgressSnapshotKey = 'itinerary_progress_snapshot';
+  private readonly itineraryRouteSnapshotKey = 'itinerary_route_snapshot';
+  private hasShownResumePromptThisLaunch: boolean = false;
 
   constructor(
     private navCtrl: NavController,
@@ -191,6 +208,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     } catch (error) {
       this.availableItineraries = [];
     }
+
+    this.refreshResumableSessionState();
   }
 
   async loadJeepneyRoutes(): Promise<void> {
@@ -210,7 +229,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
   }
 
-  async loadItineraryRoutes(): Promise<void> {
+  async loadItineraryRoutes(options: { preserveSessionProgress?: boolean } = {}): Promise<void> {
+    const preserveSessionProgress = options.preserveSessionProgress ?? false;
+
     // Ensure we have itineraries loaded
     if (this.availableItineraries.length === 0) {
       console.log('No itineraries available, loading them first...');
@@ -232,8 +253,16 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
       
       try {
-        // Start or update itinerary session
-        this.itinerarySession.startSession(this.selectedItineraryIndex, selectedItinerary);
+        const existingSession = this.itinerarySession.getCurrentSession();
+        const canPreserveCurrentSession =
+          preserveSessionProgress &&
+          existingSession?.isActive &&
+          existingSession.selectedItineraryIndex === this.selectedItineraryIndex;
+
+        // Start a new session unless we are explicitly resuming the same itinerary.
+        if (!canPreserveCurrentSession) {
+          this.itinerarySession.startSession(this.selectedItineraryIndex, selectedItinerary);
+        }
         
         // Clear any existing routes when itinerary changes
         this.mapManagement.clearAllRouteLines();
@@ -248,6 +277,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         
         // Generate route information for the selected itinerary
         await this.generateRouteForItinerary(selectedItinerary);
+        this.refreshResumableSessionState();
       } catch (error) {
         console.error('Error loading itinerary routes:', error);
         this.showToast('Error loading itinerary routes');
@@ -256,9 +286,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         this.selectedItineraryIndex = -1;
         this.currentSegmentIndex = 0;
         this.updateMapDisplay();
+        this.refreshResumableSessionState();
       }
     } else {
       this.currentRouteInfo = null;
+      this.refreshResumableSessionState();
     }
   }
 
@@ -346,9 +378,22 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       // Check for existing itinerary session
       await this.checkForExistingSession();
+
+      // Persist session progress whenever geofence visits are updated.
+      this.geofenceVisitsSubscription = this.geofencingService.visitedSpots$.subscribe(() => {
+        if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
+          this.persistSessionSnapshot('geofence_update');
+        }
+      });
       
       // Subscribe to modal communication service
       this.modalCommunication.itinerarySelection$.subscribe((index: number | null) => {
+        // Ignore first replayed BehaviorSubject value.
+        if (!this.hasInitializedItinerarySelectionSubscription) {
+          this.hasInitializedItinerarySelectionSubscription = true;
+          return;
+        }
+
         if (index !== null) {
           console.log('Received itinerary selection from service:', index);
           this.selectedItineraryIndex = index;
@@ -361,11 +406,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         console.log('App state changed. isActive:', state.isActive);
         
         if (!state.isActive) {
-          // App is going to background or being closed
-          console.log('App going to background - stopping itinerary if active');
-          if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
-            void this.stopItinerary({ persistExpenses: false, showToast: false });
-          }
+          this.handleAppPause();
+        } else {
+          this.handleAppResume();
         }
       });
       
@@ -382,10 +425,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       // Listen for browser close/refresh (for web version)
       window.addEventListener('beforeunload', () => {
-        console.log('Browser closing/refreshing - stopping itinerary if active');
-        if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
-          void this.stopItinerary({ persistExpenses: false, showToast: false });
-        }
+        this.handleAppPause();
       });
       
     } catch (error) {
@@ -397,58 +437,260 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   // /////////////////////////////////////SESSION MANAGEMENT///////////////////////////////////////////////////
 
   async checkForExistingSession(): Promise<void> {
-    const currentSession = this.itinerarySession.getCurrentSession();
-    if (currentSession && currentSession.isActive) {
-      console.log('Resuming existing session:', currentSession);
-      
-      try {
-        // Add timeout to prevent infinite loading
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Session resumption timeout')), 10000); // 10 second timeout
-        });
-        
-        const resumptionPromise = this.resumeSessionWithTimeout(currentSession);
-        
-        await Promise.race([resumptionPromise, timeoutPromise]);
-        
-      } catch (error) {
-        console.error('Error resuming session:', error);
-        // Clear the invalid session
-        this.itinerarySession.endSession();
-        this.selectedItineraryIndex = -1;
-        this.currentSegmentIndex = 0;
-        this.updateMapDisplay();
-        this.showToast(' Could not resume previous session');
-      }
+    if (this.availableItineraries.length === 0) {
+      await this.loadAvailableItineraries();
     }
+    this.refreshResumableSessionState();
+    this.maybePromptForResumableTrip();
   }
 
-  private async resumeSessionWithTimeout(currentSession: any): Promise<void> {
-    // First, ensure we have the itineraries loaded
+  async continueSavedItinerary(): Promise<void> {
     if (this.availableItineraries.length === 0) {
-      console.log('Loading itineraries for session resumption...');
       await this.loadAvailableItineraries();
       await this.loadJeepneyRoutes();
     }
-    
-    // Verify the session is still valid
-    if (currentSession.selectedItineraryIndex >= 0 && currentSession.selectedItineraryIndex < this.availableItineraries.length) {
-      // Restore session state
-      this.selectedItineraryIndex = currentSession.selectedItineraryIndex;
-      this.currentSegmentIndex = currentSession.currentSegmentIndex;
-      
-      // Load the itinerary routes
-      await this.loadItineraryRoutes();
-      
-      // Show a toast about session resumption
-      this.showToast(`🔄 Resumed session: ${this.formatItineraryTitle(currentSession.selectedItinerary)}`);
-    } else {
-      console.log('Session is invalid, clearing it');
-      this.itinerarySession.endSession();
-      this.selectedItineraryIndex = -1;
-      this.currentSegmentIndex = 0;
-      this.updateMapDisplay();
+
+    const currentSession = this.getValidResumableSession();
+    if (!currentSession) {
+      this.clearInvalidSessionForResume();
+      await this.showToast('Saved trip no longer available.');
+      return;
     }
+
+    const targetSegmentIndex = currentSession.currentSegmentIndex || 0;
+    const wasSameItinerarySelected = this.selectedItineraryIndex === currentSession.selectedItineraryIndex;
+    this.selectedItineraryIndex = currentSession.selectedItineraryIndex;
+    this.currentSegmentIndex = targetSegmentIndex;
+
+    const restoredFromSnapshot = this.restoreRouteSnapshotForSession(currentSession);
+    const hasLoadedRouteForCurrentItinerary =
+      wasSameItinerarySelected &&
+      !!this.currentRouteInfo?.segments?.length;
+
+    // Load route only when missing and no valid snapshot is available.
+    if (!restoredFromSnapshot && !hasLoadedRouteForCurrentItinerary) {
+      await this.loadItineraryRoutes({ preserveSessionProgress: true });
+    }
+
+    const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
+    if (selectedItinerary?.days) {
+      await this.geofencingService.startMonitoring(selectedItinerary.days);
+    }
+
+    if (!this.locationTracking.isTrackingActive()) {
+      await this.locationTracking.startLocationTracking();
+    }
+
+    if (this.currentRouteInfo?.segments?.length) {
+      const maxIndex = this.currentRouteInfo.segments.length - 1;
+      this.currentSegmentIndex = Math.max(0, Math.min(targetSegmentIndex, maxIndex));
+      this.displayCurrentSegment();
+      this.itinerarySession.updateCurrentSegment(this.currentSegmentIndex);
+    }
+
+    this.centerMapForResumedSegment();
+    this.refreshResumableSessionState();
+    await this.showToast(`Resumed at Stage ${this.currentSegmentIndex + 1}`);
+  }
+
+  private refreshResumableSessionState(): void {
+    const validSession = this.getValidResumableSession();
+    const currentSession = this.itinerarySession.getCurrentSession();
+
+    if (!validSession && currentSession?.isActive) {
+      this.itinerarySession.endSession();
+    }
+
+    this.hasResumableSession = !!validSession && this.selectedItineraryIndex < 0;
+
+    if (validSession) {
+      const itineraryAtIndex = this.availableItineraries[validSession.selectedItineraryIndex] || validSession.selectedItinerary;
+      this.resumableSessionMeta = this.buildResumableSessionMeta(validSession, itineraryAtIndex);
+    } else {
+      this.resumableSessionMeta = {
+        title: '',
+        dayLabel: '',
+        stageLabel: ''
+      };
+    }
+  }
+
+  private buildResumableSessionMeta(session: ItinerarySession, itinerary: any): ResumableSessionMeta {
+    const fallbackTitle = this.formatItineraryTitle(session.selectedItinerary);
+    const title = itinerary ? this.formatItineraryTitle(itinerary) : fallbackTitle;
+    const dayLabel = itinerary?.date ? `Day ${itinerary.date}` : '';
+    const stageLabel = `Stage ${(session.currentSegmentIndex || 0) + 1}`;
+
+    return {
+      title,
+      dayLabel,
+      stageLabel
+    };
+  }
+
+  private getValidResumableSession(): ItinerarySession | null {
+    const session = this.itinerarySession.getCurrentSession();
+    if (!session?.isActive) {
+      return null;
+    }
+
+    if (session.selectedItineraryIndex < 0 || session.selectedItineraryIndex >= this.availableItineraries.length) {
+      return null;
+    }
+
+    const itineraryAtIndex = this.availableItineraries[session.selectedItineraryIndex];
+    if (!itineraryAtIndex || !this.isSameItinerary(session.selectedItinerary, itineraryAtIndex)) {
+      return null;
+    }
+
+    return session;
+  }
+
+  private isSameItinerary(savedItinerary: any, availableItinerary: any): boolean {
+    if (!savedItinerary || !availableItinerary) {
+      return false;
+    }
+
+    if (savedItinerary.id && availableItinerary.id) {
+      return savedItinerary.id === availableItinerary.id;
+    }
+
+    const savedName = savedItinerary.name || savedItinerary.itineraryName;
+    const availableName = availableItinerary.name || availableItinerary.itineraryName;
+    const sameName = !!savedName && savedName === availableName;
+    const sameDate = !!savedItinerary.date && savedItinerary.date === availableItinerary.date;
+    return sameName || sameDate;
+  }
+
+  private clearInvalidSessionForResume(): void {
+    this.itinerarySession.endSession();
+    this.selectedItineraryIndex = -1;
+    this.currentSegmentIndex = 0;
+    this.clearResumeSnapshots();
+    this.refreshResumableSessionState();
+  }
+
+  private centerMapForResumedSegment(): void {
+    const userLocation = this.locationTracking.getUserLocation();
+    if (userLocation) {
+      this.mapManagement.centerOnLocation(userLocation.lat, userLocation.lng, 15);
+      return;
+    }
+
+    const segment = this.currentRouteInfo?.segments?.[this.currentSegmentIndex];
+    const startPoint = segment?.from || segment?.coordinates?.[0];
+    if (startPoint?.lat && startPoint?.lng) {
+      this.mapManagement.centerOnLocation(startPoint.lat, startPoint.lng, 15);
+    }
+  }
+
+  private persistSessionSnapshot(reason: string = 'lifecycle_pause'): void {
+    if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
+      this.itinerarySession.updateCurrentSegment(this.currentSegmentIndex);
+      this.writeProgressSnapshot(reason);
+      this.refreshResumableSessionState();
+    }
+  }
+
+  private writeProgressSnapshot(reason: string): void {
+    try {
+      const userLocation = this.locationTracking.getUserLocation();
+      const snapshot = {
+        savedAt: new Date().toISOString(),
+        reason,
+        selectedItineraryIndex: this.selectedItineraryIndex,
+        currentSegmentIndex: this.currentSegmentIndex,
+        userPosition: userLocation
+          ? {
+              lat: userLocation.lat,
+              lng: userLocation.lng,
+              accuracy: userLocation.accuracy ?? null
+            }
+          : null
+      };
+      localStorage.setItem(this.itineraryProgressSnapshotKey, JSON.stringify(snapshot));
+      this.writeRouteSnapshot(reason);
+    } catch (error) {
+      console.warn('Failed to save itinerary progress snapshot:', error);
+    }
+  }
+
+  private writeRouteSnapshot(reason: string): void {
+    if (!this.currentRouteInfo || !this.currentRouteInfo.segments?.length) {
+      return;
+    }
+
+    try {
+      const snapshot = {
+        savedAt: new Date().toISOString(),
+        reason,
+        selectedItineraryIndex: this.selectedItineraryIndex,
+        currentSegmentIndex: this.currentSegmentIndex,
+        routeInfo: this.currentRouteInfo
+      };
+      localStorage.setItem(this.itineraryRouteSnapshotKey, JSON.stringify(snapshot));
+    } catch (error) {
+      console.warn('Failed to save itinerary route snapshot:', error);
+    }
+  }
+
+  private restoreRouteSnapshotForSession(session: ItinerarySession): boolean {
+    try {
+      const raw = localStorage.getItem(this.itineraryRouteSnapshotKey);
+      if (!raw) {
+        return false;
+      }
+
+      const snapshot = JSON.parse(raw);
+      if (
+        !snapshot ||
+        !snapshot.routeInfo?.segments?.length ||
+        snapshot.selectedItineraryIndex !== session.selectedItineraryIndex
+      ) {
+        return false;
+      }
+
+      const sessionUpdatedAt = new Date(session.lastUpdated).getTime();
+      const snapshotSavedAt = new Date(snapshot.savedAt).getTime();
+      if (Number.isFinite(sessionUpdatedAt) && Number.isFinite(snapshotSavedAt) && snapshotSavedAt < sessionUpdatedAt) {
+        return false;
+      }
+
+      this.currentRouteInfo = snapshot.routeInfo;
+      return true;
+    } catch (error) {
+      console.warn('Failed to restore itinerary route snapshot:', error);
+      return false;
+    }
+  }
+
+  private clearResumeSnapshots(): void {
+    try {
+      localStorage.removeItem(this.itineraryProgressSnapshotKey);
+      localStorage.removeItem(this.itineraryRouteSnapshotKey);
+    } catch (error) {
+      console.warn('Failed to clear itinerary snapshots:', error);
+    }
+  }
+
+  private handleAppPause(): void {
+    // Pause lifecycle should preserve progress; do not call stopItinerary() here.
+    this.persistSessionSnapshot('app_paused');
+  }
+
+  private handleAppResume(): void {
+    // On resume, simply refresh whether Continue Trip should be shown.
+    this.refreshResumableSessionState();
+    this.maybePromptForResumableTrip();
+  }
+
+  private maybePromptForResumableTrip(): void {
+    if (!this.hasResumableSession || this.hasShownResumePromptThisLaunch) {
+      return;
+    }
+
+    this.hasShownResumePromptThisLaunch = true;
+    void this.showToast('Trip in progress found. Tap Continue Trip to resume.');
   }
 
   /////////////////////////////////////////////TEMPLATE METHODS ///////////////////////////////////
@@ -656,8 +898,10 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
     // End session
     this.itinerarySession.endSession();
+    this.clearResumeSnapshots();
     this.savedExpensePlan = null;
     this.savedExpensePlanItineraryIndex = -1;
+    this.refreshResumableSessionState();
 
     // Clear modal communication
     this.modalCommunication.clearSelection();
@@ -843,6 +1087,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     
     // End session
     this.itinerarySession.endSession();
+    this.clearResumeSnapshots();
     
     // Clear modal communication
     this.modalCommunication.clearSelection();
@@ -1048,6 +1293,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.currentRouteInfo.summary = selectedRoute.summary;
       
       this.displayRouteOnMap(this.currentRouteInfo);
+      this.persistSessionSnapshot('stage_route_option_changed');
       this.showToast('Route updated');
     }
   }
@@ -1070,6 +1316,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.currentRouteInfo.summary = selectedRoute.summary;
       
       this.displayRouteOnMap(this.currentRouteInfo);
+      this.persistSessionSnapshot('suggested_route_changed');
     }
   }
 
@@ -1090,8 +1337,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // Move to next segment (loop back to first when reaching the end)
     this.currentSegmentIndex = (this.currentSegmentIndex + 1) % this.currentRouteInfo.segments.length;
     
-    // Update session with new current segment
-    this.itinerarySession.updateCurrentSegment(this.currentSegmentIndex);
+    // Persist session with new current segment.
+    this.persistSessionSnapshot('segment_advanced');
     
     // Display only the current segment
     this.displayCurrentSegment();
@@ -1109,8 +1356,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       ? this.currentSegmentIndex - 1 
       : this.currentRouteInfo.segments.length - 1;
     
-    // Update session with new current segment
-    this.itinerarySession.updateCurrentSegment(this.currentSegmentIndex);
+    // Persist session with new current segment.
+    this.persistSessionSnapshot('segment_rewind');
     
     // Display only the current segment
     this.displayCurrentSegment();
@@ -1202,6 +1449,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     try {
       // Reset to first segment when displaying a new route
       this.currentSegmentIndex = 0;
+      this.persistSessionSnapshot('route_display_reset');
       
       // Display only the first segment
       this.displayCurrentSegment();
@@ -1687,11 +1935,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Stop itinerary if active
-    if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
-      console.log('Component destroying - stopping active itinerary');
-      void this.stopItinerary({ persistExpenses: false, showToast: false });
-    }
+    this.persistSessionSnapshot();
     
     // Unsubscribe from location updates
     if (this.locationSubscription) {
@@ -1700,6 +1944,10 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     
     if (this.spotsSubscription) {
       this.spotsSubscription.unsubscribe();
+    }
+
+    if (this.geofenceVisitsSubscription) {
+      this.geofenceVisitsSubscription.unsubscribe();
     }
     
     // Remove app state listener

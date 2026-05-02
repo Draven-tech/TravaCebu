@@ -1,13 +1,18 @@
 ﻿import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
+import { Observable, of } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export interface GlobalEvent {
   id?: string;
   name: string;
   description: string;
   date: string;
+  /** Start time (HH:mm). */
   time: string;
+  /** End time same calendar day (HH:mm). Omitted on older documents. */
+  endTime?: string;
   location: string;
   spotId: string;
   imageUrl: string;
@@ -218,6 +223,110 @@ export class CalendarService {
       console.error('Error loading user calendar events:', error);
       return [];
     }
+  }
+
+  /**
+   * Public `events` documents for a tourist spot, filtered to those that have not ended yet, sorted by start.
+   */
+  watchUpcomingEventsForTouristSpot(spotId: string): Observable<GlobalEvent[]> {
+    if (!spotId) {
+      return of([]);
+    }
+    return this.firestore
+      .collection('events', (ref) => ref.where('spotId', '==', spotId).limit(50))
+      .valueChanges({ idField: 'id' })
+      .pipe(map((rows) => this.filterUpcomingGlobalEventsForSpot(rows as GlobalEvent[])));
+  }
+
+  private filterUpcomingGlobalEventsForSpot(events: GlobalEvent[]): GlobalEvent[] {
+    const now = new Date();
+    return (events || [])
+      .filter((e) => e.createdByType === 'admin')
+      .filter((e) => (e.status ?? 'active') !== 'completed')
+      .filter((e) => this.globalEventNotEnded(e, now))
+      .sort((a, b) => this.compareGlobalEventStart(a, b));
+  }
+
+  private globalEventNotEnded(e: GlobalEvent, now: Date): boolean {
+    if (!e?.date || !e?.time) {
+      return false;
+    }
+    const endHm = e.endTime?.trim() ? e.endTime.trim() : e.time;
+    const end = new Date(`${e.date}T${endHm}:00`);
+    if (isNaN(end.getTime())) {
+      return false;
+    }
+    return end >= now;
+  }
+
+  private compareGlobalEventStart(a: GlobalEvent, b: GlobalEvent): number {
+    const ta = new Date(`${a.date}T${a.time}:00`).getTime();
+    const tb = new Date(`${b.date}T${b.time}:00`).getTime();
+    return (isNaN(ta) ? 0 : ta) - (isNaN(tb) ? 0 : tb);
+  }
+
+  /**
+   * Admin event on `date` for `spotId` whose [time, endTime] window contains `visitTimeHm` (same calendar day).
+   */
+  async findAdminEventOverlappingVisit(params: {
+    spotId: string;
+    date: string;
+    visitTimeHm: string;
+  }): Promise<GlobalEvent | null> {
+    if (!params.spotId || !params.date || !params.visitTimeHm) {
+      return null;
+    }
+    const visitMin = this.parseHmToMinutes(params.visitTimeHm);
+    if (visitMin === null) {
+      return null;
+    }
+
+    try {
+      const snapshot = await this.firestore
+        .collection('events', (ref) => ref.where('spotId', '==', params.spotId).limit(40))
+        .get()
+        .toPromise();
+
+      if (!snapshot || snapshot.empty) {
+        return null;
+      }
+
+      const rows = snapshot.docs.map((doc: any) => ({ ...doc.data(), id: doc.id })) as GlobalEvent[];
+
+      const candidates = rows
+        .filter((e) => e.createdByType === 'admin')
+        .filter((e) => (e.status ?? 'active') !== 'completed')
+        .filter((e) => e.date === params.date)
+        .sort((a, b) => this.compareGlobalEventStart(a, b));
+
+      for (const e of candidates) {
+        const startMin = this.parseHmToMinutes(e.time);
+        const endMin = this.parseHmToMinutes(e.endTime?.trim() ? e.endTime : e.time);
+        if (startMin === null || endMin === null) {
+          continue;
+        }
+        if (visitMin >= startMin && visitMin <= endMin) {
+          return e;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('findAdminEventOverlappingVisit:', error);
+      return null;
+    }
+  }
+
+  private parseHmToMinutes(hm: string): number | null {
+    const m = String(hm || '').match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) {
+      return null;
+    }
+    const h = Number(m[1]);
+    const min = Number(m[2]);
+    if (Number.isNaN(h) || Number.isNaN(min) || h > 23 || min > 59) {
+      return null;
+    }
+    return h * 60 + min;
   }
 
   /**
@@ -632,11 +741,15 @@ export class CalendarService {
    * Convert GlobalEvent to CalendarEvent format (for backward compatibility)
    */
   globalEventToCalendarEvent(globalEvent: GlobalEvent): CalendarEvent {
+    const endTime = globalEvent.endTime?.trim();
+    const endIso = endTime
+      ? `${globalEvent.date}T${endTime}:00`
+      : `${globalEvent.date}T${globalEvent.time}:00`;
     return {
       id: globalEvent.id,
       title: globalEvent.name,
       start: `${globalEvent.date}T${globalEvent.time}:00`,
-      end: `${globalEvent.date}T${globalEvent.time}:00`,
+      end: endIso,
       color: globalEvent.createdByType === 'admin' ? '#ffc107' : '#28a745',
       textColor: '#fff',
       allDay: false,
@@ -647,7 +760,8 @@ export class CalendarService {
         spotId: globalEvent.spotId,
         imageUrl: globalEvent.imageUrl,
         isAdminEvent: globalEvent.createdByType === 'admin',
-        createdByType: globalEvent.createdByType
+        createdByType: globalEvent.createdByType,
+        endTime: endTime || undefined
       },
       userId: globalEvent.createdBy,
       status: globalEvent.status,
@@ -673,12 +787,21 @@ export class CalendarService {
 
   
   calendarEventToGlobalEvent(calendarEvent: CalendarEvent, createdByType: 'admin' | 'user'): GlobalEvent {
+    const startTime = calendarEvent.start.split('T')[1]?.substring(0, 5) || '';
+    let endTime: string | undefined = calendarEvent.extendedProps?.endTime;
+    if (!endTime && calendarEvent.end) {
+      const endPart = calendarEvent.end.split('T')[1]?.substring(0, 5) || '';
+      if (endPart && endPart !== startTime) {
+        endTime = endPart;
+      }
+    }
     return {
       id: calendarEvent.id,
       name: calendarEvent.title,
       description: calendarEvent.extendedProps?.description || '',
       date: calendarEvent.start.split('T')[0],
-      time: calendarEvent.start.split('T')[1]?.substring(0, 5) || '',
+      time: startTime,
+      endTime,
       location: this.displayLocationFromExtendedProps(calendarEvent.extendedProps),
       spotId: calendarEvent.extendedProps?.spotId || '',
       imageUrl: calendarEvent.extendedProps?.imageUrl || '',

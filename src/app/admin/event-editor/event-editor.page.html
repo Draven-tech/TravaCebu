@@ -28,24 +28,30 @@
       </ion-item>
 
       <ion-item>
-        <ion-label position="stacked">Time <ion-text color="danger">*</ion-text></ion-label>
+        <ion-label position="stacked">Start time <ion-text color="danger">*</ion-text></ion-label>
         <ion-input type="time" [(ngModel)]="eventTime"></ion-input>
       </ion-item>
 
       <ion-item>
-        <ion-label position="stacked">Location <ion-text color="danger">*</ion-text></ion-label>
-        <ion-select 
-          [(ngModel)]="selectedSpotId" 
-          (ionChange)="onSpotSelected($event)"
-          placeholder="Select a tourist spot..."
-          interface="popover">
-          <ion-select-option 
-            *ngFor="let spot of touristSpots" 
-            [value]="spot.id">
-            {{ spot.name }}
-          </ion-select-option>
-        </ion-select>
+        <ion-label position="stacked">End time <ion-text color="danger">*</ion-text></ion-label>
+        <ion-input type="time" [(ngModel)]="eventEndTime"></ion-input>
       </ion-item>
+
+      <div class="location-field">
+        <ion-label class="location-field-label">Event location <ion-text color="danger">*</ion-text></ion-label>
+        <p class="location-field-help">Search by name, category, or keywords, then choose from the list.</p>
+        <ion-button
+          expand="block"
+          class="location-picker-button"
+          fill="outline"
+          color="primary"
+          (click)="openSpotPicker()"
+          [disabled]="loadingSpots || touristSpots.length === 0">
+          <ion-icon name="location-outline" slot="start"></ion-icon>
+          <span class="location-picker-text">{{ getSelectedSpotDisplayName() }}</span>
+          <ion-icon name="search-outline" slot="end"></ion-icon>
+        </ion-button>
+      </div>
 
       <div *ngIf="loadingSpots" style="text-align: center; padding: 20px;">
         <ion-spinner name="crescent"></ion-spinner>
@@ -96,4 +102,51 @@
       </ion-fab-button>
     </ion-fab-list>
   </ion-fab>
+
+  <ion-modal
+    [isOpen]="spotPickerOpen"
+    (didDismiss)="onSpotPickerDismiss()"
+    cssClass="admin-spot-picker-modal">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-title>Select event location</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="closeSpotPicker()">Close</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+        <ion-toolbar>
+          <ion-searchbar
+            [(ngModel)]="spotSearchQuery"
+            (ngModelChange)="applySpotFilter()"
+            placeholder="Search tourist spots by name, category, or keywords"
+            debounce="150"
+            show-clear-button="focus"
+            animated="true">
+          </ion-searchbar>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="spot-picker-body">
+        <ion-list>
+          <ion-item
+            *ngFor="let spot of filteredTouristSpots; trackBy: trackSpotById"
+            button
+            detail="true"
+            lines="full"
+            (click)="selectSpotFromPicker(spot)">
+            <ion-icon name="pin" slot="start" color="primary"></ion-icon>
+            <ion-label>
+              <h2>{{ spot.name }}</h2>
+              <p *ngIf="spot.category">{{ spot.category }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+        <div *ngIf="!filteredTouristSpots.length && !loadingSpots" class="spot-picker-empty ion-padding ion-text-center">
+          <ion-text color="medium">
+            <p>No spots match your search. Try different keywords.</p>
+          </ion-text>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 </ion-content>

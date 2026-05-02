@@ -230,6 +230,12 @@ body:has(.stage-notification) ion-content {
   --border-radius: 16px 16px 0 0;
 }
 
+.admin-spot-picker-modal {
+  --height: min(90vh, 720px);
+  --width: min(560px, 100%);
+  --border-radius: 16px;
+}
+
 .view-itinerary-modal,
 .event-details-modal {
   --background: var(--ion-background-color);

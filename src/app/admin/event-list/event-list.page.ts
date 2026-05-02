@@ -71,6 +71,7 @@ export class EventListPage implements OnInit {
         description: event.description,
         date: event.date,
         time: event.time,
+        endTime: event.endTime,
         location: event.location,
         spotId: event.spotId,
         imageUrl: event.imageUrl,
@@ -111,7 +112,7 @@ export class EventListPage implements OnInit {
         <div style="text-align: left;">
           <p><strong>Description:</strong> ${event.description || 'No description'}</p>
           <p><strong>Date:</strong> ${event.date}</p>
-          <p><strong>Time:</strong> ${event.time}</p>
+          <p><strong>Time:</strong> ${this.formatEventTimeRange(event)}</p>
           <p><strong>Location:</strong> ${event.location}</p>
           <p><strong>Created:</strong> ${this.datePipe.transform(event.createdAt, 'medium')}</p>
           ${event.updatedAt ? `<p><strong>Updated:</strong> ${this.datePipe.transform(event.updatedAt, 'medium')}</p>` : ''}
@@ -270,6 +271,13 @@ export class EventListPage implements OnInit {
     }
   }
 
+  formatEventTimeRange(event: { time?: string; endTime?: string }): string {
+    if (event?.endTime) {
+      return `${event.time} – ${event.endTime}`;
+    }
+    return event?.time || '';
+  }
+
   formatEventDateTime(event: any): string {
     const eventDate = new Date(event.date + 'T' + event.time);
     const now = new Date();
@@ -282,7 +290,7 @@ export class EventListPage implements OnInit {
       day: 'numeric'
     });
     
-    const timeStr = event.time;
+    const timeStr = this.formatEventTimeRange(event);
     
     if (diffDays === 0) {
       return `Today at ${timeStr}`;
@@ -326,8 +334,9 @@ export class EventListPage implements OnInit {
   getPastEvents() {
     const now = new Date();
     let pastEvents = this.events.filter(event => {
-      const eventDate = new Date(event.date + 'T' + event.time);
-      return eventDate < now;
+      const endOrStart = event.endTime || event.time;
+      const eventEnd = new Date(event.date + 'T' + endOrStart);
+      return eventEnd < now;
     });
 
     // Apply search filter if there's a search query
@@ -361,7 +370,7 @@ export class EventListPage implements OnInit {
       year: 'numeric'
     });
     
-    const timeStr = event.time;
+    const timeStr = this.formatEventTimeRange(event);
     
     if (diffDays === 0) {
       return `Earlier today at ${timeStr}`;
@@ -544,8 +553,7 @@ export class EventListPage implements OnInit {
   }
 
   getEventTime(event: any): string {
-    if (!event.time) return '';
-    return event.time;
+    return this.formatEventTimeRange(event);
   }
 
   showEventDetails(event: any, eventObj: any) {

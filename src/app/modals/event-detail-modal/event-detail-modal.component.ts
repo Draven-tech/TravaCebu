@@ -24,7 +24,10 @@ export class EventDetailModalComponent {
     return date.toLocaleDateString();
   }
 
-  getEventTime(): string {
+  getEventTimeRange(): string {
+    if (this.event?.endTime) {
+      return `${this.event.time} – ${this.event.endTime}`;
+    }
     return this.event.time;
   }
 }

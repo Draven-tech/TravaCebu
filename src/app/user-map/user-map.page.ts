@@ -21,7 +21,8 @@ import { BucketService } from '../services/bucket-list.service';
 import { DirectionsService } from '../services/directions.service';
 import { ApiTrackerService } from '../services/api-tracker.service';
 import { ItineraryService, ItineraryDay } from '../services/itinerary.service';
-import { CalendarService, CalendarEvent } from '../services/calendar.service';
+import { CalendarService, CalendarEvent, GlobalEvent } from '../services/calendar.service';
+import { EventDetailModalComponent } from '../modals/event-detail-modal/event-detail-modal.component';
 import { BadgeService } from '../services/badge.service';
 import { BudgetService } from '../services/budget.service';
 
@@ -131,6 +132,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   private readonly itineraryProgressSnapshotKey = 'itinerary_progress_snapshot';
   private readonly itineraryRouteSnapshotKey = 'itinerary_route_snapshot';
   private hasShownResumePromptThisLaunch: boolean = false;
+
+  /** Admin event overlapping today's visit time for the current visit_stop segment (map FAB). */
+  visitStageAdminEvent: GlobalEvent | null = null;
 
   constructor(
     private navCtrl: NavController,
@@ -903,6 +907,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
     // Reset route state
     this.currentRouteInfo = null;
+    this.visitStageAdminEvent = null;
     this.selectedItineraryIndex = -1;
     this.currentSegmentIndex = 0;
 
@@ -1092,6 +1097,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     
     // Reset route state
     this.currentRouteInfo = null;
+    this.visitStageAdminEvent = null;
     this.selectedItineraryIndex = -1;
     this.currentSegmentIndex = 0;
     
@@ -1380,6 +1386,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   displayCurrentSegment(): void {
     if (!this.currentRouteInfo || !this.currentRouteInfo.segments) {
+      this.visitStageAdminEvent = null;
       return;
     }
     
@@ -1391,7 +1398,10 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       // Get the current segment
       const segment = this.currentRouteInfo.segments[this.currentSegmentIndex];
       
-      if (!segment) return;
+      if (!segment) {
+        this.visitStageAdminEvent = null;
+        return;
+      }
       
       // Draw only the current segment based on type
       if ((segment.type === 'jeepney' || segment.type === 'bus') && segment.jeepneyCode) {
@@ -1404,9 +1414,121 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       
       // Center map on the segment
       this.navigateToSegment(this.currentSegmentIndex);
-      
+
+      void this.refreshOverlapEventForVisitStage();
     } catch (error) {
       // Silently handle display errors
+    }
+  }
+
+  private getTodayYmd(): string {
+    const t = new Date();
+    const y = t.getFullYear();
+    const m = String(t.getMonth() + 1).padStart(2, '0');
+    const d = String(t.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  private findSpotByIdInItinerary(itinerary: any, spotId: string): any | null {
+    const days = itinerary?.days;
+    if (!Array.isArray(days)) {
+      return null;
+    }
+    for (const day of days) {
+      const spots = day?.spots;
+      if (!Array.isArray(spots)) {
+        continue;
+      }
+      const found = spots.find(
+        (s: any) => s?.id === spotId || s?.spotId === spotId || s?.touristSpotId === spotId
+      );
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  private extractPrimaryTimeHm(slot: unknown): string | null {
+    if (slot == null) {
+      return null;
+    }
+    const m = String(slot).match(/(\d{1,2}):(\d{2})/);
+    if (!m) {
+      return null;
+    }
+    const h = Number(m[1]);
+    const min = m[2];
+    if (Number.isNaN(h)) {
+      return null;
+    }
+    return `${String(h).padStart(2, '0')}:${min}`;
+  }
+
+  private async refreshOverlapEventForVisitStage(): Promise<void> {
+    this.visitStageAdminEvent = null;
+    const segment = this.currentRouteInfo?.segments?.[this.currentSegmentIndex];
+    if (!segment || segment.type !== 'visit_stop' || !segment.spotId) {
+      return;
+    }
+
+    const session = this.itinerarySession.getCurrentSession();
+    if (!session?.isActive) {
+      return;
+    }
+
+    if (this.selectedItineraryIndex < 0 || this.selectedItineraryIndex >= this.availableItineraries.length) {
+      return;
+    }
+
+    const it = this.availableItineraries[this.selectedItineraryIndex];
+    if (!it?.date) {
+      return;
+    }
+
+    if (it.date !== this.getTodayYmd()) {
+      return;
+    }
+
+    const spot = this.findSpotByIdInItinerary(it, segment.spotId);
+    const visitHm = this.extractPrimaryTimeHm(spot?.timeSlot);
+    if (!visitHm) {
+      return;
+    }
+
+    try {
+      const ev = await this.calendarService.findAdminEventOverlappingVisit({
+        spotId: segment.spotId,
+        date: it.date,
+        visitTimeHm: visitHm,
+      });
+      this.ngZone.run(() => {
+        this.visitStageAdminEvent = ev;
+      });
+    } catch {
+      this.ngZone.run(() => {
+        this.visitStageAdminEvent = null;
+      });
+    }
+  }
+
+  async openVisitStageEventModal(): Promise<void> {
+    if (!this.visitStageAdminEvent) {
+      return;
+    }
+    try {
+      const modal = await this.modalCtrl.create({
+        component: EventDetailModalComponent,
+        cssClass: 'event-detail-modal',
+        componentProps: {
+          event: this.visitStageAdminEvent,
+        },
+        backdropDismiss: true,
+      });
+      await modal.present();
+    } catch (error) {
+      console.error('openVisitStageEventModal:', error);
+      await this.showToast('Could not open event details.');
     }
   }
 

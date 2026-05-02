@@ -21,7 +21,7 @@
     <div class="event-info">
       <div class="info-item">
         <ion-icon name="time-outline"></ion-icon>
-        <span>{{ getEventDate() }} at {{ getEventTime() }}</span>
+        <span>{{ getEventDate() }} · {{ getEventTimeRange() }}</span>
       </div>
       
       <div class="info-item" *ngIf="event.location">

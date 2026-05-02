@@ -31,7 +31,7 @@
             <div class="spot-details">
               <div class="time-duration">
                 <ion-icon name="time-outline"></ion-icon>
-                <span>{{ getTimeDisplay(day.date + 'T' + spot.timeSlot) }}</span>
+                <span>{{ getSpotTimeDisplay(day.date, spot.timeSlot) }}</span>
                 <ion-icon name="timer-outline"></ion-icon>
                 <span>{{ spot.estimatedDuration }}</span>
               </div>
@@ -103,7 +103,7 @@
            <div *ngFor="let hotel of sortByTimeSlot(day.hotels)" class="hotel-card">
             <div class="hotel-header">
               <h4>{{ hotel.name }}</h4>
-              <span class="time">{{ getTimeDisplay(day.date + 'T' + hotel.timeSlot) }}</span>
+              <span class="time">{{ getSpotTimeDisplay(day.date, hotel.timeSlot) }}</span>
             </div>
             <div class="hotel-details">
               <p *ngIf="hotel.description" class="description">{{ hotel.description }}</p>

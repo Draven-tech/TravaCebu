@@ -17,6 +17,7 @@ export class EventEditorPage implements OnInit {
   eventDescription: string = '';
   eventDate: string = '';
   eventTime: string = '';
+  eventEndTime: string = '';
   eventLocation: string = '';
   selectedSpotId: string = '';
   imageFile?: File;
@@ -27,7 +28,10 @@ export class EventEditorPage implements OnInit {
   
   // Tourist spots for location selection
   touristSpots: any[] = [];
+  filteredTouristSpots: any[] = [];
   loadingSpots: boolean = false;
+  spotPickerOpen = false;
+  spotSearchQuery = '';
   
   // Edit mode tracking
   isEditing: boolean = false;
@@ -63,6 +67,7 @@ export class EventEditorPage implements OnInit {
       this.eventDescription = event.description || '';
       this.eventDate = event.date || '';
       this.eventTime = event.time || '';
+      this.eventEndTime = event.endTime || '';
       this.eventLocation = event.location || '';
       this.selectedSpotId = event.spotId || '';
       this.imageUrl = event.imageUrl || '';
@@ -89,20 +94,62 @@ export class EventEditorPage implements OnInit {
       this.touristSpots.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
       console.error('Error loading tourist spots:', error);
+      this.touristSpots = [];
+      this.filteredTouristSpots = [];
       this.showAlert('Error', 'Failed to load tourist spots');
     } finally {
       this.loadingSpots = false;
+      this.applySpotFilter();
     }
   }
 
-  onSpotSelected(event: any) {
-    const spotId = event.detail.value;
-    const selectedSpot = this.touristSpots.find(spot => spot.id === spotId);
-    
-    if (selectedSpot) {
-      this.selectedSpotId = spotId;
-      this.eventLocation = selectedSpot.name;
+  openSpotPicker(): void {
+    this.spotSearchQuery = '';
+    this.applySpotFilter();
+    this.spotPickerOpen = true;
+  }
+
+  closeSpotPicker(): void {
+    this.spotPickerOpen = false;
+  }
+
+  onSpotPickerDismiss(): void {
+    this.spotPickerOpen = false;
+  }
+
+  applySpotFilter(): void {
+    const raw = (this.spotSearchQuery || '').trim().toLowerCase();
+    if (!raw) {
+      this.filteredTouristSpots = [...this.touristSpots];
+      return;
     }
+    this.filteredTouristSpots = this.touristSpots.filter((s) => {
+      const name = String(s?.name || '').toLowerCase();
+      const category = String(s?.category || '').toLowerCase();
+      const desc = String(s?.description || '').toLowerCase();
+      return name.includes(raw) || category.includes(raw) || desc.includes(raw);
+    });
+  }
+
+  selectSpotFromPicker(spot: any): void {
+    if (!spot?.id) {
+      return;
+    }
+    this.selectedSpotId = spot.id;
+    this.eventLocation = spot.name || '';
+    this.closeSpotPicker();
+  }
+
+  getSelectedSpotDisplayName(): string {
+    if (!this.selectedSpotId) {
+      return 'Search & select tourist spot';
+    }
+    const selected = this.touristSpots.find((s) => s.id === this.selectedSpotId);
+    return selected?.name || this.eventLocation || 'Selected spot';
+  }
+
+  trackSpotById(_index: number, spot: any): string {
+    return spot?.id || String(_index);
   }
 
   onImageSelected(event: any) {
@@ -180,6 +227,16 @@ export class EventEditorPage implements OnInit {
       return;
     }
 
+    if (!this.eventEndTime) {
+      this.showAlert('Error', 'Please select an end time');
+      return;
+    }
+
+    if (this.compareTimeStrings(this.eventEndTime, this.eventTime) <= 0) {
+      this.showAlert('Error', 'End time must be after start time');
+      return;
+    }
+
     if (!this.selectedSpotId) {
       this.showAlert('Error', 'Please select an event location');
       return;
@@ -194,6 +251,7 @@ export class EventEditorPage implements OnInit {
         description: this.eventDescription.trim(),
         date: this.eventDate,
         time: this.eventTime,
+        endTime: this.eventEndTime,
         location: this.eventLocation.trim(),
         spotId: this.selectedSpotId,
         imageUrl: imageUrl,
@@ -226,8 +284,11 @@ export class EventEditorPage implements OnInit {
     this.eventDescription = '';
     this.eventDate = '';
     this.eventTime = '';
+    this.eventEndTime = '';
     this.eventLocation = '';
     this.selectedSpotId = '';
+    this.spotSearchQuery = '';
+    this.applySpotFilter();
     this.imageFile = undefined;
     this.imageUrl = '';
     this.originalImageUrl = '';
@@ -235,6 +296,11 @@ export class EventEditorPage implements OnInit {
     // Set default date to today
     const today = new Date();
     this.eventDate = today.toISOString().split('T')[0];
+  }
+
+  /** Lexicographic compare works for normalized HH:mm from ion-input[type=time]. */
+  private compareTimeStrings(a: string, b: string): number {
+    return String(a).localeCompare(String(b));
   }
 
   private async showAlert(header: string, message: string) {

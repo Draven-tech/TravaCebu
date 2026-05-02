@@ -396,7 +396,17 @@ export class UserCalendarPage implements OnInit {
 
   async showItineraryModal(events: GlobalEvent[], dateString: string) {
     try {
-      const itineraryDay = this.convertEventsToItineraryDay(events, dateString);
+      const planEvents = events.filter(
+        (e) => e.eventType !== 'admin_event' && e.createdByType !== 'admin'
+      );
+      if (planEvents.length === 0) {
+        if (events.length >= 1) {
+          await this.showEventModal(events[0]);
+        }
+        return;
+      }
+
+      const itineraryDay = this.convertEventsToItineraryDay(planEvents, dateString);
       
       const modal = await this.modalCtrl.create({
         component: ViewItineraryModalComponent,

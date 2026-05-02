@@ -99,6 +99,76 @@ ion-item {
   color: #2D3748;
 }
 
+.location-field {
+  margin-bottom: 12px;
+}
+
+.location-field-label {
+  display: block;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #2d3748;
+  margin-bottom: 4px;
+}
+
+.location-field-help {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: #4a5568;
+  line-height: 1.4;
+}
+
+.location-picker-button {
+  --border-width: 1.5px;
+  --border-color: #e74c3c;
+  font-weight: 600;
+  text-align: start;
+}
+
+.location-picker-text {
+  flex: 1;
+  text-align: start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spot-picker-body {
+  --background: #f8f9fb;
+}
+
+.spot-picker-body ion-list {
+  background: transparent;
+  padding: 0;
+}
+
+.spot-picker-body ion-item {
+  --background: #fff;
+  --border-radius: 0;
+  --padding-start: 16px;
+  --padding-end: 12px;
+  margin-bottom: 0;
+  border: none;
+  border-bottom: 1px solid #e8ecf1;
+  box-shadow: none;
+}
+
+.spot-picker-body ion-item h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.spot-picker-body ion-item p {
+  font-size: 0.85rem;
+  color: #718096;
+  margin-top: 4px;
+}
+
+.spot-picker-empty p {
+  margin: 0;
+}
+
 ion-label {
   color: #2D3748 !important;
   font-weight: 700;

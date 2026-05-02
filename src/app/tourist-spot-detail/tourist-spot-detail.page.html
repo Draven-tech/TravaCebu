@@ -49,6 +49,32 @@
 
   <ion-card class="spot-info-card">
     <ion-card-header>
+      <ion-card-title>Upcoming events</ion-card-title>
+      <ion-card-subtitle>Official events scheduled at this destination</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <div *ngIf="spotEventsLoading" class="events-loading">
+        <ion-spinner name="crescent" color="warning"></ion-spinner>
+      </div>
+      <ng-container *ngIf="!spotEventsLoading">
+        <ion-list *ngIf="upcomingSpotEvents.length > 0; else noUpcomingEvents" lines="none">
+          <ion-item *ngFor="let ev of upcomingSpotEvents" lines="full">
+            <ion-icon name="calendar-outline" color="warning" slot="start"></ion-icon>
+            <ion-label>
+              <h3>{{ ev.name }}</h3>
+              <p>{{ formatSpotEventWhen(ev) }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+        <ng-template #noUpcomingEvents>
+          <ion-text color="medium"><p>None</p></ion-text>
+        </ng-template>
+      </ng-container>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card class="spot-info-card">
+    <ion-card-header>
       <ion-card-title>Local Tips</ion-card-title>
       <ion-card-subtitle>Approved community tips for this destination</ion-card-subtitle>
     </ion-card-header>

@@ -110,7 +110,9 @@ export class MyItinerariesPage implements OnInit {
           end: endTime,
           date: date,
           status: firstEvent.status || 'active',
-          spotsCount: dayEvents.filter(e => e.extendedProps?.type === 'tourist_spot').length,
+          spotsCount: dayEvents.filter(
+            (e) => e.extendedProps?.type === 'tourist_spot' && !this.isAdminItineraryCalendarRow(e)
+          ).length,
           days: 1,
           events: dayEvents,
           createdAt: firstEvent.createdAt
@@ -232,7 +234,10 @@ export class MyItinerariesPage implements OnInit {
     const limits = this.budgetService.getCurrentBudgetLimits();
     const events = itinerary?.events || [];
 
-    const rideCount = events.filter((event: any) => event?.extendedProps?.type === 'tourist_spot').length;
+    const rideCount = events.filter(
+      (event: any) =>
+        event?.extendedProps?.type === 'tourist_spot' && !this.isAdminItineraryCalendarRow(event)
+    ).length;
     const mealCount = events.filter((event: any) => event?.extendedProps?.type === 'restaurant').length;
     const hotelCount = events.filter((event: any) => event?.extendedProps?.type === 'hotel').length;
 
@@ -343,12 +348,28 @@ export class MyItinerariesPage implements OnInit {
     await alert.present();
   }
 
+  private isAdminItineraryCalendarRow(event: any): boolean {
+    const p = event?.extendedProps;
+    return (
+      p?.type === 'admin_event' ||
+      p?.isAdminEvent === true ||
+      p?.createdByType === 'admin'
+    );
+  }
+
   private convertToItineraryDays(itinerary: any, originalSpots: any[] = []): any[] {
     const dayEvents = itinerary.events || [];
-    const spots = dayEvents.filter((event: any) => event?.extendedProps?.type === 'tourist_spot');
+    const spots = dayEvents.filter(
+      (event: any) =>
+        event?.extendedProps?.type === 'tourist_spot' && !this.isAdminItineraryCalendarRow(event)
+    );
 
-    const restaurants = dayEvents.filter((event: any) => event?.extendedProps?.type === 'restaurant');
-    const hotels = dayEvents.filter((event: any) => event?.extendedProps?.type === 'hotel');
+    const restaurants = dayEvents.filter(
+      (event: any) => event?.extendedProps?.type === 'restaurant' && !this.isAdminItineraryCalendarRow(event)
+    );
+    const hotels = dayEvents.filter(
+      (event: any) => event?.extendedProps?.type === 'hotel' && !this.isAdminItineraryCalendarRow(event)
+    );
 
     const chosenHotel = hotels.find((hotel: any) => hotel?.extendedProps?.isChosen) || null;
 

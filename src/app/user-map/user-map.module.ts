@@ -13,6 +13,7 @@ import { ComponentsModule } from '../components/components.module';
 import { ItineraryControlsModalComponent } from '../modals/itinerary-controls-modal/itinerary-controls-modal.component';
 import { ItineraryCompletionModalComponent } from '../modals/itinerary-completion-modal/itinerary-completion-modal.component';
 import { LocalTipsModalComponent } from '../modals/local-tips-modal/local-tips-modal.component';
+import { EventDetailModalComponent } from '../modals/event-detail-modal/event-detail-modal.component';
 
 @NgModule({
   declarations: [
@@ -28,7 +29,8 @@ import { LocalTipsModalComponent } from '../modals/local-tips-modal/local-tips-m
     IonicModule,
     FormsModule,
     UserMapPageRoutingModule,
-    ComponentsModule
+    ComponentsModule,
+    EventDetailModalComponent
   ]
 })
 export class UserMapPageModule {}

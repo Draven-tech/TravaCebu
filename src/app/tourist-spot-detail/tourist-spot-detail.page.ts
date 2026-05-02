@@ -11,6 +11,7 @@ import { PlacesImageService } from '../services/places-image.service';
 import { GeofencingService } from '../services/geofencing.service';
 import { BucketService } from '../services/bucket-list.service';
 import { LocalTipsService } from '../services/local-tips.service';
+import { CalendarService, GlobalEvent } from '../services/calendar.service';
 
 @Component({
   selector: 'app-tourist-spot-detail',
@@ -44,6 +45,10 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
   isRefreshingImages = false;
   enhancedSpot: any = null;
 
+  upcomingSpotEvents: GlobalEvent[] = [];
+  spotEventsLoading = true;
+  private spotEventsSub?: Subscription;
+
   constructor(
     private route: ActivatedRoute,
     private firestore: AngularFirestore,
@@ -55,7 +60,8 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
     private placesImageService: PlacesImageService,
     private geofencingService: GeofencingService,
     private bucketService: BucketService,
-    private localTipsService: LocalTipsService
+    private localTipsService: LocalTipsService,
+    private calendarService: CalendarService
   ) { }
 
   ngOnInit() {
@@ -64,6 +70,7 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
       this.loadSpot();
       this.loadReviews();
       this.loadApprovedLocalTips();
+      this.loadUpcomingSpotEvents();
       this.observeVisitStatus();
       this.geofenceVisitedSub = this.geofencingService.visitedSpots$.subscribe(visitedSet => {
         if (this.spotId) {
@@ -82,6 +89,37 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.visitStatusSub?.unsubscribe();
     this.geofenceVisitedSub?.unsubscribe();
+    this.spotEventsSub?.unsubscribe();
+  }
+
+  loadUpcomingSpotEvents(): void {
+    if (!this.spotId) {
+      this.spotEventsLoading = false;
+      return;
+    }
+    this.spotEventsSub?.unsubscribe();
+    this.spotEventsLoading = true;
+    this.spotEventsSub = this.calendarService.watchUpcomingEventsForTouristSpot(this.spotId).subscribe({
+      next: (list) => {
+        this.upcomingSpotEvents = list;
+        this.spotEventsLoading = false;
+      },
+      error: () => {
+        this.upcomingSpotEvents = [];
+        this.spotEventsLoading = false;
+      },
+    });
+  }
+
+  formatSpotEventWhen(ev: GlobalEvent): string {
+    const d = new Date(ev.date);
+    const dateStr = isNaN(d.getTime())
+      ? ev.date
+      : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    if (ev.endTime?.trim()) {
+      return `${dateStr} · ${ev.time} – ${ev.endTime}`;
+    }
+    return `${dateStr} · ${ev.time}`;
   }
 
   loadSpot() {

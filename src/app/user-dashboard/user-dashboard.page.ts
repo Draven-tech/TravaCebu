@@ -10,6 +10,7 @@ import { PendingTouristSpotService } from '../services/pending-tourist-spot.serv
 import { GeofencingService } from '../services/geofencing.service';
 import { SearchModalComponent } from '../modals/search-modal/search-modal.component';
 import { VisitedSpotsModalComponent } from '../modals/visited-spots-modal/visited-spots-modal.component';
+import { ItineraryPlannerService } from '../services/itinerary-planner.service';
 
 @Component({
   selector: 'app-user-dashboard',
@@ -53,7 +54,8 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     private bucketService: BucketService,
     private placesService: PlacesService,
     private pendingSpotService: PendingTouristSpotService,
-    private geofencingService: GeofencingService
+    private geofencingService: GeofencingService,
+    private itineraryPlannerService: ItineraryPlannerService
   ) {}
 
   async ngOnInit() {
@@ -214,6 +216,37 @@ loadBucketList() {
     await this.bucketService.addToBucket(spot);
     await this.loadBucketList();
   }
+async addToItineraryPlanner(spot: any) {
+  try {
+    // Get existing planner spots
+    const stored = JSON.parse(localStorage.getItem('plannerSpots') || '[]');
+
+    // Prevent duplicates
+    const exists = stored.some((s: any) => s.id === spot.id);
+    if (exists) {
+      console.log('Spot already in planner');
+      return;
+    }
+
+    // Add spot
+    stored.push({
+      id: spot.id,
+      name: spot.name,
+      img: spot.img,
+      category: spot.category,
+      location: spot.location,
+      description: spot.description
+    });
+
+    // Save back to localStorage
+    localStorage.setItem('plannerSpots', JSON.stringify(stored));
+
+    console.log('Added to itinerary planner');
+
+  } catch (error) {
+    console.error('Error adding to itinerary planner:', error);
+  }
+}
 
   async removeFromBucketList(spotId: string) {
     await this.bucketService.removeFromBucket(spotId);

@@ -9,8 +9,8 @@ import { Share } from '@capacitor/share';
 
 @Injectable({ providedIn: 'root' })
 export class PdfExportService {
-  
-   private buildFullItineraryDocDefinition(itineraries: any[]): any {
+
+  private buildFullItineraryDocDefinition(itineraries: any[]): any {
     const content: any[] = [];
 
     itineraries.forEach((itinerary, index) => {
@@ -59,23 +59,23 @@ export class PdfExportService {
     };
   }
 
-async generateAndUploadPDF(itineraries: any[]): Promise<string> {
-  const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
-  const pdfDocGenerator = (pdfMake as any).createPdf(docDefinition);
+  async generateAndUploadPDF(itineraries: any[]): Promise<string> {
+    const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
+    const pdfDocGenerator = (pdfMake as any).createPdf(docDefinition);
 
-  const blob = await new Promise<Blob>((resolve) => {
-    pdfDocGenerator.getBlob((b: Blob) => resolve(b));
-  });
+    const blob = await new Promise<Blob>((resolve) => {
+      pdfDocGenerator.getBlob((b: Blob) => resolve(b));
+    });
 
-  const storage = getStorage();
-  const filename = `itineraries/itinerary_${Date.now()}.pdf`;
-  const storageRef = ref(storage, filename);
+    const storage = getStorage();
+    const filename = `itineraries/itinerary_${Date.now()}.pdf`;
+    const storageRef = ref(storage, filename);
 
-  await uploadBytes(storageRef, blob);
-  const url = await getDownloadURL(storageRef);
+    await uploadBytes(storageRef, blob);
+    const url = await getDownloadURL(storageRef);
 
-  return url;
-}
+    return url;
+  }
   async generateFullItineraryBlob(itineraries: any[]): Promise<Blob> {
     const docDefinition = this.buildFullItineraryDocDefinition(itineraries);
     const pdfDocGenerator = pdfMake.createPdf(docDefinition);

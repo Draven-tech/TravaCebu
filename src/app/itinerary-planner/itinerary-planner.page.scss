@@ -1,0 +1,361 @@
+// Remove unused imports/global styles
+// ::ng-deep .itinerary-modal (unused - no matching HTML)
+
+.bucket-header {
+  --background: linear-gradient(45deg, #f1c40f, #f39c12);
+  box-shadow: none;
+
+  .bucket-header-content {
+
+    padding: 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #2D3748;
+    font-weight: bold;
+  }
+}
+
+.bucket-content {
+  background: #ffffff;
+  animation: fadeIn 0.8s ease-out;
+  position: relative;
+  --padding-bottom: 140px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(231, 76, 60, 0.08) 0%, transparent 50%),
+                radial-gradient(circle, rgba(46, 204, 113, 0.05) 30%, transparent 70%),
+                radial-gradient(circle, rgba(230, 126, 34, 0.04) 60%, transparent 90%);
+    z-index: 0;
+    pointer-events: none;
+  }
+}
+
+.clear-text-button {
+  color: #747474;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.spot-sliding-card {
+  margin-bottom: 12px;
+
+  ion-item {
+    border-radius: 12px;
+    --background: linear-gradient(45deg, #f1c40f, #f0a733);
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --min-height: 100px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  ion-thumbnail {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  ion-label h3 {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #2d3748;
+    margin: 0;
+  }
+}
+
+.footer-fixed {
+  padding-bottom: 85px;
+  --background: transparent;
+  border-top: none;
+  box-shadow: none;
+
+  ion-button {
+    margin: 8px 16px;
+    --border-radius: 12px;
+    font-weight: 600;
+    --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .generate-itinerary-btn {
+    --background: #f8c647;
+    --color: #030303;
+    margin-top: 5px;
+  }
+
+  .my-itineraries-btn {
+    --background: #888888;
+    --color: #030303;
+  }
+}
+
+// Setup Modal Styles
+::ng-deep .setup-modal {
+  --height: 90vh;
+  --width: 95vw;
+  --border-radius: 20px;
+  --backdrop-opacity: 0.5;
+
+  .modal-wrapper {
+    border-radius: 20px;
+    overflow: hidden;
+    --background: transparent;
+  }
+}
+
+.setup-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    pointer-events: none;
+  }
+}
+
+.setup-header {
+  background: #ffcd03;
+  padding: 20px 20px 30px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.setup-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: white;
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  letter-spacing: 1px;
+}
+
+.setup-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-weight: 400;
+}
+
+.setup-content {
+  flex: 1;
+  padding: 30px 20px;
+  overflow-y: auto;
+}
+
+.setup-section {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: slideInUp 0.6s ease-out;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+
+  h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin: 0;
+  }
+}
+
+.days-slider {
+  background: #fff;
+  border: 2px solid var(--ion-color-warning);
+  border-radius: 16px;
+  padding: 18px 20px;
+
+  .slider-item {
+    --background: transparent;
+
+    ion-label {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--ion-color-medium);
+    }
+
+    ion-range.custom-slider {
+      margin-top: 10px;
+      --bar-background: #f4b94250;
+      --bar-background-active: var(--ion-color-warning);
+      --knob-background: var(--ion-color-warning);
+      --knob-size: 28px;
+      --knob-border-radius: 50%;
+      --pin-background: var(--ion-color-warning);
+      --pin-color: #fff;
+      --height: 28px;
+
+      &::part(bar) {
+        height: 8px;
+        border-radius: 10px;
+      }
+    }
+  }
+
+  .selected-days {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--ion-color-warning);
+  }
+}
+
+.time-selector,
+.date-selector {
+  margin-bottom: 16px;
+}
+
+.time-input,
+.date-input {
+  --background: rgba(255, 255, 255, 0.95);
+  --border-radius: 16px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  --color: #2d3748;
+
+  ion-label {
+    color: #2d3748 !important;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+}
+
+.custom-datetime {
+  --background: rgba(255, 255, 255, 0.95);
+  --color: #fcdf6e;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 14px;
+  border: 2px solid #f39c12;
+}
+
+.setup-summary {
+  margin-top: 30px;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  color: white;
+}
+
+.summary-icon {
+  font-size: 32px;
+  margin-right: 16px;
+  opacity: 0.9;
+}
+
+.summary-content {
+  h4 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+  }
+
+  p {
+    margin: 4px 0;
+    opacity: 0.9;
+    font-size: 0.95rem;
+  }
+}
+
+.spots-count {
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.setup-actions {
+  padding: 20px;
+
+  .generate-btn {
+    --background: linear-gradient(45deg, #f1c40f, #f39c12);
+    --color: #000000;
+    --border-radius: 16px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    height: 56px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      --box-shadow: 0 12px 32px rgba(241, 196, 15, 0.4);
+      transform: translateY(-2px);
+    }
+  }
+
+  .cancel-btn {
+    --color: #64748b;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

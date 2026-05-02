@@ -71,6 +71,10 @@ const routes: Routes = [
     path: 'my-itineraries',
     loadChildren: () => import('./my-itineraries/my-itineraries.module').then( m => m.MyItinerariesPageModule)
   },
+  {
+    path: 'itinerary-planner',
+    loadChildren: () => import('./itinerary-planner/itinerary-planner.module').then( m => m.ItineraryPlannerPageModule)
+  },
 
 ];
 

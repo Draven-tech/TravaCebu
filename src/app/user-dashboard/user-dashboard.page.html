@@ -69,6 +69,10 @@
                 {{ isInBucketList(spot.id) ? 'ADDED TO BUCKET LIST' : 'ADD TO BUCKET LIST' }}
               </span>
             </ion-button>
+            <!-- [name]="isInItineraryPlanner(spot.id) ? 'checkmark-circle' : 'paper-plane'" -->
+            <ion-button fill="clear" size="small" (click)="addToItineraryPlanner(spot)" >
+<!-- <span>{{ isInItineraryPlanner(spot.id) ? 'ADDED TO ITINERARY PLANNER' : 'ADD TO ITINERARY PLANNER' }}</span> -->
+            </ion-button>
 
           </ion-card-content>
         </ion-card>

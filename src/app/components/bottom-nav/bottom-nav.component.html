@@ -7,6 +7,10 @@
       <div class="nav-button" [class.active]="currentPage === 'bucket-list'" (click)="navigateTo('bucket-list')">
         <ion-icon name="basket-outline"></ion-icon>
       </div>
+
+      <div class="nav-button" [class.active]="currentPage === 'itinerary-planner'" (click)="navigateTo('itinerary-planner')">
+        <ion-icon name="paper-plane"></ion-icon>
+      </div>
   
       <div class="nav-button" [class.active]="currentPage === 'user-map'" (click)="navigateTo('user-map')">
         <ion-icon name="map-outline"></ion-icon>

@@ -1,0 +1,81 @@
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/admin/dashboard"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Pending Local Tips</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refreshData($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading local tips...</p>
+  </div>
+
+  <ion-segment [(ngModel)]="selectedTab" mode="ios" color="warning" *ngIf="!isLoading">
+    <ion-segment-button value="pending">
+      <ion-label>Pending ({{ pendingTips.length }})</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="approved">
+      <ion-label>Approved ({{ approvedTips.length }})</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="rejected">
+      <ion-label>Rejected ({{ rejectedTips.length }})</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <div *ngIf="selectedTab === 'pending' && !isLoading">
+    <ion-card *ngFor="let tip of pendingTips">
+      <ion-card-header>
+        <ion-card-title>{{ tip.spotName }}</ion-card-title>
+        <ion-card-subtitle>Submitted: {{ tip.submittedAt | date:'medium' }}</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <p>{{ tip.tipText }}</p>
+        <ion-button color="success" size="small" (click)="approveTip(tip)">Approve</ion-button>
+        <ion-button color="danger" size="small" (click)="rejectTip(tip)">Reject</ion-button>
+      </ion-card-content>
+    </ion-card>
+    <ion-text color="medium" *ngIf="pendingTips.length === 0">
+      <p class="ion-padding">No pending local tips.</p>
+    </ion-text>
+  </div>
+
+  <div *ngIf="selectedTab === 'approved' && !isLoading">
+    <ion-card *ngFor="let tip of approvedTips">
+      <ion-card-header>
+        <ion-card-title>{{ tip.spotName }}</ion-card-title>
+        <ion-card-subtitle>Approved: {{ tip.reviewedAt | date:'medium' }}</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <p>{{ tip.tipText }}</p>
+      </ion-card-content>
+    </ion-card>
+    <ion-text color="medium" *ngIf="approvedTips.length === 0">
+      <p class="ion-padding">No approved local tips yet.</p>
+    </ion-text>
+  </div>
+
+  <div *ngIf="selectedTab === 'rejected' && !isLoading">
+    <ion-card *ngFor="let tip of rejectedTips">
+      <ion-card-header>
+        <ion-card-title>{{ tip.spotName }}</ion-card-title>
+        <ion-card-subtitle>Rejected: {{ tip.reviewedAt | date:'medium' }}</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <p>{{ tip.tipText }}</p>
+        <ion-text color="danger" *ngIf="tip.reviewNotes">
+          <p>Reason: {{ tip.reviewNotes }}</p>
+        </ion-text>
+      </ion-card-content>
+    </ion-card>
+    <ion-text color="medium" *ngIf="rejectedTips.length === 0">
+      <p class="ion-padding">No rejected local tips.</p>
+    </ion-text>
+  </div>
+</ion-content>

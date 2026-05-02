@@ -65,6 +65,11 @@ const routes: Routes = [
     path: 'pending-spots',
     loadChildren: () => import('./pending-spots/pending-spots.module').then( m => m.PendingSpotsPageModule),
     canActivate: [AdminGuard]
+  },
+  {
+    path: 'pending-local-tips',
+    loadChildren: () => import('./pending-local-tips/pending-local-tips.module').then(m => m.PendingLocalTipsPageModule),
+    canActivate: [AdminGuard]
   }
 
 ];

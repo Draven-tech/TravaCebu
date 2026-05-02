@@ -12,12 +12,14 @@ import { DaySpotPickerComponent } from '../components/day-spot-picker/day-spot-p
 import { ComponentsModule } from '../components/components.module';
 import { ItineraryControlsModalComponent } from '../modals/itinerary-controls-modal/itinerary-controls-modal.component';
 import { ItineraryCompletionModalComponent } from '../modals/itinerary-completion-modal/itinerary-completion-modal.component';
+import { LocalTipsModalComponent } from '../modals/local-tips-modal/local-tips-modal.component';
 
 @NgModule({
   declarations: [
     UserMapPage,
     ItineraryControlsModalComponent,
-    ItineraryCompletionModalComponent
+    ItineraryCompletionModalComponent,
+    LocalTipsModalComponent
   ],
   imports: [
     CommonModule,

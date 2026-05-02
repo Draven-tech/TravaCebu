@@ -58,6 +58,9 @@ export class DashboardPage implements OnInit {
       case 'pending-spots':
         this.router.navigate(['/admin/pending-spots']);
         break;
+      case 'pending-local-tips':
+        this.router.navigate(['/admin/pending-local-tips']);
+        break;
     }
   }
 

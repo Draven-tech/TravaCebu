@@ -11,8 +11,9 @@ import { DaySpotPickerComponent } from '../components/day-spot-picker/day-spot-p
 import { environment } from '../../environments/environment';
 import { ItineraryControlsModalComponent } from '../modals/itinerary-controls-modal/itinerary-controls-modal.component';
 import { ItineraryCompletionModalComponent } from '../modals/itinerary-completion-modal/itinerary-completion-modal.component';
+import { LocalTipsModalComponent } from '../modals/local-tips-modal/local-tips-modal.component';
 import { GeofencingService } from '../services/geofencing.service';
-import { Subscription } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 
 
 // services imports
@@ -32,6 +33,7 @@ import { MapUIService } from '../services/map-ui.service';
 import { MapUtilitiesService } from '../services/map-utilities.service';
 import { ItinerarySessionService, ItinerarySession } from '../services/itinerary-session.service';
 import { ModalCommunicationService } from '../services/modal-communication.service';
+import { LocalTipsService } from '../services/local-tips.service';
 
 interface ExpensePlan {
   transportation?: number;
@@ -162,7 +164,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private mapUI: MapUIService,
     private mapUtils: MapUtilitiesService,
     private itinerarySession: ItinerarySessionService,
-    private modalCommunication: ModalCommunicationService
+    private modalCommunication: ModalCommunicationService,
+    private localTipsService: LocalTipsService
   ) {
     this.bucketService = bucketService;
   }
@@ -820,6 +823,16 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return this.getSegmentTitle(segment);
   }
 
+  isCurrentSegmentVisitStop(): boolean {
+    const segment = this.currentRouteInfo?.segments?.[this.currentSegmentIndex];
+    return segment?.type === 'visit_stop';
+  }
+
+  getCurrentVisitSpotName(): string {
+    const segment = this.currentRouteInfo?.segments?.[this.currentSegmentIndex];
+    return segment?.spotName || segment?.toName || 'this destination';
+  }
+
 
   /**
    * Green check on map: show completion summary, then optionally end session via stopItinerary().
@@ -1395,6 +1408,36 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     } catch (error) {
       // Silently handle display errors
     }
+  }
+
+  async openLocalTipsModal(): Promise<void> {
+    const segment = this.currentRouteInfo?.segments?.[this.currentSegmentIndex];
+    if (!segment || segment.type !== 'visit_stop' || !segment.spotId) {
+      await this.showToast('Local tips are only available during a visit stage.');
+      return;
+    }
+
+    let tips: any[] = [];
+    try {
+      tips = (await firstValueFrom(this.localTipsService.getApprovedTipsForSpot(segment.spotId))) || [];
+    } catch {
+      tips = [];
+    }
+
+    const modal = await this.modalCtrl.create({
+      component: LocalTipsModalComponent,
+      componentProps: {
+        spotName: segment.spotName || segment.toName || 'This destination',
+        spotId: segment.spotId,
+        tips
+      },
+      cssClass: 'local-tips-modal',
+      breakpoints: [0, 0.55, 0.9],
+      initialBreakpoint: 0.55,
+      backdropDismiss: true
+    });
+
+    await modal.present();
   }
 
 

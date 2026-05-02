@@ -47,6 +47,26 @@
     </ion-card-content>
   </ion-card>
 
+  <ion-card class="spot-info-card">
+    <ion-card-header>
+      <ion-card-title>Local Tips</ion-card-title>
+      <ion-card-subtitle>Approved community tips for this destination</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-list *ngIf="localTips.length > 0; else noTipsTemplate">
+        <ion-item lines="none" *ngFor="let tip of localTips">
+          <ion-icon name="bulb-outline" color="warning" slot="start"></ion-icon>
+          <ion-label>{{ tip.tipText }}</ion-label>
+        </ion-item>
+      </ion-list>
+      <ng-template #noTipsTemplate>
+        <ion-text color="medium">
+          <p>No approved tips yet for this destination.</p>
+        </ion-text>
+      </ng-template>
+    </ion-card-content>
+  </ion-card>
+
   <!-- Visit Status Banner -->
   <div *ngIf="hasVisited()" class="visit-status-banner">
     <ion-chip color="success" outline="true" class="visit-status-chip">
@@ -115,6 +135,25 @@
 
     <ion-button expand="block" color="warning" (click)="addReview()" [disabled]="uploading">
       {{ uploading ? 'Uploading...' : 'Submit Review' }}
+    </ion-button>
+  </div>
+
+  <div *ngIf="hasVisited()" class="add-review-container">
+    <div class="review-header">
+      <h2>Share a Local Tip</h2>
+    </div>
+
+    <ion-item>
+      <ion-label position="stacked">Tip (20-300 characters)</ion-label>
+      <ion-textarea
+        [(ngModel)]="localTipText"
+        placeholder="Example: Visit before 9 AM to avoid long lines."
+        [maxlength]="300">
+      </ion-textarea>
+    </ion-item>
+
+    <ion-button expand="block" color="warning" (click)="submitLocalTip()" [disabled]="isSubmittingLocalTip">
+      {{ isSubmittingLocalTip ? 'Submitting...' : 'Submit Local Tip' }}
     </ion-button>
   </div>
 

@@ -1,0 +1,38 @@
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-title>Local Tips</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()" aria-label="Close">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <h2 class="ion-no-margin">{{ spotName || 'This destination' }}</h2>
+  <p class="ion-text-wrap ion-margin-top">
+    Approved community tips for this stop. Submit your own tip from the spot details page.
+  </p>
+
+  <ion-list *ngIf="tips.length > 0; else emptyTips">
+    <ion-item lines="none" *ngFor="let tip of tips">
+      <ion-icon name="bulb-outline" color="warning" slot="start"></ion-icon>
+      <ion-label class="ion-text-wrap">{{ tip.tipText }}</ion-label>
+    </ion-item>
+  </ion-list>
+
+  <ng-template #emptyTips>
+    <ion-text color="medium">
+      <p>No approved tips yet for this destination.</p>
+    </ion-text>
+  </ng-template>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-button expand="block" color="warning" fill="outline" (click)="openSpotDetail()" [disabled]="!spotId">
+      Open Spot Details
+    </ion-button>
+  </ion-toolbar>
+</ion-footer>

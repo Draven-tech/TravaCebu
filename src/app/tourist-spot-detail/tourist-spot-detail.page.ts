@@ -10,6 +10,7 @@ import { map, switchMap } from 'rxjs/operators';
 import { PlacesImageService } from '../services/places-image.service';
 import { GeofencingService } from '../services/geofencing.service';
 import { BucketService } from '../services/bucket-list.service';
+import { LocalTipsService } from '../services/local-tips.service';
 
 @Component({
   selector: 'app-tourist-spot-detail',
@@ -35,6 +36,9 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
   hasVisitedSpot = false;
   private visitStatusSub?: Subscription;
   private geofenceVisitedSub?: Subscription;
+  localTips: any[] = [];
+  localTipText = '';
+  isSubmittingLocalTip = false;
   
   // Image refresh properties
   isRefreshingImages = false;
@@ -50,7 +54,8 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
     private toastCtrl: ToastController,
     private placesImageService: PlacesImageService,
     private geofencingService: GeofencingService,
-    private bucketService: BucketService
+    private bucketService: BucketService,
+    private localTipsService: LocalTipsService
   ) { }
 
   ngOnInit() {
@@ -58,6 +63,7 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
     if (this.spotId) {
       this.loadSpot();
       this.loadReviews();
+      this.loadApprovedLocalTips();
       this.observeVisitStatus();
       this.geofenceVisitedSub = this.geofencingService.visitedSpots$.subscribe(visitedSet => {
         if (this.spotId) {
@@ -113,6 +119,46 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
       .subscribe(data => {
         this.reviews = data;
       });
+  }
+
+  loadApprovedLocalTips() {
+    if (!this.spotId) return;
+    this.localTipsService.getApprovedTipsForSpot(this.spotId).subscribe({
+      next: (tips) => {
+        this.localTips = tips || [];
+      },
+      error: () => {
+        this.localTips = [];
+      }
+    });
+  }
+
+  async submitLocalTip(): Promise<void> {
+    if (!this.spotId || !this.spotData?.name) {
+      this.showAlert('Error', 'Tourist spot data not available.');
+      return;
+    }
+
+    if (!this.hasVisited()) {
+      this.showAlert('Tips Locked', 'You need to visit this spot before submitting local tips.');
+      return;
+    }
+
+    if (!this.localTipText.trim()) {
+      this.showAlert('Validation', 'Please enter a local tip.');
+      return;
+    }
+
+    this.isSubmittingLocalTip = true;
+    try {
+      await this.localTipsService.submitTip(this.spotId, this.spotData.name, this.localTipText);
+      this.localTipText = '';
+      this.showAlert('Submitted', 'Your local tip is pending admin review.');
+    } catch (error: any) {
+      this.showAlert('Error', error?.message || 'Failed to submit local tip.');
+    } finally {
+      this.isSubmittingLocalTip = false;
+    }
   }
 
   async addReview() {

@@ -11,6 +11,10 @@ export interface RouteSegment {
   distance: number;
   from: { lat: number; lng: number };
   to: { lat: number; lng: number };
+  fromName?: string;
+  toName?: string;
+  spotId?: string;
+  spotName?: string;
   jeepneyCode?: string;
   polyline?: string;
   instructions?: string;
@@ -548,6 +552,10 @@ export class RoutePlanningService {
       distance: 0,
       from: { lat: spotLat, lng: spotLng },
       to: { lat: spotLat, lng: spotLng },
+      fromName: spot.name,
+      toName: spot.name,
+      spotName: spot.name,
+      spotId: spot.id || spot.spotId || '',
       jeepneyCode: undefined,
       polyline: undefined
     };

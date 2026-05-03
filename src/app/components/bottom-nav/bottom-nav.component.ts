@@ -30,9 +30,10 @@ export class BottomNavComponent implements OnInit, OnDestroy {
     
     // Subscribe to router events to update current page
     this.routerSubscription = this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: any) => {
-      this.updateCurrentPage(event.url);
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd)
+    ).subscribe((event) => {
+      const url = event.urlAfterRedirects || event.url;
+      this.updateCurrentPage(url);
     });
   }
 
@@ -47,6 +48,8 @@ export class BottomNavComponent implements OnInit, OnDestroy {
       this.currentPage = 'user-dashboard';
     } else if (url.includes('bucket-list')) {
       this.currentPage = 'bucket-list';
+    } else if (url.includes('itinerary-planner')) {
+      this.currentPage = 'itinerary-planner';
     } else if (url.includes('user-map')) {
       this.currentPage = 'user-map';
     } else if (url.includes('user-calendar')) {

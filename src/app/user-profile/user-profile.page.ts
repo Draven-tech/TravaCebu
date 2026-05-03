@@ -15,8 +15,6 @@ import { CreatePostModalComponent } from '../modals/create-post-modal/create-pos
 import { CommentsModalComponent } from '../modals/comments-modal/comments-modal.component';
 import { BadgeService, Badge } from '../services/badge.service';
 import { BadgeDetailModalComponent } from '../modals/badge-detail-modal/badge-detail-modal.component';
-import { BucketService } from '../services/bucket-list.service';
-
 interface Post {
   id?: string;
   userId: string;
@@ -38,7 +36,14 @@ interface Post {
     itineraryDate: string;
     spots: Array<{
       name: string;
-      location?: string;
+      type?: string;
+      spotId?: string;
+      touristSpotId?: string;
+      id?: string;
+      location?: any;
+      img?: string;
+      description?: string;
+      category?: string;
       timeSlot?: string;
       duration?: string;
     }>;
@@ -90,7 +95,6 @@ export class UserProfilePage implements OnInit, OnDestroy {
     private modalCtrl: ModalController,
     private menuCtrl: MenuController,
     private badgeService: BadgeService,
-    private bucketService: BucketService,
     private loadingCtrl: LoadingController
   ) {}
 
@@ -629,14 +633,20 @@ async viewProfilePicture() {
     });
   }
 
-  async copyItineraryToBucketList(sharedItinerary: any) {
+  async copyItineraryToPlanner(sharedItinerary: any) {
     if (!this.userId) {
       this.showAlert('Error', 'User not authenticated');
       return;
     }
 
+    const currentUser = await this.afAuth.currentUser;
+    if (!currentUser) {
+      this.showAlert('Error', 'Please sign in to copy this itinerary.');
+      return;
+    }
+
     const loading = await this.loadingCtrl.create({
-      message: 'Adding spots to your bucket list...',
+      message: 'Adding spots to your itinerary planner...',
       spinner: 'crescent'
     });
     await loading.present();
@@ -644,8 +654,9 @@ async viewProfilePicture() {
     try {
       let addedCount = 0;
       let skippedCount = 0;
+      const stored: any[] = JSON.parse(localStorage.getItem('plannerSpots') || '[]');
 
-      for (const spot of sharedItinerary.spots) {
+      for (const spot of sharedItinerary.spots || []) {
         try {
           const spotType = spot.type || 'tourist_spot';
           if (spotType !== 'tourist_spot') {
@@ -653,53 +664,63 @@ async viewProfilePicture() {
             continue;
           }
 
-          const spotData = {
-            id: this.generateSpotId(spot.name),
-            name: spot.name,
-            img: 'assets/img/default-spot.png',
-            category: 'tourist_spot',
-            location: spot.location || 'Cebu, Philippines',
-            description: `Shared from ${sharedItinerary.itineraryName}`
-          };
-
-          const isAlreadyAdded = await this.bucketService.isInBucket(spotData.id);
-          
-          if (!isAlreadyAdded) {
-            await this.bucketService.addToBucket(spotData);
-            addedCount++;
-          } else {
+          const rawId = (spot.touristSpotId || spot.spotId || spot.id || '').trim();
+          if (!rawId) {
             skippedCount++;
+            continue;
           }
+
+          const docSnap = await this.firestore.collection('tourist_spots').doc(rawId).get().toPromise();
+          if (!docSnap?.exists) {
+            skippedCount++;
+            continue;
+          }
+
+          const data = docSnap.data() as Record<string, any>;
+          const exists = stored.some((s: any) => s.id === docSnap.id);
+          if (exists) {
+            skippedCount++;
+            continue;
+          }
+
+          stored.push({
+            id: docSnap.id,
+            name: data['name'] ?? spot.name,
+            img: data['img'] || 'assets/img/default.png',
+            category: data['category'],
+            location: data['location'],
+            description: data['description']
+          });
+          addedCount++;
         } catch (error) {
-          console.error('Error adding spot to bucket list:', error);
+          console.error('Error adding shared spot to itinerary planner:', error);
           skippedCount++;
         }
       }
 
+      localStorage.setItem('plannerSpots', JSON.stringify(stored));
+
       await loading.dismiss();
 
-      let message = '';
       if (addedCount > 0) {
-        message = `Successfully added ${addedCount} tourist spots to your bucket list!`;
+        let message = `Added ${addedCount} place(s) to your itinerary planner. Open Itinerary Planner to see them.`;
         if (skippedCount > 0) {
-          message += ` (${skippedCount} items were skipped - restaurants, hotels, or duplicates)`;
+          message += ` (${skippedCount} skipped: non-spots, duplicates, missing links, or not found.)`;
         }
         this.showAlert('Success', message);
       } else if (skippedCount > 0) {
-        this.showAlert('Info', 'No tourist spots were available to copy. This itinerary only contains restaurants and hotels, or all spots are already in your bucket list.');
+        this.showAlert(
+          'Could not copy spots',
+          'No places were added. This can happen if the trip was shared before spot links were saved, if every place is already in your planner, or if a place is no longer in the app database. Ask your friend to share the trip again after updating, or add spots from the home screen.'
+        );
       } else {
-        this.showAlert('Error', 'Failed to add spots to your bucket list');
+        this.showAlert('Error', 'Nothing to copy from this itinerary.');
       }
-
     } catch (error) {
       await loading.dismiss();
-      console.error('Error copying itinerary to bucket list:', error);
-      this.showAlert('Error', 'Failed to copy itinerary to your bucket list');
+      console.error('Error copying itinerary to planner:', error);
+      this.showAlert('Error', 'Could not copy this itinerary. Please try again.');
     }
-  }
-
-  private generateSpotId(spotName: string): string {
-    return spotName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
   }
 
   getTouristSpotsOnly(spots: any[]): any[] {

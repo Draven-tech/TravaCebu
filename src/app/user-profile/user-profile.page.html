@@ -140,7 +140,7 @@
                   </div>
                   <div *ngIf="hasNonTouristSpots(post.sharedItinerary.spots)" class="other-items-note">
                     <ion-icon name="information-circle-outline" color="medium"></ion-icon>
-                    <span>Restaurants and hotels are not included in bucket list copy</span>
+                    <span>Restaurants and hotels are not added when you copy</span>
                   </div>
                 </div>
                 <div class="itinerary-actions">
@@ -148,10 +148,10 @@
                     fill="outline" 
                     size="small" 
                     color="primary" 
-                    (click)="copyItineraryToBucketList(post.sharedItinerary)"
+                    (click)="copyItineraryToPlanner(post.sharedItinerary)"
                     [disabled]="post.userId === userId">
                     <ion-icon name="add-circle-outline" slot="start"></ion-icon>
-                    Copy Tourist Spots to Bucket List
+                    Add tourist spots to Itinerary Planner
                   </ion-button>
                 </div>
               </ion-card-content>
@@ -245,7 +245,7 @@
                   </div>
                   <div *ngIf="hasNonTouristSpots(post.sharedItinerary.spots)" class="other-items-note">
                     <ion-icon name="information-circle-outline" color="medium"></ion-icon>
-                    <span>Restaurants and hotels are not included in bucket list copy</span>
+                    <span>Restaurants and hotels are not added when you copy</span>
                   </div>
                 </div>
               </ion-card-content>

@@ -72,6 +72,7 @@ loadPlannerSpots() {
 }
   async ionViewWillEnter() {
     await this.loadItineraries();
+    this.loadPlannerSpots();
   }
 
   // =============================

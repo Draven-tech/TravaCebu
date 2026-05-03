@@ -82,16 +82,32 @@ export class CalendarService {
     return isNaN(parsed.getTime()) ? '' : parsed.toISOString().split('T')[0];
   }
 
-  private normalizeItineraryEvents(rawEvents: any[], itineraryDocId: string): CalendarEvent[] {
+  /**
+   * Flatten stored `events[]` onto CalendarEvent rows. `itineraryDocStatus` comes from the
+   * parent Firestore itinerary document (`status: 'completed' | 'active'`) because inner
+   * events often omit `status`; share + completed views filter on `event.status`.
+   */
+  private normalizeItineraryEvents(
+    rawEvents: any[],
+    itineraryDocId: string,
+    itineraryDocStatus?: string,
+    itineraryDocName?: string
+  ): CalendarEvent[] {
     if (!Array.isArray(rawEvents)) return [];
     return rawEvents.map((event: any, index: number) => {
+      const ev = event || {};
+      const resolvedItineraryName = (
+        (ev.extendedProps?.itineraryName || itineraryDocName || '') as string
+      ).trim();
       const normalized: CalendarEvent = {
-        ...(event || {}),
-        id: `${itineraryDocId}_${index}`
+        ...ev,
+        id: `${itineraryDocId}_${index}`,
+        status: ev.status ?? itineraryDocStatus ?? 'active'
       };
       normalized.extendedProps = {
-        ...(event?.extendedProps || {}),
-        itineraryDocId
+        ...(ev.extendedProps || {}),
+        itineraryDocId,
+        ...(resolvedItineraryName ? { itineraryName: resolvedItineraryName } : {})
       };
       return normalized;
     });
@@ -105,6 +121,28 @@ export class CalendarService {
     const date = this.toIsoDate(start);
     const dates = Array.from(new Set(validEvents.map((event) => this.toIsoDate(event.start)).filter(Boolean))).sort();
     return { start, end, date, dates };
+  }
+
+  /** Firestore `tourist_spots` document id from a calendar row, if any. */
+  private getFirebaseTouristSpotIdFromEvent(event: CalendarEvent): string {
+    const ext = event.extendedProps || {};
+    return String(ext.touristSpotId || ext.spotId || '').trim();
+  }
+
+  /**
+   * Share / copy only real tourist spots: not restaurants or hotels, and must have a
+   * `tourist_spots/{id}` id on the event.
+   */
+  private isShareableFirebaseTouristSpotEvent(event: CalendarEvent): boolean {
+    const ext = event.extendedProps || {};
+    const t = ext.type || 'tourist_spot';
+    if (t === 'restaurant' || t === 'hotel') {
+      return false;
+    }
+    if (t !== 'tourist_spot') {
+      return false;
+    }
+    return !!this.getFirebaseTouristSpotIdFromEvent(event);
   }
 
   /**
@@ -445,7 +483,14 @@ export class CalendarService {
       const activeEvents = itineraries
         .filter((itinerary: any) => itinerary.status !== 'completed')
         .reduce((acc: CalendarEvent[], itinerary: any) => {
-          return acc.concat(this.normalizeItineraryEvents(itinerary.events || [], itinerary.id));
+          return acc.concat(
+            this.normalizeItineraryEvents(
+              itinerary.events || [],
+              itinerary.id,
+              itinerary.status,
+              itinerary.itineraryName
+            )
+          );
         }, []);
       localStorage.setItem('user_itinerary_events', JSON.stringify(activeEvents));
       return activeEvents;
@@ -491,7 +536,14 @@ export class CalendarService {
       const activeEvents = itineraries
         .filter((itinerary: any) => itinerary.status !== 'completed')
         .reduce((acc: CalendarEvent[], itinerary: any) => {
-          return acc.concat(this.normalizeItineraryEvents(itinerary.events || [], itinerary.id));
+          return acc.concat(
+            this.normalizeItineraryEvents(
+              itinerary.events || [],
+              itinerary.id,
+              itinerary.status,
+              itinerary.itineraryName
+            )
+          );
         }, []);
       localStorage.setItem('user_itinerary_events', JSON.stringify(activeEvents));
       return activeEvents;
@@ -724,7 +776,14 @@ export class CalendarService {
       }
       const itineraries = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       return itineraries.reduce((acc: CalendarEvent[], itinerary: any) => {
-        return acc.concat(this.normalizeItineraryEvents(itinerary.events || [], itinerary.id));
+        return acc.concat(
+          this.normalizeItineraryEvents(
+            itinerary.events || [],
+            itinerary.id,
+            itinerary.status,
+            itinerary.itineraryName
+          )
+        );
       }, []);
       
     } catch (error) {
@@ -845,18 +904,45 @@ export class CalendarService {
         if (dayEvents.length > 0) {
           dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
           const date = dayEvents[0].start.split('T')[0];
-          
+          const title =
+            (dayEvents[0].extendedProps?.itineraryName || '').trim() || 'Trip';
+          const uniqDates = Array.from(
+            new Set(
+              dayEvents
+                .map((e) => this.toIsoDate(e.start))
+                .filter((d): d is string => !!d)
+            )
+          ).sort();
+          const dateLabel =
+            uniqDates.length <= 1
+              ? this.getDateDisplay(uniqDates[0] || date)
+              : `${this.getDateDisplay(uniqDates[0])} – ${this.getDateDisplay(
+                  uniqDates[uniqDates.length - 1]
+                )}`;
+
+          const spotEvents = dayEvents.filter((e) =>
+            this.isShareableFirebaseTouristSpotEvent(e)
+          );
+          if (spotEvents.length === 0) {
+            return;
+          }
+
           const itinerary = {
             id: `completed_itinerary_${groupKey}`,
-            name: `My Cebu Adventure - ${this.getDateDisplay(date)}`,
+            name: `${title} · ${dateLabel}`,
             date: date,
-            spots: dayEvents.map(event => ({
-              name: event.title,
-              type: event.extendedProps?.type || 'tourist_spot',
-              location: event.extendedProps?.location,
-              timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
-              duration: event.extendedProps?.duration || '2 hours'
-            }))
+            spots: spotEvents.map((event) => {
+              const ext = event.extendedProps || {};
+              const touristSpotId = this.getFirebaseTouristSpotIdFromEvent(event);
+              return {
+                name: event.title,
+                type: 'tourist_spot' as const,
+                touristSpotId,
+                spotId: touristSpotId,
+                timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
+                duration: ext.duration || '2 hours'
+              };
+            })
           };
           
           itineraries.push(itinerary);

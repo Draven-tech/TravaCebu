@@ -81,8 +81,36 @@ export class CreatePostModalComponent {
     }
   }
 
+  /** Refresh completed trips when user switches to Share Itinerary (avoids stale empty list). */
+  onPostTypeChange(type: string) {
+    if (type === 'shared_itinerary') {
+      this.loadCompletedItineraries();
+    }
+  }
+
   getSelectedSpot() {
     return this.touristSpots.find(spot => spot.id === this.selectedSpotId);
+  }
+
+  /** Only `tourist_spot` rows with a `tourist_spots/{id}` id; no restaurants or hotels. */
+  private buildShareableSpotsPayload(spots: any[]): any[] {
+    return (spots || [])
+      .filter(
+        (s: any) =>
+          (s.type || 'tourist_spot') === 'tourist_spot' &&
+          String(s.touristSpotId || s.spotId || '').trim()
+      )
+      .map((s: any) => {
+        const id = String(s.touristSpotId || s.spotId).trim();
+        return {
+          type: 'tourist_spot',
+          touristSpotId: id,
+          spotId: id,
+          name: s.name,
+          timeSlot: s.timeSlot,
+          duration: s.duration
+        };
+      });
   }
 
   getSelectedItinerary() {
@@ -122,6 +150,17 @@ export class CreatePostModalComponent {
     if (this.postType === 'shared_itinerary' && !this.selectedItineraryId) {
       this.showAlert('Error', 'Please select an itinerary to share');
       return;
+    }
+    if (this.postType === 'shared_itinerary' && this.selectedItineraryId) {
+      const sel = this.getSelectedItinerary();
+      const shareSpots = this.buildShareableSpotsPayload(sel?.spots || []);
+      if (shareSpots.length === 0) {
+        this.showAlert(
+          'Error',
+          'This itinerary has no Firebase tourist spots to share. Only places from the tourist spots list are shared (not restaurants or hotels).'
+        );
+        return;
+      }
     }
 
     const loading = await this.loadingCtrl.create({
@@ -167,14 +206,15 @@ export class CreatePostModalComponent {
         postData.touristSpotLocation = selectedSpot.location || null;
       }
 
-      // Add shared itinerary data if sharing itinerary
+      // Add shared itinerary data if sharing itinerary (only tourist_spots with Firestore ids)
       if (this.postType === 'shared_itinerary' && selectedItinerary && selectedItinerary.spots) {
+        const shareSpots = this.buildShareableSpotsPayload(selectedItinerary.spots);
         postData.sharedItinerary = {
           itineraryId: selectedItinerary.id || null,
           itineraryName: selectedItinerary.name || null,
           itineraryDate: selectedItinerary.date || null,
-          spots: selectedItinerary.spots || [],
-          totalSpots: selectedItinerary.spots ? selectedItinerary.spots.length : 0
+          spots: shareSpots,
+          totalSpots: shareSpots.length
         };
       }
 

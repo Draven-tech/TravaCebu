@@ -29,7 +29,7 @@
 
     <!-- Post Type Selection -->
     <div class="post-type-section">
-      <ion-segment [(ngModel)]="postType">
+      <ion-segment [(ngModel)]="postType" (ngModelChange)="onPostTypeChange($event)">
         <ion-segment-button value="regular">
           <ion-label>Regular Post</ion-label>
         </ion-segment-button>

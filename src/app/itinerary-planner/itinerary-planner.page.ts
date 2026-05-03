@@ -70,6 +70,12 @@ export class ItineraryPlannerPage implements OnInit {
 loadPlannerSpots() {
   this.spots = JSON.parse(localStorage.getItem('plannerSpots') || '[]');
 }
+
+  /** Keeps `plannerSpots` in sync so other screens (e.g. profile copy) see the real draft list. */
+  private savePlannerSpotsToStorage(): void {
+    localStorage.setItem('plannerSpots', JSON.stringify(this.spots));
+  }
+
   async ionViewWillEnter() {
     await this.loadItineraries();
     this.loadPlannerSpots();
@@ -81,10 +87,12 @@ loadPlannerSpots() {
 
   removeFromPlanner(spotId: string) {
     this.spots = this.spots.filter(s => s.id !== spotId);
+    this.savePlannerSpotsToStorage();
   }
 
   clearPlanner() {
     this.spots = [];
+    this.savePlannerSpotsToStorage();
   }
 
   // =============================
@@ -115,6 +123,7 @@ loadPlannerSpots() {
 
     this.editing = true;
     this.currentItineraryId = itinerary.id;
+    this.savePlannerSpotsToStorage();
   }
 
   // =============================

@@ -76,6 +76,9 @@ export class UserProfilePage implements OnInit, OnDestroy {
   userPosts: Post[] = [];
   loadingPosts = false;
 
+  /** Stops double-taps from running two copies at once (which caused a false "could not copy" alert). */
+  copyingSharedItinerary = false;
+
   userBadges: Badge[] = [];
   loadingBadges = false;
   badgesSubscriptionInitialized = false;
@@ -645,6 +648,11 @@ async viewProfilePicture() {
       return;
     }
 
+    if (this.copyingSharedItinerary) {
+      return;
+    }
+    this.copyingSharedItinerary = true;
+
     const loading = await this.loadingCtrl.create({
       message: 'Adding spots to your itinerary planner...',
       spinner: 'crescent'
@@ -654,6 +662,8 @@ async viewProfilePicture() {
     try {
       let addedCount = 0;
       let skippedCount = 0;
+      let duplicateSkips = 0;
+      let otherSkips = 0;
       const stored: any[] = JSON.parse(localStorage.getItem('plannerSpots') || '[]');
 
       for (const spot of sharedItinerary.spots || []) {
@@ -661,25 +671,31 @@ async viewProfilePicture() {
           const spotType = spot.type || 'tourist_spot';
           if (spotType !== 'tourist_spot') {
             skippedCount++;
+            otherSkips++;
             continue;
           }
 
-          const rawId = (spot.touristSpotId || spot.spotId || spot.id || '').trim();
+          const rawId = String(spot.touristSpotId ?? spot.spotId ?? spot.id ?? '').trim();
           if (!rawId) {
             skippedCount++;
+            otherSkips++;
             continue;
           }
 
           const docSnap = await this.firestore.collection('tourist_spots').doc(rawId).get().toPromise();
           if (!docSnap?.exists) {
             skippedCount++;
+            otherSkips++;
             continue;
           }
 
           const data = docSnap.data() as Record<string, any>;
-          const exists = stored.some((s: any) => s.id === docSnap.id);
+          const exists = stored.some(
+            (s: any) => String(s?.id ?? '') === String(docSnap.id ?? '')
+          );
           if (exists) {
             skippedCount++;
+            duplicateSkips++;
             continue;
           }
 
@@ -695,12 +711,11 @@ async viewProfilePicture() {
         } catch (error) {
           console.error('Error adding shared spot to itinerary planner:', error);
           skippedCount++;
+          otherSkips++;
         }
       }
 
       localStorage.setItem('plannerSpots', JSON.stringify(stored));
-
-      await loading.dismiss();
 
       if (addedCount > 0) {
         let message = `Added ${addedCount} place(s) to your itinerary planner. Open Itinerary Planner to see them.`;
@@ -708,6 +723,11 @@ async viewProfilePicture() {
           message += ` (${skippedCount} skipped: non-spots, duplicates, missing links, or not found.)`;
         }
         this.showAlert('Success', message);
+      } else if (duplicateSkips > 0 && otherSkips === 0) {
+        this.showAlert(
+          'Already in planner',
+          'These places are already in your itinerary planner. Nothing new was added.'
+        );
       } else if (skippedCount > 0) {
         this.showAlert(
           'Could not copy spots',
@@ -717,9 +737,11 @@ async viewProfilePicture() {
         this.showAlert('Error', 'Nothing to copy from this itinerary.');
       }
     } catch (error) {
-      await loading.dismiss();
       console.error('Error copying itinerary to planner:', error);
       this.showAlert('Error', 'Could not copy this itinerary. Please try again.');
+    } finally {
+      await loading.dismiss();
+      this.copyingSharedItinerary = false;
     }
   }
 

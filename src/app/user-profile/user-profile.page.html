@@ -149,7 +149,7 @@
                     size="small" 
                     color="primary" 
                     (click)="copyItineraryToPlanner(post.sharedItinerary)"
-                    [disabled]="post.userId === userId">
+                    [disabled]="post.userId === userId || copyingSharedItinerary">
                     <ion-icon name="add-circle-outline" slot="start"></ion-icon>
                     Add tourist spots to Itinerary Planner
                   </ion-button>

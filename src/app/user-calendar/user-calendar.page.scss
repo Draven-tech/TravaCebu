@@ -614,15 +614,6 @@
           border-left: 4px solid #28a745;
           position: relative;
   
-          &::before {
-            content: '📋';
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            font-size: 10px;
-            opacity: 0.8;
-          }
-  
           &:hover {
             background: linear-gradient(135deg, #2d4a3d, #3d5a4d);
           }
@@ -632,15 +623,6 @@
           background: linear-gradient(135deg, #1a1a1a, #3d2d4a);
           border-left: 4px solid #6f42c1;
           box-shadow: inset 0 0 10px rgba(111, 66, 193, 0.2);
-  
-          &::after {
-            content: '⭐';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            font-size: 10px;
-            opacity: 0.9;
-          }
   
           &:hover {
             background: linear-gradient(135deg, #3d2d4a, #4d3d5a);
@@ -653,22 +635,11 @@
           border-left: 4px solid #ffc107;
           box-shadow: inset 0 0 15px rgba(255, 193, 7, 0.3);
   
-          &::before {
-            content: '🗓️';
-            top: 2px;
-            right: 2px;
-            font-size: 12px;
-          }
-  
-          &::after {
-            content: '';
-          }
-  
           &:hover {
             background: linear-gradient(135deg, #4a3d2d, #5a4d3d, #3d5a4d);
           }
         }
-  
+
         .day-number {
           font-size: 14px;
           font-weight: 500;
@@ -679,38 +650,33 @@
   
         .event-indicators {
           display: flex;
-          flex-direction: column;
-          gap: 2px;
+          flex-direction: row;
           align-items: center;
+          justify-content: center;
           margin-top: auto;
+          min-height: 20px;
   
-          .event-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: transform 0.2s;
+          .event-icon {
+            font-size: 17px;
+            transition: transform 0.2s ease;
   
             &:hover {
               transform: scale(1.2);
             }
+          }
   
-            &.primary {
-              background-color: #ff6b35;
-            }
-  
-            &.warning {
-              background-color: #FFD144;
-              box-shadow: 0 0 8px rgba(255, 209, 68, 0.6);
-            }
-  
-            &.medium {
-              background-color: #20c997;
-            }
-  
-            &.success {
-              background-color: #28a745;
-            }
+          .itinerary-icon {
+            color: #28a745;
+          }
+
+          .events-icon {
+            color: #FFD144;
+            filter: drop-shadow(0 0 4px rgba(255, 209, 68, 0.45));
+          }
+
+          .combined-icon {
+            color: #ffc107;
+            filter: drop-shadow(0 0 4px rgba(255, 193, 7, 0.45));
           }
         }
       }

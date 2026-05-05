@@ -20,6 +20,61 @@ export class ItineraryPlannerService {
     return user?.uid || null;
   }
 
+  async getPlannerSpots(): Promise<any[]> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return [];
+
+    try {
+      const doc = await this.firestore.collection('users').doc(userId).get().toPromise();
+      const data = doc?.data() as any;
+      return Array.isArray(data?.plannerDraftSpots) ? data.plannerDraftSpots : [];
+    } catch (error) {
+      console.error('Error getting planner spots:', error);
+      return [];
+    }
+  }
+
+  async setPlannerSpots(spots: any[]): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    await this.firestore.collection('users').doc(userId).set(
+      {
+        plannerDraftSpots: Array.isArray(spots) ? spots : [],
+        plannerDraftUpdatedAt: new Date()
+      },
+      { merge: true }
+    );
+  }
+
+  async addSpotToPlanner(spot: any): Promise<boolean> {
+    const spots = await this.getPlannerSpots();
+    const exists = spots.some((s: any) => s?.id === spot?.id);
+    if (exists) return false;
+
+    const newSpot = {
+      id: spot.id,
+      name: spot.name,
+      img: spot.img,
+      category: spot.category,
+      location: spot.location,
+      description: spot.description
+    };
+
+    await this.setPlannerSpots([...spots, newSpot]);
+    return true;
+  }
+
+  async removeSpotFromPlanner(spotId: string): Promise<void> {
+    const spots = await this.getPlannerSpots();
+    const filtered = spots.filter((s: any) => s?.id !== spotId);
+    await this.setPlannerSpots(filtered);
+  }
+
+  async clearPlannerSpots(): Promise<void> {
+    await this.setPlannerSpots([]);
+  }
+
   // 🆕 CREATE itinerary
   async createItinerary(data: any): Promise<string> {
     const userId = await this.getCurrentUserId();

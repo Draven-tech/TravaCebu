@@ -15,6 +15,7 @@ import { CreatePostModalComponent } from '../modals/create-post-modal/create-pos
 import { CommentsModalComponent } from '../modals/comments-modal/comments-modal.component';
 import { BadgeService, Badge } from '../services/badge.service';
 import { BadgeDetailModalComponent } from '../modals/badge-detail-modal/badge-detail-modal.component';
+import { ItineraryPlannerService } from '../services/itinerary-planner.service';
 interface Post {
   id?: string;
   userId: string;
@@ -98,7 +99,8 @@ export class UserProfilePage implements OnInit, OnDestroy {
     private modalCtrl: ModalController,
     private menuCtrl: MenuController,
     private badgeService: BadgeService,
-    private loadingCtrl: LoadingController
+    private loadingCtrl: LoadingController,
+    private itineraryPlannerService: ItineraryPlannerService
   ) {}
 
   async ngOnInit() {
@@ -664,7 +666,7 @@ async viewProfilePicture() {
       let skippedCount = 0;
       let duplicateSkips = 0;
       let otherSkips = 0;
-      const stored: any[] = JSON.parse(localStorage.getItem('plannerSpots') || '[]');
+      const stored: any[] = await this.itineraryPlannerService.getPlannerSpots();
 
       for (const spot of sharedItinerary.spots || []) {
         try {
@@ -715,7 +717,7 @@ async viewProfilePicture() {
         }
       }
 
-      localStorage.setItem('plannerSpots', JSON.stringify(stored));
+      await this.itineraryPlannerService.setPlannerSpots(stored);
 
       if (addedCount > 0) {
         let message = `Added ${addedCount} place(s) to your itinerary planner. Open Itinerary Planner to see them.`;

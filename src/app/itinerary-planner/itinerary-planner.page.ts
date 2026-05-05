@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ItineraryPlannerService } from '../services/itinerary-planner.service';
 import { NavController } from '@ionic/angular';
-import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AlertController, ModalController, LoadingController } from '@ionic/angular';
 import { ItineraryModalComponent } from '../components/itinerary-modal/itinerary-modal.component';
 import { ItineraryService, ItineraryDay } from '../services/itinerary.service';
@@ -42,7 +41,6 @@ export class ItineraryPlannerPage implements OnInit {
   constructor(
     private itineraryplannerService: ItineraryPlannerService,
     private navCtrl: NavController,
-    private afAuth: AngularFireAuth,
     private alertCtrl: AlertController,
     private modalCtrl: ModalController,
     private loadingCtrl: LoadingController,
@@ -65,34 +63,34 @@ export class ItineraryPlannerPage implements OnInit {
 
   async ngOnInit() {
     await this.loadItineraries();
-     this.loadPlannerSpots();
+    await this.loadPlannerSpots();
   }
-loadPlannerSpots() {
-  this.spots = JSON.parse(localStorage.getItem('plannerSpots') || '[]');
-}
+  async loadPlannerSpots() {
+    this.spots = await this.itineraryplannerService.getPlannerSpots();
+  }
 
-  /** Keeps `plannerSpots` in sync so other screens (e.g. profile copy) see the real draft list. */
-  private savePlannerSpotsToStorage(): void {
-    localStorage.setItem('plannerSpots', JSON.stringify(this.spots));
+  /** Keeps planner draft spots in Firestore for cross-screen sync. */
+  private async savePlannerSpotsToStorage(): Promise<void> {
+    await this.itineraryplannerService.setPlannerSpots(this.spots);
   }
 
   async ionViewWillEnter() {
     await this.loadItineraries();
-    this.loadPlannerSpots();
+    await this.loadPlannerSpots();
   }
 
   // =============================
   // 🟡 PLANNER ACTIONS (DRAFT)
   // =============================
 
-  removeFromPlanner(spotId: string) {
+  async removeFromPlanner(spotId: string) {
     this.spots = this.spots.filter(s => s.id !== spotId);
-    this.savePlannerSpotsToStorage();
+    await this.savePlannerSpotsToStorage();
   }
 
-  clearPlanner() {
+  async clearPlanner() {
     this.spots = [];
-    this.savePlannerSpotsToStorage();
+    await this.savePlannerSpotsToStorage();
   }
 
   // =============================
@@ -115,7 +113,7 @@ loadPlannerSpots() {
   }
 
   // ✏️ LOAD INTO PLANNER (EDIT MODE)
-  loadItineraryToPlanner(itinerary: any) {
+  async loadItineraryToPlanner(itinerary: any) {
     this.spots = itinerary.spots || [];
     this.setup.itineraryName = itinerary.name;
     this.setup.days = itinerary.days || 1;
@@ -123,7 +121,7 @@ loadPlannerSpots() {
 
     this.editing = true;
     this.currentItineraryId = itinerary.id;
-    this.savePlannerSpotsToStorage();
+    await this.savePlannerSpotsToStorage();
   }
 
   // =============================
@@ -200,7 +198,7 @@ loadPlannerSpots() {
       }
     }
 
-    this.clearPlanner();
+    await this.clearPlanner();
     this.editing = false;
     this.currentItineraryId = null;
 

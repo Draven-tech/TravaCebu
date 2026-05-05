@@ -218,28 +218,11 @@ loadBucketList() {
   }
 async addToItineraryPlanner(spot: any) {
   try {
-    // Get existing planner spots
-    const stored = JSON.parse(localStorage.getItem('plannerSpots') || '[]');
-
-    // Prevent duplicates
-    const exists = stored.some((s: any) => s.id === spot.id);
-    if (exists) {
+    const added = await this.itineraryPlannerService.addSpotToPlanner(spot);
+    if (!added) {
       console.log('Spot already in planner');
       return;
     }
-
-    // Add spot
-    stored.push({
-      id: spot.id,
-      name: spot.name,
-      img: spot.img,
-      category: spot.category,
-      location: spot.location,
-      description: spot.description
-    });
-
-    // Save back to localStorage
-    localStorage.setItem('plannerSpots', JSON.stringify(stored));
 
     console.log('Added to itinerary planner');
 

@@ -1,0 +1,163 @@
+<ion-header>
+  <ion-toolbar color="warning">
+    <ion-title>Day Details</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()" fill="clear" aria-label="Close">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="combined-detail-content">
+  <div class="tab-box">
+    <ion-segment [(ngModel)]="activeTab">
+      <ion-segment-button value="itinerary">
+        <ion-label>Itinerary</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="events">
+        <ion-label>Events</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </div>
+
+  <div *ngIf="activeTab === 'itinerary'" class="itinerary-container">
+    <div *ngFor="let day of itinerary" class="day-section">
+      <div class="day-header">
+        <h2>Day {{ day.day }}</h2>
+        <p class="date">{{ getDateDisplay(day.date) }}</p>
+      </div>
+
+      <div *ngIf="day.spots && day.spots.length > 0" class="section">
+        <h3>Tourist Spots</h3>
+        <div class="spots-list">
+          <div *ngFor="let spot of sortByTimeSlot(day.spots); let i = index" class="spot-card">
+            <div class="spot-header">
+              <span class="spot-number">{{ i + 1 }}.</span>
+              <span class="spot-name">{{ spot.name }}</span>
+            </div>
+            <div class="spot-details">
+              <div class="time-duration">
+                <ion-icon name="time-outline"></ion-icon>
+                <span>{{ getSpotTimeDisplay(day.date, spot.timeSlot) }}</span>
+                <ion-icon name="timer-outline"></ion-icon>
+                <span>{{ spot.estimatedDuration }}</span>
+              </div>
+              <p *ngIf="spot.description" class="description">{{ spot.description }}</p>
+
+              <div *ngIf="spot.mealType && spot.chosenRestaurant" class="chosen-restaurant">
+                <div class="restaurant-header">
+                  <span class="meal-type">{{ spot.mealType | titlecase }}</span>
+                </div>
+                <div class="restaurant-card">
+                  <h4>{{ spot.chosenRestaurant.name }}</h4>
+                  <p *ngIf="spot.chosenRestaurant.rating" class="rating">
+                    {{ spot.chosenRestaurant.rating }}
+                  </p>
+                  <p *ngIf="spot.chosenRestaurant.vicinity" class="address">
+                    {{ spot.chosenRestaurant.vicinity }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="day.restaurants && day.restaurants.length > 0" class="section">
+        <h3>Restaurants</h3>
+        <div class="restaurants-list">
+          <div *ngFor="let restaurant of sortByTimeSlot(day.restaurants)" class="restaurant-card">
+            <div class="restaurant-header">
+              <h4>{{ restaurant.name }}</h4>
+              <span class="time">{{ getTimeDisplay(day.date + 'T' + restaurant.timeSlot) }}</span>
+            </div>
+            <div class="restaurant-details">
+              <p *ngIf="restaurant.description" class="description">{{ restaurant.description }}</p>
+              <p class="duration">{{ restaurant.estimatedDuration }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="day.chosenHotel" class="section">
+        <h3>Accommodation</h3>
+        <div class="hotel-card">
+          <div class="hotel-header">
+            <h4>{{ day.chosenHotel.name }}</h4>
+            <span class="check-in">Check-in: Evening</span>
+          </div>
+          <div class="hotel-details">
+            <p *ngIf="day.chosenHotel.rating" class="rating">
+              {{ day.chosenHotel.rating }}
+            </p>
+            <p *ngIf="day.chosenHotel.vicinity" class="address">
+              {{ day.chosenHotel.vicinity }}
+            </p>
+            <p *ngIf="day.chosenHotel.description" class="description">
+              {{ day.chosenHotel.description }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="day.hotels && day.hotels.length > 0 && !day.chosenHotel" class="section">
+        <h3>Hotels</h3>
+        <div class="hotels-list">
+          <div *ngFor="let hotel of sortByTimeSlot(day.hotels)" class="hotel-card">
+            <div class="hotel-header">
+              <h4>{{ hotel.name }}</h4>
+              <span class="time">{{ getSpotTimeDisplay(day.date, hotel.timeSlot) }}</span>
+            </div>
+            <div class="hotel-details">
+              <p *ngIf="hotel.description" class="description">{{ hotel.description }}</p>
+              <p class="duration">{{ hotel.estimatedDuration }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!itinerary || itinerary.length === 0" class="no-data">
+      <h3>No Itinerary Data</h3>
+      <p>No itinerary for this day.</p>
+    </div>
+  </div>
+
+  <div *ngIf="activeTab === 'events'" class="events-container">
+    <div class="events-list" *ngIf="sortedEvents.length > 0; else noEvents">
+      <div class="event-card" *ngFor="let event of sortedEvents">
+        <div class="event-header">
+          <div class="event-image-large" *ngIf="event.imageUrl">
+            <img [src]="event.imageUrl" [alt]="event.name" />
+          </div>
+          <h2>{{ event.name }}</h2>
+        </div>
+
+        <div class="event-info">
+          <div class="info-item">
+            <ion-icon name="time-outline"></ion-icon>
+            <span>{{ getEventDate() }} · {{ getEventTimeRange(event) }}</span>
+          </div>
+
+          <div class="info-item" *ngIf="event.location">
+            <ion-icon name="location-outline"></ion-icon>
+            <span>{{ event.location }}</span>
+          </div>
+
+          <div class="info-item" *ngIf="event.description">
+            <ion-icon name="document-text-outline"></ion-icon>
+            <span>{{ event.description }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #noEvents>
+      <div class="no-data">
+        <h3>No Events</h3>
+        <p>No event for this day.</p>
+      </div>
+    </ng-template>
+  </div>
+</ion-content>

@@ -3,6 +3,7 @@ import { AlertController, ModalController } from '@ionic/angular';
 import { CalendarService, GlobalEvent } from '../services/calendar.service';
 import { EventDetailModalComponent } from '../modals/event-detail-modal/event-detail-modal.component';
 import { ViewItineraryModalComponent, ViewItineraryDay, ViewItinerarySpot } from '../modals/view-itinerary-modal/view-itinerary-modal.component';
+import { CalendarCombinedDetailModalComponent } from '../modals/calendar-combined-detail-modal/calendar-combined-detail-modal.component';
 
 @Component({
   standalone: false,
@@ -202,17 +203,8 @@ export class UserCalendarPage implements OnInit {
     
     const allEventsForDate = this.getAllEventsForDate(date);
     if (allEventsForDate.length > 0) {
-      const hasUserItineraryEvents = allEventsForDate.some(event => 
-        event.createdByType === 'user' && 
-        (event.eventType === 'user_itinerary' || event.eventType === 'tourist_spot' || 
-         event.eventType === 'restaurant' || event.eventType === 'hotel')
-      );
-      
-      if (hasUserItineraryEvents || allEventsForDate.length > 1) {
-        await this.showItineraryModal(allEventsForDate, this.selectedDate);
-      } else {
-        await this.showEventModal(allEventsForDate[0]);
-      }
+      const { itineraryEvents, nonItineraryEvents } = this.splitDateEvents(allEventsForDate);
+      await this.showCombinedModal(itineraryEvents, nonItineraryEvents, this.selectedDate);
     }
   }
 
@@ -311,6 +303,13 @@ export class UserCalendarPage implements OnInit {
     return allEventsForDate.length > 1;
   }
 
+  hasCalendarEvents(date: Date): boolean {
+    const allEventsForDate = this.getAllEventsForDate(date);
+    return allEventsForDate.some(event =>
+      event.eventType === 'admin_event' || event.createdByType === 'admin'
+    );
+  }
+
   async showAlert(header: string, message: string) {
     const alert = await this.alertCtrl.create({
       header,
@@ -361,18 +360,8 @@ export class UserCalendarPage implements OnInit {
     try {
       const eventDate = new Date(event.date);
       const allEventsForDate = this.getAllEventsForDate(eventDate);
-
-      const hasUserItineraryEvents = allEventsForDate.some(e =>
-        e.createdByType === 'user' &&
-        (e.eventType === 'user_itinerary' || e.eventType === 'tourist_spot' ||
-         e.eventType === 'restaurant' || e.eventType === 'hotel')
-      );
-
-      if (hasUserItineraryEvents || allEventsForDate.length > 1) {
-        await this.showItineraryModal(allEventsForDate, event.date);
-      } else {
-        await this.showEventModal(event);
-      }
+      const { itineraryEvents, nonItineraryEvents } = this.splitDateEvents(allEventsForDate);
+      await this.showCombinedModal(itineraryEvents, nonItineraryEvents, event.date);
     } finally {
       this.isOpeningModal = false;
     }
@@ -421,6 +410,44 @@ export class UserCalendarPage implements OnInit {
     } catch (error) {
       console.error('Error showing itinerary modal:', error);
     }
+  }
+
+  async showCombinedModal(itineraryEvents: GlobalEvent[], eventEvents: GlobalEvent[], dateString: string) {
+    try {
+      const itineraryDays =
+        itineraryEvents.length > 0 ? [this.convertEventsToItineraryDay(itineraryEvents, dateString)] : [];
+
+      const modal = await this.modalCtrl.create({
+        component: CalendarCombinedDetailModalComponent,
+        cssClass: 'event-details-modal',
+        componentProps: {
+          itinerary: itineraryDays,
+          events: eventEvents,
+          selectedDate: dateString
+        },
+        backdropDismiss: true
+      });
+
+      await modal.present();
+    } catch (error) {
+      console.error('Error showing combined calendar modal:', error);
+    }
+  }
+
+  private splitDateEvents(events: GlobalEvent[]): { itineraryEvents: GlobalEvent[]; nonItineraryEvents: GlobalEvent[] } {
+    const itineraryEvents = events.filter(event =>
+      event.createdByType === 'user' &&
+      (event.eventType === 'user_itinerary' || event.eventType === 'tourist_spot' ||
+       event.eventType === 'restaurant' || event.eventType === 'hotel')
+    );
+
+    const nonItineraryEvents = events.filter(event =>
+      !(event.createdByType === 'user' &&
+        (event.eventType === 'user_itinerary' || event.eventType === 'tourist_spot' ||
+         event.eventType === 'restaurant' || event.eventType === 'hotel'))
+    );
+
+    return { itineraryEvents, nonItineraryEvents };
   }
 
   private convertEventsToItineraryDay(events: GlobalEvent[], dateString: string): ViewItineraryDay {

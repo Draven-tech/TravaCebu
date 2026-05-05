@@ -63,13 +63,16 @@
             
             <!-- Event Indicators -->
             <div class="event-indicators">
-              <div 
-                *ngFor="let event of getEventsForDate(date); trackBy: trackByEventId"
-                class="event-dot"
-                [ngClass]="getEventColor(event)"
-                (click)="onEventClick(event, $event)"
-                [title]="event.name"
-              ></div>
+              <ion-icon
+                class="event-icon itinerary-icon"
+                *ngIf="hasItineraryEvents(date)"
+                name="list"
+              ></ion-icon>
+              <ion-icon
+                *ngIf="hasCalendarEvents(date)"
+                class="event-icon events-icon"
+                name="star"
+              ></ion-icon>
             </div>
           </div>
         </div>

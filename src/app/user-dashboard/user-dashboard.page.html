@@ -9,8 +9,8 @@
       <div style="font-size: small;">Welcome!</div>
       <strong>
         {{ (userData?.firstName && userData?.lastName)
-            ? (userData.firstName + ' ' + userData.lastName)
-            : 'Guest' }}
+        ? (userData.firstName + ' ' + userData.lastName)
+        : 'Guest' }}
       </strong>
     </ion-title>
     <ion-buttons slot="end">
@@ -19,6 +19,47 @@
 </ion-header>
 
 <ion-content class="ion-padding" [scrollEvents]="true">
+  <ion-searchbar class="floating-search" slot="fixed" placeholder="Search tourist spots..." [(ngModel)]="searchQuery"
+    (ionInput)="onSearchInput($event)"></ion-searchbar>
+
+  <div class="page-container">
+    <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+      <ion-refresher-content pullingIcon="chevron-down-circle-outline" pullingText="Pull to refresh"
+        refreshingSpinner="circles" refreshingText="Refreshing...">
+      </ion-refresher-content>
+    </ion-refresher>
+
+    <div class="searchbar-spacer"></div>
+
+    <div class="recommendations-header" *ngIf="personalizedSuggestions.length > 0">
+      <h2 class="title">Suggested for You</h2>
+      <p *ngIf="effectiveSuggestionCategories.length > 0">
+        Based on your visited spots and preferred categories:
+        {{ effectiveSuggestionCategories.join(', ') }}
+      </p>
+    </div>
+
+    <div *ngIf="personalizedSuggestions.length > 0" class="suggestion-showcase">
+      <article *ngFor="let spot of personalizedSuggestions | slice:0:5" class="suggestion-card"
+        (click)="openSpotDetail(spot.id)">
+        <div class="suggestion-image-wrap">
+          <img [src]="spot.img || 'assets/img/default.png'" [alt]="spot.name" />
+          <span class="suggestion-category">{{ spot.category || 'Attraction' }}</span>
+        </div>
+
+        <div class="suggestion-content">
+          <h3>{{ spot.name }}</h3>
+          <ion-button fill="solid" size="small" (click)="addToItineraryPlanner(spot); $event.stopPropagation()">
+            <ion-icon [name]="isInItinerary(spot.id) ? 'checkmark-circle' : 'calendar-outline'">
+            </ion-icon>
+            <span>
+              {{ isInItinerary(spot.id) ? 'ADDED TO ITINERARY' : 'ADD TO ITINERARY' }}
+            </span>
+          </ion-button>
+        </div>
+      </article>
+    </div>
+  </div>
 
   <span class="my-itineraries-btn" (click)="goToMyItineraries()">My Itineraries</span>
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
@@ -26,9 +67,6 @@
       refreshingSpinner="circles" refreshingText="Refreshing...">
     </ion-refresher-content>
   </ion-refresher>
-
-  <ion-searchbar placeholder="Search tourist spots..." [(ngModel)]="searchQuery"
-    (ionInput)="onSearchInput($event)"></ion-searchbar>
 
   <h2 class="title">Plan Your Trip</h2>
 
@@ -50,6 +88,15 @@
           <div class="clickable-card" (click)="openSpotDetail(spot.id)">
             <div class="image-wrapper">
               <img [src]="spot.img || 'assets/img/default.png'" [alt]="spot.name" />
+              <ion-button
+                class="bucket-heart-btn"
+                fill="clear"
+                size="small"
+                (click)="toggleBucketList(spot); $event.stopPropagation()"
+                [attr.aria-label]="isInBucketList(spot.id) ? 'Remove from bucket list' : 'Add to bucket list'"
+              >
+                <ion-icon [name]="isInBucketList(spot.id) ? 'heart' : 'heart-outline'"></ion-icon>
+              </ion-button>
               <div class="visited-overlay" *ngIf="hasVisited(spot.id)">
                 <ion-icon name="checkmark-circle"></ion-icon>
                 <span>Visited</span>
@@ -61,20 +108,16 @@
             </ion-card-header>
           </div>
 
-          <ion-card-content class="bucket-action">
-            <ion-button fill="clear" size="small" (click)="toggleBucketList(spot); $event.stopPropagation()">
-              <ion-icon [name]="isInBucketList(spot.id) ? 'checkmark-circle' : 'heart-outline'">
+          <ion-card-content class="itinerary-action">
+            <ion-button fill="clear" size="small" (click)="addToItineraryPlanner(spot); $event.stopPropagation()">
+              <ion-icon [name]="isInItinerary(spot.id) ? 'checkmark-circle' : 'calendar-outline'">
               </ion-icon>
               <span>
-                {{ isInBucketList(spot.id) ? 'ADDED TO BUCKET LIST' : 'ADD TO BUCKET LIST' }}
+                {{ isInItinerary(spot.id) ? 'ADDED TO ITINERARY' : 'ADD TO ITINERARY' }}
               </span>
             </ion-button>
-            <!-- [name]="isInItineraryPlanner(spot.id) ? 'checkmark-circle' : 'paper-plane'" -->
-            <ion-button fill="clear" size="small" (click)="addToItineraryPlanner(spot)" >
-<!-- <span>{{ isInItineraryPlanner(spot.id) ? 'ADDED TO ITINERARY PLANNER' : 'ADD TO ITINERARY PLANNER' }}</span> -->
-            </ion-button>
-
           </ion-card-content>
+
         </ion-card>
       </ion-col>
     </ion-row>

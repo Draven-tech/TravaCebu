@@ -7,6 +7,7 @@ import { BadgeService } from './badge.service';
   providedIn: 'root'
 })
 export class ItineraryPlannerService {
+  private plannerSpotIds = new Set<string>();
 
   constructor(
     private firestore: AngularFirestore,
@@ -27,7 +28,9 @@ export class ItineraryPlannerService {
     try {
       const doc = await this.firestore.collection('users').doc(userId).get().toPromise();
       const data = doc?.data() as any;
-      return Array.isArray(data?.plannerDraftSpots) ? data.plannerDraftSpots : [];
+      const spots = Array.isArray(data?.plannerDraftSpots) ? data.plannerDraftSpots : [];
+      this.updatePlannerSpotCache(spots);
+      return spots;
     } catch (error) {
       console.error('Error getting planner spots:', error);
       return [];
@@ -44,6 +47,19 @@ export class ItineraryPlannerService {
         plannerDraftUpdatedAt: new Date()
       },
       { merge: true }
+    );
+    this.updatePlannerSpotCache(spots);
+  }
+
+  isInPlanner(spotId: string): boolean {
+    return this.plannerSpotIds.has(spotId);
+  }
+
+  private updatePlannerSpotCache(spots: any[]): void {
+    this.plannerSpotIds = new Set(
+      (Array.isArray(spots) ? spots : [])
+        .map((spot: any) => spot?.id)
+        .filter((id: any): id is string => typeof id === 'string' && id.length > 0)
     );
   }
 

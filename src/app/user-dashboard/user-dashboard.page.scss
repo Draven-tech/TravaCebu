@@ -18,41 +18,30 @@ ion-content {
   transition: background 0.2s;
 }
 
-::ng-deep .search-modal {
-  --height: 90%;
-  --border-radius: 16px 16px 0 0;
-
-  .modal-wrapper {
-    border-radius: 16px 16px 0 0;
-  }
-
-  ion-header {
-    border-radius: 16px 16px 0 0;
-  }
-
-  ion-toolbar {
-    --background: #ffc409;
-    --color: #000;
-    border-radius: 16px 16px 0 0;
-  }
-
-  ion-title {
-    font-weight: 600;
-  }
-}
-
-ion-searchbar {
-  --background: #ffffff;
+.floating-search {
+  --background: rgba(255, 255, 255, 0.95);
   --border-radius: 25px;
-  --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  --box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
   --color: #000000;
   --placeholder-color: #666666;
-  margin: 10px 0;
+  left: 50%;
+  width: calc(100% - 24px);
+  max-width: 496px;
+  margin-top: 12px;
+  transform: translateX(-50%);
+  z-index: 20;
+  backdrop-filter: blur(6px);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:focus-within {
+    --box-shadow: 0 12px 28px rgba(76, 141, 187, 0.35);
+    transform: translateX(-50%) translateY(-1px);
+  }
 
   &::ng-deep {
     .searchbar-input {
       border-radius: 25px !important;
-      background: #ffffff !important;
+      background: rgba(255, 255, 255, 0.96) !important;
     }
 
     .searchbar-search-icon {
@@ -61,6 +50,92 @@ ion-searchbar {
 
     .searchbar-clear-button {
       color: #666666;
+    }
+  }
+}
+
+.suggestion-showcase {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 0.25rem 0 0.75rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .suggestion-card {
+    min-width: 235px;
+    max-width: 235px;
+    height: 240px;
+    background: #f8fbff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(44, 93, 129, 0.15);
+    scroll-snap-align: start;
+    cursor: pointer;
+    border: 1px solid #d8e6f2;
+  }
+
+  .suggestion-image-wrap {
+    position: relative;
+    height: 130px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .suggestion-category {
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.75);
+      color: #ffffff;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+  }
+
+  .suggestion-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    height: 110px;
+
+    h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1e293b;
+      line-height: 1.25;
+      min-height: 2.3em;
+      display: -webkit-box;
+      line-clamp: 2;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    ion-button {
+      margin: 0;
+      margin-top: auto;
+      --background: #4c8dbb;
+      --background-hover: #427aa1;
+      --border-radius: 10px;
+      --padding-top: 8px;
+      --padding-bottom: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: none;
     }
   }
 }
@@ -213,19 +288,23 @@ ion-grid {
 }
 
 .tourist-card {
+  box-sizing: border-box;
   width: 100%;
-  height: 200px;
+  margin: 0;
+  height: 230px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
-  --background: linear-gradient(45deg, #f1c40f, #f39c12);
+  --background: #f8fbff;
+  border: 1px solid #d8e6f2;
+  box-shadow: 0 8px 24px rgba(44, 93, 129, 0.15);
 
   .clickable-card {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
+    --color: #1e293b;
   }
 
   .image-wrapper {
@@ -233,10 +312,10 @@ ion-grid {
 
     img {
       width: 100%;
-      height: 140px;
+      height: 120px;
       object-fit: cover;
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
     }
 
     .visited-overlay {
@@ -257,33 +336,77 @@ ion-grid {
         font-size: 1rem;
       }
     }
+
+    .bucket-heart-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      margin: 0;
+      width: 34px;
+      height: 34px;
+      min-height: 34px;
+      --padding-start: 0;
+      --padding-end: 0;
+      --padding-top: 0;
+      --padding-bottom: 0;
+      --border-radius: 999px;
+      --background: rgba(255, 255, 255, 0.92);
+      --background-hover: rgba(255, 255, 255, 1);
+      --color: #ef4444;
+      z-index: 3;
+
+      ion-icon {
+        margin: 0;
+        font-size: 1.15rem;
+      }
+    }
   }
 
   ion-card-header {
-    padding: 8px;
+    padding: 8px 10px 6px;
     text-align: center;
+    min-height: 48px;
 
     ion-card-title {
+      color: #1e293b !important;
       font-size: 14px;
       font-weight: bold;
+      line-height: 1.25;
       white-space: normal;
       overflow: hidden;
       text-overflow: unset;
       display: -webkit-box;
+      line-clamp: 2;
+      -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
     }
   }
 
-  .bucket-action {
-    padding: 4px;
+  .itinerary-action {
+    padding: 0 10px 6px;
     text-align: center;
 
     ion-button {
-      font-size: 12px;
-      --color: #000000;
-      --background: transparent;
-      --padding-start: 0;
-      --padding-end: 0;
+      margin: 0;
+      width: 100%;
+      min-height: 34px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      --color: #4c8dbb !important;
+      --background: #edf5fb;
+      --background-hover: #e3eff8;
+      --border-radius: 10px;
+      --padding-start: 8px;
+      --padding-end: 8px;
+      --padding-top: 8px;
+      --padding-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    ion-icon {
+      margin-right: 5px;
+      font-size: 0.95rem;
     }
   }
 }
@@ -294,7 +417,7 @@ ion-grid {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  flex-wrap: nowrap; 
+  flex-wrap: nowrap;
   width: 100%;
 
   ion-button {
@@ -322,10 +445,6 @@ ion-grid {
     height: 100px;
   }
 
-  .tourist-card .bucket-action ion-button {
-    font-size: 0.7rem;
-  }
-
   .pagination-container {
     flex-direction: column;
     gap: 10px;
@@ -334,18 +453,6 @@ ion-grid {
       margin: 0;
     }
   }
-}
-
-.bucket-action {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-}
-
-.bucket-action ion-button {
-  margin: 0;
-  font-size: 0.8rem;
 }
 
 .visited-spot-list {

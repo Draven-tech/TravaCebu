@@ -11,6 +11,7 @@ import { GeofencingService } from '../services/geofencing.service';
 import { SearchModalComponent } from '../modals/search-modal/search-modal.component';
 import { VisitedSpotsModalComponent } from '../modals/visited-spots-modal/visited-spots-modal.component';
 import { ItineraryPlannerService } from '../services/itinerary-planner.service';
+import { PersonalizedSpotSuggestionsService } from '../services/personalized-spot-suggestions.service';
 
 @Component({
   selector: 'app-user-dashboard',
@@ -29,6 +30,8 @@ export class UserDashboardPage implements OnInit, OnDestroy {
   bucketList: any[] = [];     
   visitedSpots: any[] = [];
   bucketSpotIds: string[] = [];
+  personalizedSuggestions: any[] = [];
+  effectiveSuggestionCategories: string[] = [];
 
 
   searchQuery = '';
@@ -55,7 +58,8 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     private placesService: PlacesService,
     private pendingSpotService: PendingTouristSpotService,
     private geofencingService: GeofencingService,
-    private itineraryPlannerService: ItineraryPlannerService
+    private itineraryPlannerService: ItineraryPlannerService,
+    private personalizedSuggestionsService: PersonalizedSpotSuggestionsService
   ) {}
 
   async ngOnInit() {
@@ -70,6 +74,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     this.loadSpots();
     this.loadVisitedSpots();
     this.loadBucketStatus();
+    this.loadPlannerStatus();
   }
 
   ngOnDestroy() {
@@ -81,6 +86,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
   loadUserProfile() {
     this.firestore.collection('users').doc(this.userId!).valueChanges().subscribe(data => {
       this.userData = data;
+      this.updatePersonalizedSuggestions();
     });
   }
 
@@ -160,6 +166,7 @@ loadBucketList() {
             }
           })
         );
+        
       }
 
       this.visitedSpots = visitedEntries.map((entry: any) => {
@@ -172,9 +179,11 @@ loadBucketList() {
           img: entry.img || spotData.img || 'assets/img/default.png',
         };
       });
+      this.updatePersonalizedSuggestions();
     } catch (error) {
       console.error('Error loading visited spots:', error);
     }
+    
   }
 
   async loadBucketStatus() {
@@ -182,6 +191,14 @@ loadBucketList() {
       this.bucketSpotIds = await this.bucketService.getBucketSpotIds();
     } catch (err) {
       console.error('Error loading bucket status:', err);
+    }
+  }
+
+  async loadPlannerStatus() {
+    try {
+      await this.itineraryPlannerService.getPlannerSpots();
+    } catch (err) {
+      console.error('Error loading itinerary planner status:', err);
     }
   }
 
@@ -210,6 +227,10 @@ loadBucketList() {
       });
       await confirmAdd.present();
     }
+  }
+
+  isInItinerary(spotId: string): boolean {
+    return !!spotId && this.itineraryPlannerService.isInPlanner(spotId);
   }
 
   async addToBucketList(spot: any) {
@@ -474,8 +495,18 @@ getVisitedDate(visitedAt: any): Date | null {
 
   const timestamp = new Date(visitedAt);
   return isNaN(timestamp.getTime()) ? null : timestamp;
+}private updatePersonalizedSuggestions() {
+  this.personalizedSuggestions = this.personalizedSuggestionsService.getPersonalizedSuggestions(
+    this.allSpots,
+    this.visitedSpots,
+    this.userData,
+    6
+  );
+  this.effectiveSuggestionCategories =
+    this.personalizedSuggestionsService.getEffectiveSuggestionCategories(this.visitedSpots, this.userData);
 }
 
 }
+
 
 

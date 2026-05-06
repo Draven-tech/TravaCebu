@@ -12,16 +12,10 @@
   </ion-toolbar>
 </ion-header>
 
-<!-- Link pop up for sharing itinerary -->
 <ion-content class="ion-padding">
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
-  <ion-item *ngIf="downloadUrl" (click)="copyToClipboard(downloadUrl)">
-    <ion-label>{{ downloadUrl }}</ion-label>
-    <ion-icon name="copy-outline" slot="end"></ion-icon>
-  </ion-item>
-
   <!-- Loading State -->
   <div class="loading-container" *ngIf="isLoading">
     <ion-spinner name="crescent"></ion-spinner>

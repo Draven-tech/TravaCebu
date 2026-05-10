@@ -32,10 +32,11 @@ export class UserDashboardPage implements OnInit, OnDestroy {
   bucketSpotIds: string[] = [];
   personalizedSuggestions: any[] = [];
   effectiveSuggestionCategories: string[] = [];
+  hiddenGems: any[] = [];
 
 
   searchQuery = '';
-  tags = ['All', 'Attraction', 'Mall', 'Beach', 'Landmark', 'Museum', 'Park'];
+  tags = ['All', 'Hidden Gems', 'Attraction', 'Mall', 'Beach', 'Landmark', 'Museum', 'Park'];
   selectedTag = 'All';
 
   currentPage = 1;
@@ -101,6 +102,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
       .subscribe({
         next: (spots) => {
           this.allSpots = this.sortByPopularity(spots);
+          this.hiddenGems = this.placesService.getHiddenGems(this.allSpots, this.allSpots.length);
           this.applyFilters();
           this.isLoading = false;
         },
@@ -270,11 +272,16 @@ async addToItineraryPlanner(spot: any) {
   }
 
   applyFilters() {
-    let filtered = this.selectedTag === 'All'
-      ? this.allSpots
-      : this.allSpots.filter(spot =>
-          spot.category?.toLowerCase() === this.selectedTag.toLowerCase()
-        );
+    let filtered: any[] = this.allSpots;
+
+    if (this.selectedTag === 'Hidden Gems') {
+      const hiddenGemIds = new Set(this.hiddenGems.map(spot => spot.id));
+      filtered = this.allSpots.filter(spot => hiddenGemIds.has(spot.id));
+    } else if (this.selectedTag !== 'All') {
+      filtered = this.allSpots.filter(
+        spot => spot.category?.toLowerCase() === this.selectedTag.toLowerCase()
+      );
+    }
 
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
@@ -313,11 +320,6 @@ async addToItineraryPlanner(spot: any) {
   openSpotDetail(spotId: string) {
     this.navCtrl.navigateForward(`/tourist-spot-detail/${spotId}`);
   }
-
-  goToMyItineraries() {
-    this.navCtrl.navigateForward('/my-itineraries');
-  }
-
   async openSearchModal() {
     const modal = await this.modalCtrl.create({
       component: SearchModalComponent,
@@ -500,13 +502,14 @@ getVisitedDate(visitedAt: any): Date | null {
     this.allSpots,
     this.visitedSpots,
     this.userData,
-    6
+    this.itemsPerPage
   );
   this.effectiveSuggestionCategories =
     this.personalizedSuggestionsService.getEffectiveSuggestionCategories(this.visitedSpots, this.userData);
 }
 
 }
+
 
 
 

@@ -14,8 +14,7 @@ export class ItineraryPlannerService {
     private afAuth: AngularFireAuth,
     private badgeService: BadgeService
   ) { }
-
-  // 🔐 Get current user ID
+  
   private async getCurrentUserId(): Promise<string | null> {
     const user = await this.afAuth.currentUser;
     return user?.uid || null;
@@ -91,21 +90,20 @@ export class ItineraryPlannerService {
     await this.setPlannerSpots([]);
   }
 
-  // 🆕 CREATE itinerary
   async createItinerary(data: any): Promise<string> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
     const docRef = this.firestore
       .collection(`users/${userId}/itineraries`)
-      .doc(); // auto ID
+      .doc();
 
     const itinerary = {
       name: data.name?.trim() || `My Trip`,
       createdAt: new Date(),
       startDate: data.startDate || null,
       days: data.days || 1,
-      spots: [], // initially empty
+      spots: [],
       ...data
     };
 
@@ -138,7 +136,6 @@ export class ItineraryPlannerService {
     }
   }
 
-  // 📄 GET single itinerary
   async getItineraryById(itineraryId: string): Promise<any | null> {
     const userId = await this.getCurrentUserId();
     if (!userId) return null;
@@ -158,7 +155,6 @@ export class ItineraryPlannerService {
     }
   }
 
-  // ➕ ADD spot to itinerary
   async addSpotToItinerary(itineraryId: string, spot: any, day: number): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
@@ -173,7 +169,6 @@ export class ItineraryPlannerService {
 
       const spots = data?.spots || [];
 
-      // Prevent duplicate spots in same itinerary
       const exists = spots.some((s: any) => s.spotId === spot.id);
       if (exists) return;
 
@@ -200,7 +195,6 @@ export class ItineraryPlannerService {
     }
   }
 
-  // ❌ REMOVE spot from itinerary
   async removeSpotFromItinerary(itineraryId: string, spotId: string): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
@@ -229,7 +223,6 @@ export class ItineraryPlannerService {
     }
   }
 
-  // 🔄 UPDATE spot day (drag & drop support later)
   async updateSpotDay(itineraryId: string, spotId: string, newDay: number): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
@@ -259,7 +252,6 @@ export class ItineraryPlannerService {
     }
   }
 
-  // 🧹 DELETE itinerary
   async deleteItinerary(itineraryId: string): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
@@ -278,13 +270,11 @@ export class ItineraryPlannerService {
     }
   }
 
-  // 🔢 COUNT itineraries
   async getItineraryCount(): Promise<number> {
     const itineraries = await this.getItineraries();
     return itineraries.length;
   }
 
-  // 🏆 Badge trigger (same pattern as bucket)
   private async triggerBadgeEvaluation(userId: string): Promise<void> {
     try {
       const userDoc = await this.firestore
@@ -320,7 +310,6 @@ export class ItineraryPlannerService {
       
       await batch.commit();
       
-      // Trigger badge evaluation after clearing bucket list
       await this.triggerBadgeEvaluation(userId);
     } catch (error) {
       console.error('Error clearing itinerary', error);

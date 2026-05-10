@@ -1,16 +1,24 @@
 .header-toolbar {
-  --background: linear-gradient(45deg, #f1c40f, #f39c12);
-  --color: #2d3748;
+  --background: #4c8dbb;
+  --color: #ffffff;
   box-shadow: none;
+}
+
+.welcome-label {
+  font-size: small;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.header-toolbar ion-title {
+  color: #ffffff;
 }
 
 ion-content {
   --padding-bottom: 80px;
-
 }
 
 .my-itineraries-btn {
-  color: #747474;
+  color: #4c8dbb;
   font-weight: 600;
   font-size: 0.9rem;
   padding: 6px 12px;
@@ -51,6 +59,25 @@ ion-content {
     .searchbar-clear-button {
       color: #666666;
     }
+  }
+}
+
+// Fixed ion-searchbar does not take layout space — reserve height so content clears it
+.searchbar-spacer {
+  flex-shrink: 0;
+  min-height: 50px;
+}
+
+.recommendations-header {
+  margin-top: 0.5rem;
+  padding-top: 0.35rem;
+
+  .title {
+    margin-top: 0;
+  }
+
+  p {
+    margin-top: 0.35rem;
   }
 }
 
@@ -129,13 +156,17 @@ ion-content {
       margin: 0;
       margin-top: auto;
       --background: #4c8dbb;
-      --background-hover: #427aa1;
+      --background-hover: #3d7aa3;
       --border-radius: 10px;
       --padding-top: 8px;
       --padding-bottom: 8px;
       font-size: 0.78rem;
       font-weight: 600;
       text-transform: none;
+
+      ion-icon {
+        margin-right: 8px;
+      }
     }
   }
 }
@@ -159,7 +190,7 @@ ion-button.see-all-link {
   --padding-top: 0;
   --padding-bottom: 0;
   --background: transparent;
-  --color: #1a73e8;
+  --color: #4c8dbb;
   text-decoration: underline;
   font-size: 0.9rem;
   font-weight: 600;
@@ -186,20 +217,29 @@ ion-button.see-all-link {
   gap: 8px;
   padding: 0.5rem 0;
 
-  ion-chip {
-    flex-shrink: 0;
-  }
-
   &::-webkit-scrollbar {
     display: none;
   }
+
+  ion-chip.plan-tag-chip {
+    flex-shrink: 0;
+    margin: 0;
+    height: 36px;
+    font-weight: 700;
+    --background: #d4e8f5;
+    --color: #1e293b;
+    border: 1px solid rgba(76, 141, 187, 0.35);
+
+    &.plan-tag-chip--active {
+      --background: #4c8dbb;
+      --color: #ffffff;
+      border-color: #4c8dbb;
+    }
+  }
 }
 
-ion-chip {
-  margin-right: 0.5rem;
-  font-weight: bold;
-  color: #000000;
-  background-color: #FFD144;
+.hidden-gems-section {
+  margin-top: 0.5rem;
 }
 
 .search-section {
@@ -216,7 +256,7 @@ ion-chip {
 
       .search-icon {
         font-size: 3rem;
-        color: #FFD144;
+        color: #4c8dbb;
         margin-bottom: 15px;
       }
 
@@ -232,6 +272,12 @@ ion-chip {
         margin: 0 0 20px 0;
         font-size: 0.95rem;
       }
+
+      .search-add-spot-btn {
+        --background: #4c8dbb;
+        --background-hover: #3d7aa3;
+        --color: #ffffff;
+      }
     }
   }
 }
@@ -245,6 +291,7 @@ ion-chip {
 
   ion-spinner {
     margin-bottom: 15px;
+    --color: #4c8dbb;
   }
 
   p {
@@ -394,8 +441,8 @@ ion-grid {
       font-weight: 700;
       letter-spacing: 0.02em;
       --color: #4c8dbb !important;
-      --background: #edf5fb;
-      --background-hover: #e3eff8;
+      --background: #e8f3f9;
+      --background-hover: #d4e8f5;
       --border-radius: 10px;
       --padding-start: 8px;
       --padding-end: 8px;
@@ -421,7 +468,7 @@ ion-grid {
   width: 100%;
 
   ion-button {
-    --color: #FFD144;
+    --color: #4c8dbb;
     font-weight: 600;
     display: inline-flex;
     align-items: center;
@@ -433,7 +480,7 @@ ion-grid {
   }
 
   .page-info {
-    color: #000000;
+
     font-weight: 600;
     font-size: 0.9rem;
     white-space: nowrap;
@@ -460,7 +507,7 @@ ion-grid {
   background: transparent;
 
   .visited-spot-item {
-    --background: #FFC409;
+    --background: #d4e8f5;
     border-radius: 12px;
     margin-bottom: 6px;
     box-shadow: none;

@@ -2,19 +2,20 @@
   <ion-toolbar class="header-toolbar">
     <ion-buttons slot="start">
       <ion-avatar>
-        <img src="assets/img/car.png" />
+        <img src="assets/img/car.png" alt="" />
       </ion-avatar>
     </ion-buttons>
     <ion-title>
-      <div style="font-size: small;">Welcome!</div>
+      <div class="welcome-label">Welcome!</div>
       <strong>
-        {{ (userData?.firstName && userData?.lastName)
-        ? (userData.firstName + ' ' + userData.lastName)
-        : 'Guest' }}
+        {{
+        userData?.firstName && userData?.lastName
+        ? userData.firstName + ' ' + userData.lastName
+        : 'Guest'
+        }}
       </strong>
     </ion-title>
-    <ion-buttons slot="end">
-    </ion-buttons>
+    <ion-buttons slot="end"></ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -50,8 +51,7 @@
         <div class="suggestion-content">
           <h3>{{ spot.name }}</h3>
           <ion-button fill="solid" size="small" (click)="addToItineraryPlanner(spot); $event.stopPropagation()">
-            <ion-icon [name]="isInItinerary(spot.id) ? 'checkmark-circle' : 'calendar-outline'">
-            </ion-icon>
+            <ion-icon [name]="isInItinerary(spot.id) ? 'checkmark-circle' : 'calendar-outline'"></ion-icon>
             <span>
               {{ isInItinerary(spot.id) ? 'ADDED TO ITINERARY' : 'ADD TO ITINERARY' }}
             </span>
@@ -61,17 +61,15 @@
     </div>
   </div>
 
-  <span class="my-itineraries-btn" (click)="goToMyItineraries()">My Itineraries</span>
-  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
-    <ion-refresher-content pullingIcon="chevron-down-circle-outline" pullingText="Pull to refresh"
-      refreshingSpinner="circles" refreshingText="Refreshing...">
-    </ion-refresher-content>
-  </ion-refresher>
-
   <h2 class="title">Plan Your Trip</h2>
 
   <div class="category-scroll">
-    <ion-chip *ngFor="let tag of tags" [color]="selectedTag === tag ? 'dark' : 'warning'" (click)="selectTag(tag)">
+    <ion-chip
+      *ngFor="let tag of tags"
+      class="plan-tag-chip"
+      [class.plan-tag-chip--active]="selectedTag === tag"
+      (click)="selectTag(tag)"
+    >
       <ion-label>{{ tag }}</ion-label>
     </ion-chip>
   </div>
@@ -88,14 +86,11 @@
           <div class="clickable-card" (click)="openSpotDetail(spot.id)">
             <div class="image-wrapper">
               <img [src]="spot.img || 'assets/img/default.png'" [alt]="spot.name" />
-              <ion-button
-                class="bucket-heart-btn"
-                fill="clear"
-                size="small"
-                (click)="toggleBucketList(spot); $event.stopPropagation()"
-                [attr.aria-label]="isInBucketList(spot.id) ? 'Remove from bucket list' : 'Add to bucket list'"
-              >
-                <ion-icon [name]="isInBucketList(spot.id) ? 'heart' : 'heart-outline'"></ion-icon>
+              <ion-button class="bucket-heart-btn" fill="clear" size="small"
+                (click)="toggleBucketList(spot); $event.stopPropagation()" [attr.aria-label]="
+                  isInBucketList(spot.id) ? 'Remove from bucket list' : 'Add to bucket list'
+                ">
+                <ion-icon [name]="isInBucketList(spot.id) ? 'basket' : 'basket-outline'"></ion-icon>
               </ion-button>
               <div class="visited-overlay" *ngIf="hasVisited(spot.id)">
                 <ion-icon name="checkmark-circle"></ion-icon>
@@ -110,14 +105,12 @@
 
           <ion-card-content class="itinerary-action">
             <ion-button fill="clear" size="small" (click)="addToItineraryPlanner(spot); $event.stopPropagation()">
-              <ion-icon [name]="isInItinerary(spot.id) ? 'checkmark-circle' : 'calendar-outline'">
-              </ion-icon>
+              <ion-icon [name]="isInItinerary(spot.id) ? 'checkmark-circle' : 'calendar-outline'"></ion-icon>
               <span>
                 {{ isInItinerary(spot.id) ? 'ADDED TO ITINERARY' : 'ADD TO ITINERARY' }}
               </span>
             </ion-button>
           </ion-card-content>
-
         </ion-card>
       </ion-col>
     </ion-row>
@@ -132,13 +125,9 @@
   <div class="pagination-container" *ngIf="totalPages > 1">
     <ion-button fill="clear" [disabled]="currentPage === 1" (click)="previousPage()">
       <ion-icon name="chevron-back"></ion-icon>
-      Previous
     </ion-button>
-    <div class="page-info">
-      Page {{ currentPage }} of {{ totalPages }}
-    </div>
+    <div class="page-info">{{ currentPage }} of {{ totalPages }}</div>
     <ion-button fill="clear" [disabled]="currentPage === totalPages" (click)="nextPage()">
-      Next
       <ion-icon name="chevron-forward"></ion-icon>
     </ion-button>
   </div>
@@ -150,8 +139,7 @@
           <ion-icon name="search-outline" class="search-icon"></ion-icon>
           <h3>Can't find your desired tourist spot?</h3>
           <p>Search for tourist spots in Cebu and add them to our database!</p>
-          <ion-button expand="block" style="--background: linear-gradient(45deg, #f1c40f, #f39c12); --color: #000000;"
-            (click)="openSearchModal()">
+          <ion-button expand="block" class="search-add-spot-btn" (click)="openSearchModal()">
             <ion-icon name="add-circle-outline" slot="start"></ion-icon>
             Search & Add New Tourist Spot
           </ion-button>
@@ -160,7 +148,6 @@
     </ion-card>
   </div>
 
-  <!-- Recently Visited Section -->
   <div class="recently-visited-header">
     <h2 class="title">Recently Visited</h2>
     <ion-button class="see-all-link" fill="clear" size="small" (click)="openVisitedSpotsModal()">
@@ -184,3 +171,4 @@
   </ion-text>
 
   <app-bottom-nav></app-bottom-nav>
+</ion-content>

@@ -14,10 +14,8 @@ import { CalendarService } from '../services/calendar.service';
 })
 export class ItineraryPlannerPage implements OnInit {
 
-  // 🟡 PLANNER (DRAFT)
   spots: any[] = [];
 
-  // 🔵 SAVED ITINERARIES
   itineraries: any[] = [];
 
   itinerary: ItineraryDay[] = [];
@@ -48,7 +46,6 @@ export class ItineraryPlannerPage implements OnInit {
     private calendarService: CalendarService
   ) { }
 
-  // 🔵 LOAD SAVED ITINERARIES
   async loadItineraries() {
     this.isLoading = true;
     try {
@@ -69,7 +66,6 @@ export class ItineraryPlannerPage implements OnInit {
     this.spots = await this.itineraryplannerService.getPlannerSpots();
   }
 
-  /** Keeps planner draft spots in Firestore for cross-screen sync. */
   private async savePlannerSpotsToStorage(): Promise<void> {
     await this.itineraryplannerService.setPlannerSpots(this.spots);
   }
@@ -78,10 +74,6 @@ export class ItineraryPlannerPage implements OnInit {
     await this.loadItineraries();
     await this.loadPlannerSpots();
   }
-
-  // =============================
-  // 🟡 PLANNER ACTIONS (DRAFT)
-  // =============================
 
   async removeFromPlanner(spotId: string) {
     this.spots = this.spots.filter(s => s.id !== spotId);
@@ -92,10 +84,6 @@ export class ItineraryPlannerPage implements OnInit {
     this.spots = [];
     await this.savePlannerSpotsToStorage();
   }
-
-  // =============================
-  // 🔵 SAVED ACTIONS
-  // =============================
 
   async removeFromSaved(itineraryId: string, spotId: string) {
     await this.itineraryplannerService.removeSpotFromItinerary(itineraryId, spotId);
@@ -112,7 +100,6 @@ export class ItineraryPlannerPage implements OnInit {
     await this.loadItineraries();
   }
 
-  // ✏️ LOAD INTO PLANNER (EDIT MODE)
   async loadItineraryToPlanner(itinerary: any) {
     this.spots = itinerary.spots || [];
     this.setup.itineraryName = itinerary.name;
@@ -123,10 +110,6 @@ export class ItineraryPlannerPage implements OnInit {
     this.currentItineraryId = itinerary.id;
     await this.savePlannerSpotsToStorage();
   }
-
-  // =============================
-  // 🚀 GENERATION
-  // =============================
 
   async openItinerarySetup() {
     if (this.spots.length === 0) {
@@ -166,14 +149,12 @@ export class ItineraryPlannerPage implements OnInit {
     this.showItinerary();
   }
 
-  // 💾 SAVE (CREATE OR UPDATE)
   async saveItinerary() {
     const name =
       this.setup.itineraryName.trim() ||
       (await this.calendarService.getNextDefaultItineraryName());
 
     if (this.editing && this.currentItineraryId) {
-      // UPDATE EXISTING
       for (let spot of this.spots) {
         await this.itineraryplannerService.addSpotToItinerary(
           this.currentItineraryId,
@@ -182,7 +163,6 @@ export class ItineraryPlannerPage implements OnInit {
         );
       }
     } else {
-      // CREATE NEW
       const id = await this.itineraryplannerService.createItinerary({
         name,
         startDate: this.setup.startDate,
@@ -213,11 +193,7 @@ export class ItineraryPlannerPage implements OnInit {
       editable: true,
       onEdit: () => this.editItinerary(),
       originalSpots: this.spots,
-
-      // IMPORTANT: pass current name
       itineraryName: this.setup.itineraryName,
-
-      // FIX: capture updated name
       onNameChange: (name: string) => {
         this.setup.itineraryName = name;
       },
@@ -232,10 +208,6 @@ export class ItineraryPlannerPage implements OnInit {
   async editItinerary() {
     this.showSetupModal = true;
   }
-
-  // =============================
-  // UTIL
-  // =============================
 
   getTodayString(): string {
     const today = new Date();

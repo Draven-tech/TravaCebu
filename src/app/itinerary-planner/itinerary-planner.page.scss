@@ -1,6 +1,3 @@
-// Remove unused imports/global styles
-// ::ng-deep .itinerary-modal (unused - no matching HTML)
-
 .bucket-header {
   --background: linear-gradient(45deg, #f1c40f, #f39c12);
   box-shadow: none;
@@ -37,8 +34,8 @@
     width: 200%;
     height: 200%;
     background: radial-gradient(circle, rgba(231, 76, 60, 0.08) 0%, transparent 50%),
-                radial-gradient(circle, rgba(46, 204, 113, 0.05) 30%, transparent 70%),
-                radial-gradient(circle, rgba(230, 126, 34, 0.04) 60%, transparent 90%);
+      radial-gradient(circle, rgba(46, 204, 113, 0.05) 30%, transparent 70%),
+      radial-gradient(circle, rgba(230, 126, 34, 0.04) 60%, transparent 90%);
     z-index: 0;
     pointer-events: none;
   }
@@ -113,7 +110,6 @@
   }
 }
 
-// Setup Modal Styles
 ::ng-deep .setup-modal {
   --height: 90vh;
   --width: 95vw;
@@ -337,12 +333,12 @@
   }
 }
 
-// Animations
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

@@ -8,16 +8,13 @@
 
 <ion-content fullscreen class="bucket-content ion-padding">
 
-  <!-- 🟡 PLANNER ACTIONS -->
   <span class="clear-text-button" (click)="clearPlanner()">
     CLEAR ALL
   </span>
 
-  <!-- 🟡 PLANNER LIST -->
   <ion-item-sliding *ngFor="let spot of spots" class="spot-sliding-card">
-    
+
     <ion-item-options side="end">
-      <!-- ✅ FIXED: remove from planner only -->
       <ion-item-option color="danger" (click)="removeFromPlanner(spot.id)">
         Remove
       </ion-item-option>
@@ -36,10 +33,6 @@
 
   <div class="content-spacer"></div>
 
-  <!-- ============================= -->
-  <!-- 🔵 MY ITINERARIES SECTION -->
-  <!-- ============================= -->
-
   <div class="saved-section" *ngIf="itineraries.length > 0">
     <h3 class="section-title">My Itineraries</h3>
 
@@ -48,25 +41,20 @@
       <div class="saved-header">
         <h4>{{ itinerary.name }}</h4>
         <div class="saved-actions">
-          <!-- ✏️ LOAD INTO PLANNER -->
           <ion-button size="small" fill="clear" (click)="loadItineraryToPlanner(itinerary)">
             Edit
           </ion-button>
 
-          <!-- 🗑 DELETE ENTIRE -->
           <ion-button size="small" fill="clear" color="danger" (click)="deleteItinerary(itinerary.id)">
             Delete
           </ion-button>
         </div>
       </div>
 
-      <!-- SPOTS INSIDE -->
       <ion-item-sliding *ngFor="let spot of itinerary.spots">
         <ion-item-options side="end">
-          
-          <!-- REMOVE ONE SPOT -->
-          <ion-item-option color="danger"
-            (click)="removeFromSaved(itinerary.id, spot.spotId)">
+
+          <ion-item-option color="danger" (click)="removeFromSaved(itinerary.id, spot.spotId)">
             Remove
           </ion-item-option>
 
@@ -82,18 +70,12 @@
         </ion-item>
       </ion-item-sliding>
 
-      <!-- CLEAR ONLY THIS ITINERARY -->
-      <ion-button expand="block" fill="outline" color="medium"
-        (click)="clearSaved(itinerary.id)">
+      <ion-button expand="block" fill="outline" color="medium" (click)="clearSaved(itinerary.id)">
         Clear Spots
       </ion-button>
 
     </div>
   </div>
-
-  <!-- ============================= -->
-  <!-- 🛠 SETUP MODAL -->
-  <!-- ============================= -->
 
   <ion-modal [isOpen]="showSetupModal" (didDismiss)="showSetupModal = false" class="setup-modal">
     <ng-template>
@@ -108,26 +90,20 @@
 
         <div class="setup-content">
 
-          <!-- NAME -->
           <div class="setup-section">
             <h3>Itinerary name (optional)</h3>
 
             <ion-item lines="none">
               <ion-label position="stacked">Name</ion-label>
-              <ion-input
-                type="text"
-                [placeholder]="defaultNamePlaceholder"
-                [(ngModel)]="setup.itineraryName">
+              <ion-input type="text" [placeholder]="defaultNamePlaceholder" [(ngModel)]="setup.itineraryName">
               </ion-input>
             </ion-item>
           </div>
 
-          <!-- DAYS -->
           <div class="setup-section">
             <h3>How many days?</h3>
 
-            <ion-range min="1" max="14" step="1"
-              [(ngModel)]="setup.days">
+            <ion-range min="1" max="14" step="1" [(ngModel)]="setup.days">
             </ion-range>
 
             <div class="selected-days">
@@ -135,30 +111,23 @@
             </div>
           </div>
 
-          <!-- DATE -->
           <div class="setup-section">
             <h3>Start Date</h3>
 
-            <ion-datetime presentation="date"
-              [(ngModel)]="setup.startDate"
-              [min]="getTodayString()">
+            <ion-datetime presentation="date" [(ngModel)]="setup.startDate" [min]="getTodayString()">
             </ion-datetime>
           </div>
 
-          <!-- TIME -->
           <div class="setup-section">
             <h3>Time Range</h3>
 
-            <ion-datetime presentation="time"
-              [(ngModel)]="setup.startTime">
+            <ion-datetime presentation="time" [(ngModel)]="setup.startTime">
             </ion-datetime>
 
-            <ion-datetime presentation="time"
-              [(ngModel)]="setup.endTime">
+            <ion-datetime presentation="time" [(ngModel)]="setup.endTime">
             </ion-datetime>
           </div>
 
-          <!-- SUMMARY -->
           <div class="setup-summary">
             <p>
               {{ getDateDisplay(setup.startDate) }} •
@@ -179,8 +148,7 @@
             Proceed
           </ion-button>
 
-          <ion-button expand="block" fill="clear"
-            (click)="showSetupModal = false">
+          <ion-button expand="block" fill="clear" (click)="showSetupModal = false">
             Cancel
           </ion-button>
         </div>
@@ -191,16 +159,13 @@
 
 </ion-content>
 
-<!-- FOOTER -->
 <ion-footer class="footer-fixed">
 
-  <ion-button expand="block"
-    (click)="goToMyItineraries()">
+  <ion-button expand="block" (click)="goToMyItineraries()">
     My Itineraries
   </ion-button>
 
-  <ion-button expand="block"
-    (click)="openItinerarySetup()">
+  <ion-button expand="block" (click)="openItinerarySetup()">
     CONTINUE
   </ion-button>
 

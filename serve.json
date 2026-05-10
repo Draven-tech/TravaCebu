@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/admin/tourist-spots", "destination": "/admin/tourist-spots/index.html" },
+    { "source": "/admin/tourist-spots/", "destination": "/admin/tourist-spots/index.html" },
+    { "source": "/admin/events", "destination": "/admin/events/index.html" },
+    { "source": "/admin/events/", "destination": "/admin/events/index.html" }
+  ]
+}

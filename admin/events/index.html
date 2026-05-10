@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Events — Admin</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+    <script src="/assets/js/firebase-config.js"></script>
+    <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/core.js"></script>
+  </head>
+  <body class="tc-admin">
+    <div class="wrap">
+      <nav class="nav tc-topbar">
+        <strong>Admin</strong>
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/events/index.html">Events</a>
+        <a href="/admin/events/editor.html">New</a>
+        <button
+          type="button"
+          class="secondary"
+          style="margin-left: auto"
+          id="logout"
+          onclick="(window.TC&amp;&amp;window.TC.signOut)?void window.TC.signOut():(location.href='/admin/login.html')"
+        >
+          Logout
+        </button>
+      </nav>
+      <div class="card">
+        <h1>Events</h1>
+        <div class="tabs">
+          <button type="button" class="small secondary on" id="tab1">List</button>
+          <button type="button" class="small secondary" id="tab2">Calendar</button>
+        </div>
+        <div id="plist">
+          <label>Search <input type="text" id="search" autocomplete="off" /></label>
+          <div class="list" id="list" style="margin-top: 0.75rem"></div>
+          <div class="row">
+            <button type="button" class="small secondary" id="pp">Previous</button>
+            <span class="muted" id="pgl"></span>
+            <button type="button" class="small secondary" id="pn">Next</button>
+          </div>
+        </div>
+        <div id="pcal" style="display: none">
+          <div class="row">
+            <button type="button" class="small secondary" id="cprev">←</button>
+            <strong id="ctitle"></strong>
+            <button type="button" class="small secondary" id="cnext">→</button>
+          </div>
+          <div id="cgrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 0.75rem; font-size: 0.8rem"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-back" id="modal">
+      <div class="modal">
+        <h2 style="margin-top: 0" id="mt"></h2>
+        <p class="muted" id="ms"></p>
+        <div class="row">
+          <button type="button" id="me">Edit</button>
+          <button type="button" class="danger" id="md">Delete</button>
+          <button type="button" class="secondary" id="mc">Close</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      let events = [];
+      let page = 0;
+      const perPage = 6;
+      let calY = new Date().getUTCFullYear();
+      let calM = new Date().getUTCMonth();
+      let sel = null;
+      let uid = '';
+
+      function evKey(e) {
+        return (e.date || '') + 'T' + (e.time || '00:00');
+      }
+      function sortEv() {
+        const now = Date.now();
+        const t = events.map((e) => ({
+          e,
+          ts: Date.parse((e.date || '') + 'T' + (e.time || '00:00') + ':00Z') || 0,
+        }));
+        return t
+          .filter((x) => x.ts >= now)
+          .sort((a, b) => a.ts - b.ts)
+          .map((x) => x.e)
+          .concat(
+            t
+              .filter((x) => x.ts < now)
+              .sort((a, b) => b.ts - a.ts)
+              .map((x) => x.e),
+          );
+      }
+
+      function renderList() {
+        const all = sortEv().filter((e) => {
+          const q = document.getElementById('search').value.trim().toLowerCase();
+          if (!q) return true;
+          return (
+            (e.name || '').toLowerCase().includes(q) || (e.location || '').toLowerCase().includes(q)
+          );
+        });
+        const slice = all.slice(page * perPage, page * perPage + perPage);
+        document.getElementById('pgl').textContent = 'Page ' + (page + 1) + ' · ' + all.length;
+        const box = document.getElementById('list');
+        box.innerHTML = '';
+        slice.forEach((e) => {
+          const row = document.createElement('div');
+          row.className = 'list-item';
+          row.innerHTML =
+            '<div style="flex:1"><strong>' +
+            (e.name || '') +
+            '</strong><div class="muted">' +
+            (e.date || '') +
+            ' ' +
+            (e.time || '') +
+            ' – ' +
+            (e.endTime || '') +
+            '</div></div>';
+          const o = document.createElement('button');
+          o.className = 'small secondary';
+          o.textContent = 'Open';
+          o.onclick = () => openM(e);
+          const d = document.createElement('button');
+          d.className = 'small danger';
+          d.textContent = 'Del';
+          d.onclick = () => delE(e);
+          row.appendChild(o);
+          row.appendChild(d);
+          box.appendChild(row);
+        });
+      }
+
+      async function delE(e) {
+        if (!confirm('Delete?')) return;
+        if (e.imageUrl) await TC.deleteFileByURL(e.imageUrl);
+        await firebase.firestore().collection('events').doc(e.id).delete();
+        load();
+      }
+
+      function openM(e) {
+        sel = e;
+        document.getElementById('mt').textContent = e.name || '';
+        document.getElementById('ms').textContent = (e.date || '') + ' ' + (e.time || '') + ' – ' + (e.endTime || '');
+        document.getElementById('modal').classList.add('on');
+        document.getElementById('me').onclick = () => (location.href = '/admin/events/editor.html?id=' + encodeURIComponent(e.id));
+        document.getElementById('md').onclick = async () => {
+          await delE(sel);
+          document.getElementById('modal').classList.remove('on');
+        };
+      }
+
+      function renderCal() {
+        document.getElementById('ctitle').textContent = new Date(Date.UTC(calY, calM, 1)).toLocaleString(undefined, {
+          month: 'long',
+          year: 'numeric',
+          timeZone: 'UTC',
+        });
+        const first = new Date(Date.UTC(calY, calM, 1)).getUTCDay();
+        const dim = new Date(Date.UTC(calY, calM + 1, 0)).getUTCDate();
+        const g = document.getElementById('cgrid');
+        g.innerHTML = '';
+        const hdr = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+        hdr.forEach((h) => {
+          const d = document.createElement('div');
+          d.className = 'muted';
+          d.textContent = h;
+          g.appendChild(d);
+        });
+        for (let i = 0; i < first; i++) g.appendChild(document.createElement('div'));
+        const by = {};
+        events.forEach((e) => {
+          if (!e.date) return;
+          by[e.date] = by[e.date] || [];
+          by[e.date].push(e);
+        });
+        for (let day = 1; day <= dim; day++) {
+          const iso =
+            calY + '-' + String(calM + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'small secondary';
+          btn.style.cssText = 'min-height:52px;width:100%;';
+          btn.innerHTML = '<div>' + day + '</div>' + (by[iso] ? '<div class="muted" style="font-size:0.7rem">' + by[iso].length + '</div>' : '');
+          btn.onclick = () => {
+            const list = by[iso] || [];
+            if (list.length === 1) openM(list[0]);
+            else if (list.length > 1) {
+              const n = parseInt(prompt('1-' + list.length, '1') || '0', 10);
+              if (n >= 1 && n <= list.length) openM(list[n - 1]);
+            }
+          };
+          g.appendChild(btn);
+        }
+      }
+
+      async function load() {
+        const snap = await firebase.firestore().collection('events').get();
+        events = [];
+        snap.forEach((d) => {
+          const x = d.data();
+          if (x.createdBy === uid && x.createdByType === 'admin') events.push({ id: d.id, ...x });
+        });
+        renderList();
+        renderCal();
+      }
+
+      document.getElementById('tab1').onclick = () => {
+        document.getElementById('plist').style.display = 'block';
+        document.getElementById('pcal').style.display = 'none';
+        document.getElementById('tab1').classList.add('on');
+        document.getElementById('tab2').classList.remove('on');
+      };
+      document.getElementById('tab2').onclick = () => {
+        document.getElementById('plist').style.display = 'none';
+        document.getElementById('pcal').style.display = 'block';
+        document.getElementById('tab2').classList.add('on');
+        document.getElementById('tab1').classList.remove('on');
+      };
+      document.getElementById('search').oninput = () => {
+        page = 0;
+        renderList();
+      };
+      document.getElementById('pp').onclick = () => {
+        if (page > 0) {
+          page--;
+          renderList();
+        }
+      };
+      document.getElementById('pn').onclick = () => {
+        page++;
+        renderList();
+      };
+      document.getElementById('cprev').onclick = () => {
+        calM--;
+        if (calM < 0) {
+          calM = 11;
+          calY--;
+        }
+        renderCal();
+      };
+      document.getElementById('cnext').onclick = () => {
+        calM++;
+        if (calM > 11) {
+          calM = 0;
+          calY++;
+        }
+        renderCal();
+      };
+      document.getElementById('mc').onclick = () => document.getElementById('modal').classList.remove('on');
+
+      (async function () {
+        const u = await TC.requireAdmin();
+        if (!u) return;
+        uid = u.uid;
+        await load();
+      })();
+    </script>
+  </body>
+</html>

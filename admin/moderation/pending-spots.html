@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pending spots — Admin</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+    <script src="/assets/js/firebase-config.js"></script>
+    <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/core.js"></script>
+  </head>
+  <body class="tc-admin">
+    <div class="wrap">
+      <nav class="nav tc-topbar">
+        <strong>Admin</strong>
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/moderation/pending-spots.html">Pending spots</a>
+        <a href="/admin/moderation/pending-tips.html">Pending tips</a>
+        <button
+          type="button"
+          class="secondary"
+          style="margin-left: auto"
+          id="logout"
+          onclick="(window.TC&amp;&amp;window.TC.signOut)?void window.TC.signOut():(location.href='/admin/login.html')"
+        >
+          Logout
+        </button>
+      </nav>
+      <div class="card">
+        <h1>Pending tourist spots</h1>
+        <div class="seg">
+          <button type="button" class="small secondary on" data-st="pending">Pending</button>
+          <button type="button" class="small secondary" data-st="approved">Approved</button>
+          <button type="button" class="small secondary" data-st="rejected">Rejected</button>
+        </div>
+        <div class="list" id="list"></div>
+      </div>
+    </div>
+    <script>
+      let status = 'pending';
+      let uid = '';
+
+      function geoFromPending(loc) {
+        if (!loc) return new firebase.firestore.GeoPoint(0, 0);
+        if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number')
+          return new firebase.firestore.GeoPoint(loc.latitude, loc.longitude);
+        if (loc.lat != null && loc.lng != null) return new firebase.firestore.GeoPoint(loc.lat, loc.lng);
+        return new firebase.firestore.GeoPoint(0, 0);
+      }
+
+      async function render() {
+        const snap = await firebase
+          .firestore()
+          .collection('pending_tourist_spots')
+          .where('status', '==', status)
+          .get();
+        const box = document.getElementById('list');
+        box.innerHTML = '';
+        snap.forEach((doc) => {
+          const s = doc.data();
+          const row = document.createElement('div');
+          row.className = 'list-item';
+          row.style.flexDirection = 'column';
+          row.style.alignItems = 'flex-start';
+          row.innerHTML =
+            '<div><strong>' +
+            (s.name || '') +
+            '</strong></div><div class="muted" style="font-size:0.85rem;">' +
+            (s.description || '').slice(0, 280) +
+            '</div>';
+          const act = document.createElement('div');
+          act.className = 'row';
+          act.style.marginTop = '0.35rem';
+          if (status === 'pending') {
+            const ap = document.createElement('button');
+            ap.className = 'small';
+            ap.textContent = 'Approve';
+            ap.onclick = async () => {
+              const notes = prompt('Optional notes') || '';
+              const p = (await doc.ref.get()).data();
+              if ((p.status || '') !== 'pending') return alert('Not pending');
+              const submittedAt = p.submittedAt || firebase.firestore.Timestamp.now();
+              const now = firebase.firestore.Timestamp.now();
+              const newSpot = {
+                name: p.name || '',
+                description: p.description || '',
+                category: p.category || 'attraction',
+                location: geoFromPending(p.location),
+                img: p.img || '',
+                googlePlaceId: p.googlePlaceId || '',
+                rating: p.rating ?? 0,
+                userRatingsTotal: p.userRatingsTotal ?? 0,
+                createdAt: submittedAt,
+                updatedAt: now,
+                approvedFrom: doc.id,
+                approvedBy: uid,
+                approvedAt: now,
+              };
+              if (p.googlePlaceTypes && p.googlePlaceTypes.length) {
+                newSpot.googlePlaceTypes = p.googlePlaceTypes;
+                newSpot.exposure = TCUtils.exposureFromGooglePlaceTypes(p.googlePlaceTypes);
+              }
+              const ref = await firebase.firestore().collection('tourist_spots').add(newSpot);
+              const upd = { status: 'approved', reviewedAt: now, reviewedBy: uid, approvedSpotId: ref.id };
+              if (notes) upd.reviewNotes = notes;
+              await doc.ref.update(upd);
+              render();
+            };
+            const rj = document.createElement('button');
+            rj.className = 'small danger';
+            rj.textContent = 'Reject';
+            rj.onclick = async () => {
+              const notes = prompt('Rejection notes (required)') || '';
+              if (!notes.trim()) return alert('Notes required');
+              await doc.ref.update({
+                status: 'rejected',
+                reviewedAt: firebase.firestore.Timestamp.now(),
+                reviewedBy: uid,
+                reviewNotes: notes,
+              });
+              render();
+            };
+            act.append(ap, rj);
+          }
+          const del = document.createElement('button');
+          del.className = 'small secondary';
+          del.textContent = 'Delete';
+          del.onclick = async () => {
+            if (!confirm('Delete doc?')) return;
+            await doc.ref.delete();
+            render();
+          };
+          act.appendChild(del);
+          row.appendChild(act);
+          box.appendChild(row);
+        });
+      }
+
+      document.querySelectorAll('[data-st]').forEach((b) => {
+        b.onclick = () => {
+          document.querySelectorAll('[data-st]').forEach((x) => x.classList.remove('on'));
+          b.classList.add('on');
+          status = b.getAttribute('data-st') || 'pending';
+          render();
+        };
+      });
+
+      (async function () {
+        const u = await TC.requireAdmin();
+        if (!u) return;
+        uid = u.uid;
+        await render();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+# Local secrets — copy from assets/js/firebase-config.example.js
+assets/js/firebase-config.js
+
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

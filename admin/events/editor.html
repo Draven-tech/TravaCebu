@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Event editor — Admin</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+    <script src="/assets/js/firebase-config.js"></script>
+    <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/core.js"></script>
+  </head>
+  <body class="tc-admin">
+    <div class="wrap">
+      <nav class="nav tc-topbar">
+        <strong>Editor</strong>
+        <a href="/admin/events/index.html">Events</a>
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <button
+          type="button"
+          class="secondary"
+          style="margin-left: auto"
+          id="logout"
+          onclick="(window.TC&amp;&amp;window.TC.signOut)?void window.TC.signOut():(location.href='/admin/login.html')"
+        >
+          Logout
+        </button>
+      </nav>
+      <div class="card">
+        <h1>Event editor</h1>
+        <div class="row">
+          <a class="btn small secondary" href="/admin/events/index.html">Back</a>
+          <button type="button" class="small" id="pick">Pick tourist spot</button>
+          <button type="button" class="small" id="save">Save</button>
+        </div>
+        <label>Name <input type="text" id="name" autocomplete="off" /></label>
+        <label>Description <textarea id="desc"></textarea></label>
+        <div class="row">
+          <label>Date <input type="date" id="date" /></label>
+          <label>Start <input type="time" id="time" /></label>
+          <label>End <input type="time" id="end" /></label>
+        </div>
+        <p class="muted">Spot: <strong id="slabel">none</strong> <code id="sid"></code></p>
+        <label>Image <input type="file" id="file" accept="image/*" /></label>
+        <img id="preview" alt="" style="max-width: 240px; border-radius: 8px; display: none" />
+      </div>
+    </div>
+    <div class="modal-back" id="pmod">
+      <div class="modal">
+        <h2 style="margin-top: 0">Tourist spots</h2>
+        <label>Search <input type="text" id="ps" autocomplete="off" /></label>
+        <div class="list" id="plist" style="margin-top: 0.75rem; max-height: 280px; overflow: auto"></div>
+        <button type="button" class="secondary" id="pclose">Close</button>
+      </div>
+    </div>
+    <script>
+      let eventId = null;
+      let spotId = '';
+      let spotName = '';
+      let imageUrl = '';
+      let spots = [];
+      let uid = '';
+
+      function normTime(t) {
+        const s = String(t || '');
+        const m = s.match(/^(\d{2}):(\d{2})/);
+        return m ? m[1] + ':' + m[2] : s;
+      }
+
+      function renderPick() {
+        const q = document.getElementById('ps').value.trim().toLowerCase();
+        const box = document.getElementById('plist');
+        box.innerHTML = '';
+        spots.forEach((s) => {
+          const hay = ((s.name || '') + ' ' + (s.category || '') + ' ' + (s.description || '')).toLowerCase();
+          if (q && !hay.includes(q)) return;
+          const row = document.createElement('div');
+          row.className = 'list-item';
+          row.style.cursor = 'pointer';
+          row.textContent = (s.name || '') + ' · ' + (s.category || '');
+          row.onclick = () => {
+            spotId = s.id;
+            spotName = s.name || '';
+            document.getElementById('slabel').textContent = spotName;
+            document.getElementById('sid').textContent = spotId;
+            document.getElementById('pmod').classList.remove('on');
+          };
+          box.appendChild(row);
+        });
+      }
+
+      document.getElementById('pick').onclick = async () => {
+        const snap = await firebase.firestore().collection('tourist_spots').get();
+        spots = [];
+        snap.forEach((d) => spots.push({ id: d.id, ...d.data() }));
+        spots.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+        document.getElementById('pmod').classList.add('on');
+        renderPick();
+      };
+      document.getElementById('pclose').onclick = () => document.getElementById('pmod').classList.remove('on');
+      document.getElementById('ps').oninput = renderPick;
+
+      document.getElementById('file').onchange = () => {
+        const f = document.getElementById('file').files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = () => {
+          const i = document.getElementById('preview');
+          i.src = String(r.result);
+          i.style.display = 'block';
+        };
+        r.readAsDataURL(f);
+      };
+
+      document.getElementById('save').onclick = async () => {
+        const name = document.getElementById('name').value.trim();
+        const date = document.getElementById('date').value;
+        const time = normTime(document.getElementById('time').value);
+        const endTime = normTime(document.getElementById('end').value);
+        if (!name || !date || !time || !endTime || !spotId) return alert('Fill required fields & pick spot');
+        if (endTime <= time) return alert('End must be after start');
+        let img = imageUrl;
+        const f = document.getElementById('file').files[0];
+        if (f) {
+          const path = 'events/' + Date.now() + '_' + (f.name || 'img').replace(/\W+/g, '_');
+          const ref = firebase.storage().ref(path);
+          await ref.put(f);
+          img = await ref.getDownloadURL();
+        }
+        const col = firebase.firestore().collection('events');
+        const now = firebase.firestore.Timestamp.now();
+        if (eventId) {
+          const prev = await col.doc(eventId).get();
+          const old = prev.get('imageUrl');
+          if (old && old !== img) await TC.deleteFileByURL(old);
+          await col.doc(eventId).set(
+            {
+              name,
+              description: document.getElementById('desc').value || '',
+              date,
+              time,
+              endTime,
+              spotId,
+              location: spotName,
+              imageUrl: img || '',
+              updatedAt: now,
+            },
+            { merge: true },
+          );
+        } else {
+          await col.add({
+            name,
+            description: document.getElementById('desc').value || '',
+            date,
+            time,
+            endTime,
+            spotId,
+            location: spotName,
+            imageUrl: img || '',
+            createdBy: uid,
+            createdByType: 'admin',
+            eventType: 'admin_event',
+            status: 'active',
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+        location.href = eventId ? '/admin/events/index.html' : '/admin/dashboard.html';
+      };
+
+      (async function () {
+        const u = await TC.requireAdmin();
+        if (!u) return;
+        uid = u.uid;
+        const params = new URLSearchParams(location.search);
+        const id = params.get('id');
+        if (!id) return;
+        eventId = id;
+        const snap = await firebase.firestore().collection('events').doc(id).get();
+        if (!snap.exists) return;
+        const e = snap.data();
+        document.getElementById('name').value = e.name || '';
+        document.getElementById('desc').value = e.description || '';
+        document.getElementById('date').value = e.date || '';
+        document.getElementById('time').value = normTime(e.time || '');
+        document.getElementById('end').value = normTime(e.endTime || '');
+        spotId = e.spotId || '';
+        spotName = e.location || '';
+        document.getElementById('slabel').textContent = spotName || 'none';
+        document.getElementById('sid').textContent = spotId;
+        imageUrl = e.imageUrl || '';
+        if (imageUrl) {
+          const i = document.getElementById('preview');
+          i.src = imageUrl;
+          i.style.display = 'block';
+        }
+      })();
+    </script>
+  </body>
+</html>

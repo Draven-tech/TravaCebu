@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign in — TravaCebu Admin</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+    <script src="/assets/js/firebase-config.js"></script>
+    <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/core.js"></script>
+  </head>
+  <body class="tc-admin tc-admin-login">
+    <header class="tc-login-header">
+      <button type="button" class="tc-login-back" onclick="location.href='/welcome'" title="Back" aria-label="Back">
+        ←
+      </button>
+      <h1 class="tc-login-title">TravaCebu Admin</h1>
+    </header>
+
+    <div class="tc-login-wrap">
+      <div class="tc-login-card">
+        <div class="tc-login-logo" aria-hidden="true">🚌</div>
+        <div class="tc-login-welcome">
+          <h2>Welcome back</h2>
+          <p>Sign in with a Firebase account that has <code>admins/{uid}</code> in Firestore.</p>
+        </div>
+        <p class="error tc-login-err" id="err" role="alert" aria-live="polite" hidden></p>
+        <!-- method=post + onsubmit=false: never let the browser GET /login?email&password (leaks creds, skips JS). -->
+        <form id="form" method="post" action="#" onsubmit="return false">
+          <label>Email
+            <input type="email" name="email" required autocomplete="username" />
+          </label>
+          <label>Password
+            <input type="password" name="password" required minlength="6" autocomplete="current-password" id="pw" />
+          </label>
+          <button type="button" class="secondary small" id="togglepw" style="margin-top: 0.5rem">Show password</button>
+          <button type="button" class="tc-login-submit" id="signin">Sign in</button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      (function stripCredentialsFromUrl() {
+        try {
+          if (!location.search) return;
+          var q = new URLSearchParams(location.search);
+          if (q.has('password') || q.has('email')) {
+            history.replaceState(null, '', location.pathname + location.hash);
+          }
+        } catch (e) {}
+      })();
+
+      function followReturn() {
+        var ret = sessionStorage.getItem('tc_return');
+        sessionStorage.removeItem('tc_return');
+        var dash =
+          typeof TC !== 'undefined' && TC.adminPage ? TC.adminPage('dashboard.html') : 'dashboard.html';
+        if (ret) {
+          try {
+            if (ret.charAt(0) === '/') {
+              location.href = ret;
+              return;
+            }
+            var u = new URL(ret);
+            if (u.origin === location.origin) {
+              location.href = ret;
+              return;
+            }
+          } catch (e) {}
+        }
+        location.href = dash;
+      }
+
+      document.getElementById('togglepw').addEventListener('click', function () {
+        var i = document.getElementById('pw');
+        i.type = i.type === 'password' ? 'text' : 'password';
+        this.textContent = i.type === 'password' ? 'Show password' : 'Hide password';
+      });
+
+      (function () {
+        var form = document.getElementById('form');
+        var err = document.getElementById('err');
+
+        function runLogin(e) {
+          if (e && e.preventDefault) e.preventDefault();
+          if (e && e.stopPropagation) e.stopPropagation();
+          void doLogin().catch(function (unexpected) {
+            showErr('Something went wrong. Please try again.');
+            console.error(unexpected);
+          });
+        }
+
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          runLogin(e);
+        });
+
+        document.getElementById('signin').addEventListener('click', runLogin);
+
+        form.addEventListener(
+          'keydown',
+          function (e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              runLogin(e);
+            }
+          },
+          true
+        );
+
+        function showErr(msg) {
+          err.textContent = msg;
+          err.hidden = false;
+          err.removeAttribute('hidden');
+          err.classList.add('tc-login-err-visible');
+        }
+
+        function hideErr() {
+          err.textContent = '';
+          err.hidden = true;
+          err.classList.remove('tc-login-err-visible');
+        }
+
+        function firebaseErrorCode(x) {
+          if (!x) return '';
+          var c = x.code;
+          if (typeof c === 'string') return c;
+          if (x.errorInfo && typeof x.errorInfo.code === 'string') return x.errorInfo.code;
+          return '';
+        }
+
+        /** Map auth + firestore failures to a short user message (never depends on TC). */
+        function loginFailMessage(x) {
+          var ADMIN_DENIED = 'ADMIN_ACCESS_DENIED';
+          if (x && x.message === ADMIN_DENIED) {
+            return 'This account is not authorized for administrative access. If you require access, contact your system administrator.';
+          }
+          var c = firebaseErrorCode(x);
+          var raw = ((x && x.message) || '') + ' ' + c;
+          if (c === 'auth/invalid-email') return 'Please enter a valid email address.';
+          if (
+            c === 'auth/user-not-found' ||
+            c === 'auth/wrong-password' ||
+            c === 'auth/invalid-credential' ||
+            c === 'auth/invalid-login-credentials'
+          ) {
+            return 'The email address or password entered is incorrect.';
+          }
+          if (/invalid-credential|wrong-password|invalid login credentials|invalid_email_or_password/i.test(raw)) {
+            return 'The email address or password entered is incorrect.';
+          }
+          if (c === 'auth/too-many-requests') return 'Too many attempts. Please wait and try again.';
+          if (c === 'auth/network-request-failed') return 'Network error. Check your connection.';
+          if (c === 'auth/operation-not-allowed')
+            return 'Email/password sign-in is disabled in Firebase Authentication for this project.';
+          if (c === 'auth/unauthorized-domain')
+            return 'This site domain is not allowed. Firebase Console → Authentication → Settings → Authorized domains (add your host, e.g. localhost).';
+          if (c === 'permission-denied')
+            return 'Firestore denied reading admins. Check security rules for logged-in users.';
+          if (c === 'auth/user-disabled') return 'This account has been disabled.';
+          if (c === 'auth/missing-email') return 'Please enter your email address.';
+          var tail = (x && x.message) || '';
+          return 'Sign-in failed' + (c ? ' (' + c + ')' : '') + (tail ? '. ' + tail : '.');
+        }
+
+        async function doLogin() {
+          var cfg = window.__TRAVACEBU_FIREBASE_CONFIG__;
+          if (typeof firebase === 'undefined' || !cfg || !cfg.apiKey) {
+            showErr('Missing Firebase config. Copy assets/js/firebase-config.example.js to firebase-config.js.');
+            return;
+          }
+          hideErr();
+          var submitBtn = document.getElementById('signin');
+          var prevText = submitBtn ? submitBtn.textContent : '';
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in…';
+          }
+          var fd = new FormData(form);
+          var email = String(fd.get('email') || '').trim();
+          var password = String(fd.get('password') || '');
+          try {
+            if (typeof TC === 'undefined' || typeof TC.adminSignIn !== 'function') {
+              showErr('Admin script failed to load. Check that assets/js/core.js is reachable (no 404).');
+              return;
+            }
+            await TC.adminSignIn(email, password);
+            followReturn();
+          } catch (x) {
+            showErr(loginFailMessage(x));
+          } finally {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = prevText;
+            }
+          }
+        }
+
+        (async function init() {
+          var cfg = window.__TRAVACEBU_FIREBASE_CONFIG__;
+          if (typeof firebase === 'undefined' || !cfg || !cfg.apiKey) {
+            showErr('Missing Firebase config. Copy assets/js/firebase-config.example.js to firebase-config.js.');
+            form.style.display = 'none';
+            return;
+          }
+          await firebase.auth().authStateReady();
+          if (firebase.auth().currentUser) {
+            var snap = await firebase
+              .firestore()
+              .collection('admins')
+              .doc(firebase.auth().currentUser.uid)
+              .get();
+            if (snap.exists) followReturn();
+          }
+        })();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — TravaCebu Admin</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+    <script src="/assets/js/firebase-config.js"></script>
+    <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/core.js"></script>
+  </head>
+  <body class="tc-admin">
+    <div class="wrap">
+      <nav class="tc-topbar">
+        <strong>TravaCebu Admin Menu</strong>
+        <span style="flex: 1; min-width: 0.5rem"></span>
+        <span class="tc-avatar" title="Admin" aria-hidden="true">🚐</span>
+        <button
+          type="button"
+          class="secondary"
+          id="logout"
+          onclick="(window.TC&amp;&amp;window.TC.signOut)?void window.TC.signOut():(location.href='/admin/login.html')"
+        >
+          Logout
+        </button>
+      </nav>
+
+      <p class="muted" id="who" style="margin: 0.25rem 0 0"></p>
+
+      <h2 class="tc-section-title">Tourist spots</h2>
+      <div class="grid-dash">
+        <a class="tc-nav-card" href="/admin/tourist-spots/editor.html">
+          <div class="tc-nav-icon" aria-hidden="true">📍</div>
+          <strong>Add tourist spot</strong>
+          <span class="muted">Create new locations</span>
+        </a>
+        <a class="tc-nav-card" href="/admin/tourist-spots">
+          <div class="tc-nav-icon" aria-hidden="true">🌏</div>
+          <strong>Manage spots</strong>
+          <span class="muted">List, bulk sync, edit</span>
+        </a>
+        <a class="tc-nav-card" href="/admin/moderation/pending-spots.html">
+          <div class="tc-nav-icon" aria-hidden="true">⏳</div>
+          <strong>Pending spots</strong>
+          <span class="muted">Review submissions</span>
+        </a>
+        <a class="tc-nav-card" href="/admin/moderation/pending-tips.html">
+          <div class="tc-nav-icon" aria-hidden="true">💡</div>
+          <strong>Pending local tips</strong>
+          <span class="muted">Review tips</span>
+        </a>
+      </div>
+
+      <h2 class="tc-section-title">Events</h2>
+      <div class="grid-dash">
+        <a class="tc-nav-card" href="/admin/events/editor.html">
+          <div class="tc-nav-icon" aria-hidden="true">📅</div>
+          <strong>Add event</strong>
+          <span class="muted">Schedule events linked to spots</span>
+        </a>
+        <a class="tc-nav-card" href="/admin/events/index.html">
+          <div class="tc-nav-icon" aria-hidden="true">🗓️</div>
+          <strong>Manage events</strong>
+          <span class="muted">List and calendar</span>
+        </a>
+      </div>
+
+      <div class="tc-api-card">
+        <div class="tc-api-card-header">API usage tracker</div>
+        <div class="tc-api-card-body">
+          <p class="muted" id="api-st">Loading…</p>
+          <div id="api-body" style="display: none">
+            <p><span class="stat" id="api-total">0</span> <span class="muted">total calls</span></p>
+            <p><span class="stat" id="api-today">0</span> <span class="muted">today (UTC)</span></p>
+            <ul id="api-by" style="margin: 0.75rem 0 0; padding-left: 1.25rem; color: var(--tc-text)"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (async function () {
+        const u = await TC.requireAdmin();
+        if (!u) return;
+        document.getElementById('who').textContent = 'Signed in as ' + (u.email || u.uid) + '.';
+        const st = document.getElementById('api-st');
+        const body = document.getElementById('api-body');
+        try {
+          let total = 0,
+            today = 0;
+          const byApi = {};
+          const todayStr = new Date().toISOString().slice(0, 10);
+          const snap = await firebase.firestore().collectionGroup('calls').get();
+          snap.forEach((doc) => {
+            const d = doc.data();
+            const api = d.api || 'unknown';
+            const date = d.date || '';
+            total++;
+            if (date === todayStr) today++;
+            byApi[api] = byApi[api] || { total: 0, today: 0 };
+            byApi[api].total++;
+            if (date === todayStr) byApi[api].today++;
+          });
+          st.style.display = 'none';
+          body.style.display = 'block';
+          document.getElementById('api-total').textContent = String(total);
+          document.getElementById('api-today').textContent = String(today);
+          const ul = document.getElementById('api-by');
+          for (const [k, v] of Object.entries(byApi)) {
+            const li = document.createElement('li');
+            li.textContent = `${k}: ${v.total} total · ${v.today} today`;
+            ul.appendChild(li);
+          }
+          if (Object.keys(byApi).length === 0) {
+            ul.innerHTML = '<li class="muted">No API usage logged yet.</li>';
+          }
+        } catch (e) {
+          st.textContent =
+            'Could not load api_usage. Create a Firestore composite index if the console links one from collectionGroup(calls).';
+          console.warn(e);
+        }
+      })();
+    </script>
+  </body>
+</html>

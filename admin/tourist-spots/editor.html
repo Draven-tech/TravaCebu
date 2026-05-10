@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tourist spot editor — Admin</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+    <script src="/assets/js/firebase-config.js"></script>
+    <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/places.js"></script>
+    <script src="/assets/js/core.js"></script>
+  </head>
+  <body class="tc-admin">
+    <div class="wrap">
+      <nav class="nav tc-topbar">
+        <strong>Editor</strong>
+        <a href="/admin/tourist-spots">Spots</a>
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <button
+          type="button"
+          class="secondary"
+          style="margin-left: auto"
+          id="logout"
+          onclick="(window.TC&amp;&amp;window.TC.signOut)?void window.TC.signOut():(location.href='/admin/login.html')"
+        >
+          Logout
+        </button>
+      </nav>
+      <div class="card">
+        <h1>Tourist spot editor</h1>
+        <div class="row">
+          <a class="btn small secondary" href="/admin/tourist-spots">Back</a>
+          <button type="button" class="small" id="btnplaces">Search Google Places</button>
+          <button type="button" class="small" id="save">Save</button>
+        </div>
+        <div class="row" style="margin-top: 0.75rem">
+          <label
+            >Tile
+            <select id="tile">
+              <option value="esri">Esri</option>
+              <option value="osm">OSM</option>
+            </select>
+          </label>
+          <label>Name <input type="text" id="name" autocomplete="off" /></label>
+          <label>Category <input type="text" id="category" placeholder="attraction" /></label>
+          <label
+            >Exposure
+            <select id="exposure">
+              <option value="">(auto from types)</option>
+              <option value="indoor">indoor</option>
+              <option value="mixed">mixed</option>
+              <option value="outdoor">outdoor</option>
+            </select>
+          </label>
+        </div>
+        <label>Description <textarea id="desc"></textarea></label>
+        <label>Image file <input type="file" id="file" accept="image/*" /></label>
+        <img id="preview" alt="" style="max-width: 280px; border-radius: 8px; display: none" />
+        <div class="map-box" id="map"></div>
+      </div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      const esri = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { maxZoom: 19 },
+      );
+      const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        subdomains: 'abc',
+      });
+      const map = L.map('map', { center: [10.3157, 123.8854], zoom: 15, layers: [esri] });
+      let marker = null;
+      let spotId = null;
+      let googlePlacesImageUrl = '';
+      let googlePlaceTypes = [];
+      let googlePlaceId = '';
+
+      function setMarker(lat, lng) {
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+        map.setView([lat, lng], 15);
+      }
+      map.on('click', (e) => setMarker(e.latlng.lat, e.latlng.lng));
+      document.getElementById('tile').onchange = () => {
+        if (document.getElementById('tile').value === 'esri') {
+          map.removeLayer(osm);
+          esri.addTo(map);
+        } else {
+          map.removeLayer(esri);
+          osm.addTo(map);
+        }
+      };
+      document.getElementById('file').onchange = () => {
+        const f = document.getElementById('file').files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = () => {
+          const im = document.getElementById('preview');
+          im.src = String(r.result);
+          im.style.display = 'block';
+        };
+        r.readAsDataURL(f);
+      };
+
+      document.getElementById('btnplaces').onclick = async () => {
+        const q = prompt('Place name');
+        if (!q) return;
+        const ts = await TCPlaces.placesTextSearch(q);
+        if (ts.status !== 'OK' || !ts.results || !ts.results.length) {
+          alert('No results');
+          return;
+        }
+        let msg = 'Pick 1-' + ts.results.length + ':\n';
+        ts.results.forEach((x, i) => {
+          msg += i + 1 + '. ' + x.name + ' — ' + (x.formatted_address || '') + '\n';
+        });
+        const pick = parseInt(prompt(msg, '1') || '0', 10);
+        if (pick < 1 || pick > ts.results.length) return;
+        const sel = ts.results[pick - 1];
+        const det = await TCPlaces.placesDetails(sel.place_id);
+        if (det.status !== 'OK' || !det.result) {
+          alert('Details failed');
+          return;
+        }
+        const res = det.result;
+        googlePlaceId = sel.place_id;
+        googlePlaceTypes = res.types || [];
+        document.getElementById('name').value = res.name || '';
+        document.getElementById('category').value = TCUtils.categoryFromGoogleTypes(googlePlaceTypes);
+        document.getElementById('desc').value = res.formatted_address || '';
+        if (res.geometry && res.geometry.location) {
+          const loc = res.geometry.location;
+          const lat = loc.lat;
+          const lng = loc.lng;
+          setMarker(lat, lng);
+        }
+        const pr = res.photos && res.photos[0] && res.photos[0].photo_reference;
+        googlePlacesImageUrl = TCPlaces.photoUrlFromReference(pr) || '';
+        if (googlePlacesImageUrl) {
+          const im = document.getElementById('preview');
+          im.src = googlePlacesImageUrl;
+          im.style.display = 'block';
+        }
+      };
+
+      document.getElementById('save').onclick = async () => {
+        const name = document.getElementById('name').value.trim();
+        if (!name) return alert('Name required');
+        if (!marker) return alert('Pick map location');
+        const ll = marker.getLatLng();
+        let img = googlePlacesImageUrl;
+        const f = document.getElementById('file').files[0];
+        if (f) {
+          const path = 'tourist_spots/' + Date.now() + '_' + (f.name || 'photo').replace(/\W+/g, '_');
+          const ref = firebase.storage().ref(path);
+          await ref.put(f);
+          img = await ref.getDownloadURL();
+        }
+        const gp = new firebase.firestore.GeoPoint(ll.lat, ll.lng);
+        const now = firebase.firestore.Timestamp.now();
+        const doc = {
+          name,
+          description: document.getElementById('desc').value || '',
+          category: document.getElementById('category').value.trim() || 'attraction',
+          location: gp,
+          img: img || '',
+          googlePlaceId,
+          rating: 0,
+          userRatingsTotal: 0,
+          updatedAt: now,
+        };
+        if (googlePlaceTypes.length) {
+          doc.googlePlaceTypes = googlePlaceTypes;
+          const ex = document.getElementById('exposure').value;
+          doc.exposure = ex || TCUtils.exposureFromGooglePlaceTypes(googlePlaceTypes);
+        } else {
+          const ex = document.getElementById('exposure').value;
+          if (ex) doc.exposure = ex;
+        }
+        const col = firebase.firestore().collection('tourist_spots');
+        if (spotId) {
+          await col.doc(spotId).set(doc, { merge: true });
+        } else {
+          doc.createdAt = now;
+          await col.add(doc);
+        }
+        sessionStorage.removeItem('spotToEdit');
+        location.href = spotId ? '/admin/tourist-spots' : '/admin/dashboard.html';
+      };
+
+      (async function () {
+        const u = await TC.requireAdmin();
+        if (!u) return;
+        const params = new URLSearchParams(location.search);
+        const id = params.get('id');
+        if (id) {
+          const snap = await firebase.firestore().collection('tourist_spots').doc(id).get();
+          if (snap.exists) {
+            spotId = id;
+            const s = snap.data();
+            document.getElementById('name').value = s.name || '';
+            document.getElementById('desc').value = s.description || '';
+            document.getElementById('category').value = s.category || 'attraction';
+            if (s.exposure) document.getElementById('exposure').value = s.exposure;
+            googlePlaceId = s.googlePlaceId || '';
+            googlePlaceTypes = s.googlePlaceTypes || [];
+            googlePlacesImageUrl = s.img || '';
+            if (s.img) {
+              const im = document.getElementById('preview');
+              im.src = s.img;
+              im.style.display = 'block';
+            }
+            const loc = snap.get('location');
+            if (loc) {
+              const lat = loc.latitude;
+              const lng = loc.longitude;
+              setMarker(lat, lng);
+            }
+            return;
+          }
+        }
+        const raw = sessionStorage.getItem('spotToEdit');
+        if (raw) {
+          try {
+            const s = JSON.parse(raw);
+            spotId = s.id || null;
+            document.getElementById('name').value = s.name || '';
+            document.getElementById('desc').value = s.description || '';
+            document.getElementById('category').value = s.category || 'attraction';
+            if (s.exposure) document.getElementById('exposure').value = s.exposure;
+            googlePlaceId = s.googlePlaceId || '';
+            googlePlaceTypes = s.googlePlaceTypes || [];
+            googlePlacesImageUrl = s.img || '';
+            if (s.img) {
+              const im = document.getElementById('preview');
+              im.src = s.img;
+              im.style.display = 'block';
+            }
+            if (s.location && s.location.lat != null) setMarker(s.location.lat, s.location.lng);
+            else if (s.location && s.location.latitude != null)
+              setMarker(s.location.latitude, s.location.longitude);
+          } catch (e) {}
+        }
+      })();
+    </script>
+  </body>
+</html>

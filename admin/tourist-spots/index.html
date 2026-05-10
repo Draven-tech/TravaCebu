@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tourist spots — Admin</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+    <script src="/assets/js/firebase-config.js"></script>
+    <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/places.js"></script>
+    <script src="/assets/js/core.js"></script>
+  </head>
+  <body class="tc-admin">
+    <div class="wrap">
+      <nav class="nav tc-topbar">
+        <strong>Admin</strong>
+        <a href="/admin/dashboard.html">Dashboard</a>
+        <a href="/admin/tourist-spots">Tourist spots</a>
+        <a href="/admin/tourist-spots/editor.html">New spot</a>
+        <button
+          type="button"
+          class="secondary"
+          style="margin-left: auto"
+          id="logout"
+          onclick="(window.TC&amp;&amp;window.TC.signOut)?void window.TC.signOut():(location.href='/admin/login.html')"
+        >
+          Logout
+        </button>
+      </nav>
+      <div class="card">
+        <h1>Tourist spots</h1>
+        <div class="row">
+          <button type="button" class="small secondary" id="refresh">Refresh</button>
+          <a class="btn small" href="/admin/tourist-spots/editor.html">New</a>
+          <button type="button" class="small secondary" id="bulk">TEMP bulk Places sync</button>
+        </div>
+        <label>Search <input type="text" id="search" autocomplete="off" /></label>
+        <p class="muted" id="bulkmsg" style="display: none">Bulk sync running…</p>
+        <div class="list" id="list" style="margin-top: 0.75rem"></div>
+      </div>
+    </div>
+    <div class="modal-back" id="modal">
+      <div class="modal">
+        <h2 style="margin-top: 0" id="mt"></h2>
+        <div class="row" style="gap: 1rem; align-items: flex-start">
+          <img id="mi" alt="" style="max-width: 180px; border-radius: 8px; display: none" />
+          <div>
+            <p class="muted" id="md"></p>
+            <p class="muted" id="mm"></p>
+          </div>
+        </div>
+        <div class="map-box sm" id="mmap"></div>
+        <div class="row">
+          <button type="button" id="me">Edit</button>
+          <button type="button" class="danger" id="mdel">Delete</button>
+          <button type="button" class="secondary" id="mc">Close</button>
+        </div>
+      </div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      let spots = [];
+      let sel = null;
+      let mmap = null;
+      const esri = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { maxZoom: 19 },
+      );
+
+      document.addEventListener('tc-before-logout', function () {
+        try {
+          stopSpotsListener();
+        } catch (e) {
+          console.warn('stopSpotsListener', e);
+        }
+      });
+
+      function render() {
+        const q = document.getElementById('search').value.trim().toLowerCase();
+        const box = document.getElementById('list');
+        box.innerHTML = '';
+        spots
+          .filter((s) => {
+            if (!q) return true;
+            return (
+              (s.name || '').toLowerCase().includes(q) || (s.description || '').toLowerCase().includes(q)
+            );
+          })
+          .forEach((s) => {
+            const row = document.createElement('div');
+            row.className = 'list-item';
+            const left = document.createElement('div');
+            left.style.flex = '1';
+            left.innerHTML =
+              '<strong>' + (s.name || '') + '</strong> <span class="muted">' + (s.category || '') + '</span>';
+            const act = document.createElement('div');
+            act.className = 'row';
+            ['Detail', 'Edit', 'Delete'].forEach((label, i) => {
+              const b = document.createElement('button');
+              b.className = 'small ' + (i === 2 ? 'danger' : i === 0 ? 'secondary' : '');
+              b.textContent = label;
+              if (i === 0) b.onclick = () => openM(s);
+              if (i === 1) b.onclick = () => {
+                sessionStorage.setItem('spotToEdit', JSON.stringify(s));
+                location.href = '/admin/tourist-spots/editor.html?id=' + encodeURIComponent(s.id);
+              };
+              if (i === 2)
+                b.onclick = async () => {
+                  if (!confirm('Delete?')) return;
+                  const snap = await firebase.firestore().collection('tourist_spots').doc(s.id).get();
+                  const img = snap.get('img');
+                  if (img) await TC.deleteFileByURL(img);
+                  await firebase.firestore().collection('tourist_spots').doc(s.id).delete();
+                };
+              act.appendChild(b);
+            });
+            row.append(left, act);
+            box.appendChild(row);
+          });
+      }
+
+      function openM(s) {
+        sel = s;
+        document.getElementById('mt').textContent = s.name || '';
+        document.getElementById('md').textContent = s.description || '';
+        document.getElementById('mm').textContent = [s.category, s.exposure, s.googlePlaceId].filter(Boolean).join(' · ');
+        const img = document.getElementById('mi');
+        if (s.img) {
+          img.src = s.img;
+          img.style.display = 'block';
+        } else img.style.display = 'none';
+        document.getElementById('modal').classList.add('on');
+        if (mmap) {
+          mmap.remove();
+          mmap = null;
+        }
+        mmap = L.map('mmap').setView([10.3157, 123.8854], 14);
+        esri.addTo(mmap);
+        const loc = s.location;
+        const lat =
+          loc == null
+            ? null
+            : typeof loc.latitude === 'function'
+              ? loc.latitude()
+              : loc.latitude ?? loc.lat;
+        const lng =
+          loc == null
+            ? null
+            : typeof loc.longitude === 'function'
+              ? loc.longitude()
+              : loc.longitude ?? loc.lng;
+
+        if (lat != null && lng != null) {
+          L.marker([lat, lng]).addTo(mmap);
+          mmap.setView([lat, lng], 15);
+        }
+        document.getElementById('me').onclick = () => {
+          sessionStorage.setItem('spotToEdit', JSON.stringify(sel));
+          location.href = '/admin/tourist-spots/editor.html?id=' + encodeURIComponent(sel.id);
+        };
+        document.getElementById('mdel').onclick = async () => {
+          if (!confirm('Delete?')) return;
+          if (sel.img) await TC.deleteFileByURL(sel.img);
+          await firebase.firestore().collection('tourist_spots').doc(sel.id).delete();
+          document.getElementById('modal').classList.remove('on');
+        };
+      }
+
+      let spotsUnsub = null;
+
+      function stopSpotsListener() {
+        if (spotsUnsub) {
+          spotsUnsub();
+          spotsUnsub = null;
+        }
+      }
+
+      /** Keeps the list in sync; avoids one-shot get() before Firestore has bound auth (common on first navigation). */
+      function startSpotsListener() {
+        stopSpotsListener();
+        const box = document.getElementById('list');
+        const col = firebase.firestore().collection('tourist_spots');
+        const applySnap = (snap, sortClient) => {
+          spots = [];
+          snap.forEach((d) => spots.push({ id: d.id, ...d.data() }));
+          if (sortClient) {
+            spots.sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt));
+          }
+          render();
+        };
+        const subUnordered = () => {
+          spotsUnsub = col.onSnapshot(
+            (snap) => applySnap(snap, true),
+            (err) => {
+              console.error('tourist_spots listener', err);
+              box.innerHTML =
+                '<p class="error" style="padding:0.75rem">Could not load spots. ' +
+                (err.code || err.message || err) +
+                '</p>';
+            },
+          );
+        };
+        spotsUnsub = col
+          .orderBy('createdAt', 'desc')
+          .onSnapshot(
+            (snap) => applySnap(snap, false),
+            (err) => {
+              console.warn('tourist_spots: ordered listener failed, trying unordered', err);
+              stopSpotsListener();
+              subUnordered();
+            },
+          );
+      }
+
+      /** One server read after token refresh (used by Refresh + after bulk). */
+      async function load() {
+        const box = document.getElementById('list');
+        try {
+          const u = firebase.auth().currentUser;
+          if (u) await u.getIdToken(true);
+          let snap;
+          try {
+            snap = await firebase
+              .firestore()
+              .collection('tourist_spots')
+              .orderBy('createdAt', 'desc')
+              .get({ source: 'server' });
+          } catch (e) {
+            console.warn('tourist_spots: server orderBy failed, fallback', e);
+            try {
+              snap = await firebase.firestore().collection('tourist_spots').get({ source: 'server' });
+            } catch (e2) {
+              snap = await firebase.firestore().collection('tourist_spots').get();
+            }
+          }
+          spots = [];
+          snap.forEach((d) => spots.push({ id: d.id, ...d.data() }));
+          spots.sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt));
+          render();
+        } catch (e) {
+          console.error(e);
+          box.innerHTML =
+            '<p class="error" style="padding:0.75rem">Could not load spots. ' +
+            (e.code || e.message || e) +
+            '</p>';
+        }
+      }
+
+      function tsMillis(ts) {
+        if (ts == null) return 0;
+        if (typeof ts.toMillis === 'function') return ts.toMillis();
+        if (typeof ts.seconds === 'number') return ts.seconds * 1000;
+        return 0;
+      }
+
+      function sleep(ms) {
+        return new Promise((r) => setTimeout(r, ms));
+      }
+
+      document.getElementById('mc').onclick = () => document.getElementById('modal').classList.remove('on');
+      document.getElementById('search').oninput = render;
+      document.getElementById('refresh').onclick = async () => {
+        await load();
+        startSpotsListener();
+      };
+      document.getElementById('bulk').onclick = async () => {
+        document.getElementById('bulkmsg').style.display = 'block';
+        let updated = 0,
+          skippedSynced = 0,
+          skippedInvalid = 0,
+          noPayload = 0,
+          failed = 0;
+        let n = 0;
+        const all = await firebase.firestore().collection('tourist_spots').get();
+        for (const doc of all.docs) {
+          if (n >= 25) break;
+          const data = doc.data();
+          const name = String(data.name || '').trim();
+          const loc = data.location;
+          const lat =
+            loc == null
+              ? null
+              : typeof loc.latitude === 'function'
+                ? loc.latitude()
+                : loc.latitude ?? loc.lat;
+          const lng =
+            loc == null
+              ? null
+              : typeof loc.longitude === 'function'
+                ? loc.longitude()
+                : loc.longitude ?? loc.lng;
+          if (!name || lat == null || lng == null) {
+            skippedInvalid++;
+            continue;
+          }
+          const gt = data.googlePlaceTypes || data.google_place_types;
+          if (Array.isArray(gt) && gt.length) {
+            skippedSynced++;
+            continue;
+          }
+          try {
+            const ts = await TCPlaces.placesTextSearch(name);
+            if (ts.status !== 'OK' || !ts.results) {
+              noPayload++;
+              n++;
+              await sleep(400);
+              continue;
+            }
+            let picked = null;
+            for (const r of ts.results) {
+              if (TCUtils.addressLooksLikeCebu(r.formatted_address || '')) {
+                picked = r;
+                break;
+              }
+            }
+            if (!picked) {
+              noPayload++;
+              n++;
+              await sleep(400);
+              continue;
+            }
+            const det = await TCPlaces.placesDetails(picked.place_id);
+            if (det.status !== 'OK' || !det.result) {
+              noPayload++;
+              n++;
+              await sleep(400);
+              continue;
+            }
+            const res = det.result;
+            const types = res.types || [];
+            const patch = {
+              googlePlaceTypes: types,
+              googlePlaceId: picked.place_id,
+              category: TCUtils.categoryFromGoogleTypes(types),
+              exposure: TCUtils.exposureFromGooglePlaceTypes(types),
+              updatedAt: firebase.firestore.Timestamp.now(),
+            };
+            if (res.rating != null) patch.rating = res.rating;
+            if (res.user_ratings_total != null) patch.userRatingsTotal = res.user_ratings_total;
+            const pr = res.photos && res.photos[0] && res.photos[0].photo_reference;
+            const url = TCPlaces.photoUrlFromReference(pr, 400, 300);
+            if (url) patch.img = url;
+            await doc.ref.set(patch, { merge: true });
+            updated++;
+          } catch (e) {
+            failed++;
+            console.warn(e);
+          }
+          n++;
+          await sleep(400);
+        }
+        document.getElementById('bulkmsg').style.display = 'none';
+        alert(
+          `Updated ${updated}, skipped synced ${skippedSynced}, invalid ${skippedInvalid}, no payload ${noPayload}, failed ${failed}`,
+        );
+      };
+
+      async function waitForFirestoreAuth(user) {
+        await firebase.auth().authStateReady();
+        const u = user || firebase.auth().currentUser;
+        if (!u) return;
+        await u.getIdToken(true);
+        await new Promise(function (r) {
+          requestAnimationFrame(function () {
+            requestAnimationFrame(r);
+          });
+        });
+        await new Promise(function (r) {
+          return setTimeout(r, 60);
+        });
+      }
+
+      (async function () {
+        const u = await TC.requireAdmin();
+        if (!u) return;
+        try {
+          await waitForFirestoreAuth(u);
+        } catch (e) {
+          console.warn('waitForFirestoreAuth', e);
+        }
+        startSpotsListener();
+        window.addEventListener('pageshow', function (ev) {
+          if (!ev.persisted) return;
+          void waitForFirestoreAuth().then(function () {
+            startSpotsListener();
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

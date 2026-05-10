@@ -58,13 +58,28 @@
   </div>
 </div>
 
+<!-- Lakaw (walk) controls: live GPS, follow, distance along path, optional auto-next -->
+<div *ngIf="isCurrentWalkSegment()" class="lakaw-bar" [ngStyle]="{ top: getLakawBarTop() }">
+  <ion-button size="small" [color]="lakawMode ? 'success' : 'medium'" (click)="toggleLakawMode()">
+    <ion-icon slot="start" name="walk-outline"></ion-icon>
+    {{ lakawMode ? 'Lakaw on' : 'Lakaw' }}
+  </ion-button>
+  <ion-chip *ngIf="lakawMode && lakawWalkRemainingM != null" color="light">
+    <ion-label>~{{ lakawWalkRemainingM }} m left</ion-label>
+  </ion-chip>
+  <ion-item *ngIf="lakawMode" lines="none" class="lakaw-auto-item">
+    <ion-label>Auto-next near end</ion-label>
+    <ion-toggle slot="end" [(ngModel)]="lakawAutoAdvanceEnabled" (ionChange)="onLakawAutoAdvanceChange()"></ion-toggle>
+  </ion-item>
+</div>
+
 <!-- /////////////////////////////////////////////// map ////////////////////////////////////////////////////////////////////// -->
 <ion-content [class.fullscreen-mode]="isFullscreen">
   <div id="map"></div>
   
   <!-- //////////////////////////////////////////////////////edit here //////////////////////////////////////////////////// -->
 
-  <div *ngIf="selectedItineraryIndex >= 0 && !isFullscreen" class="directions-controls">
+  <div *ngIf="(selectedItineraryIndex >= 0 || emergencyDirectionsMode) && !isFullscreen" class="directions-controls">
 
     <!-- loading for jeepney routes -->
     <ion-item *ngIf="selectedItineraryIndex >= 0 && availableItineraries.length > 0 && isLoadingJeepneyRoutes" lines="none" style="margin: 16px;">
@@ -90,10 +105,25 @@
       <!-- for display of travel time and distance -->
       <ion-card>
         <ion-card-header>
-          <ion-card-title>Stage-Based Route</ion-card-title>
+          <ion-card-title>{{ emergencyDirectionsMode ? 'Directions to place' : 'Stage-Based Route' }}</ion-card-title>
           <ion-card-subtitle>
-            {{ currentRouteInfo.totalDuration }} • {{ currentRouteInfo.totalDistance }}
+            <ng-container *ngIf="emergencyDirectionsMode && currentRouteInfo.summary; else routeMeta">
+              {{ currentRouteInfo.summary }}
+            </ng-container>
+            <ng-template #routeMeta>
+              {{ currentRouteInfo.totalDuration }} • {{ currentRouteInfo.totalDistance }}
+            </ng-template>
           </ion-card-subtitle>
+          <ion-button
+            *ngIf="emergencyDirectionsMode"
+            size="small"
+            fill="outline"
+            color="medium"
+            class="emergency-clear-route-btn"
+            (click)="clearEmergencyDirectionsPanel()"
+          >
+            Clear route
+          </ion-button>
         </ion-card-header>
         
 

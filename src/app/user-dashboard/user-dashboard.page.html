@@ -64,12 +64,8 @@
   <h2 class="title">Plan Your Trip</h2>
 
   <div class="category-scroll">
-    <ion-chip
-      *ngFor="let tag of tags"
-      class="plan-tag-chip"
-      [class.plan-tag-chip--active]="selectedTag === tag"
-      (click)="selectTag(tag)"
-    >
+    <ion-chip *ngFor="let tag of tags" class="plan-tag-chip" [class.plan-tag-chip--active]="selectedTag === tag"
+      (click)="selectTag(tag)">
       <ion-label>{{ tag }}</ion-label>
     </ion-chip>
   </div>
@@ -148,6 +144,19 @@
     </ion-card>
   </div>
 
+  <ion-card class="emergency-card" (click)="openEmergencyInfo()">
+    <ion-card-content>
+      <div class="emergency-card-inner">
+        <ion-icon name="medkit-outline" class="emergency-card-icon" aria-hidden="true"></ion-icon>
+        <div class="emergency-card-text">
+          <h3>Emergency information</h3>
+          <p>Hospitals, police, and embassy contacts near you</p>
+        </div>
+        <ion-icon name="chevron-forward-outline" class="emergency-chevron" aria-hidden="true"></ion-icon>
+      </div>
+    </ion-card-content>
+  </ion-card>
+  
   <div class="recently-visited-header">
     <h2 class="title">Recently Visited</h2>
     <ion-button class="see-all-link" fill="clear" size="small" (click)="openVisitedSpotsModal()">

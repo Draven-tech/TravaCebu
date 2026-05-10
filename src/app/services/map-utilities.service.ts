@@ -477,4 +477,114 @@ export class MapUtilitiesService {
       lng: Math.max(-180, Math.min(180, lng))
     };
   }
+
+  /** Great-circle distance in meters. */
+  distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371000;
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLng = this.deg2rad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.deg2rad(lat1)) *
+        Math.cos(this.deg2rad(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  /** Bearing from first point to second, degrees clockwise from north (0–360). */
+  bearingDegrees(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const dLng = this.deg2rad(lng2 - lng1);
+    const r1 = this.deg2rad(lat1);
+    const r2 = this.deg2rad(lat2);
+    const y = Math.sin(dLng) * Math.cos(r2);
+    const x = Math.cos(r1) * Math.sin(r2) - Math.sin(r1) * Math.cos(r2) * Math.cos(dLng);
+    let brng = (Math.atan2(y, x) * 180) / Math.PI;
+    brng = (brng + 360) % 360;
+    return brng;
+  }
+
+  /**
+   * Decode walking segment polyline to [lat, lng][] (same order as drawWalkingSegment).
+   */
+  getWalkPolylineLatLng(segment: any): [number, number][] {
+    if (!segment) {
+      return [];
+    }
+    const fromLat = segment.from?.lat ?? segment.from?.location?.lat;
+    const fromLng = segment.from?.lng ?? segment.from?.location?.lng;
+    const toLat = segment.to?.lat ?? segment.to?.location?.lat;
+    const toLng = segment.to?.lng ?? segment.to?.location?.lng;
+    if (fromLat == null || fromLng == null || toLat == null || toLng == null) {
+      return [];
+    }
+
+    if (segment.polyline) {
+      if (typeof segment.polyline === 'string') {
+        return this.decodePolyline(segment.polyline);
+      }
+      if (segment.polyline.points) {
+        return this.decodePolyline(segment.polyline.points);
+      }
+      if (Array.isArray(segment.polyline) && segment.polyline.length > 0) {
+        return segment.polyline.map((p: any) => [p.lat, p.lng] as [number, number]);
+      }
+    }
+    return [
+      [fromLat, fromLng],
+      [toLat, toLng]
+    ];
+  }
+
+  /**
+   * Approximate remaining walking distance (m) along the polyline from the user's position to the route end.
+   */
+  remainingWalkAlongPolyline(
+    points: [number, number][],
+    lat: number,
+    lng: number
+  ): number | null {
+    if (!points || points.length === 0) {
+      return null;
+    }
+    if (points.length === 1) {
+      return this.distanceMeters(lat, lng, points[0][0], points[0][1]);
+    }
+
+    let bestRemain: number | null = null;
+    let bestDist = Infinity;
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const lat1 = points[i][0];
+      const lng1 = points[i][1];
+      const lat2 = points[i + 1][0];
+      const lng2 = points[i + 1][1];
+      const dx = lat2 - lat1;
+      const dy = lng2 - lng1;
+      const len2 = dx * dx + dy * dy || 1e-18;
+      let t = ((lat - lat1) * dx + (lng - lng1) * dy) / len2;
+      t = Math.max(0, Math.min(1, t));
+      const clat = lat1 + t * dx;
+      const clng = lng1 + t * dy;
+      const dTo = this.distanceMeters(lat, lng, clat, clng);
+      const segLen = this.distanceMeters(lat1, lng1, lat2, lng2);
+      const remainFromClose = (1 - t) * segLen;
+      let tail = remainFromClose;
+      for (let j = i + 1; j < points.length - 1; j++) {
+        tail += this.distanceMeters(
+          points[j][0],
+          points[j][1],
+          points[j + 1][0],
+          points[j + 1][1]
+        );
+      }
+      if (dTo < bestDist) {
+        bestDist = dTo;
+        bestRemain = tail;
+      }
+    }
+
+    return bestRemain;
+  }
 }

@@ -702,6 +702,133 @@ export class RoutePlanningService {
   }
 
   /**
+   * One-leg route from the user's location to an emergency POI (transit via Google Directions, else OSRM walk).
+   */
+  async generateRouteInfoForEmergencyDestination(
+    userLocation: any,
+    destination: { name: string; lat: number; lng: number; placeId?: string },
+    loadingCallback?: (message: string) => Promise<void>
+  ): Promise<RouteInfo | null> {
+    const spot = {
+      name: destination.name,
+      location: { lat: destination.lat, lng: destination.lng },
+      id: destination.placeId || 'emergency',
+      spotId: destination.placeId || '',
+    };
+
+    const segments: any[] = [];
+    let totalDuration = 0;
+    let totalDistance = 0;
+
+    try {
+      if (loadingCallback) {
+        await loadingCallback('Finding transit directions…');
+      }
+
+      const allRoutes = await this.findAllJeepneyRoutes(userLocation, spot);
+
+      if (allRoutes && allRoutes.length > 0) {
+        allRoutes.sort((a: any, b: any) => a.totalDuration - b.totalDuration);
+        const bestRoute = allRoutes[0];
+        bestRoute.segments.forEach((segment: any) => {
+          segments.push({
+            type: segment.type,
+            from: segment.from,
+            to: segment.to,
+            fromName: 'Your Location',
+            toName: spot.name,
+            estimatedTime: this.formatDuration(segment.duration || 0),
+            description: segment.description,
+            jeepneyCode: segment.jeepneyCode || null,
+            mealType: null,
+            distance: segment.distance || 0,
+            duration: segment.duration || 0,
+            stage: 1,
+            polyline: segment.polyline,
+          });
+          if (segment.distance) {
+            totalDistance += segment.distance / 1000;
+          }
+          if (segment.duration) {
+            totalDuration += segment.duration;
+          }
+        });
+      } else {
+        if (loadingCallback) {
+          await loadingCallback('No transit found. Generating walking route…');
+        }
+
+        const walkingRoute = await this.createWalkingRouteWithOSRM(userLocation, spot);
+
+        if (walkingRoute?.segments?.[0]) {
+          const segment = walkingRoute.segments[0];
+          segments.push({
+            type: 'walk',
+            from: segment.from,
+            to: segment.to,
+            fromName: 'Your Location',
+            toName: spot.name,
+            estimatedTime: this.formatDuration(segment.duration),
+            description: segment.description,
+            jeepneyCode: null,
+            mealType: null,
+            distance: segment.distance,
+            duration: segment.duration,
+            stage: 1,
+            polyline: segment.polyline,
+          });
+          totalDistance += (segment.distance || 0) / 1000;
+          totalDuration += segment.duration || 0;
+        } else {
+          const fromLat = userLocation.lat || userLocation.location?.lat;
+          const fromLng = userLocation.lng || userLocation.location?.lng;
+          const toCoords = spot.location;
+          if (!fromLat || !fromLng || !toCoords?.lat || !toCoords?.lng) {
+            return null;
+          }
+          const straightLineDistance =
+            this.calculateDistance(fromLat, fromLng, toCoords.lat, toCoords.lng) * 1000;
+          segments.push({
+            type: 'walk',
+            from: { lat: fromLat, lng: fromLng },
+            to: toCoords,
+            fromName: 'Your Location',
+            toName: spot.name,
+            estimatedTime: this.formatDuration(straightLineDistance / 1.1),
+            description: `Walk ${(straightLineDistance / 1000).toFixed(2)}km (direct path)`,
+            jeepneyCode: null,
+            mealType: null,
+            distance: straightLineDistance,
+            duration: straightLineDistance / 1.1,
+            stage: 1,
+            polyline: null,
+          });
+          totalDistance += straightLineDistance / 1000;
+          totalDuration += straightLineDistance / 1.1;
+        }
+      }
+
+      const visitSegment = this.createVisitSegment(spot);
+      if (visitSegment) {
+        segments.push(visitSegment);
+      }
+
+      const summary = this.generateRouteSummary({ segments, totalDuration, totalDistance });
+
+      return {
+        segments,
+        totalDuration,
+        totalDistance,
+        summary,
+        suggestedRoutes: [],
+        selectedRouteIndex: 0,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Decode polyline5 geometry from OSRM
    */
   private decodeOSRMPolyline(encoded: string): any[] {

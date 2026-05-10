@@ -62,7 +62,6 @@ ion-content {
   }
 }
 
-// Fixed ion-searchbar does not take layout space — reserve height so content clears it
 .searchbar-spacer {
   flex-shrink: 0;
   min-height: 50px;
@@ -236,6 +235,55 @@ ion-button.see-all-link {
       border-color: #4c8dbb;
     }
   }
+}
+
+.emergency-card {
+  margin: 0 0 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.12);
+  border: 1px solid rgba(185, 28, 28, 0.2);
+  cursor: pointer;
+
+  ion-card-content {
+    padding: 14px 16px;
+  }
+}
+
+.emergency-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.emergency-card-icon {
+  font-size: 2rem;
+  color: #b91c1c;
+  flex-shrink: 0;
+}
+
+.emergency-card-text {
+  flex: 1;
+  min-width: 0;
+
+  h3 {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.35;
+  }
+}
+
+.emergency-chevron {
+  font-size: 1.25rem;
+  color: #94a3b8;
+  flex-shrink: 0;
 }
 
 .hidden-gems-section {
@@ -480,7 +528,6 @@ ion-grid {
   }
 
   .page-info {
-
     font-weight: 600;
     font-size: 0.9rem;
     white-space: nowrap;

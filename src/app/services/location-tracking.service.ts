@@ -9,6 +9,10 @@ export interface UserLocation {
   isReal: boolean;
   accuracy?: number;
   timestamp?: number;
+  /** Degrees clockwise from true north (0–360), from GPS or course-over-ground. */
+  headingDeg?: number | null;
+  /** Ground speed in m/s when provided by the platform. */
+  speedMps?: number | null;
 }
 
 @Injectable({
@@ -19,6 +23,12 @@ export class LocationTrackingService {
   private isLocationTracking: boolean = false;
   private locationUpdateInterval: number = 10000; // Update every 10 seconds
   private userLocation: UserLocation | null = null;
+  /** When true, prefer raw GPS, throttle OSRM snap, use foot profile when snapping. */
+  private lakawMode = false;
+  private lastEmittedLat: number | null = null;
+  private lastEmittedLng: number | null = null;
+  private lastSnapTimeMs = 0;
+  private readonly lakawSnapThrottleMs = 12000;
   
   // Observable to emit location updates
   private locationUpdate$ = new Subject<UserLocation>();
@@ -34,6 +44,18 @@ export class LocationTrackingService {
    */
   getUserLocation(): UserLocation | null {
     return this.userLocation;
+  }
+
+  /** Lakaw (walk) mode: faster fixes, less aggressive road snapping. */
+  setLakawMode(active: boolean): void {
+    this.lakawMode = active;
+    if (!active) {
+      this.lastSnapTimeMs = 0;
+    }
+  }
+
+  isLakawMode(): boolean {
+    return this.lakawMode;
   }
 
   /**
@@ -158,34 +180,143 @@ export class LocationTrackingService {
     }
 
     const { latitude, longitude, accuracy } = position.coords;
-    
+    const speedMps =
+      position.coords.speed != null && !Number.isNaN(position.coords.speed)
+        ? position.coords.speed
+        : null;
+    const rawHeading =
+      position.coords.heading != null && !Number.isNaN(position.coords.heading)
+        ? position.coords.heading
+        : null;
+
     // Check if coordinates are within reasonable bounds for Cebu
     if (!this.isWithinCebu(latitude, longitude)) {
       this.setDefaultLocation();
       return;
     }
 
-    // Snap location to nearest road using OSRM
-    const snappedLocation = await this.snapLocationToRoad(latitude, longitude);
+    let latOut = latitude;
+    let lngOut = longitude;
+
+    if (this.lakawMode) {
+      const acc = accuracy ?? 999;
+      const now = Date.now();
+      const shouldSnapPoorAccuracy =
+        acc > 35 && now - this.lastSnapTimeMs >= this.lakawSnapThrottleMs;
+      if (shouldSnapPoorAccuracy) {
+        const snapped = await this.snapLocationToRoad(latitude, longitude, 'foot');
+        latOut = snapped.lat;
+        lngOut = snapped.lng;
+        this.lastSnapTimeMs = now;
+      }
+    } else {
+      const snappedLocation = await this.snapLocationToRoad(latitude, longitude, 'driving');
+      latOut = snappedLocation.lat;
+      lngOut = snappedLocation.lng;
+    }
+
+    const headingDeg = this.resolveHeadingDeg(
+      latitude,
+      longitude,
+      latOut,
+      lngOut,
+      rawHeading,
+      speedMps
+    );
 
     this.userLocation = {
-      lat: snappedLocation.lat,
-      lng: snappedLocation.lng,
+      lat: latOut,
+      lng: lngOut,
       isReal: true,
       accuracy: accuracy,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      headingDeg,
+      speedMps
     };
+
+    this.lastEmittedLat = latOut;
+    this.lastEmittedLng = lngOut;
 
     // Emit location update
     this.locationUpdate$.next(this.userLocation);
   }
 
   /**
-   * Snap location to nearest road using OSRM
+   * Bearing from (lat1,lng1) to (lat2,lng2) in degrees clockwise from north.
    */
-  private async snapLocationToRoad(lat: number, lng: number): Promise<{ lat: number; lng: number }> {
+  private bearingDeg(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const dLng = this.deg2rad(lng2 - lng1);
+    const rLat1 = this.deg2rad(lat1);
+    const rLat2 = this.deg2rad(lat2);
+    const y = Math.sin(dLng) * Math.cos(rLat2);
+    const x =
+      Math.cos(rLat1) * Math.sin(rLat2) -
+      Math.sin(rLat1) * Math.cos(rLat2) * Math.cos(dLng);
+    let brng = (Math.atan2(y, x) * 180) / Math.PI;
+    brng = (brng + 360) % 360;
+    return brng;
+  }
+
+  private deg2rad(deg: number): number {
+    return (deg * Math.PI) / 180;
+  }
+
+  private distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371000;
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLng = this.deg2rad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.deg2rad(lat1)) *
+        Math.cos(this.deg2rad(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  private resolveHeadingDeg(
+    rawLat: number,
+    rawLng: number,
+    emitLat: number,
+    emitLng: number,
+    gpsHeading: number | null,
+    speedMps: number | null
+  ): number | null {
+    if (
+      gpsHeading != null &&
+      gpsHeading >= 0 &&
+      speedMps != null &&
+      speedMps > 0.5
+    ) {
+      return gpsHeading % 360;
+    }
+
+    const prevLat = this.lastEmittedLat;
+    const prevLng = this.lastEmittedLng;
+    if (prevLat != null && prevLng != null) {
+      const d = this.distanceMeters(prevLat, prevLng, emitLat, emitLng);
+      if (d > 3) {
+        return this.bearingDeg(prevLat, prevLng, emitLat, emitLng);
+      }
+    }
+
+    const h = this.userLocation?.headingDeg;
+    return h != null && !Number.isNaN(h) ? h : null;
+  }
+
+  /**
+   * Snap location to nearest path using OSRM nearest service.
+   */
+  private async snapLocationToRoad(
+    lat: number,
+    lng: number,
+    profile: 'driving' | 'foot'
+  ): Promise<{ lat: number; lng: number }> {
     try {
-      const response = await fetch(`https://router.project-osrm.org/nearest/v1/driving/${lng},${lat}?number=1`);
+      const response = await fetch(
+        `https://router.project-osrm.org/nearest/v1/${profile}/${lng},${lat}?number=1`
+      );
       const data = await response.json();
       
       if (data.code === 'Ok' && data.waypoints && data.waypoints.length > 0) {
@@ -204,13 +335,17 @@ export class LocationTrackingService {
    * Set default location (Cebu City center)
    */
   private setDefaultLocation(): void {
+    this.lastEmittedLat = null;
+    this.lastEmittedLng = null;
     this.userLocation = {
       lat: 10.3157,
       lng: 123.8854,
       isReal: false,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      headingDeg: null,
+      speedMps: null
     };
-    
+
     // Emit default location update
     this.locationUpdate$.next(this.userLocation);
   }

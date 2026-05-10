@@ -25,9 +25,9 @@ export class UserDashboardPage implements OnInit, OnDestroy {
   userData: any = null;
   isLoading = true;
 
-  allSpots: any[] = [];       
-  filteredSpots: any[] = [];  
-  bucketList: any[] = [];     
+  allSpots: any[] = [];
+  filteredSpots: any[] = [];
+  bucketList: any[] = [];
   visitedSpots: any[] = [];
   bucketSpotIds: string[] = [];
   personalizedSuggestions: any[] = [];
@@ -61,7 +61,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     private geofencingService: GeofencingService,
     private itineraryPlannerService: ItineraryPlannerService,
     private personalizedSuggestionsService: PersonalizedSpotSuggestionsService
-  ) {}
+  ) { }
 
   async ngOnInit() {
     this.setupNetworkListeners();
@@ -113,17 +113,17 @@ export class UserDashboardPage implements OnInit, OnDestroy {
       });
   }
 
-loadBucketList() {
-  if (!this.userId) return;
+  loadBucketList() {
+    if (!this.userId) return;
 
-  this.firestore
-    .collection(`users/${this.userId}/bucketList`)
-    .valueChanges({ idField: 'id' })
-    .subscribe((bucket) => {
-      this.bucketList = bucket;
-      this.bucketSpotIds = bucket.map((s) => s.id);
-    });
-}
+    this.firestore
+      .collection(`users/${this.userId}/bucketList`)
+      .valueChanges({ idField: 'id' })
+      .subscribe((bucket) => {
+        this.bucketList = bucket;
+        this.bucketSpotIds = bucket.map((s) => s.id);
+      });
+  }
 
   async loadVisitedSpots() {
     if (!this.userId) return;
@@ -168,7 +168,7 @@ loadBucketList() {
             }
           })
         );
-        
+
       }
 
       this.visitedSpots = visitedEntries.map((entry: any) => {
@@ -185,7 +185,7 @@ loadBucketList() {
     } catch (error) {
       console.error('Error loading visited spots:', error);
     }
-    
+
   }
 
   async loadBucketStatus() {
@@ -239,20 +239,20 @@ loadBucketList() {
     await this.bucketService.addToBucket(spot);
     await this.loadBucketList();
   }
-async addToItineraryPlanner(spot: any) {
-  try {
-    const added = await this.itineraryPlannerService.addSpotToPlanner(spot);
-    if (!added) {
-      console.log('Spot already in planner');
-      return;
+  async addToItineraryPlanner(spot: any) {
+    try {
+      const added = await this.itineraryPlannerService.addSpotToPlanner(spot);
+      if (!added) {
+        console.log('Spot already in planner');
+        return;
+      }
+
+      console.log('Added to itinerary planner');
+
+    } catch (error) {
+      console.error('Error adding to itinerary planner:', error);
     }
-
-    console.log('Added to itinerary planner');
-
-  } catch (error) {
-    console.error('Error adding to itinerary planner:', error);
   }
-}
 
   async removeFromBucketList(spotId: string) {
     await this.bucketService.removeFromBucket(spotId);
@@ -320,6 +320,11 @@ async addToItineraryPlanner(spot: any) {
   openSpotDetail(spotId: string) {
     this.navCtrl.navigateForward(`/tourist-spot-detail/${spotId}`);
   }
+
+  openEmergencyInfo() {
+    this.navCtrl.navigateForward('/emergency-info');
+  }
+
   async openSearchModal() {
     const modal = await this.modalCtrl.create({
       component: SearchModalComponent,
@@ -335,50 +340,50 @@ async addToItineraryPlanner(spot: any) {
     }
   }
 
-async addTouristSpotToDatabase(place: any) {
-  try {
-    if (this.isDuplicateSpot(place)) {
-      this.showToast(`"${place.name}" already exists in our database.`, 'warning');
-      return;
-    }
-
-    const details = await this.placesService.getPlaceDetails(place.place_id).toPromise();
-
-    let imageUrl = 'assets/default-spot.jpg';
+  async addTouristSpotToDatabase(place: any) {
     try {
-      const photoRes = await this.placesService.getPlacePhotos(place.place_id).toPromise();
-      if (photoRes.result?.photos?.length > 0) {
-        const ref = photoRes.result.photos[0].photo_reference;
-        imageUrl = this.placesService.getPhotoUrl(ref);
+      if (this.isDuplicateSpot(place)) {
+        this.showToast(`"${place.name}" already exists in our database.`, 'warning');
+        return;
       }
+
+      const details = await this.placesService.getPlaceDetails(place.place_id).toPromise();
+
+      let imageUrl = 'assets/default-spot.jpg';
+      try {
+        const photoRes = await this.placesService.getPlacePhotos(place.place_id).toPromise();
+        if (photoRes.result?.photos?.length > 0) {
+          const ref = photoRes.result.photos[0].photo_reference;
+          imageUrl = this.placesService.getPhotoUrl(ref);
+        }
+      } catch (error) {
+        console.warn('No photo found for this spot');
+      }
+
+      const newSpot = {
+        name: place.name,
+        description:
+          details.result?.formatted_address ||
+          place.formatted_address ||
+          'A tourist spot in Cebu, Philippines',
+        category: this.getCategory(place.types),
+        location: {
+          lat: place.geometry?.location?.lat,
+          lng: place.geometry?.location?.lng,
+        },
+        googlePlaceId: place.place_id,
+        rating: place.rating || 0,
+        userRatingsTotal: place.user_ratings_total || 0,
+        img: imageUrl,
+      };
+
+      await this.pendingSpotService.submitForApproval(newSpot);
+      this.showToast(`"${place.name}" submitted for approval!`, 'success');
     } catch (error) {
-      console.warn('No photo found for this spot');
+      console.error('Error submitting spot:', error);
+      this.showAlert('Error', 'Something went wrong while submitting. Please try again.');
     }
-
-    const newSpot = {
-      name: place.name,
-      description:
-        details.result?.formatted_address ||
-        place.formatted_address ||
-        'A tourist spot in Cebu, Philippines',
-      category: this.getCategory(place.types),
-      location: {
-        lat: place.geometry?.location?.lat,
-        lng: place.geometry?.location?.lng,
-      },
-      googlePlaceId: place.place_id,
-      rating: place.rating || 0,
-      userRatingsTotal: place.user_ratings_total || 0,
-      img: imageUrl,
-    };
-
-    await this.pendingSpotService.submitForApproval(newSpot);
-    this.showToast(`"${place.name}" submitted for approval!`, 'success');
-  } catch (error) {
-    console.error('Error submitting spot:', error);
-    this.showAlert('Error', 'Something went wrong while submitting. Please try again.');
   }
-}
 
   private sortByPopularity(spots: any[]) {
     return spots.sort((a, b) => (a.userRatingsTotal || 0) - (b.userRatingsTotal || 0));
@@ -444,69 +449,69 @@ async addTouristSpotToDatabase(place: any) {
     await this.authService.logoutUser();
   }
 
-async handleRefresh(event: any) {
-  try {
-    await Promise.all([
-      this.loadSpots(),
-      this.loadVisitedSpots(),
-      this.loadBucketList(),
-    ]);
-    event.target.complete(); // stop the refresher spinner
-  } catch (error) {
-    console.error('Error during refresh:', error);
-    event.target.complete();
-  }
-}
-
-hasVisited(spotId: string): boolean {
-  return this.visitedSpots.some(v => v.spotId === spotId || v.id === spotId);
-}
-
-get topVisitedSpots(): any[] {
-  return this.visitedSpots.slice(0, 3);
-}
-
-async openVisitedSpotsModal(): Promise<void> {
-  const modal = await this.modalCtrl.create({
-    component: VisitedSpotsModalComponent,
-    componentProps: {
-      visitedSpots: this.visitedSpots
-    },
-    cssClass: 'visited-spots-modal',
-    breakpoints: [0, 0.6, 0.9],
-    initialBreakpoint: this.visitedSpots.length > 5 ? 0.9 : 0.6
-  });
-
-  await modal.present();
-}
-
-isSearching = false;
-
-getVisitedDate(visitedAt: any): Date | null {
-  if (!visitedAt) {
-    return null;
+  async handleRefresh(event: any) {
+    try {
+      await Promise.all([
+        this.loadSpots(),
+        this.loadVisitedSpots(),
+        this.loadBucketList(),
+      ]);
+      event.target.complete(); // stop the refresher spinner
+    } catch (error) {
+      console.error('Error during refresh:', error);
+      event.target.complete();
+    }
   }
 
-  if (visitedAt.toDate && typeof visitedAt.toDate === 'function') {
-    return visitedAt.toDate();
+  hasVisited(spotId: string): boolean {
+    return this.visitedSpots.some(v => v.spotId === spotId || v.id === spotId);
   }
 
-  if (visitedAt instanceof Date) {
-    return visitedAt;
+  get topVisitedSpots(): any[] {
+    return this.visitedSpots.slice(0, 3);
   }
 
-  const timestamp = new Date(visitedAt);
-  return isNaN(timestamp.getTime()) ? null : timestamp;
-}private updatePersonalizedSuggestions() {
-  this.personalizedSuggestions = this.personalizedSuggestionsService.getPersonalizedSuggestions(
-    this.allSpots,
-    this.visitedSpots,
-    this.userData,
-    this.itemsPerPage
-  );
-  this.effectiveSuggestionCategories =
-    this.personalizedSuggestionsService.getEffectiveSuggestionCategories(this.visitedSpots, this.userData);
-}
+  async openVisitedSpotsModal(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: VisitedSpotsModalComponent,
+      componentProps: {
+        visitedSpots: this.visitedSpots
+      },
+      cssClass: 'visited-spots-modal',
+      breakpoints: [0, 0.6, 0.9],
+      initialBreakpoint: this.visitedSpots.length > 5 ? 0.9 : 0.6
+    });
+
+    await modal.present();
+  }
+
+  isSearching = false;
+
+  getVisitedDate(visitedAt: any): Date | null {
+    if (!visitedAt) {
+      return null;
+    }
+
+    if (visitedAt.toDate && typeof visitedAt.toDate === 'function') {
+      return visitedAt.toDate();
+    }
+
+    if (visitedAt instanceof Date) {
+      return visitedAt;
+    }
+
+    const timestamp = new Date(visitedAt);
+    return isNaN(timestamp.getTime()) ? null : timestamp;
+  } private updatePersonalizedSuggestions() {
+    this.personalizedSuggestions = this.personalizedSuggestionsService.getPersonalizedSuggestions(
+      this.allSpots,
+      this.visitedSpots,
+      this.userData,
+      this.itemsPerPage
+    );
+    this.effectiveSuggestionCategories =
+      this.personalizedSuggestionsService.getEffectiveSuggestionCategories(this.visitedSpots, this.userData);
+  }
 
 }
 

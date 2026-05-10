@@ -3,6 +3,7 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Router } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { HttpClient } from '@angular/common/http';
+import { AuthErrorCodes } from '../constants/auth-ui-messages';
 
 @Injectable({
   providedIn: 'root'
@@ -25,7 +26,7 @@ export class AuthService {
 
       if (!adminDoc?.exists) {
         await this.afAuth.signOut();
-        throw new Error('Access restricted to admins only');
+        throw new Error(AuthErrorCodes.adminAccessDenied);
       }
 
       this.router.navigate(['/admin/dashboard']);
@@ -62,7 +63,7 @@ export class AuthService {
 
       if (!userDoc?.exists) {
         await this.afAuth.signOut();
-        throw new Error('User profile not found.');
+        throw new Error(AuthErrorCodes.travellerProfileMissing);
       }
 
       // You can store user info locally if needed

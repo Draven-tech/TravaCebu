@@ -4,6 +4,8 @@ import { ItineraryEditorComponent } from '../itinerary-editor/itinerary-editor.c
 import { ItineraryService, ItineraryDay, ItinerarySpot } from '../../services/itinerary.service';
 import { ItineraryMapComponent } from '../itinerary-map/itinerary-map.component';
 import { CalendarService, CalendarEvent } from '../../services/calendar.service';
+import { WeatherSpotSuggestionsService } from '../../services/weather-spot-suggestions.service';
+import { WeatherSummaryBlock } from '../../services/weather.service';
 
 interface PlaceSuggestion {
   name: string;
@@ -37,13 +39,21 @@ export class ItineraryModalComponent implements OnInit {
   saving = false;
   suggestionsVisible: { [key: string]: boolean } = {};
 
+  /** Weather-based replacement ideas for open-air stops (per sorted spot row key) */
+  weatherSuggestionsVisible: { [key: string]: boolean } = {};
+  weatherLoading: { [key: string]: boolean } = {};
+  weatherAlternatives: { [key: string]: any[] } = {};
+  weatherSummaries: { [key: string]: string } = {};
+  weatherSummaryBlocks: { [key: string]: WeatherSummaryBlock | undefined } = {};
+
   constructor(
     private modalCtrl: ModalController,
     private itineraryService: ItineraryService,
     private cdr: ChangeDetectorRef,
     private calendarService: CalendarService,
     private alertCtrl: AlertController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private weatherSpotSuggestions: WeatherSpotSuggestionsService
   ) { }
 
   async ngOnInit() {
@@ -70,6 +80,156 @@ export class ItineraryModalComponent implements OnInit {
     return !!this.suggestionsVisible[spotKey];
   }
 
+  showWeatherTipsRow(spot: ItinerarySpot, day: ItineraryDay): boolean {
+    return this.weatherSpotSuggestions.isMostlyOutdoor(spot) && !!day.date && !!spot.timeSlot;
+  }
+
+  areWeatherSuggestionsVisible(key: string): boolean {
+    return !!this.weatherSuggestionsVisible[key];
+  }
+
+  toggleWeatherSuggestions(dayIndex: number, spotIndexInSortedView: number) {
+    const key = this.getSpotKey(dayIndex, spotIndexInSortedView);
+    const opening = !this.weatherSuggestionsVisible[key];
+    this.weatherSuggestionsVisible[key] = opening;
+    if (opening) {
+      void this.fetchWeatherSuggestions(dayIndex, spotIndexInSortedView);
+    }
+    this.cdr.detectChanges();
+  }
+
+  private async fetchWeatherSuggestions(dayIndex: number, spotIndexInSortedView: number) {
+    const day = this.itinerary[dayIndex];
+    const sorted = this.sortByTimeSlot(day.spots);
+    const spot = sorted[spotIndexInSortedView];
+    if (!spot || !day) {
+      return;
+    }
+    const key = this.getSpotKey(dayIndex, spotIndexInSortedView);
+    this.weatherLoading[key] = true;
+    this.cdr.detectChanges();
+
+    try {
+      const result = await this.weatherSpotSuggestions.getWeatherAwareAlternatives(spot, day.date, this.itinerary, 6);
+      this.weatherSummaries[key] = result.summary;
+      this.weatherSummaryBlocks[key] = result.summaryBlock;
+      this.weatherAlternatives[key] = result.alternatives;
+    } catch (e) {
+      console.error('[ItineraryModal] weather suggestions', e);
+      await this.showToast('Could not load weather suggestions.', 'danger');
+    } finally {
+      this.weatherLoading[key] = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  openAlternativeOnMaps(spot: any) {
+    const lat = spot?.location?.lat;
+    const lng = spot?.location?.lng;
+    const q = spot?.name || 'Tourist spot';
+    if (typeof lat === 'number' && typeof lng === 'number') {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+    } else {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`, '_blank');
+    }
+  }
+
+  async confirmReplaceOutdoorSpotWithAlternative(
+    dayIndex: number,
+    sortedSpotIndex: number,
+    original: ItinerarySpot,
+    alternative: any
+  ) {
+    const day = this.itinerary[dayIndex];
+    const panelKey = this.getSpotKey(dayIndex, sortedSpotIndex);
+    const altName = alternative?.name || 'this place';
+
+    const alert = await this.alertCtrl.create({
+      header: 'Replace Spot?',
+      message: `Replace "${original.name}" with "${altName}"? Your visit time (${original.timeSlot || '—'}) stays the same.`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Replace',
+          handler: () => {
+            void this.applyWeatherSpotReplacement(day, original, alternative, panelKey);
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async applyWeatherSpotReplacement(
+    day: ItineraryDay,
+    original: ItinerarySpot,
+    alternative: any,
+    panelKey: string
+  ) {
+    const idx = day.spots.indexOf(original);
+    if (idx < 0) {
+      void this.showToast('Could not find that stop on this day.', 'danger');
+      return;
+    }
+    const id = alternative?.id;
+    if (!id || !alternative?.location || typeof alternative.location.lat !== 'number' || typeof alternative.location.lng !== 'number') {
+      void this.showToast('That suggestion is missing location data.', 'danger');
+      return;
+    }
+    day.spots[idx] = this.mapFirestoreSpotToItinerarySlot(original, alternative);
+    const updated = day.spots[idx];
+    await this.itineraryService.refreshRestaurantSuggestionsForSpot(updated);
+    const lastIx = day.spots.length - 1;
+    if (idx === lastIx) {
+      await this.itineraryService.refreshHotelSuggestionsForDay(day);
+    }
+    this.weatherAlternatives[panelKey] = [];
+    this.weatherSummaries[panelKey] = '';
+    this.weatherSummaryBlocks[panelKey] = undefined;
+    this.weatherSuggestionsVisible[panelKey] = false;
+    void this.showToast(`Stop updated to "${alternative.name}".`, 'success');
+    this.cdr.detectChanges();
+  }
+
+  private mapFirestoreSpotToItinerarySlot(schedule: ItinerarySpot, alt: any): ItinerarySpot {
+    const id = String(alt.id);
+    const dm =
+      typeof alt.durationMinutes === 'number'
+        ? alt.durationMinutes
+        : this.parseDurationMinutes(alt.estimatedDuration) ?? this.parseDurationMinutes(schedule.estimatedDuration) ?? 120;
+    const gp = alt.googlePlaceTypes ?? alt.google_place_types;
+    const exp = alt.exposure;
+    return {
+      id,
+      touristSpotId: id,
+      spotId: id,
+      name: alt.name,
+      description: alt.description,
+      category: alt.category || 'GENERAL',
+      exposure: exp === 'indoor' || exp === 'outdoor' || exp === 'mixed' ? exp : undefined,
+      googlePlaceTypes: Array.isArray(gp) ? gp : schedule.googlePlaceTypes,
+      img: alt.img ?? alt.imageUrl ?? schedule.img,
+      location: {
+        lat: alt.location.lat,
+        lng: alt.location.lng,
+      },
+      timeSlot: schedule.timeSlot,
+      estimatedDuration: `${dm} min`,
+      durationMinutes: dm,
+      mealType: schedule.mealType,
+      restaurantSuggestions: schedule.mealType ? [] : undefined,
+      chosenRestaurant: undefined,
+      customTime: schedule.customTime,
+    };
+  }
+
+  private parseDurationMinutes(s: string | undefined): number | undefined {
+    if (!s) {
+      return undefined;
+    }
+    const m = /^(\d+)\s*min/i.exec(String(s).trim());
+    return m ? parseInt(m[1], 10) : undefined;
+  }
 
   getSpotKey(dayIndex: number, spotIndex: number): string {
     return `day${dayIndex}_spot${spotIndex}`;
@@ -100,6 +260,10 @@ export class ItineraryModalComponent implements OnInit {
 
   trackByPlaceId(index: number, item: any): string {
     return (item as PlaceSuggestion).place_id || index.toString();
+  }
+
+  trackBySpotId(index: number, item: any): string {
+    return item?.id || index.toString();
   }
 
   getPlaceName(place: any): string {

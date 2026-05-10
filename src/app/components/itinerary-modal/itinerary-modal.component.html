@@ -30,6 +30,67 @@
               <span class="duration">Duration: {{ spot.estimatedDuration }}</span>
             </div>
             <div class="spot-category">{{ spot.category }}</div>
+
+            <!-- Open-air stops: optional weather + indoor/mixed alternatives (on demand) -->
+            <div *ngIf="showWeatherTipsRow(spot, day)" class="suggestions-toggle weather-tips">
+              <div class="suggestion-buttons">
+                <ion-button
+                  size="small"
+                  fill="outline"
+                  expand="block"
+                  class="suggestion-action-btn"
+                  (click)="toggleWeatherSuggestions(dayIndex, i)">
+                  <ion-icon name="rainy-outline"></ion-icon>
+                  {{ areWeatherSuggestionsVisible(getSpotKey(dayIndex, i)) ? 'Hide' : 'Show' }} Spot Suggestions (Weather)
+                </ion-button>
+              </div>
+              <div *ngIf="weatherLoading[getSpotKey(dayIndex, i)]" class="loading-suggestions" style="margin-top: 8px;">
+                <ion-spinner name="crescent" color="warning"></ion-spinner>
+                <span>Checking weather near this stop…</span>
+              </div>
+              <div
+                *ngIf="areWeatherSuggestionsVisible(getSpotKey(dayIndex, i)) && !weatherLoading[getSpotKey(dayIndex, i)]"
+                class="suggestions-section weather-suggestions">
+                <div class="suggestions-header">
+                  <ion-icon name="rainy-outline" color="primary"></ion-icon>
+                  <span>Weather &amp; alternative stops</span>
+                </div>
+                <div *ngIf="weatherSummaryBlocks[getSpotKey(dayIndex, i)] as block" class="weather-summary-block">
+                  <p class="weather-summary-lead">{{ block.headline }}</p>
+                  <ul class="weather-summary-bullets" *ngIf="block.bullets.length">
+                    <li *ngFor="let line of block.bullets">{{ line }}</li>
+                  </ul>
+                  <p *ngIf="block.footer" class="weather-summary-footer">{{ block.footer }}</p>
+                </div>
+                <p
+                  class="weather-summary-plain"
+                  *ngIf="!weatherSummaryBlocks[getSpotKey(dayIndex, i)] && weatherSummaries[getSpotKey(dayIndex, i)]">
+                  {{ weatherSummaries[getSpotKey(dayIndex, i)] }}
+                </p>
+                <div *ngIf="(weatherAlternatives[getSpotKey(dayIndex, i)] || []).length > 0" class="suggestions-grid">
+                  <div *ngFor="let alt of weatherAlternatives[getSpotKey(dayIndex, i)]; trackBy: trackBySpotId" class="suggestion-card">
+                    <div class="suggestion-name">{{ alt.name }}</div>
+                    <div class="suggestion-details">
+                      <span>{{ alt.category }}</span>
+                      <span *ngIf="alt._distanceKm != null"> · ~{{ alt._distanceKm.toFixed(1) }} km</span>
+                    </div>
+                    <div class="suggestion-actions">
+                      <ion-button
+                        size="small"
+                        fill="solid"
+                        color="warning"
+                        (click)="confirmReplaceOutdoorSpotWithAlternative(dayIndex, i, spot, alt)">
+                        <ion-icon name="swap-horizontal-outline" slot="start"></ion-icon>
+                        Replace Spot
+                      </ion-button>
+                      <ion-button size="small" fill="outline" (click)="openAlternativeOnMaps(alt)">
+                        <ion-icon name="map-outline"></ion-icon> Map
+                      </ion-button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             
             <!-- Show Suggestions Button for spots with meal times -->
             <div *ngIf="spot.mealType && !spot.chosenRestaurant" class="suggestions-toggle">

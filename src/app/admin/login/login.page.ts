@@ -3,6 +3,12 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LoadingController, AlertController, ToastController, IonContent, Platform, NavController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
+import { AuthUiMessages, AuthErrorCodes } from '../../constants/auth-ui-messages';
+import {
+  appThrownMessage,
+  firebaseAuthCode,
+  isReferrerBlockedAuth,
+} from '../../utils/auth-firebase-error.util';
 
 @Component({
   standalone: false,
@@ -44,7 +50,7 @@ export class LoginPage implements OnInit {
     if (this.form.invalid) return;
     
     const loading = await this.loadingCtrl.create({
-      message: 'Logging in...',
+      message: AuthUiMessages.admin.loading,
       spinner: 'crescent'
     });
     await loading.present();
@@ -59,30 +65,32 @@ export class LoginPage implements OnInit {
       await loading.dismiss();
       console.error('Admin login error:', error);
       
-      let errorMessage = 'Login failed. Please try again.';
-      
-      if (error instanceof Error) {
-        const errorMsg = error.message.toLowerCase();
-        
-        if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
-          errorMessage = 'Network error. Please check your internet connection and try again.';
-        } else if (errorMsg.includes('access restricted') || errorMsg.includes('admin')) {
-          errorMessage = 'Access denied. Admin privileges required.';
-        } else if (errorMsg.includes('auth/user-not-found') || errorMsg.includes('auth/wrong-password')) {
-          errorMessage = 'Invalid email or password. Please try again.';
-        } else if (errorMsg.includes('auth/too-many-requests')) {
-          errorMessage = 'Too many failed attempts. Please try again later.';
-        } else if (errorMsg.includes('auth/requests-from-referer') || errorMsg.includes('localhost')) {
-          errorMessage = 'Authentication service temporarily unavailable. Please try again in a few minutes.';
-        } else if (errorMsg.includes('auth/invalid-email')) {
-          errorMessage = 'Please enter a valid email address.';
-        } else if (errorMsg.includes('auth/weak-password')) {
-          errorMessage = 'Password is too weak. Please use a stronger password.';
-        } else {
-          errorMessage = error.message;
-        }
+      let errorMessage: string = AuthUiMessages.admin.generic;
+      const thrown = appThrownMessage(error);
+      const code = firebaseAuthCode(error);
+
+      if (thrown === AuthErrorCodes.adminAccessDenied) {
+        errorMessage = AuthUiMessages.admin.insufficientPrivilege;
+      } else if (code === 'auth/invalid-email') {
+        errorMessage = AuthUiMessages.admin.invalidEmailFormat;
+      } else if (code === 'auth/weak-password') {
+        errorMessage = AuthUiMessages.admin.weakPassword;
+      } else if (
+        code === 'auth/user-not-found' ||
+        code === 'auth/wrong-password' ||
+        code === 'auth/invalid-credential'
+      ) {
+        errorMessage = AuthUiMessages.admin.invalidCredentials;
+      } else if (code === 'auth/too-many-requests') {
+        errorMessage = AuthUiMessages.admin.rateLimited;
+      } else if (code === 'auth/network-request-failed') {
+        errorMessage = AuthUiMessages.admin.network;
+      } else if (code && isReferrerBlockedAuth(code)) {
+        errorMessage = AuthUiMessages.admin.serviceUnavailable;
+      } else if (thrown && /network|fetch|offline/i.test(thrown)) {
+        errorMessage = AuthUiMessages.admin.network;
       }
-      
+
       await this.showError(errorMessage);
     }
   }
@@ -194,7 +202,7 @@ export class LoginPage implements OnInit {
   private async showError(message: string) {
     try {
       const alert = await this.alertCtrl.create({
-        header: 'Login Error',
+        header: AuthUiMessages.admin.alertTitle,
         message: message,
         buttons: ['OK'],
         cssClass: 'custom-alert'

@@ -3,6 +3,8 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AlertController, NavController, IonContent, Platform } from '@ionic/angular';
 import { Keyboard } from '@capacitor/keyboard';
+import { AuthUiMessages } from '../constants/auth-ui-messages';
+import { firebaseAuthCode, isReferrerBlockedAuth } from '../utils/auth-firebase-error.util';
 
 @Component({
   standalone: false,
@@ -65,22 +67,22 @@ export class RegisterPage implements OnInit {
   async register() {
     // Validate form
     if (!this.firstName || !this.lastName || !this.username || !this.email || !this.password || !this.confirmPassword) {
-      await this.showAlert('Missing Information', 'Please fill in all required fields.');
+      await this.showAlert(AuthUiMessages.registration.titleValidation, AuthUiMessages.registration.missingFields);
       return;
     }
 
     if (!this.agreed) {
-      await this.showAlert('Agreement Required', 'Please accept the terms of service and privacy policy.');
+      await this.showAlert(AuthUiMessages.registration.titleAgreement, AuthUiMessages.registration.agreementRequired);
       return;
     }
 
     if (this.password !== this.confirmPassword) {
-      await this.showAlert('Password Mismatch', 'Passwords do not match.');
+      await this.showAlert(AuthUiMessages.registration.titlePassword, AuthUiMessages.registration.passwordMismatch);
       return;
     }
 
     if (this.password.length < 6) {
-      await this.showAlert('Weak Password', 'Password must be at least 6 characters long.');
+      await this.showAlert(AuthUiMessages.registration.titlePassword, AuthUiMessages.registration.passwordLength);
       return;
     }
 
@@ -106,41 +108,42 @@ export class RegisterPage implements OnInit {
             photoURL: null
           });
 
-          await this.showAlert('Success', 'Registration successful! You can now login.');
+          await this.showAlert(AuthUiMessages.registration.titleSuccess, AuthUiMessages.registration.success);
           this.navCtrl.navigateRoot('/login');
         } catch (firestoreError) {
-          await this.showAlert('Firestore Error', 'Account was created but user profile failed to save. Please contact support.');
+          await this.showAlert(AuthUiMessages.registration.titleProfileError, AuthUiMessages.registration.profileSaveFailed);
           console.error('Firestore error:', firestoreError);
         }
       }
-    } catch (authError: any) {
+    } catch (authError: unknown) {
       console.error('Registration error:', authError);
-      
-      let message = 'Registration failed. Please try again.';
-      
-      if (authError.code) {
-        switch (authError.code) {
+
+      let message: string = AuthUiMessages.registration.generic;
+      const code = firebaseAuthCode(authError);
+
+      if (code) {
+        switch (code) {
           case 'auth/email-already-in-use':
-            message = 'Email is already registered. Please login instead.';
+            message = AuthUiMessages.registration.emailInUse;
             break;
           case 'auth/invalid-email':
-            message = 'Please enter a valid email address.';
+            message = AuthUiMessages.registration.invalidEmail;
             break;
           case 'auth/weak-password':
-            message = 'Password is too weak. Please use a stronger password.';
+            message = AuthUiMessages.registration.weakPassword;
             break;
           case 'auth/network-request-failed':
-            message = 'Network error. Please check your internet connection and try again.';
-            break;
-          case 'auth/requests-from-referer-https://localhost-are-blocked':
-            message = 'Authentication service temporarily unavailable. Please try again in a few minutes.';
+            message = AuthUiMessages.registration.network;
             break;
           default:
-            message = authError.message || 'Registration failed. Please try again.';
+            message = isReferrerBlockedAuth(code)
+              ? AuthUiMessages.registration.serviceUnavailable
+              : AuthUiMessages.registration.generic;
+            break;
         }
       }
 
-      await this.showAlert('Registration Error', message);
+      await this.showAlert(AuthUiMessages.registration.titleError, message);
     }
   }
 

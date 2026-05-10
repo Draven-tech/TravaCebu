@@ -16,13 +16,14 @@ export class UserGuard implements CanActivate {
     state: RouterStateSnapshot
   ): Promise<boolean | UrlTree> {
     const isUser = await this.authService.isUser();
-
     if (isUser) {
       return true;
-    } else {
-      return this.router.createUrlTree(['/login'], {
-        queryParams: { returnUrl: state.url }
-      });
     }
+    if (await this.authService.isAdmin()) {
+      return this.router.createUrlTree(['/admin/dashboard']);
+    }
+    return this.router.createUrlTree(['/login'], {
+      queryParams: { returnUrl: state.url }
+    });
   }
 }

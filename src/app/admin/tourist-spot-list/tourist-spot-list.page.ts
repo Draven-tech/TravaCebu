@@ -4,6 +4,8 @@ import { AlertController, ModalController, NavController } from '@ionic/angular'
 import { TouristSpotDetailPage } from '../tourist-spot-detail/tourist-spot-detail.page';
 import { DatePipe } from '@angular/common';
 import { StorageService } from '../../services/storage.service';
+import { PlacesImageService } from '../../services/places-image.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   standalone: false,
@@ -16,12 +18,18 @@ export class TouristSpotListPage implements OnInit {
   isLoading = true;
   searchQuery = '';
 
+  /** TEMP: remove after all documents have Places metadata */
+  bulkSyncRunning = false;
+  bulkSyncDone = 0;
+  bulkSyncTotal = 0;
+
   constructor(
     private firestore: AngularFirestore,
     private alertCtrl: AlertController,
     private modalCtrl: ModalController,
     private navCtrl: NavController,
     private storageService: StorageService,
+    private placesImageService: PlacesImageService,
     public datePipe: DatePipe
   ) {}
 
@@ -53,6 +61,123 @@ export class TouristSpotListPage implements OnInit {
 
   refreshSpots() {
     this.loadSpots();
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * TEMP: One-click backfill `img`, `googlePlaceTypes`, `exposure`, `googlePlaceId` for every `tourist_spots` doc.
+   * Remove this flow after Firestore is fully migrated.
+   */
+  async tempBulkSyncAllSpotsFromGoogle(): Promise<void> {
+    if (this.bulkSyncRunning) {
+      return;
+    }
+    const alert = await this.alertCtrl.create({
+      header: 'Reload all tourist spots?',
+      message:
+        'Documents that already have googlePlaceTypes (from a previous sync) are skipped — no Places call. ' +
+        'All other spots are synced: primary image, googlePlaceTypes, exposure, googlePlaceId, updatedAt. ' +
+        'Still uses quota for spots that still need syncing; keep the screen awake until finished.',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Start',
+          handler: () => {
+            void this.runTempBulkPlacesSync();
+            return true;
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  private async runTempBulkPlacesSync(): Promise<void> {
+    this.bulkSyncRunning = true;
+    this.bulkSyncDone = 0;
+    let updated = 0;
+    let skipped = 0;
+    let skippedAlreadySynced = 0;
+    let failed = 0;
+    let noPlacesData = 0;
+
+    try {
+      const snap = await this.firestore.collection('tourist_spots').get().toPromise();
+      const docs = snap?.docs ?? [];
+      this.bulkSyncTotal = docs.length;
+
+      this.placesImageService.clearCache();
+
+      for (const doc of docs) {
+        const data = doc.data() as Record<string, unknown>;
+        const spot: any = { id: doc.id, ...data };
+
+        if (
+          !spot.name ||
+          typeof spot.location?.lat !== 'number' ||
+          typeof spot.location?.lng !== 'number' ||
+          isNaN(spot.location.lat) ||
+          isNaN(spot.location.lng)
+        ) {
+          skipped++;
+          this.bulkSyncDone++;
+          continue;
+        }
+
+        if (this.spotAlreadyHasPlacesMetadata(spot)) {
+          skippedAlreadySynced++;
+          this.bulkSyncDone++;
+          continue;
+        }
+
+        try {
+          const enhanced = await firstValueFrom(this.placesImageService.retryFetchImages(spot));
+          const patch = this.placesImageService.getFirestoreUpdatePayload(enhanced);
+          if (patch && Object.keys(patch).length > 0) {
+            patch['updatedAt'] = new Date();
+            await doc.ref.update(patch);
+            updated++;
+          } else {
+            noPlacesData++;
+          }
+        } catch (err) {
+          console.error('[tempBulkSync] failed for', doc.id, err);
+          failed++;
+        }
+
+        this.bulkSyncDone++;
+        await this.delay(400);
+      }
+
+      await this.showAlert(
+        'Bulk reload finished',
+        `Updated: ${updated}. ` +
+          `Skipped (already had googlePlaceTypes): ${skippedAlreadySynced}. ` +
+          `Skipped (missing name or lat/lng): ${skipped}. ` +
+          `No Places match / empty payload: ${noPlacesData}. ` +
+          `Errors: ${failed}.`
+      );
+    } finally {
+      this.bulkSyncRunning = false;
+      this.bulkSyncTotal = 0;
+      this.bulkSyncDone = 0;
+    }
+  }
+
+  bulkSyncProgress(): number {
+    if (!this.bulkSyncTotal) {
+      return 0;
+    }
+    return this.bulkSyncDone / this.bulkSyncTotal;
+  }
+
+  /** Non-empty Places `types[]` means we already did a Places Details sync — skip API */
+  private spotAlreadyHasPlacesMetadata(spot: any): boolean {
+    const types = spot?.googlePlaceTypes ?? spot?.google_place_types;
+    return Array.isArray(types) && types.length > 0;
   }
 
   async openSpotDetail(spotData: any) {

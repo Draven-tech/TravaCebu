@@ -1,7 +1,8 @@
 ﻿import { Component } from '@angular/core';
-import { Platform }  from '@ionic/angular';
+import { Platform } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { Router }    from '@angular/router';
+import { Router } from '@angular/router';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -13,15 +14,29 @@ export class AppComponent {
   constructor(
     private platform: Platform,
     private afAuth: AngularFireAuth,
-    private router: Router
+    private router: Router,
+    private authService: AuthService
   ) {
     this.platform.ready().then(() => {
-      this.afAuth.authState.subscribe(user => {
-        if (user) {
-          // user.uid is available, so skip login
-          this.router.navigateByUrl(`/user-dashboard/${user.uid}`, { replaceUrl: true });
-        } else {
-          this.router.navigateByUrl('/welcome', { replaceUrl: true });
+      this.afAuth.authState.subscribe(async (user) => {
+        if (!user) {
+          await this.router.navigateByUrl('/welcome', { replaceUrl: true });
+          return;
+        }
+        try {
+          if (await this.authService.isAdmin()) {
+            await this.router.navigateByUrl('/admin/dashboard', { replaceUrl: true });
+            return;
+          }
+          if (await this.authService.isUser()) {
+            await this.router.navigateByUrl(`/user-dashboard/${user.uid}`, { replaceUrl: true });
+            return;
+          }
+          await this.afAuth.signOut();
+          await this.router.navigateByUrl('/welcome', { replaceUrl: true });
+        } catch (e) {
+          console.error('[AppComponent] auth routing error', e);
+          await this.router.navigateByUrl('/welcome', { replaceUrl: true });
         }
       });
     });

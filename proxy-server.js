@@ -119,6 +119,32 @@ app.get('/api/osrm/nearest/:coordinates', async (req, res) => {
   }
 });
 
+// Google Maps Platform Weather API — hourly forecast (enable "Weather API" in GCP)
+app.get('/api/weather/hourly', async (req, res) => {
+  try {
+    const { lat, lng, hours, key } = req.query;
+    if (!lat || !lng || !key) {
+      return res.status(400).json({
+        error: 'Missing parameters',
+        message: 'Required query params: lat, lng, key (hours optional, default 120)'
+      });
+    }
+    const h = hours || '120';
+    const response = await axios.get('https://weather.googleapis.com/v1/forecast/hours:lookup', {
+      params: {
+        key,
+        'location.latitude': lat,
+        'location.longitude': lng,
+        hours: h
+      }
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error('Weather API error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch weather', message: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Proxy server running on http://localhost:${PORT}`);
   console.log('Available endpoints:');
@@ -130,4 +156,5 @@ app.listen(PORT, () => {
   console.log('  - POST /api/routes (Google Routes API)');
   console.log('  - GET /api/osrm (OSRM Routing)');
   console.log('  - GET /api/osrm/nearest/:coordinates (OSRM Road Snapping)');
+  console.log('  - GET /api/weather/hourly (Weather API hourly forecast)');
 }); 

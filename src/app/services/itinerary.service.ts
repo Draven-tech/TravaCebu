@@ -12,6 +12,10 @@ export interface ItinerarySpot {
   name: string;
   description?: string;
   category?: string;
+  /** Optional: from `tourist_spots` — overrides category heuristics for weather tips */
+  exposure?: 'indoor' | 'mixed' | 'outdoor';
+  /** Optional: from `tourist_spots` — Google Places `types[]` when synced from Places */
+  googlePlaceTypes?: string[];
   img?: string;
   location: { lat: number; lng: number };
   timeSlot?: string;
@@ -130,33 +134,51 @@ export class ItineraryService {
     return itinerary;
   }
 
+  /**
+   * Re-fetch nearby restaurants for one stop (e.g. after weather “replace spot” moves the pin).
+   */
+  async refreshRestaurantSuggestionsForSpot(spot: ItinerarySpot): Promise<void> {
+    if (!spot.mealType || !spot.location) {
+      delete spot.restaurantSuggestions;
+      return;
+    }
+    try {
+      const restRes: any = await this.placesService.getNearbyPlaces(spot.location.lat, spot.location.lng, 'restaurant').toPromise();
+      const suggestions = restRes.results || [];
+      spot.restaurantSuggestions = this.rankPlacesByQualityAndProximity(suggestions, spot.location);
+    } catch (error) {
+      console.error(`Error fetching restaurants for ${spot.name}:`, error);
+      spot.restaurantSuggestions = [];
+    }
+  }
+
+  async refreshHotelSuggestionsForDay(day: ItineraryDay): Promise<void> {
+    if (!day.spots?.length) {
+      delete day.hotelSuggestions;
+      return;
+    }
+    const lastSpot = day.spots[day.spots.length - 1];
+    if (!lastSpot?.location) {
+      return;
+    }
+    try {
+      const hotelRes: any = await this.placesService.getNearbyPlaces(lastSpot.location.lat, lastSpot.location.lng, 'lodging').toPromise();
+      const suggestions = hotelRes.results || [];
+      day.hotelSuggestions = this.rankPlacesByQualityAndProximity(suggestions, lastSpot.location);
+    } catch (error) {
+      console.error(`Error fetching hotels for Day ${day.day}:`, error);
+      day.hotelSuggestions = [];
+    }
+  }
+
   async fetchSuggestionsForItinerary(itinerary: ItineraryDay[], logFn?: (msg: string) => void): Promise<ItineraryDay[]> {
 
     for (const day of itinerary) {
       for (const spot of day.spots) {
-        if (spot.mealType) {
-          try {
-            const restRes: any = await this.placesService.getNearbyPlaces(spot.location.lat, spot.location.lng, 'restaurant').toPromise();
-            const suggestions = restRes.results || [];
-            spot.restaurantSuggestions = this.rankPlacesByQualityAndProximity(suggestions, spot.location);
-          } catch (error) {
-            console.error(`Error fetching restaurants for ${spot.name}:`, error);
-            spot.restaurantSuggestions = [];
-          }
-        }
+        await this.refreshRestaurantSuggestionsForSpot(spot);
       }
-      
-      if (day.spots.length > 0) {
-        const lastSpot = day.spots[day.spots.length - 1];
-        try {
-          const hotelRes: any = await this.placesService.getNearbyPlaces(lastSpot.location.lat, lastSpot.location.lng, 'lodging').toPromise();
-          const suggestions = hotelRes.results || [];
-          day.hotelSuggestions = this.rankPlacesByQualityAndProximity(suggestions, lastSpot.location);
-        } catch (error) {
-          console.error(`Error fetching hotels for Day ${day.day}:`, error);
-          day.hotelSuggestions = [];
-        }
-      }
+
+      await this.refreshHotelSuggestionsForDay(day);
     }
     
     return itinerary;

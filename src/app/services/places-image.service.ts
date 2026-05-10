@@ -1,7 +1,8 @@
 ﻿import { Injectable } from '@angular/core';
 import { PlacesService } from './places.service';
-import { Observable, of, forkJoin } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
+import { exposureFromGooglePlaceTypes, SpotExposure } from '../utils/spot-exposure.util';
 
 export interface PlaceImage {
   url: string;
@@ -27,6 +28,10 @@ export interface EnhancedTouristSpot {
   googleImages?: PlaceImage[];
   googleRating?: number;
   googleUserRatings?: number;
+  /** Saved from Places `types` — used for exposure / weather. */
+  googlePlaceTypes?: string[];
+  /** Derived from `googlePlaceTypes` when details are fetched. */
+  exposure?: SpotExposure;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -96,61 +101,77 @@ export class PlacesImageService {
       this.clearSpotCache(spot.id);
     }
 
-    // Try to find Google Places data for this spot
-    return this.findGooglePlaceForSpot(spot).pipe(
-      switchMap(googlePlace => {
-        if (googlePlace && googlePlace.place_id) {
-          enhancedSpot.googlePlaceId = googlePlace.place_id;
-          enhancedSpot.googleRating = googlePlace.rating;
-          enhancedSpot.googleUserRatings = googlePlace.user_ratings_total;
+    const placeLookup$: Observable<any> = spot.googlePlaceId
+      ? of({
+          place_id: spot.googlePlaceId,
+          rating: spot.rating,
+          user_ratings_total: spot.userRatingsTotal ?? spot.user_ratings_total
+        })
+      : this.findGooglePlaceForSpot(spot);
 
-          // Get photos for this place
-          return this.placesService.getPlacePhotos(googlePlace.place_id).pipe(
-            map((photoResult: any) => {
-              if (photoResult.result && photoResult.result.photos) {
-                const photos = photoResult.result.photos.slice(0, 5); // Limit to 5 photos
-                const googleImages = photos.map((photo: any) => ({
-                  url: this.placesService.getPhotoUrl(photo.photo_reference),
-                  width: photo.width || 400,
-                  height: photo.height || 300,
-                  photoReference: photo.photo_reference,
-                  isGooglePlace: true,
-                  isBroken: false,
-                  lastChecked: new Date()
-                }));
-                
-                enhancedSpot.googleImages = googleImages;
-                
-                // Cache the images
-                this.imageCache.set(spot.id, googleImages);
-              }
-              return enhancedSpot;
-            }),
-            catchError(error => {
-              console.error('Error fetching place photos:', error);
-              return of(enhancedSpot);
-            })
-          );
-        } else {
-          // Fallback: Try to find a matching place using simple name matching
-          return this.findFallbackGooglePlace(spot).pipe(
-            map(fallbackPlace => {
-              if (fallbackPlace) {
-                enhancedSpot.googlePlaceId = fallbackPlace.place_id;
-                enhancedSpot.googleRating = fallbackPlace.rating;
-                enhancedSpot.googleUserRatings = fallbackPlace.user_ratings_total;
-              }
-              return enhancedSpot;
-            }),
-            catchError(error => {
-              console.error('Error in fallback place search:', error);
-              return of(enhancedSpot);
-            })
-          );
+    return placeLookup$.pipe(
+      switchMap((googlePlace) => {
+        if (googlePlace && googlePlace.place_id) {
+          return this.applyPlaceDetails(enhancedSpot, spot, googlePlace.place_id);
         }
+        return this.findFallbackGooglePlace(spot).pipe(
+          switchMap((fallbackPlace) => {
+            if (fallbackPlace?.place_id) {
+              return this.applyPlaceDetails(enhancedSpot, spot, fallbackPlace.place_id);
+            }
+            return of(enhancedSpot);
+          }),
+          catchError((error) => {
+            console.error('Error in fallback place search:', error);
+            return of(enhancedSpot);
+          })
+        );
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error enhancing tourist spot:', error);
+        return of(enhancedSpot);
+      })
+    );
+  }
+
+  /** One Place Details call: `types`, `photos`, ratings (Places API). */
+  private applyPlaceDetails(
+    enhancedSpot: EnhancedTouristSpot,
+    spot: any,
+    placeId: string
+  ): Observable<EnhancedTouristSpot> {
+    enhancedSpot.googlePlaceId = placeId;
+    return this.placesService.getPlaceDetails(placeId).pipe(
+      map((detailsResult: any) => {
+        const result = detailsResult?.result;
+        if (!result) {
+          return enhancedSpot;
+        }
+        enhancedSpot.googleRating = result.rating;
+        enhancedSpot.googleUserRatings = result.user_ratings_total;
+        const types = Array.isArray(result.types) ? [...result.types] : [];
+        enhancedSpot.googlePlaceTypes = types;
+        enhancedSpot.exposure = exposureFromGooglePlaceTypes(types);
+
+        if (result.photos?.length) {
+          const photos = result.photos.slice(0, 5);
+          const googleImages = photos.map((photo: any) => ({
+            url: this.placesService.getPhotoUrl(photo.photo_reference),
+            width: photo.width || 400,
+            height: photo.height || 300,
+            photoReference: photo.photo_reference,
+            isGooglePlace: true,
+            isBroken: false,
+            lastChecked: new Date()
+          }));
+          enhancedSpot.googleImages = googleImages;
+          this.imageCache.set(spot.id, googleImages);
+        }
+
+        return enhancedSpot;
+      }),
+      catchError((error) => {
+        console.error('Error fetching place details:', error);
         return of(enhancedSpot);
       })
     );
@@ -401,5 +422,27 @@ export class PlacesImageService {
     }
     
     return validatedImages;
+  }
+
+  /**
+   * Firestore fields to write after `enhanceTouristSpot` / `retryFetchImages` (single-spot refresh & bulk sync).
+   */
+  getFirestoreUpdatePayload(enhancedSpot: EnhancedTouristSpot): Record<string, unknown> | null {
+    const patch: Record<string, unknown> = {};
+    if (enhancedSpot.googleImages && enhancedSpot.googleImages.length > 0) {
+      patch['img'] = enhancedSpot.googleImages[0].url;
+    }
+    if (enhancedSpot.googlePlaceTypes?.length) {
+      patch['googlePlaceTypes'] = enhancedSpot.googlePlaceTypes;
+    }
+    const resolvedExposure =
+      enhancedSpot.exposure ?? exposureFromGooglePlaceTypes(enhancedSpot.googlePlaceTypes);
+    if (resolvedExposure) {
+      patch['exposure'] = resolvedExposure;
+    }
+    if (enhancedSpot.googlePlaceId) {
+      patch['googlePlaceId'] = enhancedSpot.googlePlaceId;
+    }
+    return Object.keys(patch).length > 0 ? patch : null;
   }
 }

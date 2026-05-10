@@ -4,6 +4,7 @@ import { AlertController, NavController } from '@ionic/angular';
 import * as L from 'leaflet';
 import { StorageService } from '../../services/storage.service';
 import { PlacesService } from '../../services/places.service';
+import { exposureFromGooglePlaceTypes } from '../../utils/spot-exposure.util';
 
 @Component({
   selector: 'app-tourist-spot-editor',
@@ -39,6 +40,8 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
   googlePlaceId: string = '';
   rating: number = 0;
   userRatingsTotal: number = 0;
+  /** Google Places `types` — stored on `tourist_spots` for exposure / weather */
+  googlePlaceTypes: string[] = [];
   
   // Edit mode tracking
   isEditing: boolean = false;
@@ -89,6 +92,7 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
         this.googlePlaceId = spot.googlePlaceId || '';
         this.rating = spot.rating || 0;
         this.userRatingsTotal = spot.userRatingsTotal || 0;
+        this.googlePlaceTypes = Array.isArray(spot.googlePlaceTypes) ? [...spot.googlePlaceTypes] : [];
         // If the image URL looks like a Google Places URL, set it as Google Places image
         if (spot.img && spot.img.includes('maps.googleapis.com')) {
           this.googlePlacesImageUrl = spot.img;
@@ -247,7 +251,9 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
       // Populate form fields
       this.spotName = googlePlace.name;
       this.spotDescription = placeDetails.result?.formatted_address || googlePlace.formatted_address || 'A tourist spot in Cebu, Philippines';
-      this.spotCategory = this.determineCategory(googlePlace.types);
+      const typesFromPlaces = placeDetails.result?.types || googlePlace.types || [];
+      this.googlePlaceTypes = Array.isArray(typesFromPlaces) ? [...typesFromPlaces] : [];
+      this.spotCategory = this.determineCategory(this.googlePlaceTypes);
       
       // Store Google Places data for hidden gems feature
       this.googlePlaceId = googlePlace.place_id;
@@ -422,6 +428,11 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
         updatedAt: new Date()
       };
 
+      if (this.googlePlaceTypes.length > 0) {
+        spotData.googlePlaceTypes = [...this.googlePlaceTypes];
+        spotData.exposure = exposureFromGooglePlaceTypes(this.googlePlaceTypes);
+      }
+
       // Only add createdAt for new spots, not when editing
       if (!this.isEditing) {
         spotData.createdAt = new Date();
@@ -452,6 +463,7 @@ export class TouristSpotEditorPage implements OnInit, OnDestroy {
     this.googlePlaceId = '';
     this.rating = 0;
     this.userRatingsTotal = 0;
+    this.googlePlaceTypes = [];
     this.searchResults = [];
     if (this.marker) {
       this.map.removeLayer(this.marker);

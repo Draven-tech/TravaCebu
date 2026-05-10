@@ -353,42 +353,59 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
         next: async (enhancedSpot) => {
           this.enhancedSpot = enhancedSpot;
 
-          if (enhancedSpot.googleImages && enhancedSpot.googleImages.length > 0) {
-            const newImageUrl = enhancedSpot.googleImages[0].url;
-            this.spotData.img = newImageUrl;
+          const patch = this.placesImageService.getFirestoreUpdatePayload(enhancedSpot);
 
-            try {
-              await this.firestore.collection('tourist_spots').doc(this.spotId!).update({
-                img: newImageUrl
-              });
-
-              const successToast = await this.toastCtrl.create({
-                message: `Images refreshed and saved for ${this.spotData.name}!`,
-                duration: 2000,
-                color: 'success',
-                position: 'bottom'
-              });
-              successToast.present();
-              
-            } catch (firestoreError) {
-              console.error('Error updating Firestore document:', firestoreError);
-
-              const errorToast = await this.toastCtrl.create({
-                message: `Image refreshed but failed to save. Please try again.`,
-                duration: 3000,
-                color: 'warning',
-                position: 'bottom'
-              });
-              errorToast.present();
-            }
-          } else {
-            const noImagesToast = await this.toastCtrl.create({
-              message: `No new images found for ${this.spotData.name}`,
-              duration: 2000,
+          if (!patch || Object.keys(patch).length === 0) {
+            const noDataToast = await this.toastCtrl.create({
+              message: `No Google Places data found for ${this.spotData.name}`,
+              duration: 2500,
               color: 'warning',
               position: 'bottom'
             });
-            noImagesToast.present();
+            noDataToast.present();
+            return;
+          }
+
+          if (patch['img']) {
+            this.spotData.img = patch['img'] as string;
+          }
+          if (patch['googlePlaceTypes']) {
+            this.spotData.googlePlaceTypes = patch['googlePlaceTypes'];
+          }
+          if (patch['exposure']) {
+            this.spotData.exposure = patch['exposure'];
+          }
+          if (patch['googlePlaceId']) {
+            this.spotData.googlePlaceId = patch['googlePlaceId'];
+          }
+
+          try {
+            await this.firestore.collection('tourist_spots').doc(this.spotId!).update(patch);
+
+            let msg = `Updated ${this.spotData.name}`;
+            if (patch['img']) {
+              msg = `Images refreshed and spot metadata saved for ${this.spotData.name}!`;
+            } else {
+              msg = `Place details (types / exposure) saved for ${this.spotData.name}!`;
+            }
+
+            const successToast = await this.toastCtrl.create({
+              message: msg,
+              duration: 2200,
+              color: 'success',
+              position: 'bottom'
+            });
+            successToast.present();
+          } catch (firestoreError) {
+            console.error('Error updating Firestore document:', firestoreError);
+
+            const errorToast = await this.toastCtrl.create({
+              message: `Refresh completed but failed to save. Please try again.`,
+              duration: 3000,
+              color: 'warning',
+              position: 'bottom'
+            });
+            errorToast.present();
           }
         },
         error: async (error) => {

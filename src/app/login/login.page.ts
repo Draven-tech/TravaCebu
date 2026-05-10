@@ -2,6 +2,12 @@
 import { AlertController, NavController, IonContent } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
+import { AuthUiMessages, AuthErrorCodes } from '../constants/auth-ui-messages';
+import {
+  appThrownMessage,
+  firebaseAuthCode,
+  isReferrerBlockedAuth,
+} from '../utils/auth-firebase-error.util';
 
 @Component({
   selector: 'app-login',
@@ -33,44 +39,46 @@ export class LoginPage implements OnInit {
 
   async loginUser() {
     if (!this.email || !this.password) {
-      await this.showError('Please enter both email and password.');
+      await this.showError(AuthUiMessages.traveller.missingFields);
       return;
     }
 
     try {
-      const userCredential = await this.authService.loginUser(this.email, this.password);
+      await this.authService.loginUser(this.email, this.password);
       const uid = await this.authService.getCurrentUid(); 
 
       if (uid) {
         this.navCtrl.navigateRoot(`/user-dashboard/${uid}`);
       } else {
-        throw new Error('Failed to get user UID');
+        throw new Error(AuthErrorCodes.uidResolutionFailed);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
-      
-      let errorMessage = 'Login failed. Please try again.';
-      
-      if (error.message) {
-        const errorMsg = error.message.toLowerCase();
-        
-        if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
-          errorMessage = 'Network error. Please check your internet connection and try again.';
-        } else if (errorMsg.includes('auth/user-not-found') || errorMsg.includes('auth/wrong-password')) {
-          errorMessage = 'Invalid email or password. Please try again.';
-        } else if (errorMsg.includes('auth/too-many-requests')) {
-          errorMessage = 'Too many failed attempts. Please try again later.';
-        } else if (errorMsg.includes('auth/requests-from-referer') || errorMsg.includes('localhost')) {
-          errorMessage = 'Authentication service temporarily unavailable. Please try again in a few minutes.';
-        } else if (errorMsg.includes('auth/invalid-email')) {
-          errorMessage = 'Please enter a valid email address.';
-        } else if (errorMsg.includes('user profile not found')) {
-          errorMessage = 'User account not found. Please check your credentials.';
-        } else {
-          errorMessage = error.message;
-        }
+
+      let errorMessage: string = AuthUiMessages.traveller.generic;
+      const thrown = appThrownMessage(error);
+      const code = firebaseAuthCode(error);
+
+      if (thrown === AuthErrorCodes.travellerProfileMissing) {
+        errorMessage = AuthUiMessages.traveller.profileMissing;
+      } else if (code === 'auth/invalid-email') {
+        errorMessage = AuthUiMessages.traveller.invalidEmailFormat;
+      } else if (
+        code === 'auth/user-not-found' ||
+        code === 'auth/wrong-password' ||
+        code === 'auth/invalid-credential'
+      ) {
+        errorMessage = AuthUiMessages.traveller.invalidCredentials;
+      } else if (code === 'auth/too-many-requests') {
+        errorMessage = AuthUiMessages.traveller.rateLimited;
+      } else if (code === 'auth/network-request-failed') {
+        errorMessage = AuthUiMessages.traveller.network;
+      } else if (code && isReferrerBlockedAuth(code)) {
+        errorMessage = AuthUiMessages.traveller.serviceUnavailable;
+      } else if (thrown && /network|fetch|offline/i.test(thrown)) {
+        errorMessage = AuthUiMessages.traveller.network;
       }
-      
+
       await this.showError(errorMessage);
     }
   }
@@ -94,7 +102,7 @@ export class LoginPage implements OnInit {
   private async showError(message: string) {
     try {
       const alert = await this.alertCtrl.create({
-        header: 'Login Error',
+        header: AuthUiMessages.loginAlertTitle,
         message: message,
         buttons: ['OK'],
         cssClass: 'custom-alert'

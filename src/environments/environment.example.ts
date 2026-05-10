@@ -12,5 +12,7 @@ export const environment = {
     appId: "your-app-id"
   },
   googleMapsApiKey: 'your-google-maps-api-key',
-  openRouteServiceApiKey: 'your-openroute-service-api-key'
+  openRouteServiceApiKey: 'your-openroute-service-api-key',
+  /** Optional. Base URL for `proxy-server.js` (no trailing slash). Defaults in code to your Render host. */
+  mapsProxyBase: 'http://localhost:3001'
 }; 

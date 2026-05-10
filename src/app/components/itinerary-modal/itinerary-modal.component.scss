@@ -155,6 +155,56 @@
   box-sizing: border-box;
 }
 
+.weather-suggestions .weather-summary-block {
+  margin-bottom: 14px;
+}
+
+.weather-summary-lead {
+  margin: 0 0 10px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #2d3748;
+}
+
+.weather-summary-bullets {
+  margin: 0 0 10px 1rem;
+  padding: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #4a5568;
+}
+
+.weather-summary-bullets li {
+  margin-bottom: 4px;
+}
+
+.weather-summary-footer {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #2c5282;
+  padding: 10px 12px;
+  background: rgba(66, 153, 225, 0.12);
+  border-radius: 8px;
+  border-left: 3px solid #3182ce;
+}
+
+.weather-summary-plain {
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #4a5568;
+}
+
+.weather-suggestions .suggestions-header {
+  margin-bottom: 10px;
+}
+
+.weather-tips .suggestion-card .suggestion-actions {
+  margin-top: 4px;
+}
+
 .suggestions-header {
   display: flex;
   align-items: center;

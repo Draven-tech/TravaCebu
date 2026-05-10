@@ -11,6 +11,19 @@
   <div class="admin-toolbar-search">
     <ion-searchbar [(ngModel)]="searchQuery" placeholder="Search spots..."></ion-searchbar>
   </div>
+
+  <!-- TEMP: remove after Firestore backfill -->
+  <div class="temp-bulk-sync" *ngIf="!bulkSyncRunning">
+    <ion-button expand="block" fill="outline" color="medium" (click)="tempBulkSyncAllSpotsFromGoogle()">
+      TEMP: Reload all spots from Google → Firestore
+    </ion-button>
+    <p class="temp-bulk-sync-hint">Backfills image + googlePlaceTypes + exposure. Skips docs that already have googlePlaceTypes. Uses Places API only for spots that still need it.</p>
+  </div>
+  <div class="temp-bulk-sync-progress" *ngIf="bulkSyncRunning">
+    <ion-progress-bar [value]="bulkSyncProgress()"></ion-progress-bar>
+    <p>{{ bulkSyncDone }} / {{ bulkSyncTotal }} spots…</p>
+  </div>
+
   <ion-list>
     <ion-item-sliding *ngFor="let spot of filterSpots()">
       <ion-item (click)="openSpotDetail(spot)" class="spot-item">

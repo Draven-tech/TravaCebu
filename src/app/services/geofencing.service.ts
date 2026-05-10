@@ -1,5 +1,6 @@
 ﻿import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { distinctUntilChanged, map } from 'rxjs/operators';
 import { ToastController, Platform } from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
@@ -39,6 +40,9 @@ export class GeofencingService {
   private positionWatchId: string | null = null;
   private checkInterval: any;
   private dwellStartTimes = new Map<string, number>();
+
+  /** Storage scope for local visit cache: Firebase uid or `guest` when signed out */
+  private visitStorageScope = 'guest';
   
   private monitoringStatusSubject = new BehaviorSubject<boolean>(false);
   private visitedSpotsSubject = new BehaviorSubject<Set<string>>(new Set());
@@ -58,7 +62,39 @@ export class GeofencingService {
     private afAuth: AngularFireAuth,
     private badgeService: BadgeService
   ) {
-    this.loadVisitedSpots();
+    this.afAuth.authState
+      .pipe(
+        map(user => user?.uid ?? null),
+        distinctUntilChanged()
+      )
+      .subscribe(uid => {
+        this.syncVisitedLocalCacheForAuthUid(uid);
+      });
+  }
+
+  private visitedSpotsLocalKey(): string {
+    return `visited_spots_${this.visitStorageScope}`;
+  }
+
+  private visitRecordsLocalKey(): string {
+    return `visit_records_${this.visitStorageScope}`;
+  }
+
+  /** Reload in-memory visited IDs from localStorage for the signed-in user (or guest when signed out). */
+  private syncVisitedLocalCacheForAuthUid(uid: string | null): void {
+    const nextScope = uid ?? 'guest';
+    this.visitStorageScope = nextScope;
+    this.visitedSpots = new Set();
+    const stored = localStorage.getItem(this.visitedSpotsLocalKey());
+    if (stored) {
+      try {
+        const visitedArray = JSON.parse(stored);
+        this.visitedSpots = new Set(visitedArray);
+      } catch (error) {
+        console.error('Error loading visited spots:', error);
+      }
+    }
+    this.visitedSpotsSubject.next(new Set(this.visitedSpots));
   }
 
   async startMonitoring(itinerary: any[]): Promise<void> {
@@ -405,29 +441,16 @@ export class GeofencingService {
   }
 
   private async saveVisitRecord(visitRecord: VisitRecord): Promise<void> {
-    
-    const existingRecords = JSON.parse(localStorage.getItem('visit_records') || '[]');
+    const key = this.visitRecordsLocalKey();
+    const existingRecords = JSON.parse(localStorage.getItem(key) || '[]');
     visitRecord.id = `visit_${Date.now()}_${Math.random()}`;
     existingRecords.push(visitRecord);
-    localStorage.setItem('visit_records', JSON.stringify(existingRecords));
-  }
-
-  private loadVisitedSpots(): void {
-    const stored = localStorage.getItem('visited_spots');
-    if (stored) {
-      try {
-        const visitedArray = JSON.parse(stored);
-        this.visitedSpots = new Set(visitedArray);
-        this.visitedSpotsSubject.next(new Set(this.visitedSpots));
-      } catch (error) {
-        console.error('Error loading visited spots:', error);
-      }
-    }
+    localStorage.setItem(key, JSON.stringify(existingRecords));
   }
 
   private saveVisitedSpots(): void {
     const visitedArray = Array.from(this.visitedSpots);
-    localStorage.setItem('visited_spots', JSON.stringify(visitedArray));
+    localStorage.setItem(this.visitedSpotsLocalKey(), JSON.stringify(visitedArray));
   }
 
   hasVisited(spotId: string): boolean {

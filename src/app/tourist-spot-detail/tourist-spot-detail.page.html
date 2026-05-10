@@ -194,14 +194,14 @@
         <ion-button
           expand="block"
           fill="outline"
-          [color]="isInBucket ? 'danger' : 'primary'"
-          (click)="toggleBucketList()"
-          [disabled]="bucketStatusLoading"
+          color="primary"
+          (click)="plannerQuickAction()"
+          [disabled]="plannerActionLoading || !spotData"
         >
-          <ion-icon [name]="isInBucket ? 'heart' : 'heart-outline'"></ion-icon>
-          {{ isInBucket ? 'Remove from Bucket List' : 'Add to Bucket List' }}
+          <ion-icon slot="start" [name]="isInItineraryPlanner() ? 'checkmark-circle' : 'calendar-outline'"></ion-icon>
+          {{ isInItineraryPlanner() ? 'Open itinerary planner' : 'Add to itinerary planner' }}
         </ion-button>
-        <p class="suggestion-text">Add this spot to your bucket list, then create an itinerary to visit it!</p>
+        <p class="suggestion-text">Add this spot to your itinerary planner, build your trip, then visit in person to unlock reviews.</p>
       </div>
     </div>
   </div>

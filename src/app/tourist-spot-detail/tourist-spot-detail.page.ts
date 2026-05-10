@@ -1,5 +1,5 @@
-﻿import { Component, OnDestroy, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+﻿import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AlertController, ToastController } from '@ionic/angular';
@@ -10,6 +10,7 @@ import { map, switchMap } from 'rxjs/operators';
 import { PlacesImageService } from '../services/places-image.service';
 import { GeofencingService } from '../services/geofencing.service';
 import { BucketService } from '../services/bucket-list.service';
+import { ItineraryPlannerService } from '../services/itinerary-planner.service';
 import { LocalTipsService } from '../services/local-tips.service';
 import { CalendarService, GlobalEvent } from '../services/calendar.service';
 
@@ -34,6 +35,7 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
   imageUrl: string = '';
   isInBucket = false;
   bucketStatusLoading = false;
+  plannerActionLoading = false;
   hasVisitedSpot = false;
   private visitStatusSub?: Subscription;
   private geofenceVisitedSub?: Subscription;
@@ -60,8 +62,11 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
     private placesImageService: PlacesImageService,
     private geofencingService: GeofencingService,
     private bucketService: BucketService,
+    private itineraryPlannerService: ItineraryPlannerService,
     private localTipsService: LocalTipsService,
-    private calendarService: CalendarService
+    private calendarService: CalendarService,
+    private cdr: ChangeDetectorRef,
+    private router: Router
   ) { }
 
   ngOnInit() {
@@ -72,12 +77,8 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
       this.loadApprovedLocalTips();
       this.loadUpcomingSpotEvents();
       this.observeVisitStatus();
-      this.geofenceVisitedSub = this.geofencingService.visitedSpots$.subscribe(visitedSet => {
-        if (this.spotId) {
-          if (visitedSet.has(this.spotId)) {
-            this.hasVisitedSpot = true;
-          }
-        }
+      this.geofenceVisitedSub = this.geofencingService.visitedSpots$.subscribe(() => {
+        this.cdr.markForCheck();
       });
     }
     this.reviewForm = this.fb.group({
@@ -127,6 +128,7 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
       this.spotData = data ? { id: this.spotId, ...data } : null;
       if (this.spotId) {
         await this.checkBucketStatus();
+        await this.refreshPlannerCache();
       }
       if (data) {
         this.enhanceSpotWithGoogleImages();
@@ -465,6 +467,79 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
     }
   }
 
+  private async refreshPlannerCache(): Promise<void> {
+    try {
+      await this.itineraryPlannerService.getPlannerSpots();
+    } catch (error) {
+      console.error('Failed to load itinerary planner state:', error);
+    } finally {
+      this.cdr.markForCheck();
+    }
+  }
+
+  isInItineraryPlanner(): boolean {
+    return !!this.spotId && this.itineraryPlannerService.isInPlanner(this.spotId);
+  }
+
+  async plannerQuickAction(): Promise<void> {
+    if (!this.spotData || !this.spotId || this.plannerActionLoading) {
+      return;
+    }
+
+    const user = await this.afAuth.currentUser;
+    if (!user) {
+      const toast = await this.toastCtrl.create({
+        message: 'Please sign in to use the itinerary planner.',
+        duration: 2500,
+        position: 'top',
+        color: 'warning'
+      });
+      await toast.present();
+      return;
+    }
+
+    this.plannerActionLoading = true;
+    try {
+      await this.itineraryPlannerService.getPlannerSpots();
+      if (this.itineraryPlannerService.isInPlanner(this.spotId)) {
+        await this.router.navigateByUrl('/itinerary-planner');
+        return;
+      }
+
+      const added = await this.itineraryPlannerService.addSpotToPlanner(this.spotData);
+      if (!added) {
+        const toast = await this.toastCtrl.create({
+          message: `${this.spotData.name} is already in your itinerary planner.`,
+          duration: 2000,
+          position: 'top',
+          color: 'medium'
+        });
+        await toast.present();
+        return;
+      }
+
+      const toast = await this.toastCtrl.create({
+        message: `${this.spotData.name} added to your itinerary planner. Open the planner to arrange your days.`,
+        duration: 3000,
+        position: 'top',
+        color: 'success'
+      });
+      await toast.present();
+    } catch (error) {
+      console.error('Failed to update itinerary planner:', error);
+      const toast = await this.toastCtrl.create({
+        message: 'Could not add to itinerary planner. Please try again.',
+        duration: 2500,
+        position: 'top',
+        color: 'danger'
+      });
+      await toast.present();
+    } finally {
+      this.plannerActionLoading = false;
+      this.cdr.markForCheck();
+    }
+  }
+
   canPostReview(): boolean {
     return this.hasVisited();
   }
@@ -485,7 +560,6 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
     this.visitStatusSub = this.afAuth.authState.pipe(
       switchMap(user => {
         if (!user) {
-          this.hasVisitedSpot = this.geofencingService.hasVisited(this.spotId!);
           return of(false);
         }
 
@@ -527,12 +601,7 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
         );
       })
     ).subscribe(hasVisitedRemote => {
-      if (this.spotId) {
-        const geofenceVisited = this.geofencingService.hasVisited(this.spotId);
-        this.hasVisitedSpot = this.hasVisitedSpot || hasVisitedRemote || geofenceVisited;
-      } else {
-        this.hasVisitedSpot = this.hasVisitedSpot || hasVisitedRemote;
-      }
+      this.hasVisitedSpot = hasVisitedRemote;
     });
   }
 }

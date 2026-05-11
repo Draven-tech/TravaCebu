@@ -35,6 +35,7 @@ import { MapUtilitiesService } from '../services/map-utilities.service';
 import { ItinerarySessionService, ItinerarySession } from '../services/itinerary-session.service';
 import { ModalCommunicationService } from '../services/modal-communication.service';
 import { LocalTipsService } from '../services/local-tips.service';
+import { EmergencyMapFocusPayload, MapFocusIntentService } from '../services/map-focus-intent.service';
 
 interface ExpensePlan {
   transportation?: number;
@@ -136,6 +137,23 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   /** Admin event overlapping today's visit time for the current visit_stop segment (map FAB). */
   visitStageAdminEvent: GlobalEvent | null = null;
 
+  /** Lakaw (walk) mode: faster GPS, follow pan, distance along walk polyline, optional auto-next. */
+  lakawMode = false;
+  lakawWalkRemainingM: number | null = null;
+  lakawAutoAdvanceEnabled = false;
+  private readonly lakawAutoAdvanceStorageKey = 'lakaw_auto_advance_enabled';
+  private lastFollowPanMs = 0;
+  private lastLakawRemainUiMs = 0;
+  private lastLakawRemainMUi: number | null = null;
+  /** Prevents double auto-advance on the same segment index. */
+  private lakawAutoAdvancedForSegmentIndex: number | null = null;
+
+  /** Marker + popup when opening the map from Emergency Information. */
+  private emergencyFocusMarker?: L.Marker;
+
+  /** When true, route panel shows a one-off trip to an emergency POI (not a calendar itinerary). */
+  emergencyDirectionsMode = false;
+
   constructor(
     private navCtrl: NavController,
     private afAuth: AngularFireAuth,
@@ -169,7 +187,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private mapUtils: MapUtilitiesService,
     private itinerarySession: ItinerarySessionService,
     private modalCommunication: ModalCommunicationService,
-    private localTipsService: LocalTipsService
+    private localTipsService: LocalTipsService,
+    private mapFocusIntent: MapFocusIntentService
   ) {
     this.bucketService = bucketService;
   }
@@ -248,6 +267,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     
     if (this.selectedItineraryIndex < 0 || this.selectedItineraryIndex >= this.availableItineraries.length) {
       // Clear any existing route data when no itinerary is selected
+      this.emergencyDirectionsMode = false;
       this.currentRouteInfo = null;
       this.mapManagement.clearAllRouteLines();
       this.mapManagement.clearAllMarkers();
@@ -272,6 +292,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         }
         
         // Clear any existing routes when itinerary changes
+        this.emergencyDirectionsMode = false;
         this.mapManagement.clearAllRouteLines();
         this.mapManagement.clearAllMarkers();
         this.currentRouteInfo = null;
@@ -366,6 +387,17 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return this.locationTracking.getUserLocation();
   }
 
+  /**
+   * Apply emergency map focus / directions after the map exists and after `updateMapDisplay`
+   * so a new route is not immediately cleared by the initial paint.
+   */
+  ionViewDidEnter(): void {
+    setTimeout(() => {
+      void this.updateMapDisplay();
+      this.applyPendingEmergencyMapFocus();
+    }, 550);
+  }
+
   async ngAfterViewInit(): Promise<void> {
     try {
       this.mapManagement.initMap();
@@ -375,10 +407,13 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         (location: UserLocation) => {
           this.ngZone.run(() => {
             this.updateUserMarker(location);
+            this.handleLakawLocationUpdate(location);
           });
         }
       );
-      
+
+      this.loadLakawAutoAdvanceSetting();
+
       await this.locationTracking.startLocationTracking();
       
       await this.loadTouristSpots();
@@ -403,6 +438,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
         if (index !== null) {
           console.log('Received itinerary selection from service:', index);
+          this.emergencyDirectionsMode = false;
           this.selectedItineraryIndex = index;
           this.loadItineraryRoutes();
         }
@@ -419,9 +455,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         }
       });
       
-      // Wait a bit for map to be fully initialized
+      // Wait a bit for map to be fully initialized (emergency focus is applied in `ionViewDidEnter`)
       setTimeout(() => {
-        // Show tourist spots by default (no itinerary selected)
         this.updateMapDisplay();
       }, 500);
       
@@ -832,6 +867,138 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return segment?.type === 'visit_stop';
   }
 
+  isCurrentWalkSegment(): boolean {
+    const segment = this.currentRouteInfo?.segments?.[this.currentSegmentIndex];
+    return segment?.type === 'walk';
+  }
+
+  getLakawBarTop(): string {
+    if (this.isFullscreen) {
+      const underBanner =
+        this.showStageNotification &&
+        !!this.currentRouteInfo?.segments?.length;
+      return underBanner ? '52px' : '8px';
+    }
+    const underBanner =
+      this.showStageNotification &&
+      !!this.currentRouteInfo?.segments?.length;
+    return underBanner ? '108px' : '56px';
+  }
+
+  toggleLakawMode(): void {
+    if (!this.isCurrentWalkSegment()) {
+      void this.showToast('Lakaw mode is for walking stages only.');
+      return;
+    }
+    this.lakawMode = !this.lakawMode;
+    this.locationTracking.setLakawMode(this.lakawMode);
+    if (!this.lakawMode) {
+      this.lakawWalkRemainingM = null;
+    }
+    void this.showToast(
+      this.lakawMode ? 'Lakaw mode on: live walking updates' : 'Lakaw mode off'
+    );
+    const u = this.locationTracking.getUserLocation();
+    if (u) {
+      this.updateUserMarker(u);
+    }
+  }
+
+  onLakawAutoAdvanceChange(): void {
+    try {
+      localStorage.setItem(
+        this.lakawAutoAdvanceStorageKey,
+        JSON.stringify(!!this.lakawAutoAdvanceEnabled)
+      );
+    } catch {
+      // ignore
+    }
+  }
+
+  private loadLakawAutoAdvanceSetting(): void {
+    try {
+      const raw = localStorage.getItem(this.lakawAutoAdvanceStorageKey);
+      if (raw != null) {
+        this.lakawAutoAdvanceEnabled = JSON.parse(raw) === true;
+      }
+    } catch {
+      this.lakawAutoAdvanceEnabled = false;
+    }
+  }
+
+  private syncLakawWithSegment(): void {
+    if (!this.isCurrentWalkSegment()) {
+      if (this.lakawMode) {
+        this.lakawMode = false;
+        this.locationTracking.setLakawMode(false);
+      }
+      this.lakawWalkRemainingM = null;
+      this.lakawAutoAdvancedForSegmentIndex = null;
+    }
+  }
+
+  private clearLakawState(): void {
+    this.lakawMode = false;
+    this.lakawWalkRemainingM = null;
+    this.lakawAutoAdvancedForSegmentIndex = null;
+    this.lastLakawRemainMUi = null;
+    this.lastLakawRemainUiMs = 0;
+    this.locationTracking.setLakawMode(false);
+  }
+
+  private handleLakawLocationUpdate(location: UserLocation): void {
+    if (!this.lakawMode || !this.isCurrentWalkSegment()) {
+      return;
+    }
+    const seg = this.currentRouteInfo?.segments?.[this.currentSegmentIndex];
+    if (!seg || seg.type !== 'walk') {
+      return;
+    }
+
+    const points = this.mapUtils.getWalkPolylineLatLng(seg);
+    if (!points.length) {
+      this.lakawWalkRemainingM = null;
+      return;
+    }
+
+    const remaining = this.mapUtils.remainingWalkAlongPolyline(
+      points,
+      location.lat,
+      location.lng
+    );
+    if (remaining == null) {
+      return;
+    }
+
+    const now = Date.now();
+    if (
+      this.lastLakawRemainMUi == null ||
+      now - this.lastLakawRemainUiMs > 2000 ||
+      Math.abs(remaining - (this.lastLakawRemainMUi ?? 0)) > 8
+    ) {
+      this.lastLakawRemainUiMs = now;
+      this.lastLakawRemainMUi = remaining;
+      this.lakawWalkRemainingM = Math.max(0, Math.round(remaining));
+    }
+
+    const map = this.mapManagement.getMap();
+    if (map && now - this.lastFollowPanMs > 850) {
+      this.lastFollowPanMs = now;
+      map.panTo([location.lat, location.lng], { animate: true, duration: 0.22 });
+    }
+
+    if (
+      this.lakawAutoAdvanceEnabled &&
+      remaining < 35 &&
+      (location.accuracy ?? 999) < 40 &&
+      this.lakawAutoAdvancedForSegmentIndex !== this.currentSegmentIndex
+    ) {
+      this.lakawAutoAdvancedForSegmentIndex = this.currentSegmentIndex;
+      void this.showToast('Almost there — opening next stage.');
+      this.nextSegment(true);
+    }
+  }
+
   getCurrentVisitSpotName(): string {
     const segment = this.currentRouteInfo?.segments?.[this.currentSegmentIndex];
     return segment?.spotName || segment?.toName || 'this destination';
@@ -906,10 +1073,12 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.mapManagement.clearRouteMarkers();
 
     // Reset route state
+    this.emergencyDirectionsMode = false;
     this.currentRouteInfo = null;
     this.visitStageAdminEvent = null;
     this.selectedItineraryIndex = -1;
     this.currentSegmentIndex = 0;
+    this.clearLakawState();
 
     // Reset notification visibility
     this.showStageNotification = true;
@@ -1090,12 +1259,15 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   cancelRouteGeneration(): void {
     console.log('Cancelling route generation...');
-    
+
     // Reset loading states
     this.isLoadingJeepneyRoutes = false;
     this.isGeneratingRoute = false;
-    
+
+    this.clearLakawState();
+
     // Reset route state
+    this.emergencyDirectionsMode = false;
     this.currentRouteInfo = null;
     this.visitStageAdminEvent = null;
     this.selectedItineraryIndex = -1;
@@ -1348,28 +1520,36 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.isFullscreen = !this.isFullscreen;
   }
 
-  nextSegment(): void {
+  nextSegment(fromAutoAdvance = false): void {
     if (!this.currentRouteInfo || !this.currentRouteInfo.segments) {
       return;
     }
-    
+
+    if (!fromAutoAdvance) {
+      this.lakawAutoAdvancedForSegmentIndex = null;
+    }
+
     // Move to next segment (loop back to first when reaching the end)
     this.currentSegmentIndex = (this.currentSegmentIndex + 1) % this.currentRouteInfo.segments.length;
-    
+
     // Persist session with new current segment.
     this.persistSessionSnapshot('segment_advanced');
-    
+
     // Display only the current segment
     this.displayCurrentSegment();
-    
-    // Stage info is now shown in the yellow banner at the top
+
+    if (fromAutoAdvance) {
+      this.lakawAutoAdvancedForSegmentIndex = null;
+    }
   }
 
   previousSegment(): void {
     if (!this.currentRouteInfo || !this.currentRouteInfo.segments) {
       return;
     }
-    
+
+    this.lakawAutoAdvancedForSegmentIndex = null;
+
     // Move to previous segment (loop to last when at the beginning)
     this.currentSegmentIndex = this.currentSegmentIndex > 0 
       ? this.currentSegmentIndex - 1 
@@ -1416,6 +1596,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.navigateToSegment(this.currentSegmentIndex);
 
       void this.refreshOverlapEventForVisitStage();
+      this.syncLakawWithSegment();
     } catch (error) {
       // Silently handle display errors
     }
@@ -2078,7 +2259,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.userMarker = this.mapUI.createUserLocationMarker(
       location.lat,
       location.lng,
-      location.isReal
+      location.isReal,
+      {
+        headingDeg: location.headingDeg,
+        useWalkOrientation: this.lakawMode && this.isCurrentWalkSegment()
+      }
     );
 
     // Add marker to map
@@ -2099,7 +2284,140 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * If Emergency Information set a focus payload, center the map and optionally load directions.
+   */
+  private applyPendingEmergencyMapFocus(): void {
+    const payload = this.mapFocusIntent.consumeEmergencyPlaceFocus();
+    if (!payload) {
+      return;
+    }
+    if (payload.requestDirections) {
+      void this.loadEmergencyDirectionsFromIntent(payload);
+      return;
+    }
+
+    const map = this.mapManagement.getMap();
+    if (!map) {
+      return;
+    }
+
+    this.clearEmergencyFocusMarker();
+
+    const { lat, lng, name, address } = payload;
+    map.setView([lat, lng], 16, {
+      animate: true,
+      duration: 0.75,
+    } as L.ZoomPanOptions);
+
+    const icon = L.divIcon({
+      className: 'emergency-focus-marker-wrap',
+      html: '<div class="emergency-focus-pin" aria-hidden="true"></div>',
+      iconSize: [32, 36],
+      iconAnchor: [16, 34],
+      popupAnchor: [0, -30],
+    });
+
+    const marker = L.marker([lat, lng], { icon });
+    const safeName = this.escapeHtmlForMapPopup(name);
+    const safeAddr = address ? this.escapeHtmlForMapPopup(address) : '';
+    marker.bindPopup(
+      `<div class="emergency-focus-popup"><strong>${safeName}</strong>${
+        safeAddr ? `<br><span>${safeAddr}</span>` : ''
+      }</div>`,
+      { maxWidth: 280 }
+    );
+    marker.addTo(map);
+    this.emergencyFocusMarker = marker;
+    marker.openPopup();
+
+    void this.showToast(`Showing ${name} on the map`);
+  }
+
+  private async loadEmergencyDirectionsFromIntent(payload: EmergencyMapFocusPayload): Promise<void> {
+    for (let i = 0; i < 20; i++) {
+      if (this.mapManagement.getMap()) {
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    if (!this.mapManagement.getMap()) {
+      await this.showToast('Map is not ready. Open the Map tab and try again.');
+      return;
+    }
+
+    this.emergencyDirectionsMode = true;
+    this.clearEmergencyFocusMarker();
+
+    try {
+      await this.showLoadingModal('Finding directions…');
+      const userLocation = await this.locationTracking.getLocationWithFallback();
+      const routeInfo = await this.routePlanning.generateRouteInfoForEmergencyDestination(
+        userLocation,
+        {
+          name: payload.name,
+          lat: payload.lat,
+          lng: payload.lng,
+          placeId: payload.placeId,
+        },
+        async (message: string) => {
+          await this.updateLoadingProgress(message);
+        }
+      );
+
+      await this.dismissLoadingModal();
+
+      if (!routeInfo?.segments?.length) {
+        this.emergencyDirectionsMode = false;
+        await this.showToast('No directions found. Try again or move closer to Cebu.');
+        return;
+      }
+
+      routeInfo.segments.forEach((segment: any, index: number) => {
+        segment.stage = index + 1;
+        if (!segment.estimatedTime && segment.duration != null) {
+          segment.estimatedTime = this.mapUtils.formatDuration(segment.duration);
+        }
+      });
+
+      this.currentRouteInfo = routeInfo;
+      this.displayRouteOnMap(routeInfo);
+      await this.showToast(`Directions to ${payload.name}`);
+    } catch {
+      await this.dismissLoadingModal();
+      this.emergencyDirectionsMode = false;
+      await this.showToast('Could not load directions. Please try again.');
+    }
+  }
+
+  async clearEmergencyDirectionsPanel(): Promise<void> {
+    this.emergencyDirectionsMode = false;
+    this.currentRouteInfo = null;
+    this.mapManagement.clearAllRouteLines();
+    this.mapManagement.clearRouteMarkers();
+    this.clearEmergencyFocusMarker();
+    this.clearLakawState();
+    await this.updateMapDisplay();
+  }
+
+  private escapeHtmlForMapPopup(value: string): string {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  private clearEmergencyFocusMarker(): void {
+    const map = this.mapManagement.getMap();
+    if (this.emergencyFocusMarker && map) {
+      map.removeLayer(this.emergencyFocusMarker);
+    }
+    this.emergencyFocusMarker = undefined;
+  }
+
   ngOnDestroy(): void {
+    this.clearEmergencyFocusMarker();
     this.persistSessionSnapshot();
     
     // Unsubscribe from location updates

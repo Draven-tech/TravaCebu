@@ -1,0 +1,83 @@
+<ion-header>
+  <ion-toolbar class="emergency-toolbar">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()" aria-label="Go back">
+        <ion-icon name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Emergency information</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding emergency-content">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <p class="lead">
+    Nearby hospitals, police stations, and embassy or consulate listings from Google Places.
+    {{ locationLabel }}.
+  </p>
+
+  <ion-segment [(ngModel)]="segment" class="emergency-segment">
+    <ion-segment-button value="hospital">
+      <ion-label>Hospitals</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="police">
+      <ion-label>Police</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="embassy">
+      <ion-label>Embassies</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <ion-note *ngIf="segment === 'embassy' && embassyFallbackMessage" class="fallback-note">
+    {{ embassyFallbackMessage }}
+  </ion-note>
+
+  <ion-searchbar
+    *ngIf="!currentLoading && currentList.length > 0"
+    class="emergency-search"
+    [(ngModel)]="emergencySearchQuery"
+    placeholder="Search this list by name or area…"
+    debounce="200"
+    showClearButton="focus"
+  ></ion-searchbar>
+
+  <div *ngIf="currentLoading" class="loading-block">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading places…</p>
+  </div>
+
+  <ion-list *ngIf="!currentLoading && currentList.length > 0" lines="full" class="place-list">
+    <ion-item
+      *ngFor="let row of filteredCurrentList"
+      button
+      detail="true"
+      (click)="onPlaceTap(row)"
+    >
+      <ion-icon
+        slot="start"
+        [name]="segment === 'hospital' ? 'medkit-outline' : segment === 'police' ? 'shield-outline' : 'globe-outline'"
+        class="place-icon"
+      ></ion-icon>
+      <ion-label>
+        <h2>{{ row.name }}</h2>
+        <p *ngIf="row.vicinity">{{ row.vicinity }}</p>
+        <p *ngIf="row.rating != null" class="rating-line">Rating: {{ row.rating | number : '1.1-1' }}</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+
+  <div *ngIf="!currentLoading && currentList.length === 0" class="empty-state">
+    <ion-icon name="location-outline"></ion-icon>
+    <p>No places found for this category. Pull to refresh or move closer to a city center.</p>
+  </div>
+
+  <div *ngIf="!currentLoading && currentList.length > 0 && filteredCurrentList.length === 0" class="empty-state empty-state--muted">
+    <ion-icon name="search-outline"></ion-icon>
+    <p>No places match your search. Try another name or area.</p>
+  </div>
+
+  <app-bottom-nav></app-bottom-nav>
+</ion-content>

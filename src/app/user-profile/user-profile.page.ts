@@ -521,6 +521,15 @@ async viewProfilePicture() {
     this.navCtrl.navigateForward('/user-dashboard');
   }
 
+  async goToEmergencyInfo() {
+    try {
+      await this.menuCtrl.close('main-menu');
+    } catch {
+      // Menu may not be open when using the profile-page button
+    }
+    await this.navCtrl.navigateForward('/emergency-info');
+  }
+
   goToMyItineraries() {
     this.navCtrl.navigateForward('/my-itineraries');
   }

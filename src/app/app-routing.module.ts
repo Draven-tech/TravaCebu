@@ -75,6 +75,10 @@ const routes: Routes = [
     path: 'itinerary-planner',
     loadChildren: () => import('./itinerary-planner/itinerary-planner.module').then( m => m.ItineraryPlannerPageModule)
   },
+  {
+    path: 'emergency-info',
+    loadChildren: () => import('./emergency-info/emergency-info.module').then(m => m.EmergencyInfoPageModule)
+  },
 
 ];
 

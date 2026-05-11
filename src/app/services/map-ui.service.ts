@@ -244,12 +244,35 @@ export class MapUIService {
     `;
   }
 
-  createUserLocationMarker(lat: number, lng: number, isReal: boolean = true): L.Marker {
-    const size = 28;
+  createUserLocationMarker(
+    lat: number,
+    lng: number,
+    isReal: boolean = true,
+    opts?: { headingDeg?: number | null; useWalkOrientation?: boolean }
+  ): L.Marker {
+    const size = 36;
     const half = size / 2;
+    const heading =
+      opts?.headingDeg != null && !Number.isNaN(opts.headingDeg)
+        ? opts.headingDeg
+        : null;
+    const showArrow = opts?.useWalkOrientation && heading != null;
+
+    const html = showArrow
+      ? `<div class="user-location-marker-inner" style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35));">
+          <svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"
+            style="transform:rotate(${heading}deg);transform-origin:50% 50%;">
+            <path d="M12 3 L21 19 L12 15 L3 19 Z" fill="#1565c0" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round"/>
+          </svg>
+        </div>`
+      : `<img src="assets/map/user.png" alt="" width="28" height="28" style="object-fit:contain;display:block;" />`;
+
     const icon = L.divIcon({
-      html: `<img src="assets/map/user.png" alt="" width="${size}" height="${size}" style="object-fit:contain;display:block;" />`,
-      className: 'user-location-marker' + (isReal ? '' : ' user-location-marker--mock'),
+      html,
+      className:
+        'user-location-marker' +
+        (isReal ? '' : ' user-location-marker--mock') +
+        (showArrow ? ' user-location-marker--lakaw' : ''),
       iconSize: [size, size],
       iconAnchor: [half, half],
       popupAnchor: [0, -half]

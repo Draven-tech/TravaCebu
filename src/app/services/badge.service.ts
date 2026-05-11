@@ -67,9 +67,16 @@ export interface UserBadgeProgress {
     achievedAt?: Date;
     tierAchievedAt?: TierAchievedAtStored;
   };
+  consistency: {
+    tier: 'bronze' | 'silver' | 'gold' | 'locked';
+    progress: number;
+    unlocked: boolean;
+    achievedAt?: Date;
+    tierAchievedAt?: TierAchievedAtStored;
+  };
 }
 
-const METAL_TIER_BADGE_ID_LIST = ['itinerary_planner', 'photo_enthusiast', 'social_butterfly', 'explorer'] as const;
+const METAL_TIER_BADGE_ID_LIST = ['itinerary_planner', 'photo_enthusiast', 'social_butterfly', 'explorer', 'consistency'] as const;
 
 export function isMetalTierBadgeId(badgeId: string): boolean {
   return (METAL_TIER_BADGE_ID_LIST as readonly string[]).includes(badgeId);
@@ -122,6 +129,14 @@ export class BadgeService {
       icon: 'assets/badges/bronzeExplorerBadge.png',
       lockedIcon: 'assets/badges/lockedExplorerBadge.png',
       maxProgress: 30
+    },
+    consistency: {
+      id: 'consistency',
+      title: 'Consistency Champion',
+      description: 'Log in daily to build your streak. 7-day streak for Bronze, 30-day for Silver, 100-day for Gold.',
+      icon: 'assets/badges/bronzeConsistencyBadge.png',
+      lockedIcon: 'assets/badges/lockedConsistencyBadge.png',
+      maxProgress: 100
     }
   };
 
@@ -186,6 +201,11 @@ export class BadgeService {
         tier: 'locked',
         progress: 0,
         unlocked: false
+      },
+      consistency: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
       }
     };
 
@@ -200,7 +220,8 @@ export class BadgeService {
           itinerary_planner: { ...defaultBadges.itinerary_planner, ...raw.itinerary_planner },
           photo_enthusiast: { ...defaultBadges.photo_enthusiast, ...raw.photo_enthusiast },
           social_butterfly: { ...defaultBadges.social_butterfly, ...raw.social_butterfly },
-          explorer: { ...defaultBadges.explorer, ...raw.explorer }
+          explorer: { ...defaultBadges.explorer, ...raw.explorer },
+          consistency: { ...defaultBadges.consistency, ...raw.consistency }
         };
       })
     );
@@ -378,7 +399,16 @@ export class BadgeService {
         default: return 'assets/badges/lockedExplorerBadge.png';
       }
     }
-    
+
+    if (badgeId === 'consistency') {
+      switch (tier) {
+        case 'bronze': return 'assets/badges/bronzeConsistencyBadge.png';
+        case 'silver': return 'assets/badges/silverConsistencyBadge.png';
+        case 'gold': return 'assets/badges/goldConsistencyBadge.png';
+        default: return 'assets/badges/lockedConsistencyBadge.png';
+      }
+    }
+
     return this.BADGE_DEFINITIONS[badgeId as keyof typeof this.BADGE_DEFINITIONS]?.icon || '';
   }
 
@@ -478,7 +508,8 @@ export class BadgeService {
       () => this.evaluateItineraryPlannerBadge(userId, userData),
       () => this.evaluatePhotoEnthusiastBadge(userId, userData),
       () => this.evaluateSocialButterflyBadge(userId, userData),
-      () => this.evaluateExplorerBadge(userId, userData)
+      () => this.evaluateExplorerBadge(userId, userData),
+      () => this.evaluateConsistencyBadge(userId, userData)
     ];
     for (const run of steps) {
       try {
@@ -929,5 +960,113 @@ export class BadgeService {
       Math.sin(dLng / 2) * Math.sin(dLng / 2);
     const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
     return R * c;
+  }
+
+  ///////////////////////////////////////////////////// consistency /////////////////////////////////////////////////////
+
+  /**
+   * Update the user's daily login streak. Should be called once per app launch
+   * when the user is authenticated. Re-evaluates the consistency badge after writing.
+   */
+  async updateLoginStreak(userId: string): Promise<void> {
+    try {
+      const userRef = this.firestore.collection('users').doc(userId);
+      const snap = await userRef.get().toPromise();
+      const data = (snap?.data() as any) || {};
+
+      const today = this.toLocalDateString(new Date());
+      if (data.lastLoginDate === today) {
+        return;
+      }
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = this.toLocalDateString(yesterday);
+
+      const previousStreak = typeof data.loginStreak === 'number' ? data.loginStreak : 0;
+      const newStreak = data.lastLoginDate === yesterdayStr ? previousStreak + 1 : 1;
+      const longest = Math.max(newStreak, typeof data.longestStreak === 'number' ? data.longestStreak : 0);
+
+      await userRef.update({
+        lastLoginDate: today,
+        loginStreak: newStreak,
+        longestStreak: longest
+      });
+
+      await this.evaluateConsistencyBadge(userId, {
+        ...data,
+        lastLoginDate: today,
+        loginStreak: newStreak,
+        longestStreak: longest
+      });
+    } catch (error) {
+      console.error('Error updating login streak:', error);
+    }
+  }
+
+  /**
+   * Evaluate and update user's consistency badge based on login streak.
+   * Uses the highest of current streak vs longest streak so the badge sticks
+   * even if the user breaks a streak after earning a tier.
+   */
+  async evaluateConsistencyBadge(userId: string, userData: any): Promise<void> {
+    const currentStreak = typeof userData?.loginStreak === 'number' ? userData.loginStreak : 0;
+    const longestStreak = typeof userData?.longestStreak === 'number' ? userData.longestStreak : 0;
+    const progress = Math.max(currentStreak, longestStreak);
+
+    const currentBadges = userData?.badges?.consistency;
+    const storedTier = currentBadges?.tier || 'locked';
+    const storedUnlocked = currentBadges?.unlocked || false;
+
+    const historyFloor = this.maxMetalTierFromTierAchievedAt(currentBadges?.tierAchievedAt);
+    let baselineTier: 'bronze' | 'silver' | 'gold' | 'locked' = storedTier;
+    if (this.tierRank(historyFloor) > this.tierRank(storedTier)) {
+      baselineTier = historyFloor;
+    }
+    const baselineUnlocked = this.tierRank(baselineTier) > 0 || storedUnlocked;
+
+    let tier: 'bronze' | 'silver' | 'gold' | 'locked' = baselineTier;
+    let unlocked = baselineUnlocked;
+
+    if (progress >= 100 && baselineTier !== 'gold') {
+      tier = 'gold';
+      unlocked = true;
+    } else if (progress >= 30 && baselineTier !== 'silver' && baselineTier !== 'gold') {
+      tier = 'silver';
+      unlocked = true;
+    } else if (progress >= 7 && baselineTier === 'locked') {
+      tier = 'bronze';
+      unlocked = true;
+    }
+
+    if (
+      !currentBadges ||
+      tier !== storedTier ||
+      progress !== currentBadges.progress ||
+      unlocked !== storedUnlocked
+    ) {
+      await this.updateUserBadge(
+        userId,
+        'consistency',
+        this.buildMetalTierBadgeState(
+          currentBadges,
+          baselineTier,
+          tier,
+          storedUnlocked,
+          unlocked,
+          progress
+        )
+      );
+    }
+  }
+
+  /**
+   * Format a Date as a local YYYY-MM-DD string (avoids UTC off-by-one near midnight).
+   */
+  private toLocalDateString(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 }

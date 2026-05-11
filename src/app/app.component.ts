@@ -3,6 +3,7 @@ import { Platform } from '@ionic/angular';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Router } from '@angular/router';
 import { AuthService } from './services/auth.service';
+import { BadgeService } from './services/badge.service';
 
 @Component({
   selector: 'app-root',
@@ -15,7 +16,8 @@ export class AppComponent {
     private platform: Platform,
     private afAuth: AngularFireAuth,
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private badgeService: BadgeService
   ) {
     this.platform.ready().then(() => {
       this.afAuth.authState.subscribe(async (user) => {
@@ -29,6 +31,9 @@ export class AppComponent {
             return;
           }
           if (await this.authService.isUser()) {
+            this.badgeService.updateLoginStreak(user.uid).catch((e) =>
+              console.error('[AppComponent] updateLoginStreak failed', e)
+            );
             await this.router.navigateByUrl(`/user-dashboard/${user.uid}`, { replaceUrl: true });
             return;
           }

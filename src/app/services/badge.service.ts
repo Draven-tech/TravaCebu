@@ -37,7 +37,7 @@ export interface UserBadgeProgress {
     unlocked: boolean;
     achievedAt?: Date;
   };
-  bucket_list: {
+  itinerary_planner: {
     tier: 'bronze' | 'silver' | 'gold' | 'locked';
     progress: number;
     unlocked: boolean;
@@ -67,7 +67,7 @@ export interface UserBadgeProgress {
   };
 }
 
-const METAL_TIER_BADGE_ID_LIST = ['bucket_list', 'photo_enthusiast', 'social_butterfly', 'explorer'] as const;
+const METAL_TIER_BADGE_ID_LIST = ['itinerary_planner', 'photo_enthusiast', 'social_butterfly', 'explorer'] as const;
 
 export function isMetalTierBadgeId(badgeId: string): boolean {
   return (METAL_TIER_BADGE_ID_LIST as readonly string[]).includes(badgeId);
@@ -86,10 +86,11 @@ export class BadgeService {
       lockedIcon: 'assets/badges/lockedAccountComplete.png',
       maxProgress: 100
     },
-    bucket_list: {
-      id: 'bucket_list',
-      title: 'Bucket List Master',
-      description: 'Add items to your bucket list to unlock different tiers. 5+ items for Bronze, 15+ for Silver, 25+ for Gold.',
+    itinerary_planner: {
+      id: 'itinerary_planner',
+      title: 'Itinerary Planner Master',
+      description:
+        'Add tourist spots to your itinerary planner draft to unlock tiers. 5+ spots for Bronze, 15+ for Silver, 25+ for Gold.',
       icon: 'assets/badges/bronzeBucketListBadge.png',
       lockedIcon: 'assets/badges/lockedBucketListBadge.png',
       maxProgress: 25
@@ -153,6 +154,15 @@ export class BadgeService {
   private tierRank(tier: string): number {
     const m: Record<string, number> = { locked: 0, bronze: 1, silver: 2, gold: 3 };
     return m[tier] ?? 0;
+  }
+
+  /** Highest metal tier that has an entry in tierAchievedAt (for recovery / sticky tier). */
+  private maxMetalTierFromTierAchievedAt(raw: any): 'bronze' | 'silver' | 'gold' | 'locked' {
+    const m = this.cloneTierAchievedMapFromDb(raw);
+    if (m['gold'] != null) return 'gold';
+    if (m['silver'] != null) return 'silver';
+    if (m['bronze'] != null) return 'bronze';
+    return 'locked';
   }
 
   private cloneTierAchievedMapFromDb(raw: any): Record<string, any> {
@@ -262,7 +272,7 @@ export class BadgeService {
   }
 
   private getBadgeIcon(badgeId: string, tier: string): string {
-    if (badgeId === 'bucket_list') {
+    if (badgeId === 'itinerary_planner') {
       switch (tier) {
         case 'bronze': return 'assets/badges/bronzeBucketListBadge.png';
         case 'silver': return 'assets/badges/silverBucketListBadge.png';
@@ -327,34 +337,46 @@ export class BadgeService {
    * Get user's badge progress from Firestore
    */
   getUserBadgeProgress(userId: string): Observable<UserBadgeProgress> {
+    const defaultBadges: UserBadgeProgress = {
+      profile_complete: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
+      },
+      itinerary_planner: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
+      },
+      photo_enthusiast: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
+      },
+      social_butterfly: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
+      },
+      explorer: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
+      }
+    };
+
     return this.firestore.collection('users').doc(userId).valueChanges().pipe(
       map((userData: any) => {
-        return userData?.badges || {
-          profile_complete: {
-            tier: 'locked',
-            progress: 0,
-            unlocked: false
-          },
-          bucket_list: {
-            tier: 'locked',
-            progress: 0,
-            unlocked: false
-          },
-          photo_enthusiast: {
-            tier: 'locked',
-            progress: 0,
-            unlocked: false
-          },
-          social_butterfly: {
-            tier: 'locked',
-            progress: 0,
-            unlocked: false
-          },
-          explorer: {
-            tier: 'locked',
-            progress: 0,
-            unlocked: false
-          }
+        const raw = userData?.badges;
+        if (!raw) {
+          return defaultBadges;
+        }
+        return {
+          profile_complete: { ...defaultBadges.profile_complete, ...raw.profile_complete },
+          itinerary_planner: { ...defaultBadges.itinerary_planner, ...raw.itinerary_planner },
+          photo_enthusiast: { ...defaultBadges.photo_enthusiast, ...raw.photo_enthusiast },
+          social_butterfly: { ...defaultBadges.social_butterfly, ...raw.social_butterfly },
+          explorer: { ...defaultBadges.explorer, ...raw.explorer }
         };
       })
     );
@@ -527,7 +549,7 @@ export class BadgeService {
   async evaluateAllBadges(userId: string, userData: any): Promise<void> {
     const steps: Array<() => Promise<void>> = [
       () => this.evaluateProfileCompletionBadge(userId, userData),
-      () => this.evaluateBucketListBadge(userId, userData),
+      () => this.evaluateItineraryPlannerBadge(userId, userData),
       () => this.evaluatePhotoEnthusiastBadge(userId, userData),
       () => this.evaluateSocialButterflyBadge(userId, userData),
       () => this.evaluateExplorerBadge(userId, userData)
@@ -542,51 +564,60 @@ export class BadgeService {
   }
 
   /**
-   * Evaluate and update user's bucket list badge
+   * Evaluate and update user's itinerary planner badge (draft spots on user doc).
    */
-  async evaluateBucketListBadge(userId: string, userData: any): Promise<void> {
-    // Query the bucket list sub-collection to get the actual count
-    let bucketListCount = 0;
-    
-    try {
-      const bucketListSnapshot = await this.firestore
-        .collection(`users/${userId}/bucketList`)
-        .get()
-        .toPromise();
-      
-      bucketListCount = bucketListSnapshot?.docs.length || 0;
-    } catch (error) {
-      console.error('Error getting bucket list count:', error);
-      bucketListCount = 0;
+  async evaluateItineraryPlannerBadge(userId: string, userData: any): Promise<void> {
+    const draft = userData?.plannerDraftSpots;
+    const plannerDraftCount = Array.isArray(draft) ? draft.length : 0;
+
+    const currentBadges = userData?.badges?.itinerary_planner;
+    const storedTier = currentBadges?.tier || 'locked';
+    const storedUnlocked = currentBadges?.unlocked || false;
+
+    // Recover sticky tier if `tier` was wrongly written as locked while tier history still shows earned metals.
+    const historyFloor = this.maxMetalTierFromTierAchievedAt(currentBadges?.tierAchievedAt);
+    let baselineTier: 'bronze' | 'silver' | 'gold' | 'locked' = storedTier;
+    if (this.tierRank(historyFloor) > this.tierRank(storedTier)) {
+      baselineTier = historyFloor;
     }
+    const baselineUnlocked = this.tierRank(baselineTier) > 0 || storedUnlocked;
 
-    const currentBadges = userData?.badges?.bucket_list;
-    const currentTier = currentBadges?.tier || 'locked';
-    const currentUnlocked = currentBadges?.unlocked || false;
-    
-    let tier: 'bronze' | 'silver' | 'gold' | 'locked' = currentTier;
-    let unlocked = currentUnlocked;
+    // Same as legacy bucket-list badge: tier only goes up; clearing the planner draft does not remove earned metal.
+    let tier: 'bronze' | 'silver' | 'gold' | 'locked' = baselineTier;
+    let unlocked = baselineUnlocked;
 
-    if (bucketListCount >= 25 && currentTier !== 'gold') {
+    if (plannerDraftCount >= 25 && baselineTier !== 'gold') {
       tier = 'gold';
       unlocked = true;
-    } else if (bucketListCount >= 15 && currentTier !== 'silver' && currentTier !== 'gold') {
+    } else if (
+      plannerDraftCount >= 15 &&
+      baselineTier !== 'silver' &&
+      baselineTier !== 'gold'
+    ) {
       tier = 'silver';
       unlocked = true;
-    } else if (bucketListCount >= 5 && currentTier === 'locked') {
+    } else if (plannerDraftCount >= 5 && baselineTier === 'locked') {
       tier = 'bronze';
       unlocked = true;
     }
 
-    // Only update if upgrading the badge
-    if (!currentBadges || 
-        (tier !== currentTier) || 
-        (bucketListCount !== currentBadges.progress) || 
-        (unlocked !== currentUnlocked)) {
+    if (
+      !currentBadges ||
+      tier !== storedTier ||
+      plannerDraftCount !== currentBadges.progress ||
+      unlocked !== storedUnlocked
+    ) {
       await this.updateUserBadge(
         userId,
-        'bucket_list',
-        this.buildMetalTierBadgeState(currentBadges, currentTier, tier, currentUnlocked, unlocked, bucketListCount)
+        'itinerary_planner',
+        this.buildMetalTierBadgeState(
+          currentBadges,
+          baselineTier,
+          tier,
+          storedUnlocked,
+          unlocked,
+          plannerDraftCount
+        )
       );
     }
   }

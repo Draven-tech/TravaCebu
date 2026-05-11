@@ -48,6 +48,7 @@ export class ItineraryPlannerService {
       { merge: true }
     );
     this.updatePlannerSpotCache(spots);
+    await this.triggerBadgeEvaluation(userId);
   }
 
   isInPlanner(spotId: string): boolean {

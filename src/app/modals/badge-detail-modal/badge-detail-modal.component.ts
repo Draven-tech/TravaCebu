@@ -25,8 +25,7 @@ export class BadgeDetailModalComponent {
       return this.badge.lockedIcon;
     }
     
-    // For bucket list badge, use the appropriate tier icon
-    if (this.badge.id === 'bucket_list') {
+    if (this.badge.id === 'itinerary_planner') {
       switch (this.badge.tier) {
         case 'bronze': return 'assets/badges/bronzeBucketListBadge.png';
         case 'silver': return 'assets/badges/silverBucketListBadge.png';

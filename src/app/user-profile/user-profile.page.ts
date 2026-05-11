@@ -547,7 +547,7 @@ async viewProfilePicture() {
       return badge.lockedIcon;
     }
     
-    if (badge.id === 'bucket_list') {
+    if (badge.id === 'itinerary_planner') {
       switch (badge.tier) {
         case 'bronze': return 'assets/badges/bronzeBucketListBadge.png';
         case 'silver': return 'assets/badges/silverBucketListBadge.png';
@@ -600,14 +600,6 @@ async viewProfilePicture() {
   }
 
   async evaluateBadges() {
-    if (!this.userId || !this.userData) return;
-    
-    await this.badgeService.evaluateAllBadges(this.userId, this.userData);
-    
-    this.refreshBadges();
-  }
-
-  async forceEvaluateBucketListBadge() {
     if (!this.userId || !this.userData) return;
     
     await this.badgeService.evaluateAllBadges(this.userId, this.userData);

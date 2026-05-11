@@ -37,12 +37,6 @@ export class DashboardPage implements OnInit {
 
   navigateTo(route: string) {
     switch (route) {
-      case 'route-editor':
-        this.router.navigate(['/admin/route-editor']);
-        break;
-      case 'route-list':
-        this.router.navigate(['/admin/route-list']);
-        break;
       case 'tourist-spot-editor':
         this.router.navigate(['/admin/tourist-spot-editor']);
         break;

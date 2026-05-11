@@ -182,15 +182,6 @@ body:has(.stage-notification) ion-content {
 @import "@ionic/angular/css/palettes/dark.system.css";
 
 /* Map Container */
-#route-editor-map {
-  width: calc(100% - 32px);
-  height: 75vh;
-  z-index: 1;
-  border: 2px solid var(--ion-color-primary);
-  border-radius: 8px;
-  margin: 8px 16px;
-}
-
 #tourist-spot-editor-map {
   width: calc(100% - 32px);
   height: 75vh;

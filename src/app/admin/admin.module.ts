@@ -3,39 +3,25 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
-// Routing
 import { AdminRoutingModule } from './admin-routing.module';
 
-// Pages
 import { LoginPage } from './login/login.page';
 import { DashboardPage } from './dashboard/dashboard.page';
-import { RouteEditorMapPage } from './route-editor-map/route-editor-map.page';
-import { RouteListPage } from './route-list/route-list.page';
-import { RouteDetailPage } from './route-detail/route-detail.page';
-import { HttpClientModule } from '@angular/common/http';
-
-// Services
-import { PlacesService } from '../services/places.service';
 
 @NgModule({
   declarations: [
     LoginPage,
-    DashboardPage,
-    RouteEditorMapPage,
-    RouteListPage,
-    RouteDetailPage
+    DashboardPage
   ],
   imports: [
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    IonicModule.forRoot(), // This imports all Ionic components
-    AdminRoutingModule,
-    HttpClientModule
+    IonicModule,
+    AdminRoutingModule
   ],
   providers: [
-    DatePipe, // Add DatePipe to providers
-    PlacesService // Add PlacesService to providers
+    DatePipe
   ]
 })
 export class AdminModule {}

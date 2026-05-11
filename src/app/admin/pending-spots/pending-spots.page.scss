@@ -1,6 +1,6 @@
 ion-content {
-  --background: linear-gradient(135deg, #FFE066 0%, #FFD144 60%, #FFF6D1 100%);
-  background: linear-gradient(135deg, #FFE066 0%, #FFD144 60%, #FFF6D1 100%);
+  --background: #ffffff;
+  background: #ffffff;
   animation: fadeIn 0.8s ease-out;
   position: relative;
   overflow: hidden;
@@ -13,9 +13,8 @@ ion-content::before {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(231, 76, 60, 0.08) 0%, transparent 50%),
-              radial-gradient(circle, rgba(46, 204, 113, 0.05) 30%, transparent 70%),
-              radial-gradient(circle, rgba(230, 126, 34, 0.04) 60%, transparent 90%);
+  background: radial-gradient(circle, rgba(76, 141, 187, 0.07) 0%, transparent 52%),
+              radial-gradient(circle, rgba(212, 232, 245, 0.45) 32%, transparent 72%);
   z-index: 0;
 }
 
@@ -65,17 +64,14 @@ ion-content::before {
     font-size: 64px;
     margin-bottom: 16px;
     opacity: 0.5;
-    color: #e67e22;
+    color: #4c8dbb;
   }
 
   h3 {
     margin: 0 0 8px 0;
     font-size: 1.5rem;
     font-weight: 600;
-    background: linear-gradient(45deg, #2D3748, #e67e22);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #1e293b;
   }
 
   p {
@@ -96,15 +92,15 @@ ion-segment {
 
   ion-segment-button {
     --color: #666;
-    --color-checked: #e67e22;
-    --indicator-color: #e67e22;
+    --color-checked: #4c8dbb;
+    --indicator-color: #4c8dbb;
     font-weight: 600;
     border-radius: 8px;
     margin: 4px;
     transition: all 0.3s ease;
 
     &:hover {
-      --color: #e67e22;
+      --color: #4c8dbb;
     }
 
     ion-label {
@@ -125,7 +121,7 @@ ion-segment {
   margin: 16px;
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  border: 1px solid #f3e7d3;
+  border: 1px solid #d8e6f2;
   overflow: hidden;
   transition: all 0.3s ease;
   background: rgba(255, 255, 255, 0.95);
@@ -152,8 +148,8 @@ ion-segment {
 
   ion-card-header {
     padding: 16px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #f3e7d3 100%);
-    border-bottom: 1px solid #f3e7d3;
+    background: linear-gradient(135deg, #f8fbff 0%, #e8f3f9 100%);
+    border-bottom: 1px solid #d8e6f2;
 
     .spot-header {
       display: flex;
@@ -167,10 +163,7 @@ ion-segment {
         ion-card-title {
           font-size: 1.2rem;
           font-weight: 700;
-          background: linear-gradient(45deg, #2D3748, #e67e22);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #1e293b;
           margin: 0 0 4px 0;
         }
 
@@ -184,7 +177,7 @@ ion-segment {
 
           ion-icon {
             font-size: 14px;
-            color: #e67e22;
+            color: #4c8dbb;
           }
         }
       }
@@ -223,7 +216,7 @@ ion-segment {
 
         ion-icon {
           font-size: 16px;
-          color: #ff6b35;
+          color: #4c8dbb;
           margin-top: 2px;
           flex-shrink: 0;
         }

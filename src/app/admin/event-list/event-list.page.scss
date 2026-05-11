@@ -9,30 +9,30 @@
   justify-content: space-between;
   padding: 12px;
   gap: 12px;
-  background-color: #000000;
+  background-color: #1e293b;
   z-index: 999;
 
   button {
     flex: 1;
     padding: 12px;
-    background-color: #000000;
+    background-color: #1e293b;
     border: none;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    color: #FFD144;
+    color: rgba(255, 255, 255, 0.9);
     font-size: 15px;
     font-weight: 600;
     transition: all 0.3s ease;
     cursor: pointer;
 
     &.active {
-      background-color: #FFD144 !important;
-      color: #000000 !important;
-      box-shadow: 0 4px 12px rgba(255, 209, 68, 0.3);
+      background-color: #f5c400 !important;
+      color: #1e293b !important;
+      box-shadow: 0 4px 12px rgba(245, 196, 0, 0.35);
     }
 
     &:hover {
-      background-color: #1a1a1a;
+      background-color: #2d3d52;
     }
   }
 }
@@ -70,7 +70,7 @@
   
   ion-spinner {
     margin-bottom: 16px;
-    --color: #ffc107;
+    --color: #4c8dbb;
   }
   
   p {
@@ -101,11 +101,12 @@
 
   ion-item {
     border-radius: 12px;
-    --background: #FFE066;
+    --background: #f8fbff;
     --padding-start: 12px;
     --padding-end: 12px;
     --min-height: 100px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 24px rgba(44, 93, 129, 0.1);
+    border: 1px solid #d8e6f2;
     transition: all 0.3s ease;
     cursor: pointer;
     
@@ -133,7 +134,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255, 193, 7, 0.2);
+      background: rgba(245, 196, 0, 0.2);
       border-radius: 12px;
       
       ion-icon {
@@ -145,7 +146,7 @@
   .event-title {
     font-size: 1rem;
     font-weight: bold;
-    color: #ffffff;
+    color: #1e293b;
     margin: 0;
     line-height: 1.3;
   }
@@ -185,7 +186,7 @@
     --border-radius: 12px;
     height: 44px;
     font-weight: 600;
-    --box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+    --box-shadow: 0 4px 12px rgba(245, 196, 0, 0.3);
   }
 }
 
@@ -200,7 +201,7 @@
   margin: 20px 16px;
   
   ion-button {
-    --color: #FFD144;
+    --color: #4c8dbb !important;
     font-weight: 600;
     
     &[disabled] {
@@ -211,16 +212,16 @@
   .page-info {
     margin: 0 20px;
     font-weight: 600;
-    color: #ffffff;
+    color: #1e293b !important;
     font-size: 14px;
   }
 }
 
 // Floating Action Button
 ion-fab-button {
-  --background: #ffc107;
+  --background: #4c8dbb;
   --color: #ffffff;
-  --box-shadow: 0 4px 16px rgba(255, 193, 7, 0.4);
+  --box-shadow: 0 4px 16px rgba(76, 141, 187, 0.35);
   --border-radius: 16px;
   font-weight: 600;
 }
@@ -270,7 +271,7 @@ ion-fab-button {
   .event-detail-title {
     font-size: 1.5rem;
     font-weight: bold;
-    color: #ffffff;
+    color: #1e293b;
     margin: 0 0 20px 0;
     text-align: center;
   }
@@ -401,8 +402,8 @@ ion-fab-button {
 
     ion-segment-button {
       --color: #cccccc;
-      --color-checked: #ffc107;
-      --indicator-color: #ffc107;
+      --color-checked: #f5c400;
+      --indicator-color: #f5c400;
       border-radius: 6px;
       margin: 2px;
     }
@@ -435,7 +436,7 @@ ion-fab-button {
       text-transform: uppercase;
 
       &.current-day {
-        color: #ffc107;
+        color: #f5c400;
         font-weight: 700;
       }
     }
@@ -465,7 +466,7 @@ ion-fab-button {
       }
 
       &.today .day-number {
-        background-color: #ffc107;
+        background-color: #f5c400;
         color: #ffffff;
         border-radius: 50%;
         width: 28px;
@@ -479,12 +480,12 @@ ion-fab-button {
 
       &.selected {
         background-color: #404040;
-        border: 2px solid #ffc107;
+        border: 2px solid #f5c400;
       }
 
       &.has-events:hover {
         background-color: #404040;
-        border: 1px solid #ffc107;
+        border: 1px solid #f5c400;
       }
 
       .day-number {
@@ -500,14 +501,14 @@ ion-fab-button {
         min-height: 24px;
         
         &.highlighted {
-          background-color: #ffc107;
+          background-color: #f5c400;
           color: #ffffff;
           border-radius: 50%;
           width: 28px;
           height: 28px;
           font-weight: 700;
           margin: 0 auto;
-          box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+          box-shadow: 0 2px 8px rgba(245, 196, 0, 0.3);
         }
 
         .event-count {
@@ -541,7 +542,7 @@ ion-fab-button {
           cursor: pointer;
 
           &.warning {
-            background-color: #ffc107;
+            background-color: #f5c400;
           }
 
           &.primary {
@@ -574,8 +575,8 @@ ion-fab-button {
     }
 
     &.active {
-      color: #ffc107;
-      border-bottom-color: #ffc107;
+      color: #f5c400;
+      border-bottom-color: #f5c400;
     }
   }
 }
@@ -594,7 +595,7 @@ ion-fab-button {
     justify-content: center;
     width: 60px;
     height: 60px;
-    background: #ffc107;
+    background: #f5c400;
     border-radius: 50%;
     margin-right: 16px;
 
@@ -627,7 +628,7 @@ ion-fab-button {
   .week-separator {
     font-size: 14px;
     font-weight: 600;
-    color: #ffc107;
+    color: #f5c400;
     text-transform: uppercase;
     padding: 8px 0;
     margin-bottom: 16px;
@@ -697,7 +698,7 @@ ion-fab-button {
 
       .event-time {
         font-size: 14px;
-        color: #ffc107;
+        color: #f5c400;
         font-weight: 500;
       }
     }
@@ -756,7 +757,7 @@ ion-fab-button {
   text-align: center;
   margin-bottom: 24px;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05));
+  background: linear-gradient(135deg, rgba(76, 141, 187, 0.12), rgba(76, 141, 187, 0.04));
   border-radius: 16px;
   
   ion-icon {
@@ -788,11 +789,11 @@ ion-fab-button {
 .date-event-card {
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(255, 193, 7, 0.2);
+  border: 1px solid rgba(76, 141, 187, 0.22);
   
   &:hover {
     transform: translateY(-2px);
-    border-color: #ffc107;
+    border-color: #4c8dbb;
   }
   
   ion-item {
@@ -819,7 +820,7 @@ ion-fab-button {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 193, 7, 0.1);
+    background: rgba(76, 141, 187, 0.12);
     border-radius: 12px;
     
     ion-icon {

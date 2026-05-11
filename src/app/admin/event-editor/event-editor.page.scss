@@ -1,6 +1,6 @@
 ion-content {
-  --background: linear-gradient(135deg, #FFE066 0%, #FFD144 60%, #FFF6D1 100%);
-  background: linear-gradient(135deg, #FFE066 0%, #FFD144 60%, #FFF6D1 100%);
+  --background: #ffffff;
+  background: #ffffff;
   animation: fadeIn 0.8s ease-out;
   position: relative;
   overflow: hidden;
@@ -13,9 +13,8 @@ ion-content::before {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(231, 76, 60, 0.08) 0%, transparent 50%),
-              radial-gradient(circle, rgba(46, 204, 113, 0.05) 30%, transparent 70%),
-              radial-gradient(circle, rgba(230, 126, 34, 0.04) 60%, transparent 90%);
+  background: radial-gradient(circle, rgba(76, 141, 187, 0.07) 0%, transparent 52%),
+              radial-gradient(circle, rgba(212, 232, 245, 0.45) 32%, transparent 72%);
   z-index: 0;
 }
 
@@ -31,12 +30,12 @@ ion-content::before {
   align-items: center;
   justify-content: space-between;
   padding: 18px 18px 0 18px;
-  background: #e74c3c;
+  background: #4c8dbb;
   min-height: 64px;
   margin-bottom: 8px;
   border-radius: 0 0 18px 18px;
-  box-shadow: 0 2px 12px rgba(44, 62, 80, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 12px rgba(44, 93, 129, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   position: relative;
   z-index: 1;
 }
@@ -46,7 +45,7 @@ ion-content::before {
   font-weight: 900;
   color: #fff;
   letter-spacing: 1px;
-  text-shadow: 0 2px 8px rgba(44, 62, 80, 0.35), 0 0 2px #e74c3c;
+  text-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
 }
 
 ion-button[fill="clear"] {
@@ -63,7 +62,7 @@ ion-card {
   border-radius: 16px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.1);
   margin: 8px;
-  border: 1px solid #f3e7d3;
+  border: 1px solid #d8e6f2;
   animation: slideUp 0.6s ease-out;
   position: relative;
   z-index: 1;
@@ -74,10 +73,7 @@ ion-card {
     ion-card-title {
       font-size: 1.2rem;
       font-weight: 700;
-      background: linear-gradient(45deg, #2D3748, #e67e22);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: #1e293b;
       text-shadow: none;
     }
   }
@@ -93,7 +89,7 @@ ion-item {
   --padding-start: 12px;
   --padding-end: 12px;
   margin-bottom: 8px;
-  border: 1.5px solid #e74c3c;
+  border: 1.5px solid rgba(76, 141, 187, 0.4);
   box-shadow: 0 2px 8px rgba(44, 62, 80, 0.04);
   transition: all 0.3s ease;
   color: #2D3748;
@@ -120,7 +116,7 @@ ion-item {
 
 .location-picker-button {
   --border-width: 1.5px;
-  --border-color: #e74c3c;
+  --border-color: #4c8dbb;
   font-weight: 600;
   text-align: start;
 }
@@ -177,9 +173,9 @@ ion-label {
 
 ion-select {
   background: #fff !important;
-  color: #e74c3c !important;
+  color: #4c8dbb !important;
   border-radius: 8px;
-  border: 1.5px solid #e74c3c;
+  border: 1.5px solid rgba(76, 141, 187, 0.4);
   font-weight: 700;
   font-size: 1.1rem;
   min-width: 120px;
@@ -187,7 +183,7 @@ ion-select {
 }
 
 ion-select::part(placeholder) {
-  color: #e74c3c !important;
+  color: #4c8dbb !important;
   opacity: 1 !important;
 }
 
@@ -200,7 +196,7 @@ ion-input, ion-textarea {
 
 input[type="file"] {
   background: #fff;
-  border: 1.5px solid #e74c3c;
+  border: 1.5px solid rgba(76, 141, 187, 0.4);
   border-radius: 8px;
   padding: 8px;
   color: #2D3748;
@@ -208,8 +204,8 @@ input[type="file"] {
 }
 
 ion-fab-button {
-  --box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  --background: linear-gradient(45deg, #e74c3c, #2ecc71);
+  --box-shadow: 0 4px 8px rgba(44, 93, 129, 0.25);
+  --background: linear-gradient(45deg, #4c8dbb, #3d7aa3);
   --color: white;
   
   ion-icon {

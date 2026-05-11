@@ -1,12 +1,12 @@
 ion-header {
   ion-toolbar {
-    --background: #e74c3c;
+    --background: #4c8dbb;
     --color: white;
   }
 }
 
 ion-content {
-  --background: #f8f9fa;
+  --background: #ffffff;
 }
 
 .spot-details {
@@ -32,7 +32,7 @@ ion-content {
         h2 {
           font-size: 1rem;
           font-weight: 600;
-          color: #e74c3c;
+          color: #4c8dbb;
           margin-bottom: 4px;
         }
         
@@ -72,7 +72,8 @@ ion-footer {
     --background: white;
     
     ion-button {
-      --background: #e74c3c;
+      --background: #4c8dbb;
+      --background-hover: #3d7aa3;
       --color: white;
       font-weight: 600;
     }

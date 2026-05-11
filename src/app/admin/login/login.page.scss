@@ -1,7 +1,7 @@
 // Main content styling
 .login-content {
-  --background: linear-gradient(135deg, #FFE066 0%, #FFD144 60%, #FFF6D1 100%);
-  background: linear-gradient(135deg, #FFE066 0%, #FFD144 60%, #FFF6D1 100%);
+  --background: #ffffff;
+  background: #ffffff;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -25,11 +25,11 @@ ion-content {
   padding: 16px 20px;
   padding-top: calc(16px + env(safe-area-inset-top));
   padding-top: calc(16px + constant(safe-area-inset-top)); /* iOS 11.0 */
-  background: #e74c3c;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background: #4c8dbb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
   position: relative;
   border-radius: 0 0 18px 18px;
-  box-shadow: 0 2px 12px rgba(44, 62, 80, 0.08);
+  box-shadow: 0 2px 12px rgba(44, 93, 129, 0.18);
   min-height: 60px;
 }
 
@@ -83,7 +83,7 @@ ion-content {
   width: 100%;
   max-width: 400px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  border: 1px solid #f3e7d3;
+  border: 1px solid #d8e6f2;
   backdrop-filter: blur(10px);
   margin-bottom: 400px; // Much larger space for keyboard
 }
@@ -98,7 +98,7 @@ ion-content {
   width: 280px;
   height: auto;
   margin-bottom: 30px;
-  filter: drop-shadow(0 4px 8px rgba(231, 76, 60, 0.1));
+  filter: drop-shadow(0 4px 8px rgba(76, 141, 187, 0.12));
 }
 
 .brand-name {
@@ -156,8 +156,8 @@ ion-content {
   
   &:focus-within {
     --background: #ffffff;
-    --border-color: #e74c3c;
-    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+    --border-color: #4c8dbb;
+    box-shadow: 0 0 0 3px rgba(76, 141, 187, 0.18);
     transform: translateY(-1px);
   }
 }
@@ -221,10 +221,10 @@ ion-input {
 
 // Login button
 .login-button {
-  --background: linear-gradient(90deg, #e74c3c 0%, #FFD144 100%);
+  --background: linear-gradient(90deg, #4c8dbb 0%, #f5c400 100%);
   --color: #ffffff;
   --border-radius: 12px;
-  --box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+  --box-shadow: 0 4px 12px rgba(76, 141, 187, 0.28);
   font-weight: 600;
   font-size: 1rem;
   height: 50px;
@@ -233,7 +233,7 @@ ion-input {
   letter-spacing: 0.5px;
   
   &:hover {
-    --box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+    --box-shadow: 0 6px 20px rgba(76, 141, 187, 0.35);
     transform: translateY(-2px);
   }
   
@@ -311,7 +311,7 @@ ion-input {
   }
   
   .alert-head {
-    background: #e74c3c;
+    background: #4c8dbb;
     color: white;
     border-radius: 16px 16px 0 0;
     font-weight: 600;
@@ -325,7 +325,7 @@ ion-input {
   }
   
   .alert-button {
-    color: #e74c3c;
+    color: #4c8dbb;
     font-weight: 600;
   }
 }

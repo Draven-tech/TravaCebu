@@ -153,15 +153,20 @@ ion-content {
 
     ion-button {
       margin: 0;
-      margin-top: auto;
-      --background: #4c8dbb;
-      --background-hover: #3d7aa3;
+      width: 100%;
+      min-height: 34px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      --color: #4c8dbb !important;
+      --background: #e8f3f9;
+      --background-hover: #d4e8f5;
       --border-radius: 10px;
+      --padding-start: 8px;
+      --padding-end: 8px;
       --padding-top: 8px;
       --padding-bottom: 8px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      text-transform: none;
+      text-transform: uppercase;
 
       ion-icon {
         margin-right: 8px;
@@ -235,55 +240,6 @@ ion-button.see-all-link {
       border-color: #4c8dbb;
     }
   }
-}
-
-.emergency-card {
-  margin: 0 0 16px;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.12);
-  border: 1px solid rgba(185, 28, 28, 0.2);
-  cursor: pointer;
-
-  ion-card-content {
-    padding: 14px 16px;
-  }
-}
-
-.emergency-card-inner {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.emergency-card-icon {
-  font-size: 2rem;
-  color: #b91c1c;
-  flex-shrink: 0;
-}
-
-.emergency-card-text {
-  flex: 1;
-  min-width: 0;
-
-  h3 {
-    margin: 0 0 4px;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #1e293b;
-  }
-
-  p {
-    margin: 0;
-    font-size: 0.85rem;
-    color: #64748b;
-    line-height: 1.35;
-  }
-}
-
-.emergency-chevron {
-  font-size: 1.25rem;
-  color: #94a3b8;
-  flex-shrink: 0;
 }
 
 .hidden-gems-section {

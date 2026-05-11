@@ -321,10 +321,6 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     this.navCtrl.navigateForward(`/tourist-spot-detail/${spotId}`);
   }
 
-  openEmergencyInfo() {
-    this.navCtrl.navigateForward('/emergency-info');
-  }
-
   async openSearchModal() {
     const modal = await this.modalCtrl.create({
       component: SearchModalComponent,

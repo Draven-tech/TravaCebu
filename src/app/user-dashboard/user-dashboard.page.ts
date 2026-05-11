@@ -12,6 +12,7 @@ import { SearchModalComponent } from '../modals/search-modal/search-modal.compon
 import { VisitedSpotsModalComponent } from '../modals/visited-spots-modal/visited-spots-modal.component';
 import { ItineraryPlannerService } from '../services/itinerary-planner.service';
 import { PersonalizedSpotSuggestionsService } from '../services/personalized-spot-suggestions.service';
+import { isExistingOrNearbyDuplicatePlace } from '../utils/place-duplicate.util';
 
 @Component({
   selector: 'app-user-dashboard',
@@ -398,8 +399,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
   }
 
   private isDuplicateSpot(place: any) {
-    const name = place.name?.toLowerCase().trim();
-    return this.allSpots.some(s => s.name?.toLowerCase().trim() === name);
+    return isExistingOrNearbyDuplicatePlace(place, this.allSpots);
   }
 
   setupNetworkListeners() {

@@ -1,6 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { PlacesService } from '../../services/places.service';
+import { isExistingOrNearbyDuplicatePlace } from '../../utils/place-duplicate.util';
 
 @Component({
   selector: 'app-search-modal',
@@ -85,44 +86,7 @@ export class SearchModalComponent {
   }
 
   isExistingSpot(place: any): boolean {
-    if (!this.existingSpots || this.existingSpots.length === 0) {
-      return false;
-    }
-    
-    const placeName = place.name?.toLowerCase().trim();
-    if (!placeName) return false;
-    
-    // Check for exact match
-    const exactMatch = this.existingSpots.find(spot => 
-      spot.name?.toLowerCase().trim() === placeName
-    );
-    if (exactMatch) return true;
-    
-    // Check for partial matches (one name contains the other)
-    const partialMatch = this.existingSpots.find(spot => {
-      const existingName = spot.name?.toLowerCase().trim();
-      if (!existingName) return false;
-      
-      // Check if one name contains the other (for variations like "SM Seaside" vs "SM Seaside City Cebu")
-      return placeName.includes(existingName) || existingName.includes(placeName);
-    });
-    
-    if (partialMatch) return true;
-    
-    // Check for similar names (common words match)
-    const placeWords = placeName.split(' ').filter((word: string) => word.length > 2);
-    const similarMatch = this.existingSpots.find(spot => {
-      const existingName = spot.name?.toLowerCase().trim();
-      if (!existingName) return false;
-      
-      const existingWords = existingName.split(' ').filter((word: string) => word.length > 2);
-      
-      // Check if they share significant words
-      const commonWords = placeWords.filter((word: string) => existingWords.includes(word));
-      return commonWords.length >= Math.min(2, Math.min(placeWords.length, existingWords.length));
-    });
-    
-    return !!similarMatch;
+    return isExistingOrNearbyDuplicatePlace(place, this.existingSpots);
   }
 
   async addToDatabase(place: any) {

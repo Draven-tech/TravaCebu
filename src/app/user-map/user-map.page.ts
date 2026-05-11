@@ -12,9 +12,6 @@ import { environment } from '../../environments/environment';
 import { ItineraryControlsModalComponent } from '../modals/itinerary-controls-modal/itinerary-controls-modal.component';
 import { ItineraryCompletionModalComponent } from '../modals/itinerary-completion-modal/itinerary-completion-modal.component';
 import { LocalTipsModalComponent } from '../modals/local-tips-modal/local-tips-modal.component';
-//////////////////////////////////////// badge caller ////////////////////////////////////////
-// Explorer badge: GeofencingService persists visits to users/{uid}/visitedSpots and calls BadgeService.evaluateExplorerBadge (this page uses GeofencingService, not BadgeService).
-/////////////////////////////////////////////////////
 import { GeofencingService } from '../services/geofencing.service';
 import { firstValueFrom, Subscription } from 'rxjs';
 
@@ -100,7 +97,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   
   // Loading modal properties
   loadingModal: any = null;
-  loadingProgress: string = '';
+  /** Fixed copy for the single route-generation loading overlay. */
+  private readonly routeLoadingMessage = 'Generating route';
   
   // Location tracking
   private locationWatcher?: any;
@@ -149,6 +147,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   private lastLakawRemainMUi: number | null = null;
   /** Prevents double auto-advance on the same segment index. */
   private lakawAutoAdvancedForSegmentIndex: number | null = null;
+  /** Last walk segment we reset Lakaw polyline UI for (avoid resetting on repeated paints). */
+  private lakawWalkPolylineSyncSegmentIndex: number | null = null;
 
   /** Marker + popup when opening the map from Emergency Information. */
   private emergencyFocusMarker?: L.Marker;
@@ -873,22 +873,33 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return segment?.type === 'walk';
   }
 
+  /**
+   * Lakaw strip sits at the top of the route UI: under the status bar in fullscreen,
+   * or directly under the map header toolbars (56px or 112px when search is shown).
+   */
   getLakawBarTop(): string {
+    const safe = 'env(safe-area-inset-top, 0px)';
     if (this.isFullscreen) {
-      const underBanner =
-        this.showStageNotification &&
-        !!this.currentRouteInfo?.segments?.length;
-      return underBanner ? '52px' : '8px';
+      return safe;
     }
-    const underBanner =
-      this.showStageNotification &&
-      !!this.currentRouteInfo?.segments?.length;
-    return underBanner ? '108px' : '56px';
+    const headerPx = this.selectedItineraryIndex < 0 ? 112 : 56;
+    return `calc(${headerPx}px + ${safe})`;
+  }
+
+  /** Stage banner always stacks below the Lakaw bar when both are visible. */
+  getStageNotificationTop(): string {
+    const safe = 'env(safe-area-inset-top, 0px)';
+    const lakawReservePx = 64;
+    if (this.isFullscreen) {
+      return `calc(${safe} + ${lakawReservePx}px)`;
+    }
+    const headerPx = this.selectedItineraryIndex < 0 ? 112 : 56;
+    return `calc(${headerPx}px + ${safe} + ${lakawReservePx}px)`;
   }
 
   toggleLakawMode(): void {
-    if (!this.isCurrentWalkSegment()) {
-      void this.showToast('Lakaw mode is for walking stages only.');
+    if (!this.lakawMode && !this.isCurrentWalkSegment()) {
+      void this.showToast('Turn on Lakaw while viewing a walking stage.');
       return;
     }
     this.lakawMode = !this.lakawMode;
@@ -927,28 +938,43 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * Keeps Lakaw enabled across segment changes; only walk-specific UI resets off the walking polyline.
+   */
   private syncLakawWithSegment(): void {
-    if (!this.isCurrentWalkSegment()) {
+    if (this.isCurrentWalkSegment()) {
       if (this.lakawMode) {
-        this.lakawMode = false;
-        this.locationTracking.setLakawMode(false);
+        this.locationTracking.setLakawMode(true);
       }
-      this.lakawWalkRemainingM = null;
-      this.lakawAutoAdvancedForSegmentIndex = null;
+      const idx = this.currentSegmentIndex;
+      if (this.lakawWalkPolylineSyncSegmentIndex !== idx) {
+        this.lakawWalkPolylineSyncSegmentIndex = idx;
+        this.lakawAutoAdvancedForSegmentIndex = null;
+        this.lastLakawRemainMUi = null;
+        this.lastLakawRemainUiMs = 0;
+      }
+      return;
     }
+    this.lakawWalkRemainingM = null;
+    this.lakawAutoAdvancedForSegmentIndex = null;
   }
 
   private clearLakawState(): void {
     this.lakawMode = false;
     this.lakawWalkRemainingM = null;
     this.lakawAutoAdvancedForSegmentIndex = null;
+    this.lakawWalkPolylineSyncSegmentIndex = null;
     this.lastLakawRemainMUi = null;
     this.lastLakawRemainUiMs = 0;
     this.locationTracking.setLakawMode(false);
   }
 
   private handleLakawLocationUpdate(location: UserLocation): void {
-    if (!this.lakawMode || !this.isCurrentWalkSegment()) {
+    if (!this.lakawMode) {
+      return;
+    }
+    if (!this.isCurrentWalkSegment()) {
+      this.lakawWalkRemainingM = null;
       return;
     }
     const seg = this.currentRouteInfo?.segments?.[this.currentSegmentIndex];
@@ -1751,15 +1777,13 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     try {
       this.isGeneratingRoute = true;
       
-      // Show loading modal
-      await this.showLoadingModal('Starting route generation...');
-      
+      await this.showRouteLoadingModal();
+
       const userLocation = await this.locationTracking.getLocationWithFallback();
-      
+
       this.currentRouteInfo = await this.routePlanning.generateRouteInfo(
         itinerary,
-        userLocation,
-        (message: string) => this.updateLoadingProgress(message)
+        userLocation
       );
       
       // Ensure segments have proper stage and estimatedTime properties
@@ -1784,7 +1808,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       await this.showToast('Error generating routes. Please try again.');
     } finally {
       this.isGeneratingRoute = false;
-      this.loadingProgress = '';
     }
   }
 
@@ -1794,6 +1817,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
     
     try {
+      this.lakawWalkPolylineSyncSegmentIndex = null;
       // Reset to first segment when displaying a new route
       this.currentSegmentIndex = 0;
       this.persistSessionSnapshot('route_display_reset');
@@ -1848,6 +1872,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     });
     
     this.mapManagement.addRouteLine(jeepneyLine);
+
+    this.addStartStopTagsOnPolyline(polylinePoints, 'jeepney');
     
     // Add jeepney code marker at midpoint
     const midIndex = Math.floor(polylinePoints.length / 2);
@@ -1926,6 +1952,8 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     });
     
     this.mapManagement.addRouteLine(walkLine);
+
+    this.addStartStopTagsOnPolyline(polylinePoints, 'walk');
     
     // Add walking marker at midpoint (only if we have multiple points)
     if (polylinePoints.length > 1) {
@@ -1981,9 +2009,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           box-shadow: 0 2px 6px rgba(0,0,0,0.35);
           text-align: center;
           white-space: nowrap;
-        ">Enjoy Visit</div>`,
-        iconSize: [90, 28],
-        iconAnchor: [45, 14]
+        ">STOP — Visit</div>`,
+        iconSize: [110, 28],
+        iconAnchor: [55, 14]
       })
     });
 
@@ -2160,37 +2188,61 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return null;
   }
 
-  /**
-   * Show loading modal with progress message
-   */
-  private async showLoadingModal(message: string): Promise<void> {
+  /** One Ionic loading overlay with fixed copy for itinerary / emergency route generation. */
+  private async showRouteLoadingModal(): Promise<void> {
     if (this.loadingModal) {
-      await this.dismissLoadingModal(); // Close existing modal first
+      return;
     }
-
-    this.loadingProgress = message;
-    
-    // Create a proper Ionic loading controller
     this.loadingModal = await this.loadingCtrl.create({
-      message: message,
+      message: this.routeLoadingMessage,
       spinner: 'crescent',
       translucent: true,
       cssClass: 'route-loading-modal'
     });
-    
     await this.loadingModal.present();
   }
 
-  /**
-   * Update loading modal progress message
-   */
-  private async updateLoadingProgress(message: string): Promise<void> {
-    this.loadingProgress = message;
-    
-    // Update the loading message
-    if (this.loadingModal) {
-      await this.dismissLoadingModal();
-      await this.showLoadingModal(message);
+  /** START / STOP labels at the ends of the current path polyline. */
+  private addStartStopTagsOnPolyline(
+    polylinePoints: [number, number][],
+    variant: 'walk' | 'jeepney'
+  ): void {
+    if (!polylinePoints.length) {
+      return;
+    }
+    const startHue = variant === 'walk' ? '#1B5E20' : '#0D47A1';
+    const mk = (label: string, lat: number, lng: number, bg: string) =>
+      L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="
+            background: ${bg};
+            color: #fff;
+            border: 2px solid #fff;
+            border-radius: 6px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+            text-align: center;
+            white-space: nowrap;
+          ">${label}</div>`,
+          iconSize: [56, 22],
+          iconAnchor: [28, 11]
+        })
+      });
+
+    const a = polylinePoints[0];
+    const b = polylinePoints[polylinePoints.length - 1];
+    const startM = mk('START', a[0], a[1], startHue);
+    startM.bindPopup('<strong>Start</strong><br>Begin this leg here.');
+    this.mapManagement.addRouteMarker(startM);
+
+    if (polylinePoints.length > 1 && (a[0] !== b[0] || a[1] !== b[1])) {
+      const stopM = mk('STOP', b[0], b[1], '#B71C1C');
+      stopM.bindPopup('<strong>Stop</strong><br>End of this leg.');
+      this.mapManagement.addRouteMarker(stopM);
     }
   }
 
@@ -2351,7 +2403,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.clearEmergencyFocusMarker();
 
     try {
-      await this.showLoadingModal('Finding directions…');
+      await this.showRouteLoadingModal();
       const userLocation = await this.locationTracking.getLocationWithFallback();
       const routeInfo = await this.routePlanning.generateRouteInfoForEmergencyDestination(
         userLocation,
@@ -2360,9 +2412,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
           lat: payload.lat,
           lng: payload.lng,
           placeId: payload.placeId,
-        },
-        async (message: string) => {
-          await this.updateLoadingProgress(message);
         }
       );
 

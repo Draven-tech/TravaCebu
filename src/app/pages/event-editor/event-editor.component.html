@@ -1,0 +1,43 @@
+<div class="wrap">
+  <nav class="nav tc-topbar">
+    <strong>Editor</strong>
+    <a routerLink="/admin/events">Events</a>
+    <a routerLink="/admin/dashboard">Dashboard</a>
+    <button type="button" class="secondary" style="margin-left: auto" (click)="logout()">Logout</button>
+  </nav>
+  <div class="card">
+    <h1>Event editor</h1>
+    <div class="row">
+      <a class="btn small secondary" routerLink="/admin/events">Back</a>
+      <button type="button" class="small" (click)="openPick()">Pick tourist spot</button>
+      <button type="button" class="small" (click)="save()">Save</button>
+    </div>
+    <label>Name <input type="text" [(ngModel)]="name" name="name" autocomplete="off" /></label>
+    <label>Description <textarea [(ngModel)]="desc" name="desc"></textarea></label>
+    <div class="row">
+      <label>Date <input type="date" [(ngModel)]="date" name="date" /></label>
+      <label>Start <input type="time" [(ngModel)]="time" name="time" /></label>
+      <label>End <input type="time" [(ngModel)]="endTime" name="endTime" /></label>
+    </div>
+    <p class="muted">Spot: <strong>{{ spotName || 'none' }}</strong> <code>{{ spotId }}</code></p>
+    <label>Image <input type="file" accept="image/*" (change)="onFile($event)" /></label>
+    @if (previewUrl) {
+      <img [src]="previewUrl" alt="" style="max-width: 240px; border-radius: 8px" />
+    }
+  </div>
+</div>
+
+<div class="modal-back" [class.on]="pickOpen" (click)="closePick()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h2 style="margin-top: 0">Tourist spots</h2>
+    <label>Search <input type="text" [(ngModel)]="pickSearch" name="pickSearch" autocomplete="off" /></label>
+    <div class="list" style="margin-top: 0.75rem; max-height: 280px; overflow: auto">
+      @for (s of filteredSpots(); track s.id) {
+        <div class="list-item" style="cursor: pointer" (click)="selectSpot(s)">
+          {{ s.name || '' }} · {{ s.category || '' }}
+        </div>
+      }
+    </div>
+    <button type="button" class="secondary" (click)="closePick()">Close</button>
+  </div>
+</div>

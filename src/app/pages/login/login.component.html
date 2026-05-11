@@ -1,0 +1,45 @@
+<header class="tc-login-header">
+  <button type="button" class="tc-login-back" (click)="goWelcome()" title="Back" aria-label="Back">
+    <span class="tc-login-back-text">Back</span>
+  </button>
+  <h1 class="tc-login-title">TravaCebu Admin</h1>
+</header>
+
+<div class="tc-login-wrap">
+  <div class="tc-login-card">
+    <div class="tc-login-logo" aria-hidden="true"><span class="tc-login-mark">TC</span></div>
+    <div class="tc-login-welcome">
+      <h2>Welcome back</h2>
+      <p>Sign in with a Firebase account that has <code>admins/{{ '{' }}uid{{ '}' }}</code> in Firestore.</p>
+    </div>
+    @if (errorMsg) {
+      <p class="error tc-login-err tc-login-err-visible" role="alert" aria-live="polite">{{ errorMsg }}</p>
+    }
+    @if (configOk) {
+      <form (submit)="$event.preventDefault(); submit()" method="post" action="#">
+        <label
+          >Email
+          <input type="email" name="email" required autocomplete="username" [(ngModel)]="email" />
+        </label>
+        <label
+          >Password
+          <input
+            [attr.type]="pwType"
+            name="password"
+            required
+            minlength="6"
+            autocomplete="current-password"
+            [(ngModel)]="password"
+            (keydown.enter)="$event.preventDefault(); submit()"
+          />
+        </label>
+        <button type="button" class="secondary small" style="margin-top: 0.5rem" (click)="togglePw()">
+          {{ pwType === 'password' ? 'Show password' : 'Hide password' }}
+        </button>
+        <button type="button" class="tc-login-submit" (click)="submit()" [disabled]="submitting">
+          {{ submitting ? 'Signing in…' : 'Sign in' }}
+        </button>
+      </form>
+    }
+  </div>
+</div>

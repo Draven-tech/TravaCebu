@@ -1,0 +1,82 @@
+<div class="wrap">
+  <nav class="nav tc-topbar">
+    <strong>Admin</strong>
+    <a routerLink="/admin/dashboard">Dashboard</a>
+    <a routerLink="/admin/moderation/pending-spots">Pending spots</a>
+    <a routerLink="/admin/moderation/pending-tips">Pending tips</a>
+    <button type="button" class="secondary" style="margin-left: auto" (click)="logout()">Logout</button>
+  </nav>
+  <div class="card">
+    <h1>Pending tourist spots</h1>
+    <div class="seg">
+      <button
+        type="button"
+        class="small secondary"
+        [class.on]="status === 'pending'"
+        [disabled]="tabPanelLoading"
+        (click)="setStatus('pending')"
+      >
+        Pending
+      </button>
+      <button
+        type="button"
+        class="small secondary"
+        [class.on]="status === 'approved'"
+        [disabled]="tabPanelLoading"
+        (click)="setStatus('approved')"
+      >
+        Approved
+      </button>
+      <button
+        type="button"
+        class="small secondary"
+        [class.on]="status === 'rejected'"
+        [disabled]="tabPanelLoading"
+        (click)="setStatus('rejected')"
+      >
+        Rejected
+      </button>
+    </div>
+    <div class="tc-tab-loading-wrap">
+      @if (tabPanelLoading) {
+        <div class="tc-tab-loading-overlay" aria-busy="true" role="status">
+          <div class="tc-tab-spinner" aria-hidden="true"></div>
+          <span class="tc-tab-loading-label">Loading…</span>
+          <span class="tc-visually-hidden">Loading list</span>
+        </div>
+      }
+      <div class="list">
+      @for (row of rows; track row.id) {
+        <div
+          class="list-item"
+          style="flex-direction: row; align-items: flex-start; gap: 1rem; flex-wrap: wrap"
+        >
+          @if (spotImage(row); as src) {
+            <img
+              [src]="src"
+              alt=""
+              width="140"
+              height="100"
+              style="width: 140px; height: 100px; object-fit: cover; border-radius: 8px; flex-shrink: 0; border: 1px solid #e2e8f0"
+              loading="lazy"
+            />
+          }
+          <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column; align-items: flex-start">
+            <div><strong>{{ row.data['name'] || '' }}</strong></div>
+            <div class="muted" style="font-size: 0.85rem">
+              {{ (row.data['description'] || '').toString().slice(0, 280) }}
+            </div>
+            <div class="row" style="margin-top: 0.35rem">
+              @if (status === 'pending') {
+                <button type="button" class="small" (click)="approve(row)">Approve</button>
+                <button type="button" class="small danger" (click)="reject(row)">Reject</button>
+              }
+              <button type="button" class="small secondary" (click)="removeRow(row)">Delete</button>
+            </div>
+          </div>
+        </div>
+      }
+      </div>
+    </div>
+  </div>
+</div>

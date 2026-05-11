@@ -1,0 +1,63 @@
+<div class="wrap">
+  <nav class="nav tc-topbar">
+    <strong>Admin</strong>
+    <a routerLink="/admin/dashboard">Dashboard</a>
+    <a routerLink="/admin/tourist-spots">Tourist spots</a>
+    <a routerLink="/admin/tourist-spots/editor">New spot</a>
+    <button type="button" class="secondary" style="margin-left: auto" (click)="logout()">Logout</button>
+  </nav>
+  <div class="card">
+    <h1>Tourist spots</h1>
+    <div class="row">
+      <button type="button" class="small secondary" (click)="refresh()">Refresh</button>
+      <a class="btn small" routerLink="/admin/tourist-spots/editor">New</a>
+      <button type="button" class="small secondary" (click)="bulkSync()" [disabled]="bulkRunning">
+        TEMP bulk Places sync
+      </button>
+    </div>
+    <label>Search <input type="text" [(ngModel)]="search" name="search" autocomplete="off" /></label>
+    @if (bulkRunning) {
+      <p class="muted">Bulk sync running…</p>
+    }
+    @if (listError) {
+      <p class="error" style="padding: 0.75rem">{{ listError }}</p>
+    }
+    <div class="list" style="margin-top: 0.75rem">
+      @for (s of filteredSpots(); track s.id) {
+        <div class="list-item">
+          <div style="flex: 1">
+            <strong>{{ s.name || '' }}</strong> <span class="muted">{{ s.category || '' }}</span>
+          </div>
+          <div class="row">
+            <button type="button" class="small secondary" (click)="openDetail(s)">Detail</button>
+            <button type="button" class="small" (click)="editSpot(s)">Edit</button>
+            <button type="button" class="small danger" (click)="deleteSpot(s)">Delete</button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="modal-back" [class.on]="detailSpot" (click)="closeModal()">
+  @if (detailSpot) {
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2 style="margin-top: 0">{{ detailSpot.name || '' }}</h2>
+      <div class="row" style="gap: 1rem; align-items: flex-start">
+        @if (detailSpot.img) {
+          <img [src]="detailSpot.img" alt="" style="max-width: 180px; border-radius: 8px" />
+        }
+        <div>
+          <p class="muted">{{ detailSpot.description }}</p>
+          <p class="muted">{{ detailSpot.category }} · {{ detailSpot.exposure }} · {{ detailSpot.googlePlaceId }}</p>
+        </div>
+      </div>
+      <div class="map-box sm" id="mmap"></div>
+      <div class="row">
+        <button type="button" (click)="editSpot(detailSpot)">Edit</button>
+        <button type="button" class="danger" (click)="deleteSpot(detailSpot); closeModal()">Delete</button>
+        <button type="button" class="secondary" (click)="closeModal()">Close</button>
+      </div>
+    </div>
+  }
+</div>

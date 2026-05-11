@@ -1,0 +1,103 @@
+<div class="wrap">
+  <nav class="nav tc-topbar">
+    <strong>Admin</strong>
+    <a routerLink="/admin/dashboard">Dashboard</a>
+    <a routerLink="/admin/events">Events</a>
+    <a routerLink="/admin/events/editor">New</a>
+    <button type="button" class="secondary" style="margin-left: auto" (click)="logout()">Logout</button>
+  </nav>
+  <div class="card">
+    <h1>Events</h1>
+    <div class="tabs">
+      <button type="button" class="small secondary" [class.on]="tab === 'list'" [disabled]="tabPanelLoading" (click)="setTab('list')">
+        List
+      </button>
+      <button type="button" class="small secondary" [class.on]="tab === 'cal'" [disabled]="tabPanelLoading" (click)="setTab('cal')">
+        Calendar
+      </button>
+    </div>
+    <div class="tc-tab-loading-wrap">
+      @if (tabPanelLoading) {
+        <div class="tc-tab-loading-overlay" aria-busy="true" role="status">
+          <div class="tc-tab-spinner" aria-hidden="true"></div>
+          <span class="tc-tab-loading-label">Loading…</span>
+          <span class="tc-visually-hidden">Loading view</span>
+        </div>
+      }
+      @if (tab === 'list') {
+      <div id="plist">
+        <label>Search <input type="text" [(ngModel)]="search" (ngModelChange)="page = 0" name="search" autocomplete="off" /></label>
+        <div class="list" style="margin-top: 0.75rem">
+          @for (e of listSlice(); track e.id) {
+            <div class="list-item">
+              <div style="flex: 1">
+                <strong>{{ e.name || '' }}</strong>
+                <div class="muted">
+                  {{ e.date || '' }} {{ e.time || '' }} – {{ e.endTime || '' }}
+                </div>
+              </div>
+              <button type="button" class="small secondary" (click)="openM(e)">Open</button>
+              <button type="button" class="small danger" (click)="del(e)">Del</button>
+            </div>
+          }
+        </div>
+        <div class="row">
+          <button type="button" class="small secondary" (click)="prevPage()">Previous</button>
+          <span class="muted">{{ pageLabel() }}</span>
+          <button type="button" class="small secondary" (click)="nextPage()">Next</button>
+        </div>
+      </div>
+    } @else {
+      <div id="pcal">
+        <div class="row">
+          <button type="button" class="small secondary" (click)="prevMonth()">Prev</button>
+          <strong>{{ calTitle() }}</strong>
+          <button type="button" class="small secondary" (click)="nextMonth()">Next</button>
+        </div>
+        <div
+          style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 0.75rem; font-size: 0.8rem"
+        >
+          @for (h of ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']; track h) {
+            <div class="muted">{{ h }}</div>
+          }
+          @for (c of calGrid(); track $index) {
+            @if (c.day === 0) {
+              <div></div>
+            } @else {
+              <button
+                type="button"
+                class="small secondary"
+                style="min-height: 52px; width: 100%"
+                (click)="openCalDay(c.iso)"
+              >
+                <div>{{ c.day }}</div>
+                @if (c.count) {
+                  <div class="muted" style="font-size: 0.7rem">{{ c.count }}</div>
+                }
+              </button>
+            }
+          }
+        </div>
+      </div>
+    }
+    </div>
+  </div>
+</div>
+
+<div class="modal-back" [class.on]="modalEv" (click)="closeModal()">
+  @if (modalEv) {
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2 style="margin-top: 0">{{ modalEv.name || '' }}</h2>
+      <p class="muted">
+        {{ modalEv.date || '' }} {{ modalEv.time || '' }} – {{ modalEv.endTime || '' }}
+      </p>
+      <div class="row">
+        <button type="button" routerLink="/admin/events/editor" [queryParams]="{ id: modalEv.id }" (click)="closeModal()">
+          Edit
+        </button>
+        <button type="button" class="danger" (click)="del(modalEv)">Delete</button>
+        <button type="button" class="secondary" (click)="closeModal()">Close</button>
+      </div>
+    </div>
+  }
+</div>

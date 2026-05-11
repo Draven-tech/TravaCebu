@@ -1,0 +1,61 @@
+<div class="wrap">
+  <nav class="tc-topbar">
+    <strong>TravaCebu Admin Menu</strong>
+    <span style="flex: 1; min-width: 0.5rem"></span>
+    <span class="tc-avatar" title="Admin" aria-hidden="true">A</span>
+    <button type="button" class="secondary" (click)="logout()">Logout</button>
+  </nav>
+
+  <p class="muted" style="margin: 0.25rem 0 0">{{ whoLabel }}</p>
+
+  <h2 class="tc-section-title">Tourist spots</h2>
+  <div class="grid-dash">
+    <a class="tc-nav-card" routerLink="/admin/tourist-spots/editor">
+      <strong>Add tourist spot</strong>
+      <span class="muted">Create new locations</span>
+    </a>
+    <a class="tc-nav-card" routerLink="/admin/tourist-spots">
+      <strong>Manage spots</strong>
+      <span class="muted">List, bulk sync, edit</span>
+    </a>
+    <a class="tc-nav-card" routerLink="/admin/moderation/pending-spots">
+      <strong>Pending spots</strong>
+      <span class="muted">Review submissions</span>
+    </a>
+    <a class="tc-nav-card" routerLink="/admin/moderation/pending-tips">
+      <strong>Pending local tips</strong>
+      <span class="muted">Review tips</span>
+    </a>
+  </div>
+
+  <h2 class="tc-section-title">Events</h2>
+  <div class="grid-dash">
+    <a class="tc-nav-card" routerLink="/admin/events/editor">
+      <strong>Add event</strong>
+      <span class="muted">Schedule events linked to spots</span>
+    </a>
+    <a class="tc-nav-card" routerLink="/admin/events">
+      <strong>Manage events</strong>
+      <span class="muted">List and calendar</span>
+    </a>
+  </div>
+
+  <div class="tc-api-card">
+    <div class="tc-api-card-header">API usage tracker</div>
+    <div class="tc-api-card-body">
+      @if (apiLoading) {
+        <p class="muted" id="api-st">Loading…</p>
+      } @else if (apiError) {
+        <p class="muted">{{ apiError }}</p>
+      } @else {
+        <p><span class="stat">{{ apiTotal }}</span> <span class="muted">total calls</span></p>
+        <p><span class="stat">{{ apiToday }}</span> <span class="muted">today (UTC)</span></p>
+        <ul style="margin: 0.75rem 0 0; padding-left: 1.25rem; color: var(--tc-text)">
+          @for (line of apiByLines; track line) {
+            <li [class.muted]="line === 'No API usage logged yet.'">{{ line }}</li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+</div>

@@ -1,0 +1,42 @@
+<div class="wrap">
+  <nav class="nav tc-topbar">
+    <strong>Editor</strong>
+    <a routerLink="/admin/tourist-spots">Spots</a>
+    <a routerLink="/admin/dashboard">Dashboard</a>
+    <button type="button" class="secondary" style="margin-left: auto" (click)="logout()">Logout</button>
+  </nav>
+  <div class="card">
+    <h1>Tourist spot editor</h1>
+    <div class="row">
+      <a class="btn small secondary" routerLink="/admin/tourist-spots">Back</a>
+      <button type="button" class="small" (click)="searchPlaces()">Search Google Places</button>
+      <button type="button" class="small" (click)="save()">Save</button>
+    </div>
+    <div class="row" style="margin-top: 0.75rem">
+      <label
+        >Tile
+        <select [(ngModel)]="tile" name="tile" (change)="onTileChange()">
+          <option value="esri">Esri</option>
+          <option value="osm">OSM</option>
+        </select>
+      </label>
+      <label>Name <input type="text" [(ngModel)]="name" name="name" autocomplete="off" /></label>
+      <label>Category <input type="text" [(ngModel)]="category" name="category" placeholder="attraction" /></label>
+      <label
+        >Exposure
+        <select [(ngModel)]="exposure" name="exposure">
+          <option value="">(auto from types)</option>
+          <option value="indoor">indoor</option>
+          <option value="mixed">mixed</option>
+          <option value="outdoor">outdoor</option>
+        </select>
+      </label>
+    </div>
+    <label>Description <textarea [(ngModel)]="desc" name="desc"></textarea></label>
+    <label>Image file <input type="file" accept="image/*" (change)="onFile($event)" /></label>
+    @if (previewUrl) {
+      <img [src]="previewUrl" alt="" style="max-width: 280px; border-radius: 8px" />
+    }
+    <div class="map-box" id="map"></div>
+  </div>
+</div>

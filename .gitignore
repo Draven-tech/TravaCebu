@@ -1,8 +1,44 @@
-# Local secrets — copy from assets/js/firebase-config.example.js
-assets/js/firebase-config.js
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# Compiled output
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# Node
+/node_modules
+npm-debug.log
+yarn-error.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# Miscellaneous
+/.angular/cache
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+
+# Optional: if you keep production keys out of git, ignore a copy and use CI injection.
+# src/environments/environment.secret.ts
 
 .DS_Store
 Thumbs.db
-.idea/
-.vscode/
-*.log

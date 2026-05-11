@@ -249,6 +249,7 @@ export class CreatePostModalComponent {
       await loading.dismiss();
       await this.modalCtrl.dismiss({ success: true });
       
+      //////////////////////////////////////// badge caller ////////////////////////////////////////
       // Evaluate badges if post contains an image
       if (imageUrl && imageUrl !== this.imagePreview) {
         try {
@@ -276,6 +277,7 @@ export class CreatePostModalComponent {
       } catch (error) {
         console.error('Error evaluating social butterfly badge:', error);
       }
+      ///////////////////////////////////////////////////////
 
       this.showAlert('Success', this.isEditing ? 'Post updated successfully!' : 'Post created successfully!');
 

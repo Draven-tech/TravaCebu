@@ -13,8 +13,10 @@ import { EditProfileModalComponent } from '../modals/edit-profile-modal/edit-pro
 import { MenuController } from '@ionic/angular';
 import { CreatePostModalComponent } from '../modals/create-post-modal/create-post-modal.component';
 import { CommentsModalComponent } from '../modals/comments-modal/comments-modal.component';
+//////////////////////////////////////// badge caller ////////////////////////////////////////
 import { BadgeService, Badge } from '../services/badge.service';
 import { BadgeDetailModalComponent } from '../modals/badge-detail-modal/badge-detail-modal.component';
+/////////////////////////////////////////////////////
 import { ItineraryPlannerService } from '../services/itinerary-planner.service';
 interface Post {
   id?: string;
@@ -80,9 +82,11 @@ export class UserProfilePage implements OnInit, OnDestroy {
   /** Stops double-taps from running two copies at once (which caused a false "could not copy" alert). */
   copyingSharedItinerary = false;
 
+  //////////////////////////////////////// badge caller ////////////////////////////////////////
   userBadges: Badge[] = [];
   loadingBadges = false;
   badgesSubscriptionInitialized = false;
+  ///////////////////////////////////////////////////////
   private userDocSubscription: Subscription | null = null;
 
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
@@ -98,7 +102,9 @@ export class UserProfilePage implements OnInit, OnDestroy {
     private actionSheetCtrl: ActionSheetController,
     private modalCtrl: ModalController,
     private menuCtrl: MenuController,
+    //////////////////////////////////////// badge caller ////////////////////////////////////////
     private badgeService: BadgeService,
+    ///////////////////////////////////////////////////////
     private loadingCtrl: LoadingController,
     private itineraryPlannerService: ItineraryPlannerService
   ) {}
@@ -124,11 +130,13 @@ export class UserProfilePage implements OnInit, OnDestroy {
         if (me?.uid !== this.userId) {
           return;
         }
+        //////////////////////////////////////// badge caller ////////////////////////////////////////
         try {
           await this.badgeService.evaluateAllBadges(this.userId, data);
         } catch (e) {
           console.error('Badge evaluation on user doc change failed:', e);
         }
+        ///////////////////////////////////////////////////////
       });
 
     this.menuCtrl.enable(true, 'main-menu');
@@ -166,6 +174,7 @@ export class UserProfilePage implements OnInit, OnDestroy {
     }
   }
 
+  //////////////////////////////////////// badge caller ////////////////////////////////////////
   async loadBadges() {
     if (!this.userId || this.badgesSubscriptionInitialized) return;
     
@@ -182,6 +191,7 @@ export class UserProfilePage implements OnInit, OnDestroy {
       this.loadingBadges = false;
     }
   }
+  ///////////////////////////////////////////////////////
 
   async processPosts(posts: any[]): Promise<Post[]> {
     const currentUser = await this.afAuth.currentUser;
@@ -251,6 +261,7 @@ export class UserProfilePage implements OnInit, OnDestroy {
     }
     
     if (post.userId !== currentUserId) {
+      //////////////////////////////////////// badge caller ////////////////////////////////////////
       try {
         const postOwnerDoc = await this.firestore.collection('users').doc(post.userId).get().toPromise();
         const postOwnerData = postOwnerDoc?.data();
@@ -261,6 +272,7 @@ export class UserProfilePage implements OnInit, OnDestroy {
       } catch (error) {
         console.error('Error evaluating social butterfly badge for post owner:', error);
       }
+      ///////////////////////////////////////////////////////
     }
   }
 
@@ -470,8 +482,10 @@ async viewProfilePicture() {
         .get()
         .toPromise();
       this.userData = { ...this.userData, ...(fresh?.data() as object) };
+      //////////////////////////////////////// badge caller ////////////////////////////////////////
       await this.badgeService.evaluateAllBadges(this.userId, this.userData);
       this.refreshBadges();
+      ///////////////////////////////////////////////////////
     }
   }
 }
@@ -492,8 +506,10 @@ async viewProfilePicture() {
     await this.firestore.collection('users').doc(uid).update({ photoURL: url });
     this.userData.photoURL = url;
 
+    //////////////////////////////////////// badge caller ////////////////////////////////////////
     await this.badgeService.evaluateAllBadges(uid, this.userData);
     this.refreshBadges();
+    ///////////////////////////////////////////////////////
 
     this.showAlert('Success', 'Profile picture updated!');
   } catch (err) {
@@ -542,6 +558,7 @@ async viewProfilePicture() {
     this.navCtrl.navigateForward('/user-profile/my-submissions');
   }
 
+  //////////////////////////////////////// badge caller ////////////////////////////////////////
   getBadgeIcon(badge: Badge): string {
     if (!badge.isUnlocked) {
       return badge.lockedIcon;
@@ -599,14 +616,6 @@ async viewProfilePicture() {
     }
   }
 
-  async evaluateBadges() {
-    if (!this.userId || !this.userData) return;
-    
-    await this.badgeService.evaluateAllBadges(this.userId, this.userData);
-    
-    this.refreshBadges();
-  }
-
   async openBadgeDetail(badge: Badge) {
     const modal = await this.modalCtrl.create({
       component: BadgeDetailModalComponent,
@@ -621,6 +630,17 @@ async viewProfilePicture() {
 
     await modal.present();
   }
+  ///////////////////////////////////////////////////////
+
+  //////////////////////////////////////// badge caller ////////////////////////////////////////
+  async evaluateBadges() {
+    if (!this.userId || !this.userData) return;
+    
+    await this.badgeService.evaluateAllBadges(this.userId, this.userData);
+    
+    this.refreshBadges();
+  }
+  ///////////////////////////////////////////////////////
 
   formatDate(dateString: string): string {
     if (!dateString) return '';
@@ -718,7 +738,10 @@ async viewProfilePicture() {
         }
       }
 
+      //////////////////////////////////////// badge caller ////////////////////////////////////////
+      // Itinerary planner master (and other badges): ItineraryPlannerService.setPlannerSpots → triggerBadgeEvaluation → evaluateAllBadges.
       await this.itineraryPlannerService.setPlannerSpots(stored);
+      ///////////////////////////////////////////////////////
 
       if (addedCount > 0) {
         let message = `Added ${addedCount} place(s) to your itinerary planner. Open Itinerary Planner to see them.`;

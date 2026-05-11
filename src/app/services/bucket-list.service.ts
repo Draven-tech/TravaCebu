@@ -137,7 +137,8 @@ export class BucketService {
     return bucket.length;
   }
 
-  // Trigger badge evaluation after bucket list changes
+  //////////////////////////////////////// badge caller ////////////////////////////////////////
+  /** After bucket list mutations: reload user doc and run all badge evaluators. */
   private async triggerBadgeEvaluation(userId: string): Promise<void> {
     try {
       // Get current user data
@@ -152,4 +153,5 @@ export class BucketService {
       console.error('Error triggering badge evaluation:', error);
     }
   }
+  ///////////////////////////////////////////////////////
 }

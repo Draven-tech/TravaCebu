@@ -379,9 +379,11 @@ export class GeofencingService {
       const updatedUserSnapshot = await userDocRef.get().toPromise();
       const updatedUserData = updatedUserSnapshot?.data();
 
+      //////////////////////////////////////// badge caller ////////////////////////////////////////
       if (updatedUserData) {
         await this.badgeService.evaluateExplorerBadge(userId, updatedUserData);
       }
+      ///////////////////////////////////////////////////////
     } catch (error) {
       console.error('Failed to persist visit to Firestore:', error);
     }

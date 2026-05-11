@@ -12,6 +12,9 @@ import { environment } from '../../environments/environment';
 import { ItineraryControlsModalComponent } from '../modals/itinerary-controls-modal/itinerary-controls-modal.component';
 import { ItineraryCompletionModalComponent } from '../modals/itinerary-completion-modal/itinerary-completion-modal.component';
 import { LocalTipsModalComponent } from '../modals/local-tips-modal/local-tips-modal.component';
+//////////////////////////////////////// badge caller ////////////////////////////////////////
+// Explorer badge: GeofencingService persists visits to users/{uid}/visitedSpots and calls BadgeService.evaluateExplorerBadge (this page uses GeofencingService, not BadgeService).
+/////////////////////////////////////////////////////
 import { GeofencingService } from '../services/geofencing.service';
 import { firstValueFrom, Subscription } from 'rxjs';
 
@@ -23,7 +26,6 @@ import { ApiTrackerService } from '../services/api-tracker.service';
 import { ItineraryService, ItineraryDay } from '../services/itinerary.service';
 import { CalendarService, CalendarEvent, GlobalEvent } from '../services/calendar.service';
 import { EventDetailModalComponent } from '../modals/event-detail-modal/event-detail-modal.component';
-import { BadgeService } from '../services/badge.service';
 import { BudgetService } from '../services/budget.service';
 
 import { MapManagementService } from '../services/map-management.service';
@@ -177,7 +179,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private apiTracker: ApiTrackerService,
     private itineraryService: ItineraryService,
     private calendarService: CalendarService,
-    private badgeService: BadgeService,
     private budgetService: BudgetService,
     private mapManagement: MapManagementService,
     private routePlanning: RoutePlanningService,

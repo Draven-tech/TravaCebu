@@ -81,6 +81,7 @@ export class CommentsModalComponent {
         comments: updatedComments
       });
       
+      //////////////////////////////////////// badge caller ////////////////////////////////////////
       // Evaluate social butterfly badge for the commenter
       try {
         if (profile) {
@@ -89,6 +90,7 @@ export class CommentsModalComponent {
       } catch (error) {
         console.error('Error evaluating social butterfly badge:', error);
       }
+      ///////////////////////////////////////////////////////
       
       this.newComment = '';
       this.showAlert('Success', 'Comment added successfully!');

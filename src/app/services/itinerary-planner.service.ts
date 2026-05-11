@@ -276,6 +276,8 @@ export class ItineraryPlannerService {
     return itineraries.length;
   }
 
+  //////////////////////////////////////// badge caller ////////////////////////////////////////
+  /** Refreshes user doc then runs all badge evaluators (includes itinerary planner master from plannerDraftSpots). */
   private async triggerBadgeEvaluation(userId: string): Promise<void> {
     try {
       const userDoc = await this.firestore
@@ -294,6 +296,8 @@ export class ItineraryPlannerService {
       console.error('Error triggering badge evaluation:', error);
     }
   }
+  ///////////////////////////////////////////////////////
+  
     async clearItinerary(): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) {

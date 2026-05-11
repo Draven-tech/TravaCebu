@@ -4,6 +4,8 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 
+///////////////////////////////////////////////////// global ///////////////////////////////////////////////////
+
 export interface TierHistoryRow {
   tier: 'bronze' | 'silver' | 'gold' | 'profile_complete';
   at: Date;
@@ -77,6 +79,8 @@ export function isMetalTierBadgeId(badgeId: string): boolean {
   providedIn: 'root'
 })
 export class BadgeService {
+  ///////////////////////////////////////////////////// badge service — definitions & constructor /////////////////////////////////////////////////////
+
   private readonly BADGE_DEFINITIONS = {
     profile_complete: {
       id: 'profile_complete',
@@ -126,6 +130,8 @@ export class BadgeService {
     private afAuth: AngularFireAuth
   ) {}
 
+  ///////////////////////////////////////////////////// shared — read APIs /////////////////////////////////////////////////////
+
   getUserBadges(userId: string): Observable<Badge[]> {
     return this.getUserBadgeProgress(userId).pipe(
       map(progress => {
@@ -150,6 +156,71 @@ export class BadgeService {
       })
     );
   }
+
+  /**
+   * Get user's badge progress from Firestore
+   */
+  getUserBadgeProgress(userId: string): Observable<UserBadgeProgress> {
+    const defaultBadges: UserBadgeProgress = {
+      profile_complete: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
+      },
+      itinerary_planner: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
+      },
+      photo_enthusiast: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
+      },
+      social_butterfly: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
+      },
+      explorer: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
+      }
+    };
+
+    return this.firestore.collection('users').doc(userId).valueChanges().pipe(
+      map((userData: any) => {
+        const raw = userData?.badges;
+        if (!raw) {
+          return defaultBadges;
+        }
+        return {
+          profile_complete: { ...defaultBadges.profile_complete, ...raw.profile_complete },
+          itinerary_planner: { ...defaultBadges.itinerary_planner, ...raw.itinerary_planner },
+          photo_enthusiast: { ...defaultBadges.photo_enthusiast, ...raw.photo_enthusiast },
+          social_butterfly: { ...defaultBadges.social_butterfly, ...raw.social_butterfly },
+          explorer: { ...defaultBadges.explorer, ...raw.explorer }
+        };
+      })
+    );
+  }
+
+  /**
+   * Get current user's badges
+   */
+  getCurrentUserBadges(): Observable<Badge[]> {
+    return this.afAuth.user.pipe(
+      switchMap(user => {
+        if (user) {
+          return this.getUserBadges(user.uid);
+        }
+        return of([]);
+      })
+    );
+  }
+
+  ///////////////////////////////////////////////////// shared — metal tier & display helpers /////////////////////////////////////////////////////
 
   private tierRank(tier: string): number {
     const m: Record<string, number> = { locked: 0, bronze: 1, silver: 2, gold: 3 };
@@ -333,54 +404,92 @@ export class BadgeService {
     return new Date();
   }
 
-  /**
-   * Get user's badge progress from Firestore
-   */
-  getUserBadgeProgress(userId: string): Observable<UserBadgeProgress> {
-    const defaultBadges: UserBadgeProgress = {
-      profile_complete: {
-        tier: 'locked',
-        progress: 0,
-        unlocked: false
-      },
-      itinerary_planner: {
-        tier: 'locked',
-        progress: 0,
-        unlocked: false
-      },
-      photo_enthusiast: {
-        tier: 'locked',
-        progress: 0,
-        unlocked: false
-      },
-      social_butterfly: {
-        tier: 'locked',
-        progress: 0,
-        unlocked: false
-      },
-      explorer: {
-        tier: 'locked',
-        progress: 0,
-        unlocked: false
-      }
-    };
+  ///////////////////////////////////////////////////// shared — Firestore persistence /////////////////////////////////////////////////////
 
-    return this.firestore.collection('users').doc(userId).valueChanges().pipe(
-      map((userData: any) => {
-        const raw = userData?.badges;
-        if (!raw) {
-          return defaultBadges;
-        }
-        return {
-          profile_complete: { ...defaultBadges.profile_complete, ...raw.profile_complete },
-          itinerary_planner: { ...defaultBadges.itinerary_planner, ...raw.itinerary_planner },
-          photo_enthusiast: { ...defaultBadges.photo_enthusiast, ...raw.photo_enthusiast },
-          social_butterfly: { ...defaultBadges.social_butterfly, ...raw.social_butterfly },
-          explorer: { ...defaultBadges.explorer, ...raw.explorer }
-        };
-      })
-    );
+  /**
+   * Firestore does not allow `undefined` in field values; strip before write.
+   */
+  private deepOmitUndefined<T>(value: T): T {
+    if (value === undefined) {
+      return value as T;
+    }
+    if (value === null) {
+      return value;
+    }
+    if (value instanceof Date) {
+      return value;
+    }
+    if (typeof value !== 'object') {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => this.deepOmitUndefined(item))
+        .filter((item) => item !== undefined) as T;
+    }
+    if (typeof (value as any).toDate === 'function') {
+      return value;
+    }
+    const out: Record<string, any> = {};
+    for (const k of Object.keys(value as object)) {
+      const v = this.deepOmitUndefined((value as any)[k]);
+      if (v !== undefined) {
+        out[k] = v;
+      }
+    }
+    return out as T;
   }
+
+  /**
+   * Update user's badge progress in Firestore
+   */
+  private async updateUserBadge(userId: string, badgeId: string, progress: any): Promise<void> {
+    const userRef = this.firestore.collection('users').doc(userId);
+    const cleaned = this.deepOmitUndefined(progress) as any;
+
+    try {
+      await userRef.update({
+        [`badges.${badgeId}`]: cleaned
+      });
+    } catch (e: any) {
+      const msg = typeof e?.message === 'string' ? e.message : '';
+      const isMissingDoc =
+        e?.code === 'not-found' || msg.includes('No document to update') || msg.includes('NOT_FOUND');
+      if (isMissingDoc) {
+        await userRef.set(
+          { badges: { [badgeId]: cleaned } } as any,
+          { merge: true }
+        );
+        return;
+      }
+      console.error(`[BadgeService] updateUserBadge failed for ${badgeId}:`, e);
+      throw e;
+    }
+  }
+
+  ///////////////////////////////////////////////////// orchestration — evaluate all /////////////////////////////////////////////////////
+
+  /**
+   * Evaluate all badges for current user
+   */
+  async evaluateAllBadges(userId: string, userData: any): Promise<void> {
+    const steps: Array<() => Promise<void>> = [
+      () => this.evaluateProfileCompletionBadge(userId, userData),
+      () => this.evaluateItineraryPlannerBadge(userId, userData),
+      () => this.evaluatePhotoEnthusiastBadge(userId, userData),
+      () => this.evaluateSocialButterflyBadge(userId, userData),
+      () => this.evaluateExplorerBadge(userId, userData)
+    ];
+    for (const run of steps) {
+      try {
+        await run();
+      } catch (e) {
+        console.error('[BadgeService] evaluateAllBadges step failed:', e);
+      }
+    }
+  }
+
+  ///////////////////////////////////////////////////// profile complete /////////////////////////////////////////////////////
 
   /**
    * Evaluate and update user's profile completion badge
@@ -468,100 +577,7 @@ export class BadgeService {
     return Math.round((completedFields / totalFields) * 100);
   }
 
-  /**
-   * Firestore does not allow `undefined` in field values; strip before write.
-   */
-  private deepOmitUndefined<T>(value: T): T {
-    if (value === undefined) {
-      return value as T;
-    }
-    if (value === null) {
-      return value;
-    }
-    if (value instanceof Date) {
-      return value;
-    }
-    if (typeof value !== 'object') {
-      return value;
-    }
-    if (Array.isArray(value)) {
-      return value
-        .map((item) => this.deepOmitUndefined(item))
-        .filter((item) => item !== undefined) as T;
-    }
-    if (typeof (value as any).toDate === 'function') {
-      return value;
-    }
-    const out: Record<string, any> = {};
-    for (const k of Object.keys(value as object)) {
-      const v = this.deepOmitUndefined((value as any)[k]);
-      if (v !== undefined) {
-        out[k] = v;
-      }
-    }
-    return out as T;
-  }
-
-  /**
-   * Update user's badge progress in Firestore
-   */
-  private async updateUserBadge(userId: string, badgeId: string, progress: any): Promise<void> {
-    const userRef = this.firestore.collection('users').doc(userId);
-    const cleaned = this.deepOmitUndefined(progress) as any;
-
-    try {
-      await userRef.update({
-        [`badges.${badgeId}`]: cleaned
-      });
-    } catch (e: any) {
-      const msg = typeof e?.message === 'string' ? e.message : '';
-      const isMissingDoc =
-        e?.code === 'not-found' || msg.includes('No document to update') || msg.includes('NOT_FOUND');
-      if (isMissingDoc) {
-        await userRef.set(
-          { badges: { [badgeId]: cleaned } } as any,
-          { merge: true }
-        );
-        return;
-      }
-      console.error(`[BadgeService] updateUserBadge failed for ${badgeId}:`, e);
-      throw e;
-    }
-  }
-
-  /**
-   * Get current user's badges
-   */
-  getCurrentUserBadges(): Observable<Badge[]> {
-    return this.afAuth.user.pipe(
-      switchMap(user => {
-        if (user) {
-          return this.getUserBadges(user.uid);
-        }
-        return of([]);
-      })
-    );
-  }
-
-  /**
-   * Evaluate all badges for current user
-   */
-  async evaluateAllBadges(userId: string, userData: any): Promise<void> {
-    const steps: Array<() => Promise<void>> = [
-      () => this.evaluateProfileCompletionBadge(userId, userData),
-      () => this.evaluateItineraryPlannerBadge(userId, userData),
-      () => this.evaluatePhotoEnthusiastBadge(userId, userData),
-      () => this.evaluateSocialButterflyBadge(userId, userData),
-      () => this.evaluateExplorerBadge(userId, userData)
-    ];
-    for (const run of steps) {
-      try {
-        await run();
-      } catch (e) {
-        console.error('[BadgeService] evaluateAllBadges step failed:', e);
-      }
-    }
-  }
+  ///////////////////////////////////////////////////// itinerary planner master /////////////////////////////////////////////////////
 
   /**
    * Evaluate and update user's itinerary planner badge (draft spots on user doc).
@@ -622,6 +638,8 @@ export class BadgeService {
     }
   }
 
+  ///////////////////////////////////////////////////// photo enthusiast /////////////////////////////////////////////////////
+
   /**
    * Evaluate and update user's photo enthusiast badge
    */
@@ -675,6 +693,8 @@ export class BadgeService {
       );
     }
   }
+
+  ///////////////////////////////////////////////////// social butterfly /////////////////////////////////////////////////////
 
   /**
    * Evaluate and update user's social butterfly badge
@@ -758,6 +778,8 @@ export class BadgeService {
       );
     }
   }
+
+  ///////////////////////////////////////////////////// explorer /////////////////////////////////////////////////////
 
   /**
    * Evaluate and update user's explorer badge based on location visits

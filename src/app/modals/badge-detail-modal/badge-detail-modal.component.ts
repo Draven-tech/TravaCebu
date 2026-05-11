@@ -3,6 +3,9 @@ import { ModalController, IonicModule } from '@ionic/angular';
 import { Badge, isMetalTierBadgeId, TierHistoryRow } from '../../services/badge.service';
 import { CommonModule } from '@angular/common';
 
+//////////////////////////////////////// badge caller ////////////////////////////////////////
+// Presentation only: types from badge.service; tier icons / history UI (no evaluate / Firestore here).
+
 @Component({
   selector: 'app-badge-detail-modal',
   templateUrl: './badge-detail-modal.component.html',
@@ -147,3 +150,4 @@ export class BadgeDetailModalComponent {
     });
   }
 }
+/////////////////////////////////////////////////////

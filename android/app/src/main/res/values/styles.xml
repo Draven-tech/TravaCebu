@@ -17,6 +17,10 @@
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <!-- Android 12+ splash background color -->
+        <item name="windowSplashScreenBackground">#6ae9ff</item>
+        <!-- Legacy launch background fallback -->
+        <item name="android:windowBackground">#6ae9ff</item>
+        <item name="android:background">#6ae9ff</item>
     </style>
 </resources>

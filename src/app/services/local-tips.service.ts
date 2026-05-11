@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { map, Observable } from 'rxjs';
+import { BadgeService } from './badge.service';
 
 export type LocalTipStatus = 'pending' | 'approved' | 'rejected';
 
@@ -39,7 +40,8 @@ export class LocalTipsService {
 
   constructor(
     private firestore: AngularFirestore,
-    private afAuth: AngularFireAuth
+    private afAuth: AngularFireAuth,
+    private badgeService: BadgeService
   ) {}
 
   getApprovedTipsForSpot(spotId: string): Observable<ApprovedLocalTip[]> {
@@ -93,6 +95,14 @@ export class LocalTipsService {
     };
 
     await this.firestore.collection('pending_local_tips').add(pendingTip);
+
+    try {
+      const userDoc = await this.firestore.collection('users').doc(user.uid).get().toPromise();
+      const userData = userDoc?.data() as any;
+      await this.badgeService.evaluateLocalExpertBadge(user.uid, userData);
+    } catch (error) {
+      console.error('[LocalTipsService] evaluateLocalExpertBadge failed:', error);
+    }
   }
 
   async approveTip(tipId: string, reviewNotes?: string): Promise<void> {

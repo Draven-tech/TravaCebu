@@ -74,9 +74,16 @@ export interface UserBadgeProgress {
     achievedAt?: Date;
     tierAchievedAt?: TierAchievedAtStored;
   };
+  local_expert: {
+    tier: 'bronze' | 'silver' | 'gold' | 'locked';
+    progress: number;
+    unlocked: boolean;
+    achievedAt?: Date;
+    tierAchievedAt?: TierAchievedAtStored;
+  };
 }
 
-const METAL_TIER_BADGE_ID_LIST = ['itinerary_planner', 'photo_enthusiast', 'social_butterfly', 'explorer', 'consistency'] as const;
+const METAL_TIER_BADGE_ID_LIST = ['itinerary_planner', 'photo_enthusiast', 'social_butterfly', 'explorer', 'consistency', 'local_expert'] as const;
 
 export function isMetalTierBadgeId(badgeId: string): boolean {
   return (METAL_TIER_BADGE_ID_LIST as readonly string[]).includes(badgeId);
@@ -137,6 +144,14 @@ export class BadgeService {
       icon: 'assets/badges/bronzeConsistencyBadge.png',
       lockedIcon: 'assets/badges/lockedConsistencyBadge.png',
       maxProgress: 100
+    },
+    local_expert: {
+      id: 'local_expert',
+      title: 'Local Expert',
+      description: 'Suggest new spots and submit local tips. 1 suggestion + 1 tip for Bronze, 5 + 5 for Silver, 10 + 10 for Gold.',
+      icon: 'assets/badges/bronzeLocalExpertBadge.png',
+      lockedIcon: 'assets/badges/lockedLocalExpertBadge.png',
+      maxProgress: 10
     }
   };
 
@@ -206,6 +221,11 @@ export class BadgeService {
         tier: 'locked',
         progress: 0,
         unlocked: false
+      },
+      local_expert: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
       }
     };
 
@@ -221,7 +241,8 @@ export class BadgeService {
           photo_enthusiast: { ...defaultBadges.photo_enthusiast, ...raw.photo_enthusiast },
           social_butterfly: { ...defaultBadges.social_butterfly, ...raw.social_butterfly },
           explorer: { ...defaultBadges.explorer, ...raw.explorer },
-          consistency: { ...defaultBadges.consistency, ...raw.consistency }
+          consistency: { ...defaultBadges.consistency, ...raw.consistency },
+          local_expert: { ...defaultBadges.local_expert, ...raw.local_expert }
         };
       })
     );
@@ -409,6 +430,15 @@ export class BadgeService {
       }
     }
 
+    if (badgeId === 'local_expert') {
+      switch (tier) {
+        case 'bronze': return 'assets/badges/bronzeLocalExpertBadge.png';
+        case 'silver': return 'assets/badges/silverLocalExpertBadge.png';
+        case 'gold': return 'assets/badges/goldLocalExpertBadge.png';
+        default: return 'assets/badges/lockedLocalExpertBadge.png';
+      }
+    }
+
     return this.BADGE_DEFINITIONS[badgeId as keyof typeof this.BADGE_DEFINITIONS]?.icon || '';
   }
 
@@ -509,7 +539,8 @@ export class BadgeService {
       () => this.evaluatePhotoEnthusiastBadge(userId, userData),
       () => this.evaluateSocialButterflyBadge(userId, userData),
       () => this.evaluateExplorerBadge(userId, userData),
-      () => this.evaluateConsistencyBadge(userId, userData)
+      () => this.evaluateConsistencyBadge(userId, userData),
+      () => this.evaluateLocalExpertBadge(userId, userData)
     ];
     for (const run of steps) {
       try {
@@ -1048,6 +1079,85 @@ export class BadgeService {
       await this.updateUserBadge(
         userId,
         'consistency',
+        this.buildMetalTierBadgeState(
+          currentBadges,
+          baselineTier,
+          tier,
+          storedUnlocked,
+          unlocked,
+          progress
+        )
+      );
+    }
+  }
+
+  ///////////////////////////////////////////////////// local expert /////////////////////////////////////////////////////
+
+  /**
+   * Evaluate and update user's local expert badge.
+   * Counts submitted spot suggestions and submitted local tips (pending/approved/rejected).
+   * Progress uses the lower of the two counts so users must contribute in both actions.
+   */
+  async evaluateLocalExpertBadge(userId: string, userData: any): Promise<void> {
+    let suggestedSpotsCount = 0;
+    let submittedTipsCount = 0;
+
+    try {
+      const [spotsSnapshot, tipsSnapshot] = await Promise.all([
+        this.firestore
+          .collection('pending_tourist_spots', ref => ref.where('submittedBy', '==', userId))
+          .get()
+          .toPromise(),
+        this.firestore
+          .collection('pending_local_tips', ref => ref.where('submittedBy', '==', userId))
+          .get()
+          .toPromise()
+      ]);
+
+      suggestedSpotsCount = spotsSnapshot?.docs.length || 0;
+      submittedTipsCount = tipsSnapshot?.docs.length || 0;
+    } catch (error) {
+      console.error('Error getting local expert metrics:', error);
+      suggestedSpotsCount = 0;
+      submittedTipsCount = 0;
+    }
+
+    const progress = Math.min(suggestedSpotsCount, submittedTipsCount);
+
+    const currentBadges = userData?.badges?.local_expert;
+    const storedTier = currentBadges?.tier || 'locked';
+    const storedUnlocked = currentBadges?.unlocked || false;
+
+    const historyFloor = this.maxMetalTierFromTierAchievedAt(currentBadges?.tierAchievedAt);
+    let baselineTier: 'bronze' | 'silver' | 'gold' | 'locked' = storedTier;
+    if (this.tierRank(historyFloor) > this.tierRank(storedTier)) {
+      baselineTier = historyFloor;
+    }
+    const baselineUnlocked = this.tierRank(baselineTier) > 0 || storedUnlocked;
+
+    let tier: 'bronze' | 'silver' | 'gold' | 'locked' = baselineTier;
+    let unlocked = baselineUnlocked;
+
+    if (progress >= 10 && baselineTier !== 'gold') {
+      tier = 'gold';
+      unlocked = true;
+    } else if (progress >= 5 && baselineTier !== 'silver' && baselineTier !== 'gold') {
+      tier = 'silver';
+      unlocked = true;
+    } else if (progress >= 1 && baselineTier === 'locked') {
+      tier = 'bronze';
+      unlocked = true;
+    }
+
+    if (
+      !currentBadges ||
+      tier !== storedTier ||
+      progress !== currentBadges.progress ||
+      unlocked !== storedUnlocked
+    ) {
+      await this.updateUserBadge(
+        userId,
+        'local_expert',
         this.buildMetalTierBadgeState(
           currentBadges,
           baselineTier,

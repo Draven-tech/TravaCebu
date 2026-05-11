@@ -3,6 +3,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Observable } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
+import { BadgeService } from './badge.service';
 
 export interface PendingTouristSpot {
   id?: string;
@@ -33,7 +34,8 @@ export class PendingTouristSpotService {
 
   constructor(
     private firestore: AngularFirestore,
-    private afAuth: AngularFireAuth
+    private afAuth: AngularFireAuth,
+    private badgeService: BadgeService
   ) { }
 
   /**
@@ -55,6 +57,10 @@ export class PendingTouristSpotService {
       };
 
       await this.firestore.collection('pending_tourist_spots').add(pendingSpot);
+
+      const userDoc = await this.firestore.collection('users').doc(user.uid).get().toPromise();
+      const userData = userDoc?.data() as any;
+      await this.badgeService.evaluateLocalExpertBadge(user.uid, userData);
     } catch (error) {
       console.error('Error submitting tourist spot for approval:', error);
       throw error;

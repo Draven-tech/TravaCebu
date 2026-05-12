@@ -1,17 +1,18 @@
 <ion-header>
-  <ion-toolbar color="warning">
+  <ion-toolbar class="detail-toolbar">
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/user-dashboard"></ion-back-button>
+      <ion-back-button defaultHref="/user-dashboard" text=""></ion-back-button>
     </ion-buttons>
-    <ion-title>Tourist Spot Details</ion-title>
+    <ion-title>Spot details</ion-title>
     <ion-buttons slot="end">
-      <ion-button 
+      <ion-button
         (click)="refreshImages()"
         [disabled]="isRefreshingImages"
         fill="clear"
-        title="Refresh image from Google Places"
+        class="toolbar-refresh-btn"
+        aria-label="Refresh image from Google Places"
       >
-        <ion-icon 
+        <ion-icon
           [name]="isRefreshingImages ? 'refresh' : 'refresh-outline'"
           [class.spinning]="isRefreshingImages"
         ></ion-icon>
@@ -20,46 +21,41 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content *ngIf="spotData" class="spot-detail-content">
-  <!-- Header Image -->
+<ion-content *ngIf="spotData" class="spot-detail-content" [fullscreen]="true">
   <div class="spot-header-img">
-    <img 
-      [src]="spotData.img || 'assets/placeholder.jpg'" 
-      [alt]="spotData.name" 
+    <img
+      [src]="spotData.img || 'assets/img/default.png'"
+      [alt]="spotData.name"
     />
-    
-    <!-- Image Help Overlay -->
     <div class="image-help-overlay">
-      <ion-icon name="information-circle-outline" color="light"></ion-icon>
-      <p>Tap refresh button in header to update image</p>
+      <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+      <p>Use the refresh button above to update the photo from Google Places.</p>
     </div>
   </div>
 
-  <!-- Spot Info -->
-  <ion-card class="spot-info-card">
-    <ion-card-header>
-      <ion-card-title>{{ spotData.name }}</ion-card-title>
-      <ion-card-subtitle>{{ spotData.category }}</ion-card-subtitle>
+  <ion-card class="detail-card">
+    <ion-card-header class="detail-card-header">
+      <ion-card-title class="detail-spot-title">{{ spotData.name }}</ion-card-title>
+      <ion-card-subtitle class="detail-spot-category">{{ spotData.category }}</ion-card-subtitle>
     </ion-card-header>
     <ion-card-content>
       <p class="spot-description">{{ spotData.description }}</p>
-      
     </ion-card-content>
   </ion-card>
 
-  <ion-card class="spot-info-card">
-    <ion-card-header>
+  <ion-card class="detail-card">
+    <ion-card-header class="detail-card-header">
       <ion-card-title>Upcoming events</ion-card-title>
-      <ion-card-subtitle>Official events scheduled at this destination</ion-card-subtitle>
+      <ion-card-subtitle>Official events at this destination</ion-card-subtitle>
     </ion-card-header>
     <ion-card-content>
       <div *ngIf="spotEventsLoading" class="events-loading">
-        <ion-spinner name="crescent" color="warning"></ion-spinner>
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
       </div>
       <ng-container *ngIf="!spotEventsLoading">
-        <ion-list *ngIf="upcomingSpotEvents.length > 0; else noUpcomingEvents" lines="none">
-          <ion-item *ngFor="let ev of upcomingSpotEvents" lines="full">
-            <ion-icon name="calendar-outline" color="warning" slot="start"></ion-icon>
+        <ion-list *ngIf="upcomingSpotEvents.length > 0; else noUpcomingEvents" lines="none" class="detail-list">
+          <ion-item *ngFor="let ev of upcomingSpotEvents" lines="full" class="detail-list-item">
+            <ion-icon name="calendar-outline" class="detail-list-icon" slot="start" aria-hidden="true"></ion-icon>
             <ion-label>
               <h3>{{ ev.name }}</h3>
               <p>{{ formatSpotEventWhen(ev) }}</p>
@@ -67,155 +63,150 @@
           </ion-item>
         </ion-list>
         <ng-template #noUpcomingEvents>
-          <ion-text color="medium"><p>None</p></ion-text>
+          <p class="detail-muted">None scheduled.</p>
         </ng-template>
       </ng-container>
     </ion-card-content>
   </ion-card>
 
-  <ion-card class="spot-info-card">
-    <ion-card-header>
-      <ion-card-title>Local Tips</ion-card-title>
-      <ion-card-subtitle>Approved community tips for this destination</ion-card-subtitle>
+  <ion-card class="detail-card">
+    <ion-card-header class="detail-card-header">
+      <ion-card-title>Local tips</ion-card-title>
+      <ion-card-subtitle>Community tips for this place</ion-card-subtitle>
     </ion-card-header>
     <ion-card-content>
-      <ion-list *ngIf="localTips.length > 0; else noTipsTemplate">
-        <ion-item lines="none" *ngFor="let tip of localTips">
-          <ion-icon name="bulb-outline" color="warning" slot="start"></ion-icon>
+      <ion-list *ngIf="localTips.length > 0; else noTipsTemplate" lines="none" class="detail-list">
+        <ion-item lines="none" *ngFor="let tip of localTips" class="detail-list-item">
+          <ion-icon name="bulb-outline" class="detail-list-icon" slot="start" aria-hidden="true"></ion-icon>
           <ion-label>{{ tip.tipText }}</ion-label>
         </ion-item>
       </ion-list>
       <ng-template #noTipsTemplate>
-        <ion-text color="medium">
-          <p>No approved tips yet for this destination.</p>
-        </ion-text>
+        <p class="detail-muted">No approved tips yet for this destination.</p>
       </ng-template>
     </ion-card-content>
   </ion-card>
 
-  <!-- Visit Status Banner -->
   <div *ngIf="hasVisited()" class="visit-status-banner">
-    <ion-chip color="success" outline="true" class="visit-status-chip">
-      <ion-icon name="checkmark-circle"></ion-icon>
+    <ion-chip color="success" class="visit-status-chip" outline="true">
+      <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
       <ion-label>Visited</ion-label>
     </ion-chip>
     <p class="visit-status-message">Thanks for visiting! Share your experience below.</p>
   </div>
 
-  <!-- Bucket List Action (Visible for visited spots as well) -->
-  <div *ngIf="hasVisited()" class="review-restriction-container bucket-action-visited">
-    <div class="restriction-card">
+  <div *ngIf="hasVisited()" class="bucket-action-visited">
+    <div class="detail-panel">
       <ion-button
         expand="block"
         fill="outline"
-        [color]="isInBucket ? 'danger' : 'primary'"
+        class="detail-btn detail-btn--outline"
+        [class.detail-btn--danger-outline]="isInBucket"
         (click)="toggleBucketList()"
         [disabled]="bucketStatusLoading"
       >
         <ion-icon slot="start" [name]="isInBucket ? 'heart' : 'heart-outline'"></ion-icon>
-        {{ isInBucket ? 'Remove from Bucket List' : 'Add to Bucket List' }}
+        {{ isInBucket ? 'Remove from bucket list' : 'Add to bucket list' }}
       </ion-button>
-      <p class="suggestion-text">
-        Keep this spot in your bucket list to revisit or share with friends!
-      </p>
+      <p class="suggestion-text">Keep this spot in your bucket list to plan a return visit.</p>
     </div>
   </div>
 
-  <!-- Add Review (Only for visited spots) -->
   <div *ngIf="hasVisited()" class="add-review-container">
     <div class="review-header">
-      <h2>Add Your Review</h2>
+      <h2>Add your review</h2>
     </div>
 
-<ion-item lines="none" class="rating-slider" style="flex-direction: column; align-items: flex-start;">
-  <ion-label position="stacked">Rating: {{ rating }}</ion-label>
-  <ion-range
-    min="1"
-    max="5"
-    step="1"
-    snaps="true"
-    pin="true"
-    [(ngModel)]="rating"
-    color="warning"
-  >
-    <ion-icon slot="start" name="sad-outline"></ion-icon>
-    <ion-icon slot="end" name="happy-outline"></ion-icon>
-  </ion-range>
-</ion-item>
-    <ion-item lines="none">
-      <ion-label>Post as Anonymous</ion-label>
+    <ion-item lines="none" class="rating-slider detail-form-item">
+      <ion-label position="stacked">Rating: {{ rating }}</ion-label>
+      <ion-range
+        min="1"
+        max="5"
+        step="1"
+        snaps="true"
+        pin="true"
+        [(ngModel)]="rating"
+        color="primary"
+        class="detail-rating-range"
+      >
+        <ion-icon slot="start" name="sad-outline" aria-hidden="true"></ion-icon>
+        <ion-icon slot="end" name="happy-outline" aria-hidden="true"></ion-icon>
+      </ion-range>
+    </ion-item>
+
+    <ion-item lines="none" class="detail-form-item">
+      <ion-label>Post as anonymous</ion-label>
       <ion-toggle slot="end" [(ngModel)]="postAsAnonymous"></ion-toggle>
     </ion-item>
 
-    <ion-item>
+    <ion-item lines="none" class="detail-form-item">
       <ion-label position="stacked">Comment</ion-label>
-      <ion-textarea [(ngModel)]="comment" placeholder="Share your experience..."></ion-textarea>
+      <ion-textarea [(ngModel)]="comment" placeholder="Share your experience..." rows="4"></ion-textarea>
     </ion-item>
 
-    <ion-item lines="none">
-      <ion-label position="stacked">Upload Photo (optional)</ion-label>
-      <input type="file" (change)="onFileSelected($event)" accept="image/*" />
+    <ion-item lines="none" class="detail-form-item">
+      <ion-label position="stacked">Upload photo (optional)</ion-label>
+      <input type="file" (change)="onFileSelected($event)" accept="image/*" class="detail-file-input" />
     </ion-item>
 
     <ion-img *ngIf="selectedFilePreview" [src]="selectedFilePreview" class="preview-img"></ion-img>
 
-    <ion-button expand="block" color="warning" (click)="addReview()" [disabled]="uploading">
-      {{ uploading ? 'Uploading...' : 'Submit Review' }}
+    <ion-button expand="block" class="detail-btn detail-btn--primary" (click)="addReview()" [disabled]="uploading">
+      {{ uploading ? 'Uploading…' : 'Submit review' }}
     </ion-button>
   </div>
 
   <div *ngIf="hasVisited()" class="add-review-container">
     <div class="review-header">
-      <h2>Share a Local Tip</h2>
+      <h2>Share a local tip</h2>
     </div>
 
-    <ion-item>
-      <ion-label position="stacked">Tip (20-300 characters)</ion-label>
+    <ion-item lines="none" class="detail-form-item">
+      <ion-label position="stacked">Tip (20–300 characters)</ion-label>
       <ion-textarea
         [(ngModel)]="localTipText"
         placeholder="Example: Visit before 9 AM to avoid long lines."
-        [maxlength]="300">
+        [maxlength]="300"
+        rows="3">
       </ion-textarea>
     </ion-item>
 
-    <ion-button expand="block" color="warning" (click)="submitLocalTip()" [disabled]="isSubmittingLocalTip">
-      {{ isSubmittingLocalTip ? 'Submitting...' : 'Submit Local Tip' }}
+    <ion-button expand="block" class="detail-btn detail-btn--primary" (click)="submitLocalTip()" [disabled]="isSubmittingLocalTip">
+      {{ isSubmittingLocalTip ? 'Submitting…' : 'Submit local tip' }}
     </ion-button>
   </div>
 
-  <!-- Review Restriction Message (For unvisited spots) -->
   <div *ngIf="!hasVisited()" class="review-restriction-container">
     <div class="restriction-card">
-      <ion-icon name="lock-closed-outline" color="medium"></ion-icon>
-      <h3>Reviews Locked</h3>
-      <p>You need to visit this spot in person before you can post a review. This helps ensure authentic experiences!</p>
-      
+      <ion-icon name="lock-closed-outline" class="restriction-icon" aria-hidden="true"></ion-icon>
+      <h3>Reviews locked</h3>
+      <p>Visit this spot in person before you can post a review. That keeps feedback authentic.</p>
+
       <div class="suggestion-actions">
         <ion-button
           expand="block"
           fill="outline"
-          color="primary"
+          class="detail-btn detail-btn--outline"
           (click)="plannerQuickAction()"
           [disabled]="plannerActionLoading || !spotData"
         >
           <ion-icon slot="start" [name]="isInItineraryPlanner() ? 'checkmark-circle' : 'calendar-outline'"></ion-icon>
           {{ isInItineraryPlanner() ? 'Open itinerary planner' : 'Add to itinerary planner' }}
         </ion-button>
-        <p class="suggestion-text">Add this spot to your itinerary planner, build your trip, then visit in person to unlock reviews.</p>
+        <p class="suggestion-text">Add this spot to your planner, build a trip, then visit to unlock reviews.</p>
       </div>
     </div>
   </div>
 
-  <!-- Review List -->
   <div class="reviews-container">
-    <h2>Reviews</h2>
+    <h2 class="reviews-heading">Reviews</h2>
     <div *ngIf="reviews.length > 0; else noReviewsTemplate">
       <ion-card *ngFor="let review of reviews" class="review-card">
         <ion-card-header>
           <ion-card-title>{{ review.username || 'Anonymous' }}</ion-card-title>
           <div class="review-rating">
-          <ion-icon name="star" color="warning"></ion-icon>
-          <ion-card-subtitle> {{ review.rating }}</ion-card-subtitle>
+            <ion-icon name="star" class="review-star-icon" aria-hidden="true"></ion-icon>
+            <ion-card-subtitle>{{ review.rating }}</ion-card-subtitle>
           </div>
         </ion-card-header>
         <ion-card-content>
@@ -226,12 +217,9 @@
     </div>
 
     <ng-template #noReviewsTemplate>
-      <ion-text color="medium">
-        <p class="no-review-msg">No reviews yet. Be the first to leave one!</p>
-      </ion-text>
+      <p class="no-review-msg">No reviews yet. Be the first to leave one!</p>
     </ng-template>
   </div>
 </ion-content>
 
-<!-- Bottom Navigation -->
 <app-bottom-nav></app-bottom-nav>

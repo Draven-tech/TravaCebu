@@ -1,32 +1,101 @@
+:host {
+  display: block;
+}
+
 .restaurant-card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 12px;
-      border: 2px solid #ffc107;
-      margin-bottom: 12px;
-    }
-    .card-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      color: #2D3748;
-      margin-bottom: 8px;
-    }
-    .card-title {
-      flex: 1;
-    }
-    .card-content {
-      max-width: 100%;
-    }
-    .place-details {
-      margin-bottom: 8px;
-      font-size: 0.85rem;
-      color: #6c757d;
-    }
-    .timeslot-edit {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
+  background: var(--ion-item-background);
+  border-radius: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--ion-color-step-150, #d8e6f2);
+  margin-bottom: 12px;
+  box-shadow: 0 2px 10px rgba(47, 90, 133, 0.08);
+}
+
+.restaurant-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.restaurant-card__icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, var(--ion-color-primary-tint, #e8f1f9) 0%, var(--ion-color-step-150, #d8e6f2) 100%);
+  flex-shrink: 0;
+}
+
+.restaurant-card__icon {
+  font-size: 22px;
+  color: var(--ion-color-primary, #4c8dbb);
+}
+
+.restaurant-card__title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ion-text-color, #1a202c);
+  line-height: 1.3;
+}
+
+.restaurant-card__body {
+  max-width: 100%;
+}
+
+.restaurant-card__meta {
+  margin-bottom: 12px;
+  font-size: 0.8125rem;
+  color: var(--ion-color-medium, #64748b);
+  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.restaurant-card__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--ion-color-medium-shade, #475569);
+}
+
+.restaurant-card__star {
+  font-size: 14px;
+  color: #ca8a04;
+}
+
+.restaurant-card__vicinity {
+  display: block;
+}
+
+.restaurant-card__timeslot {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ion-color-step-150, #e2e8f0);
+}
+
+.restaurant-card__timeslot-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ion-color-medium, #64748b);
+  margin: 0;
+}
+
+.restaurant-card__datetime {
+  --background: var(--ion-color-step-50, var(--ion-background-color));
+  --padding-start: 12px;
+  --padding-end: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--ion-color-step-150, #d8e6f2);
+  max-width: 100%;
+}

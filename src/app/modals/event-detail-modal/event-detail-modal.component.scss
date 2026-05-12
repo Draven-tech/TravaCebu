@@ -1,5 +1,5 @@
 .event-detail-content {
-  --background: #f8f9fa;
+  --background: var(--ion-background-color);
 }
 
 .event-details {
@@ -40,7 +40,7 @@
     align-items: center;
     margin-bottom: 16px;
     padding: 12px;
-    background: #ffffff;
+    background: var(--ion-item-background);
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     

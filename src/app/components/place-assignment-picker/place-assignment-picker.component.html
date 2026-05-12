@@ -1,99 +1,115 @@
-<ion-header>
-      <ion-toolbar color="warning">
-        <ion-title>{{ placeType === 'restaurant' ? 'Assign Restaurant' : 'Assign Hotel' }}</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="dismiss()">
-            <ion-icon name="close"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+<ion-header class="place-assignment-header">
+  <ion-toolbar class="place-assignment-toolbar">
+    <ion-title>{{ placeType === 'restaurant' ? 'Assign restaurant' : 'Assign hotel' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" class="place-assignment-toolbar__close" (click)="dismiss()" aria-label="Close">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
 
-    <ion-content>
-      <div class="assignment-container">
-        <div class="place-info">
-          <h3>{{ placeName }}</h3>
-          <p>{{ placeType === 'restaurant' ? 'Choose which meal time to assign this restaurant to:' : 'Choose which day to assign this hotel to:' }}</p>
-        </div>
+<ion-content class="place-assignment-content" [fullscreen]="true">
+  <div class="assignment-container">
+    <div class="place-info">
+      <h2 class="place-info__name">{{ placeName }}</h2>
+      <p class="place-info__hint">
+        {{ placeType === 'restaurant' ? 'Choose a meal slot for this restaurant.' : 'Choose a day to attach this hotel to.' }}
+      </p>
+    </div>
 
-        <!-- Restaurant Assignment Options -->
-        <div *ngIf="placeType === 'restaurant'" class="assignment-options">
-          <div *ngFor="let day of itinerary; let dayIndex = index" class="day-section">
-            <h4>Day {{ day.day }}</h4>
-            <div *ngFor="let spot of day.spots; let spotIndex = index" class="option-item">
-              <div *ngIf="spot.mealType && !spot.chosenRestaurant" 
-                   class="meal-option" 
-                   (click)="assignRestaurant(dayIndex, spotIndex)">
-                <div class="option-header">
-                  <ion-icon name="restaurant-outline" color="warning"></ion-icon>
-                  <span class="spot-name">{{ spot.name }}</span>
-                </div>
-                <div class="meal-info">
-                  <span class="meal-type">{{ spot.mealType }} time</span>
-                  <span class="time-slot">{{ spot.timeSlot }}</span>
-                </div>
-                <ion-icon name="chevron-forward" color="medium"></ion-icon>
+    <div *ngIf="placeType === 'restaurant'" class="assignment-options">
+      <div *ngFor="let day of itinerary; let dayIndex = index" class="day-section">
+        <h3 class="day-section__title">Day {{ day.day }}</h3>
+        <div *ngFor="let spot of day.spots; let spotIndex = index" class="option-item">
+          <div
+            *ngIf="spot.mealType && !spot.chosenRestaurant"
+            class="pick-row pick-row--meal"
+            (click)="assignRestaurant(dayIndex, spotIndex)">
+            <div class="pick-row__main">
+              <div class="pick-row__icon" aria-hidden="true">
+                <ion-icon name="restaurant-outline"></ion-icon>
               </div>
-              
-              <div *ngIf="spot.mealType && spot.chosenRestaurant" class="meal-option disabled">
-                <div class="option-header">
-                  <ion-icon name="restaurant" color="medium"></ion-icon>
-                  <span class="spot-name">{{ spot.name }}</span>
-                </div>
-                <div class="meal-info">
-                  <span class="meal-type">{{ spot.mealType }} time</span>
-                  <span class="assigned-restaurant">{{ spot.chosenRestaurant.name }}</span>
-                </div>
-                <ion-icon name="checkmark-circle" color="success"></ion-icon>
+              <div class="pick-row__text">
+                <span class="pick-row__title">{{ spot.name }}</span>
+                <span class="pick-row__sub">
+                  <span class="pick-row__badge">{{ spot.mealType }}</span>
+                  <span class="pick-row__muted">{{ spot.timeSlot }}</span>
+                </span>
               </div>
             </div>
+            <ion-icon name="chevron-forward" class="pick-row__chevron"></ion-icon>
           </div>
-        </div>
 
-        <!-- Hotel Assignment Options -->
-        <div *ngIf="placeType === 'hotel'" class="assignment-options">
-          <div *ngFor="let day of itinerary; let dayIndex = index" class="day-section">
-            <div class="option-item">
-              <div *ngIf="!day.chosenHotel" 
-                   class="hotel-option" 
-                   (click)="assignHotel(dayIndex)">
-                <div class="option-header">
-                  <ion-icon name="bed-outline" color="primary"></ion-icon>
-                  <span class="day-name">Day {{ day.day }} - End of Day</span>
-                </div>
-                <div class="hotel-info">
-                  <span class="spots-count">{{ day.spots.length }} tourist spots</span>
-                </div>
-                <ion-icon name="chevron-forward" color="medium"></ion-icon>
+          <div *ngIf="spot.mealType && spot.chosenRestaurant" class="pick-row pick-row--meal pick-row--disabled">
+            <div class="pick-row__main">
+              <div class="pick-row__icon pick-row__icon--muted" aria-hidden="true">
+                <ion-icon name="restaurant"></ion-icon>
               </div>
-              
-              <div *ngIf="day.chosenHotel" class="hotel-option disabled">
-                <div class="option-header">
-                  <ion-icon name="bed" color="medium"></ion-icon>
-                  <span class="day-name">Day {{ day.day }} - End of Day</span>
-                </div>
-                <div class="hotel-info">
-                  <span class="assigned-hotel">{{ day.chosenHotel.name }}</span>
-                </div>
-                <ion-icon name="checkmark-circle" color="success"></ion-icon>
+              <div class="pick-row__text">
+                <span class="pick-row__title">{{ spot.name }}</span>
+                <span class="pick-row__sub">
+                  <span class="pick-row__badge pick-row__badge--muted">{{ spot.mealType }}</span>
+                  <span class="pick-row__assigned">{{ spot.chosenRestaurant.name }}</span>
+                </span>
               </div>
             </div>
+            <ion-icon name="checkmark-circle" class="pick-row__status pick-row__status--ok"></ion-icon>
           </div>
-        </div>
-
-        <!-- No Available Options -->
-        <div *ngIf="!hasAvailableOptions()" class="no-options">
-          <ion-icon name="information-circle-outline" color="medium"></ion-icon>
-          <h4>No Available {{ placeType === 'restaurant' ? 'Meal Times' : 'Days' }}</h4>
-          <p>
-            {{ placeType === 'restaurant' 
-               ? 'All meal times in your itinerary already have restaurants assigned.' 
-               : 'All days in your itinerary already have hotels assigned.' }}
-          </p>
-          <ion-button fill="outline" color="secondary" (click)="dismiss()">
-            <ion-icon name="arrow-back"></ion-icon>
-            Go Back
-          </ion-button>
         </div>
       </div>
-    </ion-content>
+    </div>
+
+    <div *ngIf="placeType === 'hotel'" class="assignment-options">
+      <div *ngFor="let day of itinerary; let dayIndex = index" class="day-section">
+        <div class="option-item">
+          <div *ngIf="!day.chosenHotel" class="pick-row pick-row--hotel" (click)="assignHotel(dayIndex)">
+            <div class="pick-row__main">
+              <div class="pick-row__icon" aria-hidden="true">
+                <ion-icon name="bed-outline"></ion-icon>
+              </div>
+              <div class="pick-row__text">
+                <span class="pick-row__title">Day {{ day.day }} · end of day</span>
+                <span class="pick-row__sub pick-row__muted">{{ day.spots.length }} spots</span>
+              </div>
+            </div>
+            <ion-icon name="chevron-forward" class="pick-row__chevron"></ion-icon>
+          </div>
+
+          <div *ngIf="day.chosenHotel" class="pick-row pick-row--hotel pick-row--disabled">
+            <div class="pick-row__main">
+              <div class="pick-row__icon pick-row__icon--muted" aria-hidden="true">
+                <ion-icon name="bed"></ion-icon>
+              </div>
+              <div class="pick-row__text">
+                <span class="pick-row__title">Day {{ day.day }} · end of day</span>
+                <span class="pick-row__sub">
+                  <span class="pick-row__assigned">{{ day.chosenHotel.name }}</span>
+                </span>
+              </div>
+            </div>
+            <ion-icon name="checkmark-circle" class="pick-row__status pick-row__status--ok"></ion-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!hasAvailableOptions()" class="no-options">
+      <div class="no-options__icon-wrap" aria-hidden="true">
+        <ion-icon name="information-circle-outline"></ion-icon>
+      </div>
+      <h3 class="no-options__title">Nothing left to assign</h3>
+      <p class="no-options__text">
+        {{
+          placeType === 'restaurant'
+            ? 'Every meal slot in this itinerary already has a restaurant.'
+            : 'Every day in this itinerary already has a hotel.'
+        }}
+      </p>
+      <ion-button expand="block" fill="outline" class="no-options__btn" (click)="dismiss()">
+        <ion-icon slot="start" name="arrow-back"></ion-icon>
+        Go back
+      </ion-button>
+    </div>
+  </div>
+</ion-content>

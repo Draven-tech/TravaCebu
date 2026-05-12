@@ -1,33 +1,75 @@
 <ion-header>
-  <ion-toolbar class="bucket-header">
-  <div class="bucket-header-content">
-    <h2>My Bucket List</h2>
-  </div>
+  <ion-toolbar class="bucket-toolbar">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/user-dashboard" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>My Bucket List</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content fullscreen class="bucket-content ion-padding">
-  <span class="clear-text-button" (click)="clear()">CLEAR ALL</span>
-  <ion-item-sliding *ngFor="let spot of spots" class="spot-sliding-card">
-    <ion-item-options side="end">
-      <ion-item-option color="danger" (click)="remove(spot.id)">Remove</ion-item-option>
-    </ion-item-options>
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingIcon="chevron-down-circle-outline" pullingText="Pull to refresh"
+      refreshingSpinner="circles" refreshingText="Refreshing...">
+    </ion-refresher-content>
+  </ion-refresher>
 
-    <ion-item lines="none" class="spot-card-horizontal" (click)="openSpotDetail(spot.id)">
-      <ion-thumbnail slot="start">
-        <img [src]="spot.img" alt="{{ spot.name }}" />
-      </ion-thumbnail>
-      <ion-label>
-        <h3>{{ spot.name }}</h3>
-      </ion-label>
-    </ion-item>
-  </ion-item-sliding>
+  <div class="bucket-intro" *ngIf="!isLoading && spots.length > 0">
+    <div class="bucket-intro-text">
+      <p class="bucket-count">{{ spots.length }} saved {{ spots.length === 1 ? 'place' : 'places' }}</p>
+      <p class="bucket-subtitle">Swipe a card left to remove, or tap to open details.</p>
+    </div>
+    <ion-button class="clear-all-btn" fill="clear" size="small" (click)="confirmClear()">
+      <ion-icon name="trash-outline" slot="start"></ion-icon>
+      Clear all
+    </ion-button>
+  </div>
+
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading your bucket list...</p>
+  </div>
+
+  <div class="empty-state" *ngIf="!isLoading && spots.length === 0">
+    <ion-icon name="basket-outline" class="empty-icon"></ion-icon>
+    <h3>Your Bucket List is empty</h3>
+    <p>Add tourist spots from the dashboard to save them here and plan your trip.</p>
+    <ion-button expand="block" class="empty-cta" (click)="goToHome()">
+      <ion-icon name="compass-outline" slot="start"></ion-icon>
+      Browse places
+    </ion-button>
+  </div>
+
+  <div class="bucket-list" *ngIf="!isLoading && spots.length > 0">
+    <ion-item-sliding *ngFor="let spot of spots; trackBy: trackBySpotId" class="spot-sliding-card">
+      <ion-item-options side="end">
+        <ion-item-option color="danger" (click)="remove(spot.id)">
+          <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+
+      <ion-item lines="none" class="spot-card" button detail="false" (click)="openSpotDetail(spot.id)">
+        <ion-thumbnail slot="start" class="spot-thumb">
+          <img [src]="spot.img || 'assets/img/default.png'" [alt]="spot.name" />
+        </ion-thumbnail>
+        <ion-label class="spot-label">
+          <div class="spot-title-row">
+            <h2 class="spot-name">{{ spot.name }}</h2>
+            <span class="spot-category" *ngIf="spot.category">{{ spot.category }}</span>
+          </div>
+          <p class="spot-location" *ngIf="locationLine(spot)">{{ locationLine(spot) }}</p>
+        </ion-label>
+        <ion-icon class="spot-chevron" name="chevron-forward-outline" slot="end" aria-hidden="true"></ion-icon>
+      </ion-item>
+    </ion-item-sliding>
+  </div>
 </ion-content>
 
 <ion-footer class="footer-fixed">
   <ion-button expand="block" (click)="goToMyItineraries()" class="my-itineraries-btn">
+    <ion-icon name="calendar-outline" slot="start"></ion-icon>
     My Itineraries
   </ion-button>
-  </ion-footer>
+</ion-footer>
 
 <app-bottom-nav></app-bottom-nav>

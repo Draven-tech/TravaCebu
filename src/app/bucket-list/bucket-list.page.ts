@@ -40,6 +40,34 @@ export class BucketListPage implements OnInit {
     private calendarService: CalendarService
   ) { }
 
+  trackBySpotId(_index: number, spot: { id?: string }): string {
+    return spot?.id ?? '';
+  }
+
+  truncate(text: string | undefined, max: number): string {
+    if (!text) return '';
+    const t = text.trim();
+    if (t.length <= max) return t;
+    return `${t.slice(0, Math.max(0, max - 1)).replace(/\s+$/, '')}…`;
+  }
+
+  locationLine(spot: any): string | undefined {
+    const name = spot?.location_name;
+    if (typeof name === 'string' && name.trim()) {
+      return this.truncate(name.trim(), 72);
+    }
+    const loc = spot?.location;
+    if (typeof loc === 'string' && loc.trim()) {
+      return this.truncate(loc.trim(), 72);
+    }
+    return undefined;
+  }
+
+  async handleRefresh(event: any) {
+    await this.loadBucketList();
+    event?.target?.complete?.();
+  }
+
   async loadBucketList() {
     this.isLoading = true;
     try {
@@ -68,6 +96,23 @@ export class BucketListPage implements OnInit {
       console.error('Error removing spot:', error);
       this.showAlert('Error', 'Failed to remove spot from bucket list.');
     }
+  }
+
+  async confirmClear() {
+    if (this.spots.length === 0) return;
+    const alert = await this.alertCtrl.create({
+      header: 'Clear bucket list?',
+      message: 'All saved places will be removed. This cannot be undone.',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Clear all',
+          role: 'destructive',
+          handler: () => this.clear()
+        }
+      ]
+    });
+    await alert.present();
   }
 
   async clear() {

@@ -1,44 +1,68 @@
-.side-nav {
-    position: fixed;
-    bottom: 20px; /* 20px gap from bottom to avoid system home button */
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9999;
-    width: auto;
-    pointer-events: none; /* Important: allow touch through except on buttons */
-    display: block !important; /* Ensure it's always visible */
+.bottom-nav-shell {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  width: auto;
+  max-width: calc(100vw - 24px);
+  pointer-events: none;
+  display: block !important;
+}
+
+.bottom-nav {
+  pointer-events: auto;
+  border-radius: 18px;
+  padding: 8px 10px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  box-shadow: 0 8px 28px rgba(47, 90, 133, 0.18);
+  background: var(--ion-item-background, #ffffff);
+  border: 1px solid var(--ion-color-step-150, #d8e6f2);
+}
+
+.bottom-nav__item {
+  min-width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  color: var(--ion-color-medium, #64748b);
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav__item ion-icon {
+  font-size: 24px;
+}
+
+.bottom-nav__item--active {
+  background: linear-gradient(
+    180deg,
+    var(--ion-color-primary, #4c8dbb) 0%,
+    var(--ion-color-primary-shade, #3a6d9a) 100%
+  );
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(76, 141, 187, 0.35);
+}
+
+.bottom-nav__item:not(.bottom-nav__item--active):active {
+  transform: scale(0.96);
+  background: var(--ion-color-step-50, #f1f5f9);
+}
+
+@media (max-width: 380px) {
+  .bottom-nav__item {
+    min-width: 44px;
+    height: 44px;
   }
-  
-  .bottom-nav {
-    border-radius: 16px;
-    padding: 8px 12px;
-    display: flex;
-    gap: 3%;
-    align-items: center;
-    pointer-events: auto; /* React to touch */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    background: black;
+
+  .bottom-nav__item ion-icon {
+    font-size: 22px;
   }
-  
-  .nav-button {
-    width: 50px;
-    height: 50px;   
-    border-radius: 12px; /* slight rounding for modern feel */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 24px;
-    color: #969696;
-    transition: background 0.3s;
-    cursor: pointer;
-  }
-  
-  .nav-button.active {
-    background: #FFD144;
-    color: #fff;
-  }
-  
-  .nav-button:hover {
-    background: #FFD144;
-  }
-  
+}

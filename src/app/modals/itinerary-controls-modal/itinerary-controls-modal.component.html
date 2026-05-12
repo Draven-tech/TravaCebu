@@ -1,43 +1,43 @@
 <ion-header>
-  <ion-toolbar color="warning">
+  <ion-toolbar class="brand-toolbar">
     <ion-title>Itinerary Controls</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="onShowSegmentSelector()" 
+      <ion-button class="brand-toolbar-btn" (click)="onShowSegmentSelector()"
                   *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0">
-        <ion-icon name="list"></ion-icon>
+        <ion-icon name="list" slot="start"></ion-icon>
         All Segments
       </ion-button>
-      <ion-button (click)="onCloseModal()">
+      <ion-button class="brand-toolbar-btn" (click)="onCloseModal()">
         <ion-icon name="close"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content scrollY="true">
+<ion-content scrollY="true" class="brand-content">
   <!-- Itinerary Selection -->
-  <ion-card>
+  <ion-card class="brand-card">
     <ion-card-header>
+      <ion-card-subtitle>Plan</ion-card-subtitle>
       <ion-card-title>Select Itinerary</ion-card-title>
-      <ion-card-subtitle>Choose your travel plan</ion-card-subtitle>
     </ion-card-header>
-    
+
     <ion-card-content>
       <!-- Show message if no itineraries -->
-      <ion-item *ngIf="availableItineraries.length === 0" lines="none" color="warning">
-        <ion-icon name="information-circle" slot="start"></ion-icon>
+      <ion-item *ngIf="availableItineraries.length === 0" lines="none" class="notice-item">
+        <ion-icon name="information-circle" slot="start" class="brand-icon"></ion-icon>
         <ion-label class="ion-text-wrap">
           <h3>No Itineraries Found</h3>
           <p>Create an itinerary in the Calendar tab first.</p>
         </ion-label>
       </ion-item>
-      
-      <ion-item lines="none">
+
+      <ion-item lines="none" class="select-item">
         <ion-label>Itinerary:</ion-label>
-        <ion-select 
-          [(ngModel)]="selectedItineraryIndex" 
+        <ion-select
+          [(ngModel)]="selectedItineraryIndex"
           (ionChange)="onItineraryChange($event)"
-          interface="action-sheet" 
+          interface="action-sheet"
           [disabled]="availableItineraries.length === 0"
           placeholder="Select an itinerary...">
           <ion-select-option value="-1" disabled>
@@ -48,28 +48,29 @@
           </ion-select-option>
         </ion-select>
       </ion-item>
-      
+
       <!-- Stop Itinerary Button -->
-      <ion-button *ngIf="selectedItineraryIndex >= 0" 
-                  expand="block" 
+      <ion-button *ngIf="selectedItineraryIndex >= 0"
+                  expand="block"
                   color="danger"
                   fill="solid"
                   (click)="onStopItinerary()"
-                  style="margin-top: 16px;">
+                  class="action-button stop-button">
         <ion-icon name="stop-circle" slot="start"></ion-icon>
         Stop Itinerary
       </ion-button>
     </ion-card-content>
   </ion-card>
 
-  <ion-card *ngIf="selectedItineraryIndex >= 0">
+  <ion-card *ngIf="selectedItineraryIndex >= 0" class="brand-card">
     <ion-card-header>
+      <ion-card-subtitle>Budget</ion-card-subtitle>
       <ion-card-title>Expense Entry</ion-card-title>
-      <ion-card-subtitle>Leave blank to use estimates</ion-card-subtitle>
+      <p class="card-helper">Leave blank to use estimates</p>
     </ion-card-header>
 
     <ion-card-content>
-      <ion-item>
+      <ion-item class="expense-item">
         <ion-label position="stacked">Transportation (PHP)</ion-label>
         <ion-input
           type="number"
@@ -81,7 +82,7 @@
         <ion-note slot="helper">Estimated: PHP {{ estimatedExpenses.transportation | number:'1.0-0' }}</ion-note>
       </ion-item>
 
-      <ion-item>
+      <ion-item class="expense-item">
         <ion-label position="stacked">Food (PHP)</ion-label>
         <ion-input
           type="number"
@@ -93,7 +94,7 @@
         <ion-note slot="helper">Estimated: PHP {{ estimatedExpenses.food | number:'1.0-0' }}</ion-note>
       </ion-item>
 
-      <ion-item>
+      <ion-item class="expense-item">
         <ion-label position="stacked">Accommodation (PHP)</ion-label>
         <ion-input
           type="number"
@@ -107,10 +108,9 @@
 
       <ion-button
         expand="block"
-        color="success"
-        fill="outline"
+        fill="solid"
         (click)="onSaveExpensePlan()"
-        style="margin-top: 16px;">
+        class="action-button brand-primary-button">
         <ion-icon name="save-outline" slot="start"></ion-icon>
         Save Expenses
       </ion-button>
@@ -118,24 +118,24 @@
   </ion-card>
 
   <!-- Loading Status Card -->
-  <ion-card *ngIf="isLoadingJeepneyRoutes || isGeneratingRoute">
+  <ion-card *ngIf="isLoadingJeepneyRoutes || isGeneratingRoute" class="brand-card">
     <ion-card-header>
+      <ion-card-subtitle>Working…</ion-card-subtitle>
       <ion-card-title>Generating route</ion-card-title>
     </ion-card-header>
-    
+
     <ion-card-content>
-      <ion-item *ngIf="isLoadingJeepneyRoutes || isGeneratingRoute" lines="none">
-        <ion-spinner name="crescent" slot="start" [color]="isGeneratingRoute ? 'warning' : undefined"></ion-spinner>
+      <ion-item *ngIf="isLoadingJeepneyRoutes || isGeneratingRoute" lines="none" class="loading-item">
+        <ion-spinner name="crescent" slot="start" class="brand-spinner"></ion-spinner>
         <ion-label>Generating route</ion-label>
       </ion-item>
-      
+
       <!-- Cancel Generation Button -->
-      <ion-button *ngIf="isGeneratingRoute || isLoadingJeepneyRoutes" 
-                  expand="block" 
-                  color="medium"
+      <ion-button *ngIf="isGeneratingRoute || isLoadingJeepneyRoutes"
+                  expand="block"
                   fill="outline"
                   (click)="onCancelRouteGeneration()"
-                  style="margin-top: 16px;">
+                  class="action-button brand-outline-button">
         <ion-icon name="close-circle" slot="start"></ion-icon>
         Cancel Route Generation
       </ion-button>
@@ -143,35 +143,39 @@
   </ion-card>
 
   <!-- Location Tracking Status -->
-  <ion-card>
+  <ion-card class="brand-card">
     <ion-card-header>
+      <ion-card-subtitle>Location</ion-card-subtitle>
       <ion-card-title>Location Status</ion-card-title>
-      <ion-card-subtitle>GPS and tracking controls</ion-card-subtitle>
+      <p class="card-helper">GPS and tracking controls</p>
     </ion-card-header>
-    
+
     <ion-card-content>
-      <ion-item lines="none">
-        <ion-icon [name]="isRealLocation ? 'checkmark-circle' : 'warning'" 
-                  [color]="isRealLocation ? 'success' : 'warning'" 
+      <ion-item lines="none" class="status-item">
+        <ion-icon [name]="isRealLocation ? 'checkmark-circle' : 'warning'"
+                  [class.status-ok]="isRealLocation"
+                  [class.status-warn]="!isRealLocation"
                   slot="start"></ion-icon>
         <ion-label>
           <h3>{{ locationStatusText }}</h3>
           <p>{{ isRealLocation ? 'GPS location detected' : 'Using default location' }}</p>
         </ion-label>
       </ion-item>
-      
-      <ion-button expand="block" 
-                  (click)="onShowUserLocation()" 
-                  [color]="isRealLocation ? 'success' : 'warning'"
-                  fill="outline">
+
+      <ion-button expand="block"
+                  (click)="onShowUserLocation()"
+                  fill="solid"
+                  class="action-button brand-primary-button">
         <ion-icon name="location" slot="start"></ion-icon>
         Center on Location
       </ion-button>
-      
-      <ion-button expand="block" 
-                  (click)="onToggleLocationTracking()" 
-                  [color]="isLocationTrackingActive ? 'danger' : 'primary'"
-                  fill="outline">
+
+      <ion-button expand="block"
+                  (click)="onToggleLocationTracking()"
+                  [color]="isLocationTrackingActive ? 'danger' : ''"
+                  fill="outline"
+                  class="action-button"
+                  [class.brand-outline-button]="!isLocationTrackingActive">
         <ion-icon [name]="isLocationTrackingActive ? 'stop-circle' : 'play-circle'" slot="start"></ion-icon>
         {{ isLocationTrackingActive ? 'Stop Tracking' : 'Start Tracking' }}
       </ion-button>
@@ -179,19 +183,19 @@
   </ion-card>
 
   <!-- Current Segment Navigation -->
-  <ion-card *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0">
+  <ion-card *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0" class="brand-card">
     <ion-card-header>
-      <ion-card-title>Current Stage</ion-card-title>
       <ion-card-subtitle>
         Stage {{ currentSegmentIndex + 1 }} of {{ currentRouteInfo.segments.length }}
       </ion-card-subtitle>
+      <ion-card-title>Current Stage</ion-card-title>
     </ion-card-header>
-    
+
     <ion-card-content>
       <!-- Current segment info -->
-      <ion-item *ngIf="currentRouteInfo.segments[currentSegmentIndex]" lines="none">
-        <ion-icon [name]="currentRouteInfo.segments[currentSegmentIndex].type === 'jeepney' ? 'bus' : (currentRouteInfo.segments[currentSegmentIndex].type === 'visit_stop' ? 'location' : 'walk')" 
-                  [color]="currentRouteInfo.segments[currentSegmentIndex].type === 'jeepney' ? 'primary' : (currentRouteInfo.segments[currentSegmentIndex].type === 'visit_stop' ? 'warning' : 'medium')" 
+      <ion-item *ngIf="currentRouteInfo.segments[currentSegmentIndex]" lines="none" class="stage-item">
+        <ion-icon [name]="currentRouteInfo.segments[currentSegmentIndex].type === 'jeepney' ? 'bus' : (currentRouteInfo.segments[currentSegmentIndex].type === 'visit_stop' ? 'location' : 'walk')"
+                  class="brand-icon"
                   slot="start"></ion-icon>
         <ion-label>
           <h3>{{ getSegmentTitle(currentRouteInfo.segments[currentSegmentIndex]) }}</h3>
@@ -201,18 +205,18 @@
           <p>{{ formatDuration(currentRouteInfo.segments[currentSegmentIndex].duration) }}</p>
         </ion-label>
       </ion-item>
-      
+
       <!-- Next segment button -->
-      <ion-button expand="block" 
-                  (click)="onNextSegment()" 
-                  color="warning"
-                  fill="solid">
+      <ion-button expand="block"
+                  (click)="onNextSegment()"
+                  fill="solid"
+                  class="action-button brand-primary-button">
         <ion-icon name="arrow-forward" slot="start"></ion-icon>
         Next Stage
       </ion-button>
-      
+
       <!-- Route summary -->
-      <ion-item lines="none" style="margin-top: 16px;">
+      <ion-item lines="none" class="totals-item">
         <ion-label>
           <h3>Total Route</h3>
           <p>{{ currentRouteInfo.totalDuration }} • {{ currentRouteInfo.totalDistance }}</p>
@@ -232,7 +236,7 @@
             <p>{{ currentRouteInfo.summary || 'Overview of your curated transport plan' }}</p>
           </div>
         </div>
-        <ion-chip color="tertiary" class="stage-count-chip">
+        <ion-chip class="stage-count-chip">
           <ion-icon name="flag-outline" slot="start"></ion-icon>
           <ion-label>{{ currentRouteInfo.segments.length }} stages</ion-label>
         </ion-chip>
@@ -271,7 +275,7 @@
       </div>
 
       <div class="progress-wrapper">
-        <ion-progress-bar class="route-progress" color="success" [value]="getRouteCompletionRatio()"></ion-progress-bar>
+        <ion-progress-bar class="route-progress" [value]="getRouteCompletionRatio()"></ion-progress-bar>
         <div class="progress-label">
           {{ getRouteCompletionLabel() }}
         </div>
@@ -291,14 +295,15 @@
   </ion-card>
 
   <!-- No route selected message -->
-  <ion-card *ngIf="!currentRouteInfo || !currentRouteInfo.segments || currentRouteInfo.segments.length === 0">
+  <ion-card *ngIf="!currentRouteInfo || !currentRouteInfo.segments || currentRouteInfo.segments.length === 0" class="brand-card empty-card">
     <ion-card-content>
-      <ion-text color="medium">
+      <div class="empty-content">
+        <ion-icon name="map-outline" class="empty-icon"></ion-icon>
         <p>Select an itinerary to see route stages and navigation options</p>
-      </ion-text>
+      </div>
     </ion-card-content>
   </ion-card>
-  
+
   <!-- Scroll indicator -->
   <div class="scroll-indicator" *ngIf="showScrollIndicator">
     <ion-icon name="chevron-up"></ion-icon>

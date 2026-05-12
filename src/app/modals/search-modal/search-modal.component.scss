@@ -1,6 +1,6 @@
 ion-content {
-       --background: #ffffff;
-       background: #ffffff;
+       --background: var(--ion-background-color);
+       background: var(--ion-background-color);
      }
 
            .search-input-container {
@@ -12,7 +12,7 @@ ion-content {
         --placeholder-color: #666666;
         --icon-color: #666666;
         --clear-button-color: #666666;
-        --background: #f8f8f8;
+        --background: var(--ion-color-step-50, #f8f8f8);
         --border-radius: 12px;
         --box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       }
@@ -64,7 +64,7 @@ ion-content {
      }
 
      .result-card {
-       background: #fff;
+       background: var(--ion-item-background);
        border-radius: 12px;
        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
        overflow: hidden;

@@ -1,114 +1,198 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.itinerary-map-toolbar {
+  --background: var(--ion-color-primary, #4c8dbb);
+  --color: #ffffff;
+  --border-color: rgba(255, 255, 255, 0.12);
+}
+
+.itinerary-map-toolbar__close {
+  --color: #ffffff;
+}
+
+.itinerary-map-content {
+  --background: var(--ion-background-color);
+}
+
 .map-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-    }
-    
-    #itinerary-map {
-      height: 100% !important;
-      min-height: 100% !important;
-      width: 100% !important;
-      min-width: 100% !important;
-      touch-action: auto !important;
-      pointer-events: auto !important;
-      z-index: 1;
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-    
-    .map-controls {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    
-    .map-controls ion-button {
-      --padding-start: 8px;
-      --padding-end: 8px;
-      font-size: 12px;
-    }
-    
-    .map-loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 20px;
-      border-radius: 10px;
-      z-index: 1000;
-    }
-    
-    .map-loading p {
-      margin: 10px 0 0 0;
-      color: #666;
-    }
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
 
-    :global(.map-modal) {
-      --height: 90%;
-      --width: 90%;
-      --max-width: 800px;
-    }
+#itinerary-map {
+  height: 100% !important;
+  min-height: 100% !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  touch-action: auto !important;
+  pointer-events: auto !important;
+  z-index: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
 
-    :global(.custom-marker) {
-      background: transparent !important;
-      border: none !important;
-      transition: transform 0.2s ease-in-out;
-    }
-    
-    :global(.custom-marker:hover) {
-      transform: scale(1.1);
-    }
-    
-    :global(.hotel-marker) {
-      background: transparent !important;
-      border: none !important;
-      transition: transform 0.2s ease-in-out;
-    }
-    
-    :global(.hotel-marker:hover) {
-      transform: scale(1.1);
-    }
-    
-    :global(.restaurant-marker) {
-      background: transparent !important;
-      border: none !important;
-      transition: transform 0.2s ease-in-out;
-    }
-    
-    :global(.restaurant-marker:hover) {
-      transform: scale(1.1);
-    }
+.map-controls-wrap {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  max-width: min(220px, calc(100vw - 24px));
+  pointer-events: none;
+}
 
-    @keyframes pulse {
-      0% {
-        transform: scale(1);
-        box-shadow: 0 4px 12px rgba(255,215,0,0.6);
-      }
-      50% {
-        transform: scale(1.1);
-        box-shadow: 0 6px 16px rgba(255,215,0,0.8);
-      }
-      100% {
-        transform: scale(1);
-        box-shadow: 0 4px 12px rgba(255,215,0,0.6);
-      }
-    }
+.map-controls-panel {
+  pointer-events: auto;
+  padding: 12px 12px 10px;
+  background: color-mix(in srgb, var(--ion-item-background) 94%, transparent);
+  border: 1px solid var(--ion-color-step-150, #d8e6f2);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(47, 90, 133, 0.14);
+  backdrop-filter: blur(10px);
+}
 
-    :global(.highlight-marker) {
-      background: transparent !important;
-      border: none !important;
-    }
+.map-controls-panel__label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ion-color-medium, #64748b);
+  margin-bottom: 8px;
+}
 
-    :global(.assignment-picker-modal) {
-      --height: 70%;
-      --width: 90%;
-      --max-width: 600px;
-      --border-radius: 16px;
-    }
+.map-controls-panel__label--spaced {
+  margin-top: 12px;
+}
+
+.map-controls-panel__row {
+  display: flex;
+  gap: 8px;
+}
+
+.map-controls-panel__col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-ctrl {
+  --border-radius: 10px;
+  --box-shadow: none;
+  margin: 0;
+  flex: 1;
+  min-height: 38px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.map-ctrl--basemap {
+  --background: var(--ion-item-background);
+  --color: var(--ion-color-medium, #64748b);
+  --border-color: var(--ion-color-step-150, #d8e6f2);
+  --border-width: 1px;
+  --border-style: solid;
+}
+
+.map-ctrl--basemap.map-ctrl--active {
+  --background: var(--ion-color-primary, #4c8dbb);
+  --color: #ffffff;
+  --border-color: var(--ion-color-primary, #4c8dbb);
+}
+
+.map-ctrl--hotels {
+  --background: var(--ion-item-background);
+  --color: var(--ion-color-medium, #64748b);
+  --border-color: var(--ion-color-step-150, #d8e6f2);
+  --border-width: 1px;
+  --border-style: solid;
+}
+
+.map-ctrl--hotels.map-ctrl--active {
+  --background: #15803d;
+  --color: #ffffff;
+  --border-color: #15803d;
+}
+
+.map-ctrl--restaurants {
+  --background: var(--ion-item-background);
+  --color: var(--ion-color-medium, #64748b);
+  --border-color: var(--ion-color-step-150, #d8e6f2);
+  --border-width: 1px;
+  --border-style: solid;
+}
+
+.map-ctrl--restaurants.map-ctrl--active {
+  --background: #0f766e;
+  --color: #ffffff;
+  --border-color: #0f766e;
+}
+
+.map-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.map-loading__card {
+  text-align: center;
+  padding: 22px 28px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ion-item-background) 92%, transparent);
+  border: 1px solid var(--ion-color-step-150, #d8e6f2);
+  box-shadow: 0 8px 24px rgba(47, 90, 133, 0.12);
+  pointer-events: auto;
+}
+
+.map-loading__text {
+  margin: 14px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-color-medium-shade, #475569);
+}
+
+:global(.map-modal) {
+  --height: 90%;
+  --width: 90%;
+  --max-width: 800px;
+}
+
+:global(.custom-marker) {
+  background: transparent !important;
+  border: none !important;
+  transition: transform 0.2s ease-in-out;
+}
+
+:global(.custom-marker:hover) {
+  transform: scale(1.08);
+}
+
+:global(.hotel-marker) {
+  background: transparent !important;
+  border: none !important;
+  transition: transform 0.2s ease-in-out;
+}
+
+:global(.hotel-marker:hover) {
+  transform: scale(1.08);
+}
+
+:global(.restaurant-marker) {
+  background: transparent !important;
+  border: none !important;
+  transition: transform 0.2s ease-in-out;
+}
+
+:global(.highlight-marker) {
+  background: transparent !important;
+  border: none !important;
+}

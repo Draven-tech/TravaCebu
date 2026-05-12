@@ -81,9 +81,6 @@ export class PlacesService {
     );
   }
 
-  /**
-   * Minimal Place Details for emergency / contact UI (phone, maps URL, website).
-   */
   getPlaceContactDetails(placeId: string): Observable<any> {
     this.apiTracker.logApiCall('places', 'details_contact', { placeId }).catch((err) => {
       console.error('Failed to log API call:', err);
@@ -161,9 +158,6 @@ export class PlacesService {
     );
   }
 
-  /**
-   * Text Search biased to a location (e.g. embassy fallback when Nearby returns nothing).
-   */
   searchTextNear(query: string, lat: number, lng: number, radius: number = 30000): Observable<any> {
     this.apiTracker.logApiCall('places', 'textsearch_near', { query, lat, lng }).catch((err) => {
       console.error('Failed to log API call:', err);

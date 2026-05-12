@@ -13,7 +13,7 @@
 
 .modal-container {
   position: relative;
-  background: white;
+  background: var(--ion-item-background);
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   max-width: 400px;
@@ -65,7 +65,7 @@
     width: 120px;
     height: 120px;
     border-radius: 20px;
-    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+    background: linear-gradient(135deg, var(--ion-item-background) 0%, var(--ion-color-step-50, var(--ion-background-color)) 100%);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     padding: 20px;
     transition: all 0.3s ease;

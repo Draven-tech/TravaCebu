@@ -1,67 +1,425 @@
+$detail-primary: var(--ion-color-primary, #4c8dbb);
+$detail-primary-dark: var(--ion-color-primary-shade, #3a6d9a);
+$detail-page: var(--ion-background-color);
+$detail-surface: var(--ion-item-background);
+$detail-border: var(--ion-color-step-150, #d8e6f2);
+$detail-text: var(--ion-text-color);
+$detail-muted: var(--ion-color-medium);
+
+.detail-toolbar {
+  --background: #{$detail-primary};
+  --color: #ffffff;
+  --border-width: 0;
+
+  ion-title {
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  ion-back-button {
+    --color: #ffffff;
+  }
+}
+
+.toolbar-refresh-btn {
+  --color: #ffffff;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+ion-toolbar .spinning {
+  animation: spin 1s linear infinite;
+}
+
 .spot-detail-content {
+  --background: #{$detail-page};
   --padding-start: 0;
   --padding-end: 0;
   --padding-bottom: 100px;
-  background-color: #646464;
-  color: #fff;
-  position: relative;
-  z-index: 1;
+  color: $detail-text;
 }
 
 .spot-header-img {
   position: relative;
   width: 100%;
-  height: 200px;
+  height: 220px;
   overflow: hidden;
 
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-bottom: 4px solid #f1c40f;
-    transition: opacity 0.3s ease;
+    display: block;
+    border-bottom: 4px solid #{$detail-primary};
   }
 
   .image-help-overlay {
     position: absolute;
-    bottom: 8px;
-    left: 8px;
-    right: 8px;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 8px;
-    padding: 8px 12px;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    background: rgba(26, 32, 44, 0.82);
+    border-radius: 12px;
+    padding: 10px 14px;
     display: flex;
-    align-items: center;
-    gap: 8px;
-    color: white;
+    align-items: flex-start;
+    gap: 10px;
+    color: #ffffff;
     z-index: 1;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(6px);
 
     ion-icon {
-      font-size: 1.2em;
-      color: #f1c40f;
+      font-size: 1.35rem;
+      color: #93c5fd;
       flex-shrink: 0;
+      margin-top: 2px;
     }
 
     p {
       margin: 0;
-      font-size: 0.8em;
-      text-align: left;
-      opacity: 0.9;
-      line-height: 1.2;
+      font-size: 0.82rem;
+      line-height: 1.35;
+      opacity: 0.95;
     }
   }
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.detail-card {
+  margin: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid #{$detail-border};
+  box-shadow: 0 4px 18px rgba(44, 93, 129, 0.1);
+  background: $detail-surface;
+  color: $detail-text;
 }
 
-ion-toolbar {
-  ion-icon.spinning {
-    animation: spin 1s linear infinite;
+.detail-card-header {
+  padding-bottom: 4px;
+}
+
+.detail-spot-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: $detail-text !important;
+}
+
+.detail-spot-category {
+  font-size: 0.95rem;
+  color: #{$detail-primary} !important;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.spot-description {
+  margin: 0;
+  color: $detail-muted;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.events-loading {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.detail-list {
+  background: transparent;
+  padding: 0;
+}
+
+.detail-list-item {
+  --background: #{$detail-page};
+  --border-radius: 12px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+
+  ion-label h3 {
+    color: $detail-text;
+    font-weight: 600;
+    margin: 0 0 4px;
+    font-size: 0.95rem;
   }
+
+  ion-label p,
+  ion-label {
+    color: $detail-muted;
+    font-size: 0.88rem;
+    margin: 0;
+    white-space: normal;
+  }
+}
+
+.detail-list-icon {
+  color: #{$detail-primary};
+  font-size: 1.25rem;
+  margin-inline-end: 4px;
+}
+
+.detail-muted {
+  margin: 8px 0 0;
+  color: $detail-muted;
+  font-size: 0.9rem;
+}
+
+.visit-status-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 0 16px 14px;
+  padding: 14px 16px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(22, 163, 74, 0.35);
+  border-radius: 14px;
+}
+
+.visit-status-chip {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.visit-status-message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: $detail-muted;
+  line-height: 1.45;
+}
+
+.bucket-action-visited {
+  margin: 0 16px 14px;
+}
+
+.detail-panel {
+  background: $detail-surface;
+  border: 1px solid #{$detail-border};
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(44, 93, 129, 0.08);
+}
+
+.add-review-container {
+  background: $detail-surface;
+  margin: 0 16px 16px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid #{$detail-border};
+  box-shadow: 0 4px 16px rgba(44, 93, 129, 0.08);
+
+  .review-header {
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(76, 141, 187, 0.2);
+  }
+
+  h2 {
+    margin: 0;
+    color: $detail-text;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  ion-item {
+    --background: #{$detail-page};
+    --border-radius: 12px;
+    margin-bottom: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+
+  .preview-img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin: 8px 0 4px;
+    border: 1px solid #{$detail-border};
+  }
+}
+
+.detail-form-item {
+  --padding-start: 12px;
+  --padding-end: 12px;
+}
+
+.rating-slider {
+  width: 100%;
+
+  ion-label {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: $detail-text !important;
+    margin-bottom: 8px;
+  }
+
+  ion-range {
+    width: 100%;
+    padding-top: 8px;
+  }
+
+  ion-icon {
+    font-size: 1.35rem;
+    color: #{$detail-primary};
+  }
+}
+
+.detail-file-input {
+  margin-top: 8px;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.review-restriction-container {
+  margin: 0 16px 16px;
+}
+
+.restriction-card {
+  text-align: center;
+  padding: 22px 16px;
+  background: $detail-surface;
+  border-radius: 16px;
+  border: 1px solid #{$detail-border};
+  box-shadow: 0 4px 16px rgba(44, 93, 129, 0.08);
+}
+
+.restriction-icon {
+  font-size: 2.75rem;
+  color: #{$detail-primary};
+  opacity: 0.85;
+  margin-bottom: 12px;
+}
+
+.restriction-card h3 {
+  color: $detail-text;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.restriction-card p {
+  color: $detail-muted;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+.suggestion-actions {
+  margin-top: 16px;
+  text-align: left;
+}
+
+.suggestion-text {
+  color: $detail-muted;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.detail-btn {
+  font-weight: 700;
+  --border-radius: 12px;
+  margin-top: 4px;
+}
+
+.detail-btn--primary {
+  --background: linear-gradient(180deg, #{$detail-primary} 0%, #{$detail-primary-dark} 100%);
+  --color: #ffffff;
+  --box-shadow: 0 6px 18px rgba(47, 90, 133, 0.35);
+}
+
+.detail-btn--outline {
+  --border-width: 2px;
+  --border-color: #{$detail-primary-dark};
+  --color: #{$detail-primary-dark};
+  --background: var(--ion-color-primary-tint, #dceaf5);
+}
+
+.detail-btn--danger-outline {
+  --border-color: #dc2626;
+  --color: #b91c1c;
+  --background: var(--ion-color-danger-tint, #fef2f2);
+}
+
+.reviews-container {
+  background: $detail-surface;
+  margin: 0 16px 24px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid #{$detail-border};
+  box-shadow: 0 4px 16px rgba(44, 93, 129, 0.08);
+}
+
+.reviews-heading {
+  color: $detail-text;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(76, 141, 187, 0.2);
+}
+
+.review-card {
+  background: $detail-page;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(44, 93, 129, 0.06);
+  color: $detail-text;
+
+  ion-card-title {
+    color: $detail-text !important;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  ion-card-subtitle {
+    color: $detail-muted !important;
+  }
+}
+
+.review-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.review-star-icon {
+  color: #ca8a04;
+  font-size: 1.1rem;
+}
+
+.review-comment {
+  color: $detail-muted;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.review-img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  margin-top: 12px;
+  border-radius: 12px;
+  border: 1px solid #{$detail-border};
+}
+
+.no-review-msg {
+  text-align: center;
+  margin: 16px 0 0;
+  color: $detail-muted;
+  font-size: 0.92rem;
 }
 
 ion-page {
@@ -70,239 +428,4 @@ ion-page {
 
 ion-content {
   --overflow: auto;
-}
-
-.spot-info-card {
-  background: #1e1e1e;
-  margin: 16px;
-  border-radius: 12px;
-  color: #fff;
-
-  ion-card-title {
-    font-size: 1.5rem;
-    color: #f1c40f;
-  }
-
-  ion-card-subtitle {
-    font-size: 1rem;
-    color: #bbb;
-  }
-
-  .spot-description {
-    margin-bottom: 10px;
-    color: #ddd;
-  }
-
-  .events-loading {
-    display: flex;
-    justify-content: center;
-    padding: 16px 0;
-  }
-
-  ion-item ion-label {
-    h3 {
-      color: #fff;
-      font-weight: 600;
-      margin: 0 0 4px;
-    }
-
-    p {
-      color: #aaa;
-      margin: 0;
-      font-size: 0.9rem;
-    }
-  }
-}
-
-.add-review-container {
-  background: #464646;
-  margin: 16px;
-  padding: 16px;
-  border-radius: 12px;
-
-  .review-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  h2 {
-    margin: 0;
-    color: #f1c40f;
-    font-size: 1.2rem;
-    flex: 1;
-  }
-
-  .visited-indicator {
-    font-size: 0.8rem;
-    height: 28px;
-  }
-
-  ion-item {
-    margin-bottom: 12px;
-  }
-
-  .preview-img {
-    width: 100%;
-    max-height: 200px;
-    object-fit: cover;
-    border-radius: 10px;
-    margin: 12px 0;
-  }
-}
-
-/* Visit Status Styles */
-.visit-status-banner {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  margin: 0 16px 16px;
-  padding: 12px 16px;
-  background: rgba(76, 175, 80, 0.08);
-  border: 1px solid rgba(76, 175, 80, 0.25);
-  border-radius: 12px;
-
-  .visit-status-chip {
-    margin-bottom: 6px;
-  }
-
-  .visit-status-message {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #ccc;
-  }
-
-.bucket-action-visited {
-  margin-top: 16px;
-}
-}
-
-/* Review Restriction Styles */
-.review-restriction-container {
-  background: #1e1e1e;
-  margin: 16px;
-  border-radius: 12px;
-  padding: 16px;
-}
-
-.restriction-card {
-  text-align: center;
-  padding: 24px 16px;
-  background: rgba(108, 117, 125, 0.1);
-  border-radius: 12px;
-  border: 2px solid #6c757d;
-}
-
-.restriction-card ion-icon {
-  font-size: 3rem;
-  margin-bottom: 16px;
-  opacity: 0.7;
-}
-
-.restriction-card h3 {
-  color: #f1c40f;
-  font-size: 1.3rem;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.restriction-card p {
-  color: #ddd;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  margin-bottom: 20px;
-}
-
-.suggestion-actions {
-  margin-top: 20px;
-}
-
-.suggestion-text {
-  color: #bbb;
-  font-size: 0.85rem;
-  font-style: italic;
-  margin-top: 12px;
-  margin-bottom: 0;
-}
-.rating-slider {
-  width: 100%;
-  ion-label {
-    font-weight: bold;
-    font-size: 25px;
-    margin-bottom: 6px;
-  }
-
-  ion-range {
-    width: 100%;
-    --bar-background: #ccc;
-    --bar-background-active: #ffc107;
-    --knob-background: #ffc107;
-    --pin-background: #ffc107;
-    --pin-color: #000;
-  }
-
-  ion-icon {
-    font-size: 23px;
-    color: #f4a261;
-  }
-}
-
-
-.reviews-container {
-  background: #1a1a1a;
-  margin: 16px;
-  padding: 16px;
-  border-radius: 12px;
-
-  h2 {
-    color: #f1c40f;
-    font-size: 1.2rem;
-    margin-bottom: 16px;
-  }
-
-  .review-card {
-    background: #222;
-    --color: #fff;
-    margin-bottom: 16px;
-    border-radius: 12px;
-  }
-
-  .review-comment {
-    color: #ccc;
-    font-style: italic;
-  }
-
-  .review-img {
-    width: 100%;
-    max-height: 200px;
-    object-fit: cover;
-    margin-top: 12px;
-    border-radius: 10px;
-  }
-  .review-rating {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 4px;
-
-    ion-card-subtitle {
-      color: #f1c40f;
-      font-size: 0.9rem;
-      font-weight: bold;
-    }
-  }
-  .no-review-msg {
-    text-align: center;
-    margin-top: 20px;
-    color: #888;
-
-  }
-  ion-card-title {
-    color: #ffffff;
-    font-size: 1rem;
-    font-weight: 600;
-  }
 }

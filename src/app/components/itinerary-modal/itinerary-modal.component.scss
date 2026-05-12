@@ -1,3 +1,66 @@
+/* Hardcode the app's blue palette so buttons render the same regardless of
+   whether Ionic's --ion-color-primary tokens are themed. */
+$im-primary: #4c8dbb;
+$im-primary-dark: #3d7aa3;
+$im-primary-deep: #2f5a85;
+$im-page-bg: var(--ion-background-color);
+$im-surface: var(--ion-item-background);
+$im-border: var(--ion-color-step-150, #d8e6f2);
+$im-text: var(--ion-text-color);
+$im-muted: var(--ion-color-medium);
+$im-btn-tint: #e8f3f9;
+$im-btn-tint-strong: #d4e8f5;
+$im-neutral-bg: #f1f5f9;
+$im-neutral-border: #cbd5e1;
+$im-neutral-text: #475569;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+  background-color: $im-page-bg;
+  --ion-background-color: #{$im-page-bg};
+  --ion-item-background: #{$im-surface};
+  color: $im-text;
+}
+
+.itinerary-modal-toolbar {
+  --background: #{$im-primary};
+  --color: #ffffff;
+  --border-width: 0;
+  --min-height: 56px;
+}
+
+.itinerary-modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.toolbar-edit-btn {
+  --background: #ffffff;
+  --color: #{$im-primary-dark};
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  font-weight: 700;
+  --border-radius: 10px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+}
+
+.toolbar-close-btn {
+  --color: #ffffff;
+}
+
+.toolbar-close-icon {
+  font-size: 1.35rem;
+}
+
+ion-content.itinerary-modal-content {
+  --background: #{$im-page-bg};
+  --padding-bottom: 200px;
+}
+
 .itinerary-container {
   padding: 16px;
 }
@@ -7,39 +70,41 @@
 }
 
 .day-title {
-  font-size: 1.3rem;
+  font-size: 1.15rem;
   font-weight: 700;
   margin: 16px 0 12px 0;
-  border-bottom: 2px solid #facc01;
+  border-bottom: 2px solid rgba(76, 141, 187, 0.35);
   padding-bottom: 8px;
   display: flex;
   align-items: center;
   gap: 12px;
+  color: $im-text;
 }
 
 .day-date {
-  color: #666;
+  color: $im-muted;
   font-size: 0.9rem;
   font-weight: 500;
-  background: rgba(231, 76, 60, 0.1);
+  background: rgba(76, 141, 187, 0.1);
   padding: 4px 8px;
   border-radius: 6px;
-  border: 1px solid rgba(231, 76, 60, 0.2);
+  border: 1px solid rgba(76, 141, 187, 0.22);
 }
 
 .spot-item {
-  background: #f8f9fa;
-  border-radius: 12px;
+  background: $im-surface;
+  border-radius: 16px;
   padding: 16px;
   margin: 12px 0;
-  border-left: 4px solid #facc01;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #{$im-border};
+  border-left: 4px solid #{$im-primary};
+  box-shadow: 0 4px 14px rgba(44, 93, 129, 0.08);
 }
 
 .spot-name {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #2D3748;
+  color: $im-text;
   margin-bottom: 8px;
 }
 
@@ -49,48 +114,62 @@
 
 .time,
 .duration {
-  color: #6c757d;
+  color: $im-muted;
   font-size: 0.9rem;
   margin-right: 16px;
 }
 
 .spot-category {
-  color: #e74c3c;
-  font-size: 0.85rem;
-  font-weight: 600;
+  color: $im-primary;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .selected-card {
-  background: #ffffff;
-  border-radius: 12px;
+  background: $im-surface;
+  border-radius: 16px;
   margin: 12px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 2px solid;
+  box-shadow: 0 4px 16px rgba(44, 93, 129, 0.1);
+  border: 1px solid #{$im-border};
   overflow: hidden;
 }
 
 .restaurant-card {
-  border-color: #FF9800;
+  border-left: 4px solid #0d9488;
 }
 
 .hotel-card {
-  border-color: #1976D2;
+  border-left: 4px solid #2563eb;
 }
 
 .card-header {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background: #f0f4f8;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.card-header-icon {
+  font-size: 1.25rem;
+  color: $im-primary;
+}
+
+.card-header-icon--restaurant {
+  color: #0d9488;
+}
+
+.card-header-icon--hotel {
+  color: #2563eb;
 }
 
 .card-title {
   flex: 1;
   font-weight: 600;
   margin-left: 8px;
-  color: #2D3748;
+  color: $im-text;
 }
 
 .card-content {
@@ -98,9 +177,9 @@
 }
 
 .place-name {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #2D3748;
+  color: $im-text;
   margin-bottom: 8px;
 }
 
@@ -110,46 +189,86 @@
   gap: 12px;
   margin-bottom: 12px;
   font-size: 0.9rem;
-  color: #666;
+  color: $im-muted;
 }
 
 .meal-time,
 .check-in-time {
-  color: #FF9800;
+  color: $im-primary;
   font-weight: 600;
 }
 
 .booking-links {
   display: flex;
-  gap: 8px;
   flex-wrap: wrap;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.booking-links > .booking-action-btn,
+.booking-links > .booking-link {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.booking-links .booking-action-btn {
+  --background: linear-gradient(180deg, #{$im-primary} 0%, #{$im-primary-dark} 100%);
+  --background-hover: #{$im-primary-dark};
+  --color: #ffffff;
+  --border-width: 0;
+  --border-radius: 10px;
+  --box-shadow: 0 4px 12px rgba(47, 90, 133, 0.3);
+  font-weight: 700;
+  margin: 0;
+  text-transform: none;
+  align-self: stretch;
+  --min-height: 40px;
+}
+
+.booking-links .booking-action-btn ion-icon {
+  color: #ffffff;
 }
 
 .booking-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  color: #495057;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1.5px solid #{$im-primary};
+  border-radius: 10px;
+  color: #{$im-primary-deep};
   text-decoration: none;
   font-size: 0.85rem;
-  transition: all 0.2s;
+  font-weight: 700;
+  transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
+  box-shadow: 0 1px 4px rgba(47, 90, 133, 0.08);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.booking-link ion-icon {
+  font-size: 1.05rem;
+  color: #{$im-primary};
 }
 
 .booking-link:hover {
-  background: #e9ecef;
-  border-color: #adb5bd;
+  background: #{$im-btn-tint};
+  border-color: #{$im-primary-dark};
+  box-shadow: 0 3px 10px rgba(47, 90, 133, 0.15);
 }
 
 .suggestions-section {
   margin-top: 16px;
   padding: 16px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border: 1px solid #dee2e6;
+  background: $im-page-bg;
+  border-radius: 16px;
+  border: 1px solid #{$im-border};
   overflow-x: auto;
   max-width: 100%;
   box-sizing: border-box;
@@ -164,7 +283,7 @@
   font-size: 0.95rem;
   font-weight: 600;
   line-height: 1.45;
-  color: #2d3748;
+  color: $im-text;
 }
 
 .weather-summary-bullets {
@@ -183,11 +302,11 @@
   margin: 0;
   font-size: 0.85rem;
   line-height: 1.45;
-  color: #2c5282;
+  color: #1e40af;
   padding: 10px 12px;
-  background: rgba(66, 153, 225, 0.12);
+  background: rgba(76, 141, 187, 0.12);
   border-radius: 8px;
-  border-left: 3px solid #3182ce;
+  border-left: 3px solid #{$im-primary};
 }
 
 .weather-summary-plain {
@@ -211,7 +330,16 @@
   gap: 8px;
   margin-bottom: 12px;
   font-weight: 600;
-  color: #2D3748;
+  color: $im-text;
+}
+
+.suggestions-header-icon {
+  font-size: 1.2rem;
+  color: $im-primary;
+}
+
+.rating-icon {
+  color: #ca8a04;
 }
 
 .suggestions-grid {
@@ -223,11 +351,11 @@
 }
 
 .suggestion-card {
-  background: #ffffff;
-  border-radius: 8px;
+  background: $im-surface;
+  border-radius: 12px;
   padding: 12px;
-  border: 1px solid #dee2e6;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #{$im-border};
+  box-shadow: 0 2px 8px rgba(44, 93, 129, 0.06);
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: auto;
@@ -235,7 +363,7 @@
 
 .suggestion-name {
   font-weight: 600;
-  color: #2D3748;
+  color: $im-text;
   margin-bottom: 6px;
 }
 
@@ -245,7 +373,7 @@
   gap: 8px;
   margin-bottom: 8px;
   font-size: 0.85rem;
-  color: #666;
+  color: $im-muted;
 }
 
 .suggestion-actions {
@@ -260,9 +388,33 @@
   flex: 1 1 40%;
   min-width: 90px;
   max-width: 100%;
-  font-size: 0.7rem;
-  color: rgb(104, 104, 104);
-  --border-color: rgb(104, 104, 104);
+  font-size: 0.72rem;
+  font-weight: 700;
+  --background: #ffffff;
+  --background-hover: #{$im-btn-tint};
+  --color: #{$im-primary-deep};
+  --border-width: 1.5px;
+  --border-style: solid;
+  --border-color: #{$im-primary};
+  --border-radius: 10px;
+  --box-shadow: 0 1px 3px rgba(47, 90, 133, 0.1);
+}
+
+.suggestion-actions ion-button ion-icon {
+  color: #{$im-primary};
+}
+
+.replace-spot-btn {
+  --background: linear-gradient(180deg, #{$im-primary} 0%, #{$im-primary-dark} 100%) !important;
+  --background-hover: #{$im-primary-dark};
+  --color: #ffffff !important;
+  --border-width: 0;
+  font-weight: 700;
+  --box-shadow: 0 4px 14px rgba(47, 90, 133, 0.35);
+}
+
+.replace-spot-btn ion-icon {
+  color: #ffffff !important;
 }
 
 .no-suggestions {
@@ -271,7 +423,7 @@
   gap: 8px;
   margin-top: 12px;
   padding: 12px;
-  background: #f8f9fa;
+  background: var(--ion-color-step-50, var(--ion-background-color));
   border-radius: 8px;
   color: #6c757d;
   font-style: italic;
@@ -288,7 +440,7 @@
 }
 
 .jeepney-route-info {
-  background: #ffffff;
+  background: var(--ion-item-background);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 8px;
@@ -298,27 +450,27 @@
 
 .route-user-to-spot {
   border-left-color: #28a745;
-  background: linear-gradient(135deg, #f8fff9, #ffffff);
+  background: linear-gradient(135deg, #f8fff9, var(--ion-item-background));
 }
 
 .route-spot-to-restaurant {
   border-left-color: #ffc107;
-  background: linear-gradient(135deg, #fffbf0, #ffffff);
+  background: linear-gradient(135deg, #fffbf0, var(--ion-item-background));
 }
 
 .route-restaurant-to-spot {
   border-left-color: #007bff;
-  background: linear-gradient(135deg, #f0f8ff, #ffffff);
+  background: linear-gradient(135deg, #f0f8ff, var(--ion-item-background));
 }
 
 .route-spot-to-spot {
   border-left-color: #007bff;
-  background: linear-gradient(135deg, #f0f8ff, #ffffff);
+  background: linear-gradient(135deg, #f0f8ff, var(--ion-item-background));
 }
 
 .route-spot-to-hotel {
   border-left-color: #6c757d;
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  background: linear-gradient(135deg, #f8f9fa, var(--ion-item-background));
 }
 
 .route-header {
@@ -370,14 +522,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #ffc107;
+  color: $im-primary;
   font-weight: 500;
   font-size: 0.8rem;
   margin-top: 4px;
 }
 
 .google-directions-info {
-  background: #ffffff;
+  background: var(--ion-item-background);
   border-radius: 8px;
   padding: 12px;
   margin-top: 12px;
@@ -394,7 +546,7 @@
   align-items: flex-start;
   gap: 8px;
   padding: 6px 0;
-  border-bottom: 1px solid #f8f9fa;
+  border-bottom: 1px solid var(--ion-color-step-50, var(--ion-background-color));
 }
 
 .direction-step:last-child {
@@ -444,52 +596,72 @@
 .suggestions-toggle.hotel-toggle {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid #{$im-border};
 }
 
-.suggestions-toggle ion-button {
-  font-size: 0.9rem;
-  --padding-start: 12px;
-  --padding-end: 12px;
+.suggestions-toggle ion-button:not([disabled]) {
+  --background: #{$im-btn-tint};
+  --color: #{$im-primary-deep};
+  --border-width: 1.5px;
+  --border-color: #{$im-primary};
+  font-weight: 700;
+  --border-radius: 10px;
 }
 
-    .suggestion-buttons {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      align-items: stretch;
-    }
+.suggestion-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
 
-    .suggestion-buttons ion-button {
-      min-width: 0;
-      font-size: 0.8rem;
-    }
+.suggestion-buttons ion-button {
+  min-width: 0;
+  font-size: 0.8rem;
+}
 
-    .suggestion-buttons .suggestion-action-btn {
-      width: 100%;
-      max-width: 100%;
-      height: 100%;
-      --min-height: 52px;
-      --border-width: 1px;
-      --border-style: solid;
-      --border-color: #111111;
-      --color: #111111;
-      --background: #ffffff;
-      --background-hover: #f3f4f6;
-      --background-activated: #e5e7eb;
-      font-weight: 600;
-      line-height: 1.2;
-      text-transform: none;
-    }
+/* Primary outline action (Show ... Options / Weather Suggestions) */
+.suggestion-buttons .suggestion-action-btn {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  --min-height: 52px;
+  --border-width: 1.5px;
+  --border-style: solid;
+  --border-color: #{$im-primary};
+  --color: #{$im-primary-deep};
+  --background: #ffffff;
+  --background-hover: #{$im-btn-tint};
+  --background-activated: #{$im-btn-tint-strong};
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: none;
+  --box-shadow: 0 2px 6px rgba(47, 90, 133, 0.1);
+  margin: 0;
+}
 
-    .suggestion-buttons .suggestion-action-btn::part(native) {
-      white-space: normal;
-      text-align: center;
-    }
+/* "Skip for now" — neutral / secondary action */
+.suggestion-buttons .suggestion-action-btn:last-child:not(:first-child) {
+  --border-color: #{$im-neutral-border};
+  --color: #{$im-neutral-text};
+  --background: #ffffff;
+  --background-hover: #{$im-neutral-bg};
+  --background-activated: #e2e8f0;
+  --box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+}
 
-    .suggestion-buttons .suggestion-action-btn ion-icon {
-      color: #111111;
-    }
+.suggestion-buttons .suggestion-action-btn::part(native) {
+  white-space: normal;
+  text-align: center;
+}
+
+.suggestion-buttons .suggestion-action-btn ion-icon {
+  color: #{$im-primary};
+}
+
+.suggestion-buttons .suggestion-action-btn:last-child:not(:first-child) ion-icon {
+  color: #{$im-neutral-text};
+}
 
 .loading-suggestions {
   display: flex;
@@ -497,19 +669,72 @@
   align-items: center;
   gap: 12px;
   padding: 24px;
-  background: #f8f9fa;
+  background: $im-surface;
   margin: 16px;
-  border-radius: 12px;
-  border: 1px solid #dee2e6;
+  border-radius: 16px;
+  border: 1px solid #{$im-border};
+  box-shadow: 0 2px 12px rgba(44, 93, 129, 0.06);
+}
+
+.loading-suggestions--inline {
+  margin: 8px 0 0;
+  padding: 16px;
 }
 
 .loading-suggestions span {
-  color: #6c757d;
+  color: $im-muted;
   font-size: 0.9rem;
   font-weight: 500;
 }
 
-.itinerary-footer ion-button {
-  --background: linear-gradient(45deg, #f1c40f, #f39c12);
-  --color: #000000;
+.itinerary-footer-toolbar {
+  --background: #{$im-page-bg};
+  --padding-top: 10px;
+  --padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+  --padding-start: 12px;
+  --padding-end: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-btn {
+  margin: 0;
+  font-weight: 700;
+  --border-radius: 12px;
+  --min-height: 48px;
+}
+
+.footer-btn--primary {
+  --background: linear-gradient(180deg, #{$im-primary} 0%, #{$im-primary-dark} 100%);
+  --background-hover: #{$im-primary-dark};
+  --color: #ffffff;
+  --box-shadow: 0 6px 20px rgba(47, 90, 133, 0.4);
+}
+
+.footer-btn--primary ion-icon {
+  color: #ffffff;
+}
+
+.footer-btn--outline {
+  --background: #ffffff;
+  --background-hover: #{$im-btn-tint};
+  --color: #{$im-primary-deep};
+  --border-width: 1.5px;
+  --border-color: #{$im-primary};
+  --box-shadow: 0 2px 8px rgba(47, 90, 133, 0.1);
+}
+
+.footer-btn--outline ion-icon {
+  color: #{$im-primary};
+}
+
+.footer-btn--muted {
+  --background: #ffffff;
+  --background-hover: #{$im-neutral-bg};
+  --border-width: 1.5px;
+  --border-color: #{$im-neutral-border};
+  --color: #{$im-neutral-text};
+  --box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+  font-weight: 600;
 }

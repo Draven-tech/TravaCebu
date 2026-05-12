@@ -1,174 +1,188 @@
 <ion-header>
-  <ion-toolbar class="bucket-header">
-    <div class="bucket-header-content">
-      <h2>Itinerary Planner</h2>
-    </div>
+  <ion-toolbar class="planner-toolbar">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/user-dashboard" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>Itinerary Planner</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content fullscreen class="bucket-content ion-padding">
+<ion-content fullscreen class="planner-content ion-padding">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingIcon="chevron-down-circle-outline" pullingText="Pull to refresh"
+      refreshingSpinner="circles" refreshingText="Refreshing...">
+    </ion-refresher-content>
+  </ion-refresher>
 
-  <span class="clear-text-button" (click)="clearPlanner()">
-    CLEAR ALL
-  </span>
+  <div class="planner-intro" *ngIf="!isLoading && spots.length > 0">
+    <div class="planner-intro-text">
+      <p class="planner-count">{{ spots.length }} in planner {{ spots.length === 1 ? 'spot' : 'spots' }}</p>
+      <p class="planner-subtitle">Swipe left on a card to remove, or tap to view details.</p>
+    </div>
+    <ion-button class="clear-all-btn" fill="clear" size="small" (click)="confirmClearPlanner()">
+      <ion-icon name="trash-outline" slot="start"></ion-icon>
+      Clear all
+    </ion-button>
+  </div>
 
-  <ion-item-sliding *ngFor="let spot of spots" class="spot-sliding-card">
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading planner...</p>
+  </div>
 
-    <ion-item-options side="end">
-      <ion-item-option color="danger" (click)="removeFromPlanner(spot.id)">
-        Remove
-      </ion-item-option>
-    </ion-item-options>
+  <div class="empty-state" *ngIf="!isLoading && spots.length === 0">
+    <ion-icon name="map-outline" class="empty-icon"></ion-icon>
+    <h3>Planner is empty</h3>
+    <p>Add tourist spots from the dashboard, then arrange your trip and continue to generate an itinerary.</p>
+    <ion-button expand="block" class="empty-cta" (click)="goToHome()">
+      <ion-icon name="compass-outline" slot="start"></ion-icon>
+      Browse places
+    </ion-button>
+  </div>
 
-    <ion-item lines="none" class="spot-card-horizontal" (click)="openSpotDetail(spot.id)">
-      <ion-thumbnail slot="start">
-        <img [src]="spot.img" alt="{{ spot.name }}" />
-      </ion-thumbnail>
-      <ion-label>
-        <h3>{{ spot.name }}</h3>
-      </ion-label>
-    </ion-item>
+  <div class="planner-list" *ngIf="!isLoading && spots.length > 0">
+    <ion-item-sliding *ngFor="let spot of spots; trackBy: trackBySpotId" class="spot-sliding-card">
+      <ion-item-options side="end">
+        <ion-item-option color="danger" (click)="removeFromPlanner(spot.id)">
+          <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
 
-  </ion-item-sliding>
+      <ion-item lines="none" class="spot-card" button detail="false" (click)="openSpotDetail(spot.id)">
+        <ion-thumbnail slot="start" class="spot-thumb">
+          <img [src]="spot.img || 'assets/img/default.png'" [alt]="spot.name" />
+        </ion-thumbnail>
+        <ion-label class="spot-label">
+          <div class="spot-title-row">
+            <h2 class="spot-name">{{ spot.name }}</h2>
+            <span class="spot-category" *ngIf="spot.category">{{ spot.category }}</span>
+          </div>
+          <p class="spot-location" *ngIf="locationLine(spot)">{{ locationLine(spot) }}</p>
+        </ion-label>
+        <ion-icon class="spot-chevron" name="chevron-forward-outline" slot="end" aria-hidden="true"></ion-icon>
+      </ion-item>
+    </ion-item-sliding>
+  </div>
 
-  <div class="content-spacer"></div>
+  <div class="content-spacer" *ngIf="!isLoading && spots.length > 0"></div>
 
-  <div class="saved-section" *ngIf="itineraries.length > 0">
-    <h3 class="section-title">My Itineraries</h3>
+  <section class="saved-section" *ngIf="!isLoading && itineraries.length > 0">
+    <h2 class="section-heading">Saved itineraries</h2>
+    <p class="section-lead">Load one into the planner to edit, or manage spots below.</p>
 
-    <div *ngFor="let itinerary of itineraries" class="saved-itinerary-card">
-
+    <article *ngFor="let itinerary of itineraries; trackBy: trackByItineraryId" class="saved-itinerary-card">
       <div class="saved-header">
-        <h4>{{ itinerary.name }}</h4>
+        <h3 class="saved-title">{{ itinerary.name }}</h3>
         <div class="saved-actions">
-          <ion-button size="small" fill="clear" (click)="loadItineraryToPlanner(itinerary)">
+          <ion-button size="small" fill="solid" class="saved-edit-btn" (click)="loadItineraryToPlanner(itinerary)">
+            <ion-icon name="create-outline" slot="start"></ion-icon>
             Edit
           </ion-button>
-
-          <ion-button size="small" fill="clear" color="danger" (click)="deleteItinerary(itinerary.id)">
+          <ion-button size="small" fill="outline" color="danger" (click)="deleteItinerary(itinerary.id)">
+            <ion-icon name="trash-outline" slot="start"></ion-icon>
             Delete
           </ion-button>
         </div>
       </div>
 
-      <ion-item-sliding *ngFor="let spot of itinerary.spots">
-        <ion-item-options side="end">
+      <div class="saved-spots" *ngIf="itinerary.spots?.length">
+        <ion-item-sliding *ngFor="let spot of itinerary.spots; trackBy: trackBySavedSpotId" class="saved-spot-sliding">
+          <ion-item-options side="end">
+            <ion-item-option color="danger" (click)="removeFromSaved(itinerary.id, spot.spotId)">
+              <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+            </ion-item-option>
+          </ion-item-options>
 
-          <ion-item-option color="danger" (click)="removeFromSaved(itinerary.id, spot.spotId)">
-            Remove
-          </ion-item-option>
-
-        </ion-item-options>
-
-        <ion-item lines="none" (click)="openSpotDetail(spot.spotId)">
-          <ion-thumbnail slot="start">
-            <img [src]="spot.img" />
-          </ion-thumbnail>
-          <ion-label>
-            <h3>{{ spot.name }}</h3>
-          </ion-label>
-        </ion-item>
-      </ion-item-sliding>
-
-      <ion-button expand="block" fill="outline" color="medium" (click)="clearSaved(itinerary.id)">
-        Clear Spots
-      </ion-button>
-
-    </div>
-  </div>
-
-  <ion-modal [isOpen]="showSetupModal" (didDismiss)="showSetupModal = false" class="setup-modal">
-    <ng-template>
-      <div class="setup-container">
-
-        <div class="setup-header">
-          <div class="header-content">
-            <h1 class="setup-title">Plan Your Adventure</h1>
-            <p class="setup-subtitle">Customize your perfect itinerary</p>
-          </div>
-        </div>
-
-        <div class="setup-content">
-
-          <div class="setup-section">
-            <h3>Itinerary name (optional)</h3>
-
-            <ion-item lines="none">
-              <ion-label position="stacked">Name</ion-label>
-              <ion-input type="text" [placeholder]="defaultNamePlaceholder" [(ngModel)]="setup.itineraryName">
-              </ion-input>
-            </ion-item>
-          </div>
-
-          <div class="setup-section">
-            <h3>How many days?</h3>
-
-            <ion-range min="1" max="14" step="1" [(ngModel)]="setup.days">
-            </ion-range>
-
-            <div class="selected-days">
-              {{ setup.days }} {{ setup.days > 1 ? 'Days' : 'Day' }}
-            </div>
-          </div>
-
-          <div class="setup-section">
-            <h3>Start Date</h3>
-
-            <ion-datetime presentation="date" [(ngModel)]="setup.startDate" [min]="getTodayString()">
-            </ion-datetime>
-          </div>
-
-          <div class="setup-section">
-            <h3>Time Range</h3>
-
-            <ion-datetime presentation="time" [(ngModel)]="setup.startTime">
-            </ion-datetime>
-
-            <ion-datetime presentation="time" [(ngModel)]="setup.endTime">
-            </ion-datetime>
-          </div>
-
-          <div class="setup-summary">
-            <p>
-              {{ getDateDisplay(setup.startDate) }} •
-              {{ setup.days }} day{{ setup.days > 1 ? 's' : '' }} •
-              {{ getTimeDisplay(setup.startTime) }} -
-              {{ getTimeDisplay(setup.endTime) }}
-            </p>
-
-            <p>
-              {{ spots.length }} spot{{ spots.length > 1 ? 's' : '' }}
-            </p>
-          </div>
-
-        </div>
-
-        <div class="setup-actions">
-          <ion-button expand="block" (click)="confirmItinerarySetup()">
-            Proceed
-          </ion-button>
-
-          <ion-button expand="block" fill="clear" (click)="showSetupModal = false">
-            Cancel
-          </ion-button>
-        </div>
-
+          <ion-item lines="none" class="saved-spot-item" button detail="false" (click)="openSpotDetail(spot.spotId)">
+            <ion-thumbnail slot="start" class="spot-thumb spot-thumb--sm">
+              <img [src]="spot.img || 'assets/img/default.png'" [alt]="spot.name" />
+            </ion-thumbnail>
+            <ion-label>
+              <h3 class="saved-spot-name">{{ spot.name }}</h3>
+            </ion-label>
+            <ion-icon class="spot-chevron" name="chevron-forward-outline" slot="end" aria-hidden="true"></ion-icon>
+          </ion-item>
+        </ion-item-sliding>
       </div>
-    </ng-template>
-  </ion-modal>
 
+      <ion-button expand="block" fill="outline" class="clear-spots-btn" (click)="clearSaved(itinerary.id)">
+        <ion-icon name="close-circle-outline" slot="start"></ion-icon>
+        Clear spots
+      </ion-button>
+    </article>
+  </section>
 </ion-content>
 
 <ion-footer class="footer-fixed">
-
-  <ion-button expand="block" (click)="goToMyItineraries()">
-    My Itineraries
+  <ion-button expand="block" (click)="goToMyItineraries()" class="footer-btn footer-btn--secondary">
+    <ion-icon name="calendar-outline" slot="start"></ion-icon>
+    My itineraries
   </ion-button>
-
-  <ion-button expand="block" (click)="openItinerarySetup()">
-    CONTINUE
+  <ion-button expand="block" (click)="openItinerarySetup()" class="footer-btn footer-btn--primary">
+    <ion-icon name="arrow-forward-outline" slot="start"></ion-icon>
+    Continue
   </ion-button>
-
 </ion-footer>
+
+<ion-modal [isOpen]="showSetupModal" (didDismiss)="showSetupModal = false" class="setup-modal">
+  <ng-template>
+    <div class="setup-container">
+      <div class="setup-header">
+        <div class="header-content">
+          <h1 class="setup-title">Plan your trip</h1>
+          <p class="setup-subtitle">Name, dates, and daily hours for your itinerary</p>
+        </div>
+      </div>
+
+      <div class="setup-content">
+        <div class="setup-section">
+          <h3 class="setup-section-title">Itinerary name <span class="optional">(optional)</span></h3>
+          <ion-item lines="none" class="setup-field">
+            <ion-input type="text" [placeholder]="defaultNamePlaceholder" [(ngModel)]="setup.itineraryName"
+              aria-label="Itinerary name">
+            </ion-input>
+          </ion-item>
+        </div>
+
+        <div class="setup-section">
+          <h3 class="setup-section-title">How many days?</h3>
+          <ion-range class="planner-range" min="1" max="14" step="1" [(ngModel)]="setup.days" color="primary">
+          </ion-range>
+          <div class="selected-days">{{ setup.days }} {{ setup.days > 1 ? 'days' : 'day' }}</div>
+        </div>
+
+        <div class="setup-section">
+          <h3 class="setup-section-title">Start date</h3>
+          <ion-datetime presentation="date" [(ngModel)]="setup.startDate" [min]="getTodayString()"
+            class="planner-datetime">
+          </ion-datetime>
+        </div>
+
+        <div class="setup-section">
+          <h3 class="setup-section-title">Time range</h3>
+          <ion-datetime presentation="time" [(ngModel)]="setup.startTime" class="planner-datetime">
+          </ion-datetime>
+          <ion-datetime presentation="time" [(ngModel)]="setup.endTime" class="planner-datetime">
+          </ion-datetime>
+        </div>
+
+        <div class="setup-summary">
+          <p>{{ getDateDisplay(setup.startDate) }} · {{ setup.days }} day{{ setup.days > 1 ? 's' : '' }} ·
+            {{ getTimeDisplay(setup.startTime) }} – {{ getTimeDisplay(setup.endTime) }}</p>
+          <p class="setup-summary-spots">{{ spots.length }} spot{{ spots.length === 1 ? '' : 's' }} in planner</p>
+        </div>
+      </div>
+
+      <div class="setup-actions">
+        <ion-button expand="block" class="setup-proceed-btn" (click)="confirmItinerarySetup()">
+          Proceed
+        </ion-button>
+        <ion-button expand="block" fill="clear" class="setup-cancel-btn" (click)="showSetupModal = false">
+          Cancel
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
 
 <app-bottom-nav></app-bottom-nav>

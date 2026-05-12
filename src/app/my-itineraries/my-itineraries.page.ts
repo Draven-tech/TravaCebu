@@ -36,6 +36,10 @@ export class MyItinerariesPage implements OnInit {
     private route: ActivatedRoute,
   ) { }
 
+  trackByItineraryId(_index: number, itinerary: { id?: string }): string {
+    return itinerary?.id ?? String(_index);
+  }
+
   async ngOnInit() {
     const user = await this.afAuth.currentUser;
     this.userId = user?.uid || null;
@@ -463,10 +467,10 @@ export class MyItinerariesPage implements OnInit {
   async handleRefresh(event: any) {
     try {
       await this.loadItineraries();
-      event.target.complete();
     } catch (error) {
       console.error('Error refreshing itineraries:', error);
-      event.target.complete();
+    } finally {
+      event?.target?.complete?.();
     }
   }
 
@@ -507,20 +511,21 @@ export class MyItinerariesPage implements OnInit {
     this.presentToast('Link copied to clipboard!');
   }
 
-async shareUrl() {
-  try {
-    this.showToast('Generating PDF, please wait...', 'primary');
-    const url = await this.pdfExportService.generateAndUploadPDF(this.itineraries);
-    this.downloadUrl = url;
-    await Clipboard.write({ string: url });
-    this.showToast('PDF link copied to clipboard!', 'success');
-  } catch (err) {
-    console.error('PDF generation failed:', err);
-    this.showToast('Failed to generate PDF link.', 'danger');
+  async shareUrl() {
+    try {
+      this.showToast('Generating PDF, please wait...', 'primary');
+      const url = await this.pdfExportService.generateAndUploadPDF(this.itineraries);
+      this.downloadUrl = url;
+      await Clipboard.write({ string: url });
+      this.showToast('PDF link copied to clipboard!', 'success');
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      this.showToast('Failed to generate PDF link.', 'danger');
+    }
   }
-}
+
   async downloadPdf() {
-  await this.pdfExportService.generateAndSavePDF(this.itineraries);
-}
+    await this.pdfExportService.generateAndSavePDF(this.itineraries);
+  }
 
 }

@@ -1,36 +1,77 @@
-<ion-header>
-      <ion-toolbar color="warning">
-        <ion-title>Itinerary Map</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="close()">
-            <ion-icon name="close"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+<ion-header class="itinerary-map-header">
+  <ion-toolbar class="itinerary-map-toolbar">
+    <ion-title>Itinerary Map</ion-title>
+    <ion-buttons slot="end">
+      <ion-button
+        fill="clear"
+        class="itinerary-map-toolbar__close"
+        (click)="close()"
+        aria-label="Close map">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
 
-    <ion-content>
-      <div class="map-container">
-        <div #mapElement id="itinerary-map"></div>
-        
-        <div *ngIf="!mapLoaded" class="map-loading">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Loading map...</p>
+<ion-content class="itinerary-map-content" [fullscreen]="true">
+  <div class="map-container">
+    <div #mapElement id="itinerary-map"></div>
+
+    <div *ngIf="!mapLoaded" class="map-loading">
+      <div class="map-loading__card">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p class="map-loading__text">Loading map…</p>
+      </div>
+    </div>
+
+    <div class="map-controls-wrap" *ngIf="mapLoaded">
+      <div class="map-controls-panel">
+        <span class="map-controls-panel__label">Basemap</span>
+        <div class="map-controls-panel__row">
+          <ion-button
+            size="small"
+            class="map-ctrl map-ctrl--basemap"
+            [class.map-ctrl--active]="!useEsri"
+            [fill]="!useEsri ? 'solid' : 'outline'"
+            (click)="useEsri && toggleMapType()">
+            <ion-icon slot="start" name="map-outline"></ion-icon>
+            Map
+          </ion-button>
+          <ion-button
+            size="small"
+            class="map-ctrl map-ctrl--basemap"
+            [class.map-ctrl--active]="useEsri"
+            [fill]="useEsri ? 'solid' : 'outline'"
+            (click)="!useEsri && toggleMapType()">
+            <ion-icon slot="start" name="earth"></ion-icon>
+            Satellite
+          </ion-button>
         </div>
-        
-        <div class="map-controls" *ngIf="mapLoaded">
-          <ion-button size="small" (click)="toggleMapType()" [color]="useEsri ? 'primary' : 'secondary'">
-            <ion-icon name="map"></ion-icon>
-            {{ useEsri ? 'Satellite' : 'OSM' }}
+
+        <span class="map-controls-panel__label map-controls-panel__label--spaced">Layers</span>
+        <div class="map-controls-panel__col">
+          <ion-button
+            size="small"
+            expand="block"
+            class="map-ctrl map-ctrl--hotels"
+            [class.map-ctrl--active]="showHotels"
+            [fill]="showHotels ? 'solid' : 'outline'"
+            (click)="toggleHotels()">
+            <ion-icon slot="start" name="bed"></ion-icon>
+            {{ showHotels ? 'Hotels on' : 'Hotels off' }}
           </ion-button>
-          <ion-button size="small" (click)="toggleHotels()" [color]="showHotels ? 'success' : 'medium'">
-            <ion-icon name="bed"></ion-icon>
-            {{ showHotels ? 'Hide' : 'Show' }} Hotels
-          </ion-button>
-          <ion-button size="small" (click)="toggleRestaurants()" [color]="showRestaurants ? 'success' : 'medium'">
-            <ion-icon name="restaurant"></ion-icon>
-            {{ showRestaurants ? 'Hide' : 'Show' }} Restaurants
+          <ion-button
+            size="small"
+            expand="block"
+            class="map-ctrl map-ctrl--restaurants"
+            [class.map-ctrl--active]="showRestaurants"
+            [fill]="showRestaurants ? 'solid' : 'outline'"
+            (click)="toggleRestaurants()">
+            <ion-icon slot="start" name="restaurant"></ion-icon>
+            {{ showRestaurants ? 'Restaurants on' : 'Restaurants off' }}
           </ion-button>
         </div>
       </div>
-    </ion-content>
+    </div>
+  </div>
+</ion-content>

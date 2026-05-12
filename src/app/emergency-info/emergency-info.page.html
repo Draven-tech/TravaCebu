@@ -1,82 +1,114 @@
 <ion-header>
   <ion-toolbar class="emergency-toolbar">
     <ion-buttons slot="start">
-      <ion-button (click)="goBack()" aria-label="Go back">
-        <ion-icon name="arrow-back"></ion-icon>
+      <ion-button class="emergency-toolbar-btn" (click)="goBack()" aria-label="Go back">
+        <ion-icon name="arrow-back" slot="icon-only"></ion-icon>
       </ion-button>
     </ion-buttons>
-    <ion-title>Emergency information</ion-title>
+    <ion-title>Emergency Information</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding emergency-content">
+<ion-content class="emergency-content">
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
-  <p class="lead">
-    Nearby hospitals, police stations, and embassy or consulate listings from Google Places.
-    {{ locationLabel }}.
-  </p>
+  <div class="page-container">
+    <section class="intro-card">
+      <div class="intro-icon">
+        <ion-icon name="alert-circle" aria-hidden="true"></ion-icon>
+      </div>
+      <div class="intro-text">
+        <h2>Need help nearby?</h2>
+        <p>
+          Browse hospitals, police stations, and embassies sourced from Google Places.
+        </p>
+        <div class="intro-location">
+          <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+          <span>{{ locationLabel }}</span>
+        </div>
+      </div>
+    </section>
 
-  <ion-segment [(ngModel)]="segment" class="emergency-segment">
-    <ion-segment-button value="hospital">
-      <ion-label>Hospitals</ion-label>
-    </ion-segment-button>
-    <ion-segment-button value="police">
-      <ion-label>Police</ion-label>
-    </ion-segment-button>
-    <ion-segment-button value="embassy">
-      <ion-label>Embassies</ion-label>
-    </ion-segment-button>
-  </ion-segment>
+    <ion-segment [(ngModel)]="segment" class="emergency-segment" mode="ios">
+      <ion-segment-button value="hospital">
+        <ion-icon name="medkit-outline"></ion-icon>
+        <ion-label>Hospitals</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="police">
+        <ion-icon name="shield-outline"></ion-icon>
+        <ion-label>Police</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="embassy">
+        <ion-icon name="globe-outline"></ion-icon>
+        <ion-label>Embassies</ion-label>
+      </ion-segment-button>
+    </ion-segment>
 
-  <ion-note *ngIf="segment === 'embassy' && embassyFallbackMessage" class="fallback-note">
-    {{ embassyFallbackMessage }}
-  </ion-note>
+    <div *ngIf="segment === 'embassy' && embassyFallbackMessage" class="fallback-note">
+      <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+      <span>{{ embassyFallbackMessage }}</span>
+    </div>
 
-  <ion-searchbar
-    *ngIf="!currentLoading && currentList.length > 0"
-    class="emergency-search"
-    [(ngModel)]="emergencySearchQuery"
-    placeholder="Search this list by name or area…"
-    debounce="200"
-    showClearButton="focus"
-  ></ion-searchbar>
+    <ion-searchbar
+      *ngIf="!currentLoading && currentList.length > 0"
+      class="emergency-search"
+      [(ngModel)]="emergencySearchQuery"
+      placeholder="Search by name or area…"
+      debounce="200"
+      showClearButton="focus"
+    ></ion-searchbar>
 
-  <div *ngIf="currentLoading" class="loading-block">
-    <ion-spinner name="crescent"></ion-spinner>
-    <p>Loading places…</p>
-  </div>
+    <div *ngIf="currentLoading" class="loading-block">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading places…</p>
+    </div>
 
-  <ion-list *ngIf="!currentLoading && currentList.length > 0" lines="full" class="place-list">
-    <ion-item
-      *ngFor="let row of filteredCurrentList"
-      button
-      detail="true"
-      (click)="onPlaceTap(row)"
-    >
-      <ion-icon
-        slot="start"
-        [name]="segment === 'hospital' ? 'medkit-outline' : segment === 'police' ? 'shield-outline' : 'globe-outline'"
-        class="place-icon"
-      ></ion-icon>
-      <ion-label>
-        <h2>{{ row.name }}</h2>
-        <p *ngIf="row.vicinity">{{ row.vicinity }}</p>
-        <p *ngIf="row.rating != null" class="rating-line">Rating: {{ row.rating | number : '1.1-1' }}</p>
-      </ion-label>
-    </ion-item>
-  </ion-list>
+    <div *ngIf="!currentLoading && filteredCurrentList.length > 0" class="place-list">
+      <button
+        *ngFor="let row of filteredCurrentList"
+        type="button"
+        class="place-card"
+        (click)="onPlaceTap(row)"
+      >
+        <div class="place-icon-wrap">
+          <ion-icon
+            [name]="segment === 'hospital' ? 'medkit' : segment === 'police' ? 'shield-checkmark' : 'globe'"
+            class="place-icon"
+            aria-hidden="true"
+          ></ion-icon>
+        </div>
+        <div class="place-info">
+          <h3 class="place-name">{{ row.name }}</h3>
+          <p *ngIf="row.vicinity" class="place-vicinity">
+            <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+            {{ row.vicinity }}
+          </p>
+          <div *ngIf="row.rating != null" class="rating-line">
+            <ion-icon name="star" aria-hidden="true"></ion-icon>
+            <span>{{ row.rating | number : '1.1-1' }}</span>
+          </div>
+        </div>
+        <ion-icon name="chevron-forward" class="place-chevron" aria-hidden="true"></ion-icon>
+      </button>
+    </div>
 
-  <div *ngIf="!currentLoading && currentList.length === 0" class="empty-state">
-    <ion-icon name="location-outline"></ion-icon>
-    <p>No places found for this category. Pull to refresh or move closer to a city center.</p>
-  </div>
+    <div *ngIf="!currentLoading && currentList.length === 0" class="empty-state">
+      <div class="empty-icon-wrap">
+        <ion-icon name="location-outline"></ion-icon>
+      </div>
+      <h3>No places found</h3>
+      <p>No nearby places for this category. Pull to refresh or move closer to a city center.</p>
+    </div>
 
-  <div *ngIf="!currentLoading && currentList.length > 0 && filteredCurrentList.length === 0" class="empty-state empty-state--muted">
-    <ion-icon name="search-outline"></ion-icon>
-    <p>No places match your search. Try another name or area.</p>
+    <div *ngIf="!currentLoading && currentList.length > 0 && filteredCurrentList.length === 0" class="empty-state empty-state--muted">
+      <div class="empty-icon-wrap">
+        <ion-icon name="search-outline"></ion-icon>
+      </div>
+      <h3>No matches</h3>
+      <p>No places match your search. Try another name or area.</p>
+    </div>
   </div>
 
   <app-bottom-nav></app-bottom-nav>

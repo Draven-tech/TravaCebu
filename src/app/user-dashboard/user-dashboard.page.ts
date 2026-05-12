@@ -211,8 +211,12 @@ export class UserDashboardPage implements OnInit, OnDestroy {
 
   async toggleBucketList(spot: any) {
     if (this.isInBucketList(spot.id)) {
-      await this.removeFromBucketList(spot.id);
-      this.showAlert('Removed', `${spot.name} has been removed from your bucket list.`);
+      const confirmRemove = await this.alertCtrl.create({
+        header: 'Remove from Bucket List',
+        message: `Would you like to remove ${spot.name} from your bucket list?`,
+        buttons: [{ text: 'Cancel', role: 'cancel' }, { text: 'Remove', handler: async () => { await this.removeFromBucketList(spot.id); } }]
+      });
+      await confirmRemove.present();
     } else {
       const confirmAdd = await this.alertCtrl.create({
         header: 'Add to Bucket List',
@@ -236,22 +240,60 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     return !!spotId && this.itineraryPlannerService.isInPlanner(spotId);
   }
 
+  async toggleItineraryPlanner(spot: any) {
+    if (this.isInItinerary(spot.id)) {
+      const confirmRemove = await this.alertCtrl.create({
+        header: 'Remove from Itinerary',
+        message: `Would you like to remove ${spot.name} from your itinerary planner?`,
+        buttons: [
+          { text: 'Cancel', role: 'cancel' },
+          {
+            text: 'Remove',
+            handler: async () => {
+              try {
+                await this.itineraryPlannerService.removeSpotFromPlanner(spot.id);
+                this.showAlert('Removed', `${spot.name} has been removed from your itinerary planner.`);
+              } catch (error) {
+                console.error('Error removing from itinerary planner:', error);
+                this.showAlert('Error', 'Could not remove this spot from your itinerary planner. Please try again.');
+              }
+            },
+          },
+        ],
+      });
+      await confirmRemove.present();
+    } else {
+      const confirmAdd = await this.alertCtrl.create({
+        header: 'Add to Itinerary',
+        message: `Would you like to add ${spot.name} to your itinerary planner?`,
+        buttons: [
+          { text: 'Cancel', role: 'cancel' },
+          {
+            text: 'Add',
+            handler: async () => {
+              const added = await this.addToItineraryPlanner(spot);
+              if (added) {
+                this.showToast(`${spot.name} added to itinerary planner!`, 'success');
+              }
+            },
+          },
+        ],
+      });
+      await confirmAdd.present();
+    }
+  }
+
   async addToBucketList(spot: any) {
     await this.bucketService.addToBucket(spot);
     await this.loadBucketList();
   }
-  async addToItineraryPlanner(spot: any) {
+
+  async addToItineraryPlanner(spot: any): Promise<boolean> {
     try {
-      const added = await this.itineraryPlannerService.addSpotToPlanner(spot);
-      if (!added) {
-        console.log('Spot already in planner');
-        return;
-      }
-
-      console.log('Added to itinerary planner');
-
+      return await this.itineraryPlannerService.addSpotToPlanner(spot);
     } catch (error) {
       console.error('Error adding to itinerary planner:', error);
+      return false;
     }
   }
 

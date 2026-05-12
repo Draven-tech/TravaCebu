@@ -1,10 +1,10 @@
 .create-post-content {
-  --background: #f8f9fa;
+  --background: var(--ion-background-color);
 }
 
 .post-form {
   padding: 16px;
-  background: #ffffff;
+  background: var(--ion-item-background);
   border-radius: 12px;
   margin: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -65,7 +65,7 @@
   margin-bottom: 16px;
 
   ion-item {
-    --background: #f8f9fa;
+    --background: var(--ion-color-step-50, var(--ion-background-color));
     --border-radius: 8px;
     --padding-start: 12px;
     color: #000;
@@ -161,7 +161,7 @@
 
   .action-btn {
     --color: #666;
-    --background: #f8f9fa;
+    --background: var(--ion-color-step-50, var(--ion-background-color));
     --border-radius: 8px;
     --padding-start: 12px;
     --padding-end: 12px;
@@ -184,7 +184,7 @@
   margin-bottom: 16px;
 
   ion-segment {
-    --background: #f8f9fa;
+    --background: var(--ion-color-step-50, var(--ion-background-color));
     border-radius: 8px;
     padding: 4px;
 
@@ -202,7 +202,7 @@
   margin-bottom: 16px;
 
   ion-item {
-    --background: #f8f9fa;
+    --background: var(--ion-color-step-50, var(--ion-background-color));
     --border-radius: 8px;
     --padding-start: 12px;
     color: #000;

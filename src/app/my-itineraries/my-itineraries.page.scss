@@ -1,31 +1,58 @@
+.itineraries-toolbar {
+  --background: var(--ion-color-primary, #4c8dbb);
+  --color: #ffffff;
+  --border-width: 0;
+  box-shadow: none;
+
+  ion-title {
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  ion-back-button {
+    --color: #ffffff;
+  }
+
+  ion-button {
+    --color: #ffffff;
+  }
+}
+
+.itineraries-content {
+  --background: var(--ion-background-color);
+  --padding-bottom: 80px;
+}
+
+.itineraries-intro {
+  margin-bottom: 16px;
+}
+
+.itineraries-count {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.itineraries-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--ion-color-medium);
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 50vh;
-  
+  min-height: 45vh;
+  text-align: center;
+
   p {
     margin-top: 16px;
-    color: #666;
-  }
-}
-ion-content {
-  --padding-bottom: 80px; 
-}
-
-.share-actions {
-  display: flex;
-  justify-content: flex-start;
-  gap: 10px;
-  margin: 10px 0;
-
-  ion-button {
-    --border-radius: 20px;
-    --padding-start: 10px;
-    --padding-end: 10px;
-    font-size: 14px;
-    height: 34px;
+    color: var(--ion-color-medium);
+    font-size: 0.95rem;
   }
 }
 
@@ -34,137 +61,204 @@ ion-content {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 60vh;
+  min-height: 50vh;
   text-align: center;
-  padding: 20px;
-  
+  padding: 24px 16px;
+
   .empty-icon {
     font-size: 4rem;
-    color: #ccc;
+    color: var(--ion-color-step-400, #cbd5e1);
     margin-bottom: 16px;
   }
-  
+
   h3 {
-    color: #333;
-    margin-bottom: 8px;
+    color: var(--ion-text-color);
+    margin: 0 0 8px;
     font-weight: 600;
+    font-size: 1.2rem;
   }
-  
+
   p {
-    color: #666;
-    margin-bottom: 24px;
+    color: var(--ion-color-medium);
+    margin: 0 0 24px;
     line-height: 1.5;
+    max-width: 320px;
+  }
+
+  .empty-cta {
+    max-width: 280px;
+    --background: var(--ion-color-primary, #4c8dbb);
+    --color: #ffffff;
+    --border-radius: 12px;
+    font-weight: 600;
+    --box-shadow: 0 4px 14px rgba(76, 141, 187, 0.35);
   }
 }
 
-.itinerary-card {
+.itineraries-body {
+  position: relative;
+  z-index: 1;
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 16px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  
-  ion-card-header {
-    padding: 16px;
-    
-    .itinerary-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      
-      .itinerary-info {
-        flex: 1;
-        
-        ion-card-title {
-          font-size: 1.1rem;
-          font-weight: 600;
-          margin-bottom: 4px;
-        }
-        
-        ion-card-subtitle {
-          display: flex;
-          align-items: center;
 
-          font-size: 0.9rem;
-          ion-icon {
-            margin-right: 4px;
-          }
-        }
-      }
-      
-      .itinerary-status {
-        ion-badge {
-          font-size: 0.8rem;
-          padding: 4px 8px;
-        }
-      }
-    }
-  }
-  
-  ion-card-content {
-    padding: 16px;
-    
-    .itinerary-details {
-      margin-bottom: 16px;
-      
-      .detail-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 8px;
-        font-size: 0.9rem;
-
-        
-        ion-icon {
-          margin-right: 8px;
-
-          min-width: 16px;
-        }
-      }
-    }
-    
-    .itinerary-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      
-      ion-button {
-        flex: 1;
-        min-width: 80px;
-        --padding-start: 8px;
-        --padding-end: 8px;
-        font-size: 0.8rem;
-        --color: #a5a5a5;
-        --border-color: #a5a5a5;
-        
-        ion-icon {
-          margin-right: 4px;
-          font-size: 16px;
-        }
-      }
-    }
+  .share-action-btn {
+    --border-radius: 999px;
+    --border-color: rgba(76, 141, 187, 0.45);
+    --color: var(--ion-color-primary, #4c8dbb);
+    --background: var(--ion-item-background);
+    font-weight: 600;
+    font-size: 0.8rem;
+    height: 38px;
+    margin: 0;
+    box-shadow: 0 2px 8px rgba(44, 93, 129, 0.08);
   }
 }
-
-
-@media (max-width: 480px) {
-  .itinerary-actions {
-    ion-button {
-      flex: 1 1 calc(50% - 4px);
-      min-width: 120px;
-    }
-  }
-}
-
 
 .itinerary-card {
-  animation: slideInUp 0.3s ease-out;
+  background: var(--ion-item-background);
+  border-radius: 16px;
+  border: 1px solid var(--ion-color-step-150, #d8e6f2);
+  box-shadow: 0 4px 16px rgba(44, 93, 129, 0.1);
+  margin-bottom: 14px;
+  padding: 16px;
+  animation: slideInUp 0.35s ease-out;
+}
+
+.itinerary-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.itinerary-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.itinerary-title {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  line-height: 1.25;
+}
+
+.itinerary-date-line {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--ion-color-medium);
+
+  ion-icon {
+    font-size: 1.05rem;
+    color: var(--ion-color-step-500, #94a3b8);
+    flex-shrink: 0;
+  }
+}
+
+.itinerary-status-pill {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(76, 141, 187, 0.14);
+  color: var(--ion-color-primary, #4c8dbb);
+
+  &--done {
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+  }
+}
+
+.itinerary-details {
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--ion-color-step-150, #eef2f7);
+  margin-bottom: 4px;
+
+  .detail-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    color: var(--ion-color-medium);
+    line-height: 1.35;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    ion-icon {
+      margin-top: 2px;
+      font-size: 1.1rem;
+      color: var(--ion-color-step-500, #94a3b8);
+      flex-shrink: 0;
+    }
+  }
+}
+
+.itinerary-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-color-step-150, #eef2f7);
+  width: 100%;
+
+  ion-button {
+    margin: 0;
+    width: 100%;
+    min-width: 0;
+    font-weight: 600;
+    font-size: 0.72rem;
+    --border-radius: 10px;
+    min-height: 40px;
+    --padding-start: 6px;
+    --padding-end: 6px;
+  }
+
+  .action-primary {
+    --background: var(--ion-color-primary, #4c8dbb);
+    --color: #ffffff;
+    --box-shadow: 0 4px 12px rgba(76, 141, 187, 0.3);
+  }
+
+  .action-secondary {
+    --border-color: var(--ion-color-step-250, #cbd5e1);
+    --color: var(--ion-text-color);
+    --background: var(--ion-item-background);
+  }
+
+  .action-danger {
+    --border-width: 1px;
+  }
+}
+
+@media (max-width: 520px) {
+  .itinerary-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @keyframes slideInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
-} 
+}

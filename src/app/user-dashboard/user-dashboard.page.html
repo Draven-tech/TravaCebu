@@ -50,7 +50,10 @@
 
         <div class="suggestion-content">
           <h3>{{ spot.name }}</h3>
-          <ion-button fill="solid" size="small" (click)="addToItineraryPlanner(spot); $event.stopPropagation()">
+          <ion-button fill="solid" size="small" (click)="toggleItineraryPlanner(spot); $event.stopPropagation()"
+            [attr.aria-label]="
+              isInItinerary(spot.id) ? 'Remove from itinerary planner' : 'Add to itinerary planner'
+            ">
             <ion-icon [name]="isInItinerary(spot.id) ? 'checkmark-circle' : 'calendar-outline'"></ion-icon>
             <span>
               {{ isInItinerary(spot.id) ? 'ADDED TO ITINERARY' : 'ADD TO ITINERARY' }}
@@ -83,9 +86,7 @@
             <div class="image-wrapper">
               <img [src]="spot.img || 'assets/img/default.png'" [alt]="spot.name" />
               <ion-button class="bucket-heart-btn" fill="clear" size="small"
-                (click)="toggleBucketList(spot); $event.stopPropagation()" [attr.aria-label]="
-                  isInBucketList(spot.id) ? 'Remove from bucket list' : 'Add to bucket list'
-                ">
+                (click)="toggleBucketList(spot); $event.stopPropagation()">
                 <ion-icon [name]="isInBucketList(spot.id) ? 'basket' : 'basket-outline'"></ion-icon>
               </ion-button>
               <div class="visited-overlay" *ngIf="hasVisited(spot.id)">
@@ -100,7 +101,10 @@
           </div>
 
           <ion-card-content class="itinerary-action">
-            <ion-button fill="clear" size="small" (click)="addToItineraryPlanner(spot); $event.stopPropagation()">
+            <ion-button fill="clear" size="small" (click)="toggleItineraryPlanner(spot); $event.stopPropagation()"
+              [attr.aria-label]="
+                isInItinerary(spot.id) ? 'Remove from itinerary planner' : 'Add to itinerary planner'
+              ">
               <ion-icon [name]="isInItinerary(spot.id) ? 'checkmark-circle' : 'calendar-outline'"></ion-icon>
               <span>
                 {{ isInItinerary(spot.id) ? 'ADDED TO ITINERARY' : 'ADD TO ITINERARY' }}
@@ -166,5 +170,5 @@
     <p>You haven't recorded any visits yet. Start exploring Cebu and your visited spots will appear here.</p>
   </ion-text>
 
-  <app-bottom-nav></app-bottom-nav>
 </ion-content>
+<app-bottom-nav></app-bottom-nav>

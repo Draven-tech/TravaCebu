@@ -5,6 +5,7 @@ import { AlertController, ModalController, LoadingController } from '@ionic/angu
 import { ItineraryModalComponent } from '../components/itinerary-modal/itinerary-modal.component';
 import { ItineraryService, ItineraryDay } from '../services/itinerary.service';
 import { CalendarService } from '../services/calendar.service';
+import { AngularFireAuth } from '@angular/fire/compat/auth';
 
 @Component({
   selector: 'app-itinerary-planner',
@@ -34,7 +35,7 @@ export class ItineraryPlannerPage implements OnInit {
   editing = false;
   currentItineraryId: string | null = null;
 
-  isLoading = false;
+  isLoading = true;
 
   constructor(
     private itineraryplannerService: ItineraryPlannerService,
@@ -43,25 +44,69 @@ export class ItineraryPlannerPage implements OnInit {
     private modalCtrl: ModalController,
     private loadingCtrl: LoadingController,
     private itineraryService: ItineraryService,
-    private calendarService: CalendarService
+    private calendarService: CalendarService,
+    private afAuth: AngularFireAuth
   ) { }
 
+  trackBySpotId(_index: number, spot: { id?: string }): string {
+    return spot?.id ?? '';
+  }
+
+  trackByItineraryId(_index: number, itinerary: { id?: string }): string {
+    return itinerary?.id ?? String(_index);
+  }
+
+  trackBySavedSpotId(_index: number, spot: { spotId?: string }): string {
+    return spot?.spotId ?? String(_index);
+  }
+
+  truncate(text: string | undefined, max: number): string {
+    if (!text) return '';
+    const t = text.trim();
+    if (t.length <= max) return t;
+    return `${t.slice(0, Math.max(0, max - 1)).replace(/\s+$/, '')}…`;
+  }
+
+  locationLine(spot: any): string | undefined {
+    const name = spot?.location_name;
+    if (typeof name === 'string' && name.trim()) {
+      return this.truncate(name.trim(), 72);
+    }
+    const loc = spot?.location;
+    if (typeof loc === 'string' && loc.trim()) {
+      return this.truncate(loc.trim(), 72);
+    }
+    return undefined;
+  }
+
+  async handleRefresh(event: any) {
+    await this.loadPageData();
+    event?.target?.complete?.();
+  }
+
   async loadItineraries() {
-    this.isLoading = true;
     try {
       this.itineraries = await this.itineraryplannerService.getItineraries();
     } catch (error) {
       console.error(error);
       this.showAlert('Error', 'Failed to load itineraries.');
+    }
+  }
+
+  async loadPageData() {
+    this.isLoading = true;
+    try {
+      await this.loadItineraries();
+      await this.loadPlannerSpots();
     } finally {
       this.isLoading = false;
     }
   }
 
   async ngOnInit() {
-    await this.loadItineraries();
-    await this.loadPlannerSpots();
+    await this.loadPageData();
   }
+
   async loadPlannerSpots() {
     this.spots = await this.itineraryplannerService.getPlannerSpots();
   }
@@ -71,8 +116,7 @@ export class ItineraryPlannerPage implements OnInit {
   }
 
   async ionViewWillEnter() {
-    await this.loadItineraries();
-    await this.loadPlannerSpots();
+    await this.loadPageData();
   }
 
   async removeFromPlanner(spotId: string) {
@@ -83,6 +127,23 @@ export class ItineraryPlannerPage implements OnInit {
   async clearPlanner() {
     this.spots = [];
     await this.savePlannerSpotsToStorage();
+  }
+
+  async confirmClearPlanner() {
+    if (this.spots.length === 0) return;
+    const alert = await this.alertCtrl.create({
+      header: 'Clear planner?',
+      message: 'All spots will be removed from the planner. Saved itineraries are not deleted.',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Clear all',
+          role: 'destructive',
+          handler: () => this.clearPlanner()
+        }
+      ]
+    });
+    await alert.present();
   }
 
   async removeFromSaved(itineraryId: string, spotId: string) {
@@ -155,7 +216,7 @@ export class ItineraryPlannerPage implements OnInit {
       (await this.calendarService.getNextDefaultItineraryName());
 
     if (this.editing && this.currentItineraryId) {
-      for (let spot of this.spots) {
+      for (const spot of this.spots) {
         await this.itineraryplannerService.addSpotToItinerary(
           this.currentItineraryId,
           spot,
@@ -169,7 +230,7 @@ export class ItineraryPlannerPage implements OnInit {
         days: this.setup.days
       });
 
-      for (let spot of this.spots) {
+      for (const spot of this.spots) {
         await this.itineraryplannerService.addSpotToItinerary(
           id,
           spot,
@@ -185,25 +246,25 @@ export class ItineraryPlannerPage implements OnInit {
     await this.loadItineraries();
   }
 
- async showItinerary() {
-  const modal = await this.modalCtrl.create({
-    component: ItineraryModalComponent,
-    componentProps: {
-      itinerary: this.itinerary,
-      editable: true,
-      onEdit: () => this.editItinerary(),
-      originalSpots: this.spots,
-      itineraryName: this.setup.itineraryName,
-      onNameChange: (name: string) => {
-        this.setup.itineraryName = name;
-      },
+  async showItinerary() {
+    const modal = await this.modalCtrl.create({
+      component: ItineraryModalComponent,
+      componentProps: {
+        itinerary: this.itinerary,
+        editable: true,
+        onEdit: () => this.editItinerary(),
+        originalSpots: this.spots,
+        itineraryName: this.setup.itineraryName,
+        onNameChange: (name: string) => {
+          this.setup.itineraryName = name;
+        },
 
-      onSave: () => this.saveItinerary()
-    }
-  });
+        onSave: () => this.saveItinerary()
+      }
+    });
 
-  await modal.present();
-}
+    await modal.present();
+  }
 
   async editItinerary() {
     this.showSetupModal = true;
@@ -222,12 +283,24 @@ export class ItineraryPlannerPage implements OnInit {
     });
     await alert.present();
   }
+
   openSpotDetail(spotId: string) {
     this.navCtrl.navigateForward(`/tourist-spot-detail/${spotId}`);
   }
+
+  async goToHome() {
+    const user = await this.afAuth.currentUser;
+    if (user) {
+      this.navCtrl.navigateForward(`/user-dashboard/${user.uid}`);
+    } else {
+      this.navCtrl.navigateRoot('/login');
+    }
+  }
+
   goToMyItineraries() {
     this.navCtrl.navigateForward('/my-itineraries');
   }
+
   getDateDisplay(dateString: string): string {
     if (!dateString) return 'Not set';
     const date = new Date(dateString);
@@ -238,6 +311,7 @@ export class ItineraryPlannerPage implements OnInit {
       day: 'numeric'
     });
   }
+
   getTimeDisplay(timeString: string): string {
     if (!timeString) return 'Not set';
     const time = timeString.substring(11, 16);

@@ -1,91 +1,219 @@
-// Remove unused imports/global styles
-// ::ng-deep .itinerary-modal (unused - no matching HTML)
-
-.bucket-header {
-  --background: linear-gradient(45deg, #f1c40f, #f39c12);
+.bucket-toolbar {
+  --background: var(--ion-color-primary, #4c8dbb);
+  --color: #ffffff;
+  --border-width: 0;
   box-shadow: none;
 
-  .bucket-header-content {
-
-    padding: 16px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  ion-title {
+    color: #ffffff;
+    font-weight: 600;
   }
 
-  h2 {
-    margin: 0;
-    font-size: 1.4rem;
-    color: #2D3748;
-    font-weight: bold;
+  ion-back-button {
+    --color: #ffffff;
   }
 }
 
 .bucket-content {
-  background: #ffffff;
-  animation: fadeIn 0.8s ease-out;
-  position: relative;
+  --background: var(--ion-background-color);
   --padding-bottom: 140px;
+  position: relative;
+}
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(231, 76, 60, 0.08) 0%, transparent 50%),
-                radial-gradient(circle, rgba(46, 204, 113, 0.05) 30%, transparent 70%),
-                radial-gradient(circle, rgba(230, 126, 34, 0.04) 60%, transparent 90%);
-    z-index: 0;
-    pointer-events: none;
+.bucket-intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.bucket-intro-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.bucket-count {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.bucket-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--ion-color-medium);
+}
+
+.clear-all-btn {
+  flex-shrink: 0;
+  --color: var(--ion-color-medium);
+  font-weight: 600;
+  font-size: 0.8rem;
+  margin: 0;
+  height: auto;
+  min-height: 36px;
+
+  &[disabled] {
+    opacity: 0.45;
   }
 }
 
-.clear-text-button {
-  color: #747474;
-  font-weight: 600;
-  font-size: 0.9rem;
-  padding: 6px 12px;
-  border-radius: 8px;
-  transition: background 0.2s;
-  cursor: pointer;
-  display: inline-block;
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 45vh;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+
+  p {
+    margin-top: 16px;
+    color: var(--ion-color-medium);
+    font-size: 0.95rem;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  text-align: center;
+  padding: 24px 16px;
+  position: relative;
+  z-index: 1;
+
+  .empty-icon {
+    font-size: 4rem;
+    color: var(--ion-color-step-400, #cbd5e1);
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    color: var(--ion-text-color);
+    margin: 0 0 8px;
+    font-weight: 600;
+    font-size: 1.2rem;
+  }
+
+  p {
+    color: var(--ion-color-medium);
+    margin: 0 0 24px;
+    line-height: 1.5;
+    max-width: 320px;
+  }
+
+  .empty-cta {
+    max-width: 280px;
+    --background: var(--ion-color-primary, #4c8dbb);
+    --color: #ffffff;
+    --border-radius: 12px;
+    font-weight: 600;
+    --box-shadow: 0 4px 14px rgba(76, 141, 187, 0.35);
+  }
+}
+
+.bucket-list {
+  position: relative;
+  z-index: 1;
 }
 
 .spot-sliding-card {
   margin-bottom: 12px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(44, 93, 129, 0.1);
 
   ion-item {
-    border-radius: 12px;
-    --background: linear-gradient(45deg, #f1c40f, #f0a733);
-    --padding-start: 12px;
-    --padding-end: 12px;
-    --min-height: 100px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    --background: var(--ion-item-background);
+    --padding-start: 14px;
+    --padding-end: 10px;
+    --inner-padding-end: 4px;
+    --min-height: 108px;
+    border-radius: 16px;
+    border: 1px solid var(--ion-color-step-150, #d8e6f2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
-  ion-thumbnail {
-    width: 80px;
-    height: 80px;
-    border-radius: 12px;
-    overflow: hidden;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+  ion-item-option {
+    font-weight: 600;
   }
+}
 
-  ion-label h3 {
-    font-size: 1rem;
-    font-weight: bold;
-    color: #2d3748;
-    margin: 0;
+.spot-thumb {
+  --border-radius: 14px;
+  --size: 88px;
+  width: 88px;
+  height: 88px;
+  margin-inline-end: 14px;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
+}
+
+.spot-label {
+  margin: 0;
+  overflow: hidden;
+}
+
+.spot-title-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.spot-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  line-height: 1.25;
+  width: 100%;
+  min-width: 0;
+}
+
+.spot-category {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ion-color-primary, #4c8dbb);
+  background: rgba(76, 141, 187, 0.12);
+  padding: 4px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.spot-location {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+  line-height: 1.35;
+}
+
+.spot-chevron {
+  color: var(--ion-color-step-500, #94a3b8);
+  font-size: 1.25rem;
+  margin-inline-start: 4px;
 }
 
 .footer-fixed {
@@ -98,18 +226,11 @@
     margin: 8px 16px;
     --border-radius: 12px;
     font-weight: 600;
-    --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .generate-itinerary-btn {
-    --background: #f8c647;
-    --color: #030303;
-    margin-top: 5px;
   }
 
   .my-itineraries-btn {
-    --background: #888888;
-    --color: #030303;
+    --background: var(--ion-color-primary, #4c8dbb);
+    --color: #ffffff;
+    --box-shadow: 0 6px 18px rgba(76, 141, 187, 0.35);
   }
-
 }

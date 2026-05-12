@@ -1,4 +1,4 @@
-﻿import { Component, Input } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { ModalController, IonicModule } from '@ionic/angular';
 import { Badge, isMetalTierBadgeId, TierHistoryRow } from '../../services/badge.service';
 import { CommonModule } from '@angular/common';
@@ -64,6 +64,15 @@ export class BadgeDetailModalComponent {
         case 'silver': return 'assets/badges/silverExplorerBadge.png';
         case 'gold': return 'assets/badges/goldExplorerBadge.png';
         default: return 'assets/badges/lockedExplorerBadge.png';
+      }
+    }
+
+    if (this.badge.id === 'review_master') {
+      switch (this.badge.tier) {
+        case 'bronze': return 'assets/badges/bronzeReviewMasterBadge.png';
+        case 'silver': return 'assets/badges/silverReviewMasterBadge.png';
+        case 'gold': return 'assets/badges/goldReviewMasterBadge.png';
+        default: return 'assets/badges/lockedReviewMasterBadge.png';
       }
     }
     

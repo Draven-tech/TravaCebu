@@ -1,4 +1,4 @@
-﻿import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
@@ -13,6 +13,7 @@ import { BucketService } from '../services/bucket-list.service';
 import { ItineraryPlannerService } from '../services/itinerary-planner.service';
 import { LocalTipsService } from '../services/local-tips.service';
 import { CalendarService, GlobalEvent } from '../services/calendar.service';
+import { BadgeService } from '../services/badge.service';
 
 @Component({
   selector: 'app-tourist-spot-detail',
@@ -66,7 +67,8 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
     private localTipsService: LocalTipsService,
     private calendarService: CalendarService,
     private cdr: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
+    private badgeService: BadgeService
   ) { }
 
   ngOnInit() {
@@ -236,6 +238,11 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
         .collection('reviews')
         .add(reviewData);
 
+      await this.incrementUserSpotReviewCount(user?.uid);
+      if (user?.uid) {
+        await this.refreshReviewMasterBadge(user.uid);
+      }
+
       this.comment = '';
       this.rating = 5;
       this.selectedFile = undefined;
@@ -300,6 +307,7 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
     try {
       const imageUrl = await this.uploadImage();
       const { name, comment } = this.reviewForm.value;
+      const user = await this.afAuth.currentUser;
 
       const reviewData: any = {
         name,
@@ -315,6 +323,11 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
         .collection('reviews')
         .add(reviewData);
 
+      await this.incrementUserSpotReviewCount(user?.uid);
+      if (user?.uid) {
+        await this.refreshReviewMasterBadge(user.uid);
+      }
+
       this.showAlert('Success', 'Review submitted successfully');
       this.reviewForm.reset();
       this.removeImage();
@@ -324,6 +337,50 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error uploading review:', error);
       this.showAlert('Error', 'Failed to upload review');
+    }
+  }
+
+  /**
+   * Bumps `spotReviewsSubmittedCount` on `users/{uid}` (every review counts). No FieldValue — uses the same
+   * compat Firestore instance as AngularFirestore so writes match your security rules.
+   */
+  private async incrementUserSpotReviewCount(uid?: string | null): Promise<void> {
+    if (!uid) {
+      console.warn(
+        '[TouristSpotDetail] spotReviewsSubmittedCount not updated: sign in to link reviews to your user profile.'
+      );
+      return;
+    }
+    const db = this.firestore.firestore;
+    const ref = db.collection('users').doc(uid);
+    try {
+      await db.runTransaction(async (transaction) => {
+        const snap = await transaction.get(ref);
+        let n = 0;
+        if (snap.exists) {
+          const v = (snap.data() as Record<string, unknown> | undefined)?.['spotReviewsSubmittedCount'];
+          if (typeof v === 'number' && !Number.isNaN(v)) {
+            n = v;
+          } else if (v != null) {
+            const parsed = Number(v);
+            if (!Number.isNaN(parsed)) {
+              n = parsed;
+            }
+          }
+        }
+        transaction.set(ref, { spotReviewsSubmittedCount: n + 1 }, { merge: true });
+      });
+    } catch (e) {
+      console.error('[TouristSpotDetail] spotReviewsSubmittedCount update failed:', e);
+    }
+  }
+
+  private async refreshReviewMasterBadge(uid: string): Promise<void> {
+    try {
+      const snap = await this.firestore.collection('users').doc(uid).get().toPromise();
+      await this.badgeService.evaluateReviewMasterBadge(uid, snap?.data());
+    } catch (e) {
+      console.error('[TouristSpotDetail] evaluateReviewMasterBadge failed:', e);
     }
   }
 

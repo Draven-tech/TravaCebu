@@ -1,8 +1,11 @@
-﻿import { Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
+
+/** Top-level on `users/{uid}`; incremented when a signed-in user submits a spot review (tourist-spot-detail). */
+const SPOT_REVIEWS_SUBMITTED_COUNT_FIELD = 'spotReviewsSubmittedCount';
 
 ///////////////////////////////////////////////////// global ///////////////////////////////////////////////////
 
@@ -81,9 +84,24 @@ export interface UserBadgeProgress {
     achievedAt?: Date;
     tierAchievedAt?: TierAchievedAtStored;
   };
+  review_master: {
+    tier: 'bronze' | 'silver' | 'gold' | 'locked';
+    progress: number;
+    unlocked: boolean;
+    achievedAt?: Date;
+    tierAchievedAt?: TierAchievedAtStored;
+  };
 }
 
-const METAL_TIER_BADGE_ID_LIST = ['itinerary_planner', 'photo_enthusiast', 'social_butterfly', 'explorer', 'consistency', 'local_expert'] as const;
+const METAL_TIER_BADGE_ID_LIST = [
+  'itinerary_planner',
+  'photo_enthusiast',
+  'social_butterfly',
+  'explorer',
+  'consistency',
+  'local_expert',
+  'review_master'
+] as const;
 
 export function isMetalTierBadgeId(badgeId: string): boolean {
   return (METAL_TIER_BADGE_ID_LIST as readonly string[]).includes(badgeId);
@@ -152,6 +170,15 @@ export class BadgeService {
       icon: 'assets/badges/bronzeLocalExpertBadge.png',
       lockedIcon: 'assets/badges/lockedLocalExpertBadge.png',
       maxProgress: 10
+    },
+    review_master: {
+      id: 'review_master',
+      title: 'Review Master',
+      description:
+        'Submit tourist spot reviews while signed in. 5+ reviews for Bronze, 15+ for Silver, 30+ for Gold. Each submission counts toward your total.',
+      icon: 'assets/badges/bronzeReviewMasterBadge.png',
+      lockedIcon: 'assets/badges/lockedReviewMasterBadge.png',
+      maxProgress: 30
     }
   };
 
@@ -226,6 +253,11 @@ export class BadgeService {
         tier: 'locked',
         progress: 0,
         unlocked: false
+      },
+      review_master: {
+        tier: 'locked',
+        progress: 0,
+        unlocked: false
       }
     };
 
@@ -242,7 +274,8 @@ export class BadgeService {
           social_butterfly: { ...defaultBadges.social_butterfly, ...raw.social_butterfly },
           explorer: { ...defaultBadges.explorer, ...raw.explorer },
           consistency: { ...defaultBadges.consistency, ...raw.consistency },
-          local_expert: { ...defaultBadges.local_expert, ...raw.local_expert }
+          local_expert: { ...defaultBadges.local_expert, ...raw.local_expert },
+          review_master: { ...defaultBadges.review_master, ...raw.review_master }
         };
       })
     );
@@ -439,6 +472,15 @@ export class BadgeService {
       }
     }
 
+    if (badgeId === 'review_master') {
+      switch (tier) {
+        case 'bronze': return 'assets/badges/bronzeReviewMasterBadge.png';
+        case 'silver': return 'assets/badges/silverReviewMasterBadge.png';
+        case 'gold': return 'assets/badges/goldReviewMasterBadge.png';
+        default: return 'assets/badges/lockedReviewMasterBadge.png';
+      }
+    }
+
     return this.BADGE_DEFINITIONS[badgeId as keyof typeof this.BADGE_DEFINITIONS]?.icon || '';
   }
 
@@ -540,7 +582,8 @@ export class BadgeService {
       () => this.evaluateSocialButterflyBadge(userId, userData),
       () => this.evaluateExplorerBadge(userId, userData),
       () => this.evaluateConsistencyBadge(userId, userData),
-      () => this.evaluateLocalExpertBadge(userId, userData)
+      () => this.evaluateLocalExpertBadge(userId, userData),
+      () => this.evaluateReviewMasterBadge(userId, userData)
     ];
     for (const run of steps) {
       try {
@@ -894,6 +937,56 @@ export class BadgeService {
           currentUnlocked,
           unlocked,
           uniqueSpotsVisited
+        )
+      );
+    }
+  }
+
+  ///////////////////////////////////////////////////// review master /////////////////////////////////////////////////////
+
+  /**
+   * Metal badge from `spotReviewsSubmittedCount` on the user doc (total signed-in review submissions).
+   * Tier thresholds match Explorer: 5 / 15 / 30.
+   */
+  async evaluateReviewMasterBadge(userId: string, userData: any): Promise<void> {
+    const raw = userData?.[SPOT_REVIEWS_SUBMITTED_COUNT_FIELD];
+    const reviewCount =
+      typeof raw === 'number' && !Number.isNaN(raw) ? raw : Math.max(0, Math.floor(Number(raw)) || 0);
+
+    const currentBadges = userData?.badges?.review_master;
+    const currentTier = currentBadges?.tier || 'locked';
+    const currentUnlocked = currentBadges?.unlocked || false;
+
+    let tier: 'bronze' | 'silver' | 'gold' | 'locked' = currentTier;
+    let unlocked = currentUnlocked;
+
+    if (reviewCount >= 30 && currentTier !== 'gold') {
+      tier = 'gold';
+      unlocked = true;
+    } else if (reviewCount >= 15 && currentTier !== 'silver' && currentTier !== 'gold') {
+      tier = 'silver';
+      unlocked = true;
+    } else if (reviewCount >= 5 && currentTier === 'locked') {
+      tier = 'bronze';
+      unlocked = true;
+    }
+
+    if (
+      !currentBadges ||
+      tier !== currentTier ||
+      reviewCount !== currentBadges.progress ||
+      unlocked !== currentUnlocked
+    ) {
+      await this.updateUserBadge(
+        userId,
+        'review_master',
+        this.buildMetalTierBadgeState(
+          currentBadges,
+          currentTier,
+          tier,
+          currentUnlocked,
+          unlocked,
+          reviewCount
         )
       );
     }

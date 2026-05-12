@@ -549,29 +549,156 @@ ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button[color="danger"] {
   border-bottom: none;
 }
 
-/* Lakaw (walk) mode bar under stage banner */
+/* Lakaw bar: fixed under header / safe area; above stage banner (z-index) */
 .lakaw-bar {
   position: fixed;
-  left: 0;
-  right: 0;
-  z-index: 999;
+  left: 8px;
+  right: 8px;
+  z-index: 1001;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
   background: rgba(255, 255, 255, 0.96);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(8px);
 }
 
-.lakaw-bar .lakaw-auto-item {
-  --min-height: 36px;
-  --background: transparent;
-  flex: 1 1 160px;
-  max-width: 240px;
+.lakaw-bar--overlay {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 6px 0;
+  /* Keep Leaflet zoom controls (top-left) unobstructed. */
+  left: 64px;
+  right: 8px;
+}
+
+.lakaw-bar--active {
+  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.2);
+}
+
+.lakaw-bar__left,
+.lakaw-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.lakaw-bar__left {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.lakaw-bar__right {
+  margin-left: auto;
+  justify-content: flex-end;
+  flex: 1 1 auto;
+  min-width: 180px;
+}
+
+.lakaw-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #854d0e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lakaw-badge ion-icon {
+  font-size: 14px;
+}
+
+.lakaw-toggle-btn {
+  --border-radius: 999px;
+  --padding-start: 10px;
+  --padding-end: 10px;
+  --box-shadow: none;
+  font-weight: 600;
   margin: 0;
-  font-size: 13px;
+}
+
+.lakaw-segment-chip,
+.lakaw-distance-chip {
+  --min-height: 30px;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  border-radius: 999px;
+}
+
+.lakaw-distance-chip ion-icon {
+  font-size: 14px;
+  margin-right: 2px;
+}
+
+.lakaw-auto-item {
+  --min-height: 34px;
+  --background: rgba(16, 185, 129, 0.14);
+  --padding-start: 10px;
+  --padding-end: 8px;
+  --inner-padding-end: 4px;
+  margin: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-size: 12px;
+  width: auto;
+  min-width: 172px;
+  max-width: 220px;
+}
+
+.lakaw-auto-item ion-label {
+  font-size: 12px;
+  color: #064e3b;
+  font-weight: 600;
+  margin-right: 6px;
+  white-space: normal;
+  line-height: 1.1;
+}
+
+.lakaw-auto-item ion-toggle {
+  --handle-width: 17px;
+  --handle-height: 17px;
+  --track-background: rgba(6, 95, 70, 0.25);
+  --track-background-checked: #10b981;
+  transform: scale(0.95);
+}
+
+.lakaw-bar--transit .lakaw-badge {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.24);
+  color: #1e3a8a;
+}
+
+@media (max-width: 768px) {
+  .lakaw-bar {
+    left: 6px;
+    right: 6px;
+    padding: 6px 0;
+    gap: 8px;
+    border-radius: 12px;
+  }
+
+  .lakaw-badge {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .lakaw-bar--overlay {
+    left: 58px;
+    right: 6px;
+  }
 }
 
 /* Emergency focus marker (from Emergency Information → View on app map) */

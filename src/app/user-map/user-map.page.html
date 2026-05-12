@@ -18,6 +18,40 @@
   
 </ion-header>
 
+<!-- Lakaw bar: fixed top (below header / safe area); stage banner stacks under it -->
+<div
+  *ngIf="currentRouteInfo?.segments?.length"
+  class="lakaw-bar lakaw-bar--overlay"
+  [class.lakaw-bar--active]="lakawMode"
+  [class.lakaw-bar--walk]="isCurrentWalkSegment()"
+  [class.lakaw-bar--transit]="!isCurrentWalkSegment()"
+  [ngStyle]="{
+    top: isFullscreen
+      ? 'calc(env(safe-area-inset-top, 0px) + 52px)'
+      : (selectedItineraryIndex < 0
+          ? 'calc(112px + env(safe-area-inset-top, 0px) + 52px)'
+          : 'calc(56px + env(safe-area-inset-top, 0px) + 52px)')
+  }"
+>
+  <div class="lakaw-bar__left">
+    <ion-chip class="lakaw-segment-chip" [color]="isCurrentWalkSegment() ? 'success' : 'warning'">
+      <ion-icon name="walk-outline"></ion-icon>
+      <ion-label>{{ isCurrentWalkSegment() ? 'Walking segment' : 'Transit segment' }}</ion-label>
+    </ion-chip>
+  </div>
+
+  <div class="lakaw-bar__right">
+    <ion-chip *ngIf="lakawMode && lakawWalkRemainingM != null" class="lakaw-distance-chip" color="light">
+      <ion-icon name="navigate-outline"></ion-icon>
+      <ion-label>~{{ lakawWalkRemainingM }} m left</ion-label>
+    </ion-chip>
+    <ion-item *ngIf="lakawMode" lines="none" class="lakaw-auto-item">
+      <ion-label>Auto-next near end</ion-label>
+      <ion-toggle slot="end" [(ngModel)]="lakawAutoAdvanceEnabled" (ionChange)="onLakawAutoAdvanceChange()"></ion-toggle>
+    </ion-item>
+  </div>
+</div>
+
 <!-- //////////////////////////////////////////////// search bar ///////////////////////////////////////////////////////////-->
 <div class="search-results-container" *ngIf="showSearchResults && selectedItineraryIndex < 0">
   <ion-list class="search-results-list">
@@ -48,7 +82,13 @@
 <!-- /////////////////////////////////////////////// stage notification //////////////////////////////////////////////////-->
 <div *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0 && showStageNotification" 
      class="stage-notification"
-     [ngStyle]="{ top: isFullscreen ? '0' : '56px' }">
+     [ngStyle]="{
+      top: isFullscreen
+        ? 'env(safe-area-inset-top, 0px)'
+        : (selectedItineraryIndex < 0
+            ? 'calc(112px + env(safe-area-inset-top, 0px))'
+            : 'calc(56px + env(safe-area-inset-top, 0px))')
+     }">
   <div class="stage-content">
     <ion-icon name="navigate" class="stage-icon"></ion-icon>
     <div class="stage-text">
@@ -56,21 +96,6 @@
       <span class="stage-description">{{ getCurrentStageDescription() }}</span>
     </div>
   </div>
-</div>
-
-<!-- Lakaw (walk) controls: live GPS, follow, distance along path, optional auto-next -->
-<div *ngIf="isCurrentWalkSegment()" class="lakaw-bar" [ngStyle]="{ top: getLakawBarTop() }">
-  <ion-button size="small" [color]="lakawMode ? 'success' : 'medium'" (click)="toggleLakawMode()">
-    <ion-icon slot="start" name="walk-outline"></ion-icon>
-    {{ lakawMode ? 'Lakaw on' : 'Lakaw' }}
-  </ion-button>
-  <ion-chip *ngIf="lakawMode && lakawWalkRemainingM != null" color="light">
-    <ion-label>~{{ lakawWalkRemainingM }} m left</ion-label>
-  </ion-chip>
-  <ion-item *ngIf="lakawMode" lines="none" class="lakaw-auto-item">
-    <ion-label>Auto-next near end</ion-label>
-    <ion-toggle slot="end" [(ngModel)]="lakawAutoAdvanceEnabled" (ionChange)="onLakawAutoAdvanceChange()"></ion-toggle>
-  </ion-item>
 </div>
 
 <!-- /////////////////////////////////////////////// map ////////////////////////////////////////////////////////////////////// -->
@@ -81,21 +106,11 @@
 
   <div *ngIf="(selectedItineraryIndex >= 0 || emergencyDirectionsMode) && !isFullscreen" class="directions-controls">
 
-    <!-- loading for jeepney routes -->
-    <ion-item *ngIf="selectedItineraryIndex >= 0 && availableItineraries.length > 0 && isLoadingJeepneyRoutes" lines="none" style="margin: 16px;">
-      <ion-spinner name="crescent" slot="start"></ion-spinner>
+    <!-- Single loading row while jeepney data or routes are prepared -->
+    <ion-item *ngIf="selectedItineraryIndex >= 0 && availableItineraries.length > 0 && (isLoadingJeepneyRoutes || isGeneratingRoute)" lines="none" style="margin: 16px;">
+      <ion-spinner name="crescent" slot="start" [color]="isGeneratingRoute ? 'warning' : 'primary'"></ion-spinner>
       <ion-label>
-        <h3>Loading jeepney routes...</h3>
-        <p>Finding jeepney codes and walking directions for your itinerary</p>
-      </ion-label>
-    </ion-item>
-
-    <!-- for loading royutes-->
-    <ion-item *ngIf="selectedItineraryIndex >= 0 && availableItineraries.length > 0 && isGeneratingRoute" lines="none" style="margin: 16px;">
-      <ion-spinner name="crescent" slot="start" color="warning"></ion-spinner>
-      <ion-label>
-        <h3>Generating Stage Routes...</h3>
-        <p>Fetching jeepney routes from Google Maps API via proxy server</p>
+        <h3>Generating route</h3>
       </ion-label>
     </ion-item>
 
@@ -213,7 +228,7 @@
        style="position: fixed; left: 16px; z-index: 9999;">
 
     <div *ngIf="isCurrentSegmentVisitStop() && visitStageAdminEvent"
-         [style.bottom]="isFullscreen ? '276px' : '356px'"
+         [style.bottom]="isFullscreen ? '370px' : '450px'"
          style="background: #ffffff; padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease; position: fixed; left: 16px; border: 2px solid #e65100;"
          (click)="openVisitStageEventModal()"
          title="Official event at this stop">
@@ -221,14 +236,14 @@
     </div>
 
     <div *ngIf="isCurrentSegmentVisitStop()"
-         [style.bottom]="isFullscreen ? '212px' : '292px'"
+         [style.bottom]="isFullscreen ? '300px' : '380px'"
          style="background: #ffffff; padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease; position: fixed; left: 16px; border: 2px solid #ffc107;"
          (click)="openLocalTipsModal()"
          title="Local tips for this visit">
       <ion-icon name="bulb-outline" style="color: #ffc107; font-size: 24px;"></ion-icon>
     </div>
     
-    <div [style.bottom]="isFullscreen ? '148px' : '228px'" 
+    <div [style.bottom]="isFullscreen ? '230px' : '310px'" 
          style="background: #28a745; padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease; position: fixed; left: 16px;" 
          (click)="openItineraryCompletionModal()">
       <ion-icon name="checkmark" style="color: white; font-size: 24px;"></ion-icon>
@@ -240,9 +255,19 @@
          (click)="previousSegment()">
       <ion-icon name="arrow-back" style="color: white; font-size: 24px;"></ion-icon>
     </div>
+
+    <!-- Lakaw Toggle Button (left side, below back button) -->
+    <div [style.bottom]="isFullscreen ? '160px' : '240px'"
+         [style.background]="lakawMode ? '#28a745' : '#6c757d'"
+         style="padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease; position: fixed; left: 16px;"
+         (click)="toggleLakawMode()"
+         [title]="lakawMode ? 'Turn off Lakaw mode' : 'Turn on Lakaw mode'"
+         aria-label="Toggle Lakaw mode">
+      <ion-icon [name]="lakawMode ? 'walk' : 'walk-outline'" style="color: white; font-size: 24px;"></ion-icon>
+    </div>
     
     <!-- Next Button -->
-    <div [style.bottom]="isFullscreen ? '84px' : '164px'" 
+    <div [style.bottom]="isFullscreen ? '90px' : '170px'" 
          style="background: #ffc107; padding: 10px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: bottom 0.3s ease; position: fixed; left: 16px;" 
          (click)="nextSegment()">
       <ion-icon name="arrow-forward" style="color: white; font-size: 24px;"></ion-icon>

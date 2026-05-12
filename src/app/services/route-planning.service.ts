@@ -353,7 +353,7 @@ export class RoutePlanningService {
    * Generate route information from itinerary using stage-based Google Maps API routing
    * This is the main method that handles complex itinerary route generation
    */
-  async generateRouteInfo(itinerary: any, userLocation: any, loadingCallback?: (message: string) => Promise<void>): Promise<any> {
+  async generateRouteInfo(itinerary: any, userLocation: any): Promise<any> {
     // Generate route information from itinerary using stage-based Google Maps API routing
     if (!itinerary || !itinerary.days) {
       return null;
@@ -409,11 +409,6 @@ export class RoutePlanningService {
             continue;
           }
           
-          // Update loading progress
-          if (loadingCallback) {
-            await loadingCallback(` Finding routes for Stage ${spotIndex + 1}: ${spot.name}`);
-          }
-          
           // Get all available transit routes (jeepney and bus) for this stage using Google Maps API
           const allRoutes = await this.findAllJeepneyRoutes(fromPoint, spot);
           
@@ -452,10 +447,6 @@ export class RoutePlanningService {
             });
           } else {
             // No transit route found - try OSRM walking route as fallback
-            if (loadingCallback) {
-              await loadingCallback(` No transit found. Generating walking route for Stage ${spotIndex + 1}...`);
-            }
-            
             const walkingRoute = await this.createWalkingRouteWithOSRM(fromPoint, spot);
             
             if (walkingRoute && walkingRoute.segments && walkingRoute.segments[0]) {
@@ -706,8 +697,7 @@ export class RoutePlanningService {
    */
   async generateRouteInfoForEmergencyDestination(
     userLocation: any,
-    destination: { name: string; lat: number; lng: number; placeId?: string },
-    loadingCallback?: (message: string) => Promise<void>
+    destination: { name: string; lat: number; lng: number; placeId?: string }
   ): Promise<RouteInfo | null> {
     const spot = {
       name: destination.name,
@@ -721,10 +711,6 @@ export class RoutePlanningService {
     let totalDistance = 0;
 
     try {
-      if (loadingCallback) {
-        await loadingCallback('Finding transit directions…');
-      }
-
       const allRoutes = await this.findAllJeepneyRoutes(userLocation, spot);
 
       if (allRoutes && allRoutes.length > 0) {
@@ -754,10 +740,6 @@ export class RoutePlanningService {
           }
         });
       } else {
-        if (loadingCallback) {
-          await loadingCallback('No transit found. Generating walking route…');
-        }
-
         const walkingRoute = await this.createWalkingRouteWithOSRM(userLocation, spot);
 
         if (walkingRoute?.segments?.[0]) {

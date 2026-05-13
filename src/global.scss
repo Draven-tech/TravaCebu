@@ -235,8 +235,8 @@ body:has(.stage-notification) ion-content {
 .itinerary-editor-modal,
 .assignment-picker-modal,
 .setup-modal {
-  --background: var(--ion-background-color);
-  --color: var(--ion-text-color);
+  --background: var(--ion-background-color, #ffffff);
+  --color: var(--ion-text-color, #1f2937);
 }
 
 ion-modal.view-itinerary-modal ion-content,
@@ -245,7 +245,58 @@ ion-modal.itinerary-modal ion-content,
 ion-modal.itinerary-editor-modal ion-content,
 ion-modal.assignment-picker-modal ion-content,
 ion-modal.setup-modal ion-content {
-  --background: var(--ion-background-color);
+  --background: var(--ion-background-color, #ffffff);
+}
+
+/* Itinerary modals: force opaque sheet + theme tokens (modal context can leave CSS vars transparent). */
+ion-modal.itinerary-modal,
+ion-modal.view-itinerary-modal {
+  --background: #ffffff;
+  --ion-background-color: #ffffff;
+  --ion-item-background: #ffffff;
+  --backdrop-opacity: 0.45;
+}
+
+ion-modal.itinerary-modal::part(content),
+ion-modal.view-itinerary-modal::part(content) {
+  background: #ffffff;
+  color: #1f2937;
+  overflow: hidden;
+}
+
+ion-modal.itinerary-modal app-itinerary-modal,
+ion-modal.view-itinerary-modal app-view-itinerary-modal {
+  background: #ffffff;
+}
+
+ion-modal.itinerary-modal ion-content.itinerary-modal-content,
+ion-modal.view-itinerary-modal ion-content.event-detail-content {
+  --background: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  ion-modal.itinerary-modal,
+  ion-modal.view-itinerary-modal {
+    --background: #121212;
+    --ion-background-color: #121212;
+    --ion-item-background: #1e1e1e;
+  }
+
+  ion-modal.itinerary-modal::part(content),
+  ion-modal.view-itinerary-modal::part(content) {
+    background: #121212;
+    color: #f5f5f5;
+  }
+
+  ion-modal.itinerary-modal app-itinerary-modal,
+  ion-modal.view-itinerary-modal app-view-itinerary-modal {
+    background: #121212;
+  }
+
+  ion-modal.itinerary-modal ion-content.itinerary-modal-content,
+  ion-modal.view-itinerary-modal ion-content.event-detail-content {
+    --background: #121212;
+  }
 }
 
 /* Itinerary planner setup modal — adapt all surfaces to light/dark mode */

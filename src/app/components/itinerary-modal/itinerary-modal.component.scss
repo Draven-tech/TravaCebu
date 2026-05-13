@@ -3,8 +3,8 @@
 $im-primary: #4c8dbb;
 $im-primary-dark: #3d7aa3;
 $im-primary-deep: #2f5a85;
-$im-page-bg: var(--ion-background-color);
-$im-surface: var(--ion-item-background);
+$im-page-bg: var(--ion-background-color, #ffffff);
+$im-surface: var(--ion-item-background, #ffffff);
 $im-border: var(--ion-color-step-150, #d8e6f2);
 $im-text: var(--ion-text-color);
 $im-muted: var(--ion-color-medium);
@@ -57,7 +57,7 @@ $im-neutral-text: #475569;
 }
 
 ion-content.itinerary-modal-content {
-  --background: #{$im-page-bg};
+  --background: var(--ion-background-color, #ffffff);
   --padding-bottom: 200px;
 }
 

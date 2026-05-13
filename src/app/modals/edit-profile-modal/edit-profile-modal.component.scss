@@ -5,6 +5,7 @@
   height: 100vh;
   width: 100vw;
   background: var(--ion-background-color);
+  color: var(--ion-text-color);
 }
 
 .custom-modal-header {
@@ -18,7 +19,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 2px 8px rgba(47, 90, 133, 0.25);
+  box-shadow: none;
 }
 
 .custom-modal-header .back-btn {
@@ -29,6 +30,13 @@
   color: #ffffff;
 }
 
+.custom-modal-header .header-title {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+  padding-right: 40px;
+}
+
 .edit-profile-container {
   flex: 1;
   display: flex;
@@ -36,10 +44,11 @@
   gap: 1rem;
   padding: 24px 20px 20px 20px;
   overflow-y: auto;
+  color: var(--ion-text-color);
 }
 
 .edit-profile-container ion-label {
-  color: #000 !important;
+  color: var(--ion-text-color);
 }
 
 .edit-profile-container ion-item {
@@ -59,6 +68,7 @@
   width: 100%;
   max-width: 400px;
   margin: 0 auto;
+  color: var(--ion-text-color);
 }
 
 .save-btn-container {
@@ -115,13 +125,14 @@
   min-height: 50px;
   width: 300px;
   transition: all 0.2s ease;
+  color: var(--ion-text-color);
 }
 
 .floating-label span {
   position: absolute;
   top: 14px;
   left: 12px;
-  color: gray;
+  color: var(--ion-color-medium);
   font-size: 14px;
   width: 100%;
   pointer-events: none;
@@ -135,7 +146,7 @@
   height: 100%;
   background: transparent;
   font-size: 16px;
-  color: #000;
+  color: var(--ion-text-color);
 }
 
 .floating-label textarea {
@@ -146,41 +157,34 @@
   resize: vertical;
   background: transparent;
   font-size: 16px;
-  color: #000;
+  color: var(--ion-text-color);
 }
 
 .floating-label.filled span,
-.floating-label input:focus + span,
-.floating-label textarea:focus + span {
+.floating-label:focus-within span {
   top: 4px;
   left: 12px;
   font-size: 12px;
-  color: #888;
+  color: var(--ion-color-medium);
 }
 
 .native-input,
 .native-textarea {
-  color: #fff;
-  background: #222;
+  color: var(--ion-text-color);
+  background: transparent;
   border-radius: 12px;
   padding: 8px 12px;
   font-size: 1rem;
-  border: 1px solid #ccc;
+  border: 1px solid var(--ion-border-color, #ccc);
   width: 100%;
   box-sizing: border-box;
+  caret-color: var(--ion-text-color);
 }
-
-::ng-deep .edit-profile-container ion-input input,
-::ng-deep .edit-profile-container ion-textarea textarea {
-  color: #fff !important;
-  caret-color: #fff !important;
-}
-
-.edit-profile-container ion-button {
+.edit-profile-form ion-button {
   margin-top: 20px;
   font-weight: bold;
   --border-radius: 20px;
-  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 @media (min-width: 768px) {
@@ -191,8 +195,9 @@
     height: auto;
     min-height: 80vh;
     max-height: 90vh;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   }
+
   .edit-profile-container {
     padding: 32px 32px 24px 32px;
   }

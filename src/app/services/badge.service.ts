@@ -3,6 +3,11 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
+import {
+  USER_SOCIAL_COMMENTS_MADE_COUNT_FIELD,
+  USER_SOCIAL_LIKES_GIVEN_COUNT_FIELD,
+  USER_SOCIAL_POSTS_CREATED_COUNT_FIELD
+} from './user-social-counts.service';
 
 /** Top-level on `users/{uid}`; incremented when a signed-in user submits a spot review (tourist-spot-detail). */
 const SPOT_REVIEWS_SUBMITTED_COUNT_FIELD = 'spotReviewsSubmittedCount';
@@ -142,7 +147,8 @@ export class BadgeService {
     social_butterfly: {
       id: 'social_butterfly',
       title: 'Social Butterfly',
-      description: 'Engage with the community through posts and interactions. 5+ posts + 20+ likes + 10+ comments for Bronze, 20+ posts + 50+ likes + 25+ comments for Silver, 50+ posts + 100+ likes + 50+ comments for Gold.',
+      description:
+        'Engage with the community. Uses your profile counters: posts created, likes you give on posts, and comments you write. Bronze: 5+ posts, 20+ likes given, 10+ comments. Silver: 20 / 50 / 25. Gold: 50 / 100 / 50.',
       icon: 'assets/badges/bronzeSocialButterflyBadge.png',
       lockedIcon: 'assets/badges/lockedSocialButterflyBadge.png',
       maxProgress: 200
@@ -302,7 +308,23 @@ export class BadgeService {
     return m[tier] ?? 0;
   }
 
-  /** Highest metal tier that has an entry in tierAchievedAt (for recovery / sticky tier). */
+  private readNonNegativeUserCounter(data: any, field: string): number {  // my safe number reader.
+    if (!data) {
+      return 0;
+    }
+    const raw = data[field];
+    if (typeof raw === 'number' && !Number.isNaN(raw)) {
+      return Math.max(0, Math.floor(raw));
+    }
+    if (raw != null) {
+      const n = Math.floor(Number(raw));
+      if (!Number.isNaN(n)) {
+        return Math.max(0, n);
+      }
+    }
+    return 0;
+  }
+
   private maxMetalTierFromTierAchievedAt(raw: any): 'bronze' | 'silver' | 'gold' | 'locked' {
     const m = this.cloneTierAchievedMapFromDb(raw);
     if (m['gold'] != null) return 'gold';
@@ -629,10 +651,7 @@ export class BadgeService {
     }
   }
 
-  /**
-   * App stores firstName/lastName (and sometimes fullName). Count name as present if
-   * fullName is set, or first + last are set (edit profile + register do not set fullName).
-   */
+
   private hasProfileDisplayName(userData: any): boolean {
     if (!userData) {
       return false;
@@ -646,9 +665,7 @@ export class BadgeService {
     return false;
   }
 
-  /**
-   * Check if user profile is complete
-   */
+
   private isProfileComplete(userData: any): boolean {
     return !!(
       this.hasProfileDisplayName(userData) &&
@@ -659,9 +676,7 @@ export class BadgeService {
     );
   }
 
-  /**
-   * Calculate profile completion percentage
-   */
+
   private calculateProfileProgress(userData: any): number {
     let completedFields = 0;
     const totalFields = 4;
@@ -684,9 +699,6 @@ export class BadgeService {
 
   ///////////////////////////////////////////////////// itinerary planner master /////////////////////////////////////////////////////
 
-  /**
-   * Evaluate and update user's itinerary planner badge (draft spots on user doc).
-   */
   async evaluateItineraryPlannerBadge(userId: string, userData: any): Promise<void> {
     const draft = userData?.plannerDraftSpots;
     const plannerDraftCount = Array.isArray(draft) ? draft.length : 0;
@@ -695,7 +707,6 @@ export class BadgeService {
     const storedTier = currentBadges?.tier || 'locked';
     const storedUnlocked = currentBadges?.unlocked || false;
 
-    // Recover sticky tier if `tier` was wrongly written as locked while tier history still shows earned metals.
     const historyFloor = this.maxMetalTierFromTierAchievedAt(currentBadges?.tierAchievedAt);
     let baselineTier: 'bronze' | 'silver' | 'gold' | 'locked' = storedTier;
     if (this.tierRank(historyFloor) > this.tierRank(storedTier)) {
@@ -703,7 +714,6 @@ export class BadgeService {
     }
     const baselineUnlocked = this.tierRank(baselineTier) > 0 || storedUnlocked;
 
-    // Same as legacy bucket-list badge: tier only goes up; clearing the planner draft does not remove earned metal.
     let tier: 'bronze' | 'silver' | 'gold' | 'locked' = baselineTier;
     let unlocked = baselineUnlocked;
 
@@ -745,11 +755,8 @@ export class BadgeService {
 
   ///////////////////////////////////////////////////// photo enthusiast /////////////////////////////////////////////////////
 
-  /**
-   * Evaluate and update user's photo enthusiast badge
-   */
+
   async evaluatePhotoEnthusiastBadge(userId: string, userData: any): Promise<void> {
-    // Query the posts collection to count posts with images
     let photoCount = 0;
     
     try {
@@ -758,7 +765,6 @@ export class BadgeService {
         .get()
         .toPromise();
       
-      // Count posts that have an imageUrl
       photoCount = postsSnapshot?.docs.filter(doc => {
         const postData = doc.data() as any;
         return postData.imageUrl && postData.imageUrl.trim() !== '';
@@ -775,18 +781,17 @@ export class BadgeService {
     let tier: 'bronze' | 'silver' | 'gold' | 'locked' = currentTier;
     let unlocked = currentUnlocked;
 
-    if (photoCount >= 100 && currentTier !== 'gold') {
+    if (photoCount >= 3 && currentTier !== 'gold') {
       tier = 'gold';
       unlocked = true;
-    } else if (photoCount >= 50 && currentTier !== 'silver' && currentTier !== 'gold') {
+    } else if (photoCount >= 2 && currentTier !== 'silver' && currentTier !== 'gold') {
       tier = 'silver';
       unlocked = true;
-    } else if (photoCount >= 10 && currentTier === 'locked') {
+    } else if (photoCount >= 1 && currentTier === 'locked') {
       tier = 'bronze';
       unlocked = true;
     }
 
-    // Only update if upgrading the badge
     if (!currentBadges || 
         (tier !== currentTier) || 
         (photoCount !== currentBadges.progress) || 
@@ -801,81 +806,61 @@ export class BadgeService {
 
   ///////////////////////////////////////////////////// social butterfly /////////////////////////////////////////////////////
 
-  /**
-   * Evaluate and update user's social butterfly badge
-   */
   async evaluateSocialButterflyBadge(userId: string, userData: any): Promise<void> {
-    // Query the posts collection to get user's posts and calculate metrics
-    let postsCount = 0;
-    let totalLikesReceived = 0;
-    let totalCommentsMade = 0;
-    
+    let source: any = userData;
     try {
-      // Get user's posts
-      const postsSnapshot = await this.firestore
-        .collection('posts', ref => ref.where('userId', '==', userId))
-        .get()
-        .toPromise();
-      
-      postsCount = postsSnapshot?.docs.length || 0;
-      
-      // Calculate total likes received on user's posts
-      postsSnapshot?.docs.forEach(doc => {
-        const postData = doc.data() as any;
-        totalLikesReceived += (postData.likes?.length || 0);
-      });
-      
-      // Get all posts to count user's comments
-      const allPostsSnapshot = await this.firestore
-        .collection('posts')
-        .get()
-        .toPromise();
-      
-      // Count comments made by the user
-      allPostsSnapshot?.docs.forEach(doc => {
-        const postData = doc.data() as any;
-        if (postData.comments && Array.isArray(postData.comments)) {
-          const userComments = postData.comments.filter((comment: any) => comment.userId === userId);
-          totalCommentsMade += userComments.length;
-        }
-      });
-      
-    } catch (error) {
-      console.error('Error getting social metrics:', error);
-      postsCount = 0;
-      totalLikesReceived = 0;
-      totalCommentsMade = 0;
+      const snap = await this.firestore.collection('users').doc(userId).get().toPromise();
+      if (snap?.exists) {
+        source = snap.data() ?? userData;
+      }
+    } catch (e) {
+      console.warn(
+        '[BadgeService] evaluateSocialButterflyBadge: could not refresh user doc; using passed userData.',
+        e
+      );
+      source = userData;
     }
 
-    // Calculate overall progress (combined score)
-    const progress = postsCount + totalLikesReceived + totalCommentsMade;
-    
-    const currentBadges = userData?.badges?.social_butterfly;
+    const postsCount = this.readNonNegativeUserCounter(source, USER_SOCIAL_POSTS_CREATED_COUNT_FIELD);
+    const likesGivenCount = this.readNonNegativeUserCounter(source, USER_SOCIAL_LIKES_GIVEN_COUNT_FIELD);
+    const commentsMadeCount = this.readNonNegativeUserCounter(source, USER_SOCIAL_COMMENTS_MADE_COUNT_FIELD);
+
+    const progress = postsCount + likesGivenCount + commentsMadeCount;
+
+    const currentBadges = source?.badges?.social_butterfly;
     const currentTier = currentBadges?.tier || 'locked';
     const currentUnlocked = currentBadges?.unlocked || false;
-    
+
     let tier: 'bronze' | 'silver' | 'gold' | 'locked' = currentTier;
     let unlocked = currentUnlocked;
 
-    // Bronze: 5+ posts + 20+ likes + 10+ comments (total 35+)
-    // Silver: 20+ posts + 50+ likes + 25+ comments (total 95+)
-    // Gold: 50+ posts + 100+ likes + 50+ comments (total 200+)
-    if (postsCount >= 50 && totalLikesReceived >= 100 && totalCommentsMade >= 50 && currentTier !== 'gold') {
+    if (postsCount >= 3 && likesGivenCount >= 3 && commentsMadeCount >= 3 && currentTier !== 'gold') {
       tier = 'gold';
       unlocked = true;
-    } else if (postsCount >= 20 && totalLikesReceived >= 50 && totalCommentsMade >= 25 && currentTier !== 'silver' && currentTier !== 'gold') {
+    } else if (
+      postsCount >= 2 &&
+      likesGivenCount >= 2 &&
+      commentsMadeCount >= 2 &&
+      currentTier !== 'silver' &&
+      currentTier !== 'gold'
+    ) {
       tier = 'silver';
       unlocked = true;
-    } else if (postsCount >= 5 && totalLikesReceived >= 20 && totalCommentsMade >= 10 && currentTier === 'locked') {
+    } else if (
+      postsCount >= 1 && 
+      likesGivenCount >= 1 
+      && commentsMadeCount >= 1 && 
+      currentTier === 'locked') {
       tier = 'bronze';
       unlocked = true;
     }
 
-    // Only update if upgrading the badge
-    if (!currentBadges || 
-        (tier !== currentTier) || 
-        (progress !== currentBadges.progress) || 
-        (unlocked !== currentUnlocked)) {
+    if (
+      !currentBadges ||
+      tier !== currentTier ||
+      progress !== currentBadges.progress ||
+      unlocked !== currentUnlocked
+    ) {
       await this.updateUserBadge(
         userId,
         'social_butterfly',
@@ -886,9 +871,7 @@ export class BadgeService {
 
   ///////////////////////////////////////////////////// explorer /////////////////////////////////////////////////////
 
-  /**
-   * Evaluate and update user's explorer badge based on location visits
-   */
+
   async evaluateExplorerBadge(userId: string, userData: any): Promise<void> {
     let uniqueSpotsVisited = 0;
     
@@ -922,7 +905,6 @@ export class BadgeService {
       unlocked = true;
     }
 
-    // Only update if upgrading the badge
     if (!currentBadges || 
         (tier !== currentTier) || 
         (uniqueSpotsVisited !== currentBadges.progress) || 
@@ -944,10 +926,6 @@ export class BadgeService {
 
   ///////////////////////////////////////////////////// review master /////////////////////////////////////////////////////
 
-  /**
-   * Metal badge from `spotReviewsSubmittedCount` on the user doc (total signed-in review submissions).
-   * Tier thresholds match Explorer: 5 / 15 / 30.
-   */
   async evaluateReviewMasterBadge(userId: string, userData: any): Promise<void> {
     const raw = userData?.[SPOT_REVIEWS_SUBMITTED_COUNT_FIELD];
     const reviewCount =
@@ -992,10 +970,10 @@ export class BadgeService {
     }
   }
 
-  /**
-   * Check if user is near a tourist spot and record the visit
-   */
-  async checkProximityAndRecordVisit(userId: string, userLocation: { lat: number, lng: number }): Promise<void> {
+ ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+  async checkProximityAndRecordVisit(userId: string, userLocation: { lat: number, lng: number }): Promise<void> { // checket for user near spto
     try {
       // Get all tourist spots
       const spotsSnapshot = await this.firestore.collection('tourist_spots').get().toPromise();
@@ -1013,8 +991,7 @@ export class BadgeService {
           const distance = this.getDistance(userLocation, spot.location);
           
           if (distance <= proximityRadius) {
-            // User is near this spot, record the visit
-            const visitRecorded = await this.recordSpotVisit(userId, spot.id, spot.name);
+            const visitRecorded = await this.recordSpotVisit(userId, spot.id, spot.name); // will record 
             if (visitRecorded) {
               newVisitRecorded = true;
             }
@@ -1069,9 +1046,6 @@ export class BadgeService {
     }
   }
 
-  /**
-   * Calculate distance between two coordinates using Haversine formula
-   */
   private getDistance(point1: { lat: number, lng: number }, point2: { lat: number, lng: number }): number {
     const R = 6371e3; // Earth's radius in meters
     const toRad = (x: number) => x * Math.PI / 180;
@@ -1088,10 +1062,6 @@ export class BadgeService {
 
   ///////////////////////////////////////////////////// consistency /////////////////////////////////////////////////////
 
-  /**
-   * Update the user's daily login streak. Should be called once per app launch
-   * when the user is authenticated. Re-evaluates the consistency badge after writing.
-   */
   async updateLoginStreak(userId: string): Promise<void> {
     try {
       const userRef = this.firestore.collection('users').doc(userId);
@@ -1128,11 +1098,6 @@ export class BadgeService {
     }
   }
 
-  /**
-   * Evaluate and update user's consistency badge based on login streak.
-   * Uses the highest of current streak vs longest streak so the badge sticks
-   * even if the user breaks a streak after earning a tier.
-   */
   async evaluateConsistencyBadge(userId: string, userData: any): Promise<void> {
     const currentStreak = typeof userData?.loginStreak === 'number' ? userData.loginStreak : 0;
     const longestStreak = typeof userData?.longestStreak === 'number' ? userData.longestStreak : 0;
@@ -1186,11 +1151,7 @@ export class BadgeService {
 
   ///////////////////////////////////////////////////// local expert /////////////////////////////////////////////////////
 
-  /**
-   * Evaluate and update user's local expert badge.
-   * Counts submitted spot suggestions and submitted local tips (pending/approved/rejected).
-   * Progress uses the lower of the two counts so users must contribute in both actions.
-   */
+
   async evaluateLocalExpertBadge(userId: string, userData: any): Promise<void> {
     let suggestedSpotsCount = 0;
     let submittedTipsCount = 0;
@@ -1263,10 +1224,8 @@ export class BadgeService {
     }
   }
 
-  /**
-   * Format a Date as a local YYYY-MM-DD string (avoids UTC off-by-one near midnight).
-   */
-  private toLocalDateString(date: Date): string {
+
+  private toLocalDateString(date: Date): string {  // for date
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');

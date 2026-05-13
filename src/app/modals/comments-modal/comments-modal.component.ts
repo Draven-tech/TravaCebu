@@ -3,6 +3,7 @@ import { ModalController, AlertController } from '@ionic/angular';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { BadgeService } from '../../services/badge.service';
+import { UserSocialCountsService } from '../../services/user-social-counts.service';
 
 @Component({
   selector: 'app-comments-modal',
@@ -22,7 +23,8 @@ export class CommentsModalComponent {
     private firestore: AngularFirestore,
     private afAuth: AngularFireAuth,
     private alertCtrl: AlertController,
-    private badgeService: BadgeService
+    private badgeService: BadgeService,
+    private userSocialCountsService: UserSocialCountsService
   ) {
     this.loadUserData();
   }
@@ -80,6 +82,8 @@ export class CommentsModalComponent {
       await this.firestore.collection('posts').doc(this.post.id).update({
         comments: updatedComments
       });
+
+      await this.userSocialCountsService.incrementSocialCommentsMadeCount(currentUser.uid); //counter
       
       //////////////////////////////////////// badge caller ////////////////////////////////////////
       // Evaluate social butterfly badge for the commenter

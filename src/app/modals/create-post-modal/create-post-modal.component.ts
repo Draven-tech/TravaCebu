@@ -5,6 +5,7 @@ import { StorageService } from '../../services/storage.service';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { BadgeService } from '../../services/badge.service';
 import { CalendarService } from '../../services/calendar.service';
+import { UserSocialCountsService } from '../../services/user-social-counts.service';
 
 @Component({
   selector: 'app-create-post-modal',
@@ -42,7 +43,8 @@ export class CreatePostModalComponent {
     private alertCtrl: AlertController,
     private loadingCtrl: LoadingController,
     private badgeService: BadgeService,
-    private calendarService: CalendarService
+    private calendarService: CalendarService,
+    private userSocialCountsService: UserSocialCountsService
   ) {
     this.loadTouristSpots();
     this.loadCompletedItineraries();
@@ -244,6 +246,7 @@ export class CreatePostModalComponent {
       } else {
         // Create new post
         await this.firestore.collection('posts').add(cleanedPostData);
+        await this.userSocialCountsService.incrementSocialPostsCreatedCount(currentUser.uid); //counter
       }
 
       await loading.dismiss();

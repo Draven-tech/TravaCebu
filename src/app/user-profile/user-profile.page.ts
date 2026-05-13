@@ -18,6 +18,7 @@ import { BadgeService, Badge } from '../services/badge.service';
 import { BadgeDetailModalComponent } from '../modals/badge-detail-modal/badge-detail-modal.component';
 /////////////////////////////////////////////////////
 import { ItineraryPlannerService } from '../services/itinerary-planner.service';
+import { UserSocialCountsService } from '../services/user-social-counts.service';
 interface Post {
   id?: string;
   userId: string;
@@ -102,11 +103,10 @@ export class UserProfilePage implements OnInit, OnDestroy {
     private actionSheetCtrl: ActionSheetController,
     private modalCtrl: ModalController,
     private menuCtrl: MenuController,
-    //////////////////////////////////////// badge caller ////////////////////////////////////////
     private badgeService: BadgeService,
-    ///////////////////////////////////////////////////////
     private loadingCtrl: LoadingController,
-    private itineraryPlannerService: ItineraryPlannerService
+    private itineraryPlannerService: ItineraryPlannerService,
+    private userSocialCountsService: UserSocialCountsService
   ) {}
 
   async ngOnInit() {
@@ -258,6 +258,7 @@ export class UserProfilePage implements OnInit, OnDestroy {
       await postRef.update({ likes: updatedLikes });
       post.likes = updatedLikes;
       post.liked = true;
+      await this.userSocialCountsService.incrementSocialLikesGivenCount(currentUserId); //counter
     }
     
     if (post.userId !== currentUserId) {

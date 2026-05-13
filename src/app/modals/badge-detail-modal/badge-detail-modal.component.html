@@ -1,29 +1,28 @@
 <div class="modal-backdrop" (click)="dismiss()">
   <div class="modal-container" (click)="$event.stopPropagation()">
-    <!-- Close Button -->
-    <button class="close-button" (click)="dismiss()">
-      <ion-icon name="close"></ion-icon>
-    </button>
+    <ion-header>
+      <ion-toolbar class="badge-detail-toolbar">
+        <ion-buttons slot="start">
+          <ion-button (click)="dismiss()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>{{ badge.title }}</ion-title>
+      </ion-toolbar>
+    </ion-header>
 
-    <!-- Badge Content -->
-    <div class="badge-content">
-      <!-- Badge Icon -->
+    <div class="badge-detail-body">
       <div class="badge-icon-section">
-        <div class="badge-icon-wrapper" [ngClass]="{'locked': !badge.isUnlocked}">
+        <div class="badge-icon-wrapper" [ngClass]="{ locked: !badge.isUnlocked }">
           <img [src]="getBadgeIcon()" [alt]="badge.title" class="badge-icon" />
         </div>
       </div>
 
-      <!-- Badge Info -->
       <div class="badge-info-section">
-        <h2 class="badge-title">{{ badge.title }}</h2>
-        
-        <!-- Tier Badge -->
         <div class="tier-badge" [style.background-color]="getTierColor()">
           <span class="tier-text">{{ getTierText() }}</span>
         </div>
 
-        <!-- Description -->
         <p class="badge-description">{{ badge.description }}</p>
 
         <button
@@ -65,12 +64,11 @@
           </p>
         </div>
 
-        <!-- Status Message -->
-        <div class="status-message" [ngClass]="{'unlocked': badge.isUnlocked, 'locked': !badge.isUnlocked}">
+        <div class="status-message" [ngClass]="{ unlocked: badge.isUnlocked, locked: !badge.isUnlocked }">
           <ion-icon [name]="badge.isUnlocked ? 'checkmark-circle' : 'lock-closed'"></ion-icon>
           <span>{{ badge.isUnlocked ? 'Badge Unlocked!' : 'Complete requirements to unlock this badge' }}</span>
         </div>
       </div>
     </div>
   </div>
-</div> 
+</div>

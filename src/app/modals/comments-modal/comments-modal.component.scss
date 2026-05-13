@@ -1,38 +1,45 @@
+// Match create-post modal header (user-dashboard brand blue)
+$comments-header-brand: #4c8dbb;
+
 .comments-content {
   --background: var(--ion-background-color);
+  color: var(--ion-text-color);
+  --padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
 
 .comments-container {
   padding: 16px;
+  color: var(--ion-text-color);
 }
 
 .no-comments {
   text-align: center;
   padding: 40px 20px;
-  color: #666;
+  color: var(--ion-color-medium);
 
   ion-icon {
     font-size: 48px;
-    color: #ccc;
+    color: var(--ion-color-medium);
     margin-bottom: 16px;
   }
 
   h3 {
     margin: 0 0 8px 0;
     font-size: 1.1rem;
-    color: #333;
+    color: var(--ion-text-color);
   }
 
   p {
     margin: 0;
     font-size: 0.9rem;
+    color: var(--ion-color-medium);
   }
 }
 
 .comment-item {
   display: flex;
   margin-bottom: 16px;
-  color: #000;
+  color: var(--ion-text-color);
   padding: 12px;
   background: var(--ion-item-background);
   border-radius: 12px;
@@ -47,23 +54,25 @@
 
   .comment-content {
     flex: 1;
+    min-width: 0;
 
     .comment-header {
       display: flex;
       align-items: center;
       margin-bottom: 4px;
+      flex-wrap: wrap;
 
       h4 {
         margin: 0;
         font-size: 0.9rem;
         font-weight: 600;
-        color: #000;
+        color: var(--ion-text-color);
       }
 
       .comment-time {
         margin-left: 8px;
         font-size: 0.75rem;
-        color: #666;
+        color: var(--ion-color-medium);
       }
     }
 
@@ -71,7 +80,7 @@
       margin: 0;
       font-size: 0.9rem;
       line-height: 1.4;
-      color: #333;
+      color: var(--ion-text-color);
     }
   }
 }
@@ -81,17 +90,17 @@
   bottom: 0;
   left: 0;
   right: 0;
-  color: #000;
+  color: var(--ion-text-color);
   background: var(--ion-item-background);
-  border-top: 1px solid #e9ecef;
-  padding: 12px 16px;
+  border-top: 1px solid var(--ion-border-color);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
 
   ion-item {
     --background: var(--ion-color-step-50, var(--ion-background-color));
     --border-radius: 24px;
     --padding-start: 12px;
     --padding-end: 12px;
-    color: #000;
+    color: var(--ion-text-color);
     --min-height: 48px;
 
     ion-avatar {
@@ -101,28 +110,33 @@
 
     ion-input {
       --padding-start: 8px;
+      --color: var(--ion-text-color);
+      --placeholder-color: var(--ion-color-medium);
       font-size: 0.9rem;
     }
 
     ion-button {
-      --color: #FFD144;
+      --color: #{$comments-header-brand};
       --background: transparent;
     }
   }
 }
 
-// Modal specific styles
 ion-header {
-  ion-toolbar {
-    --background: #FFD144;
-    --color: #000;
+  ion-toolbar.comments-toolbar {
+    --background: #{$comments-header-brand};
+    --color: #ffffff;
+    --border-width: 0;
+    box-shadow: none;
+    padding-top: env(safe-area-inset-top, 0px);
 
     ion-title {
       font-weight: 600;
+      color: #ffffff;
     }
 
     ion-button {
-      --color: #000;
+      --color: #ffffff;
     }
   }
-} 
+}

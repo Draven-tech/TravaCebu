@@ -1,5 +1,5 @@
 <ion-header>
-  <ion-toolbar color="warning">
+  <ion-toolbar class="create-post-toolbar">
     <ion-buttons slot="start">
       <ion-button (click)="dismiss()">
         <ion-icon name="close"></ion-icon>
@@ -29,7 +29,7 @@
 
     <!-- Post Type Selection -->
     <div class="post-type-section">
-      <ion-segment [(ngModel)]="postType" (ngModelChange)="onPostTypeChange($event)">
+      <ion-segment mode="ios" [(ngModel)]="postType" (ngModelChange)="onPostTypeChange($event)">
         <ion-segment-button value="regular">
           <ion-label>Regular Post</ion-label>
         </ion-segment-button>

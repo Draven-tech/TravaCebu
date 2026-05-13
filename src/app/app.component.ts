@@ -1,11 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { AdminUiOverlayComponent } from './components/admin-ui-overlay.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  template: '<router-outlet />',
+  imports: [RouterOutlet, AdminUiOverlayComponent],
+  template: '<router-outlet /><app-admin-ui-overlay />',
   styleUrl: './app.component.css',
 })
 export class AppComponent {

@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Timestamp, addDoc, collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { AdminAuthService } from '../../services/admin-auth.service';
+import { AdminUiService } from '../../services/admin-ui.service';
 
 export interface SpotPickRow {
   id: string;
@@ -20,6 +21,7 @@ export interface SpotPickRow {
 })
 export class EventEditorComponent implements OnInit {
   private readonly authSvc = inject(AdminAuthService);
+  private readonly ui = inject(AdminUiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -117,8 +119,14 @@ export class EventEditorComponent implements OnInit {
     const date = this.date;
     const time = this.normTime(this.time);
     const endTime = this.normTime(this.endTime);
-    if (!name || !date || !time || !endTime || !this.spotId) return alert('Fill required fields & pick spot');
-    if (endTime <= time) return alert('End must be after start');
+    if (!name || !date || !time || !endTime || !this.spotId) {
+      await this.ui.alert('Fill required fields and pick a spot on the map.', 'Save event');
+      return;
+    }
+    if (endTime <= time) {
+      await this.ui.alert('End time must be after start time.', 'Save event');
+      return;
+    }
     let img = this.imageUrl;
     if (this.file) {
       const path = 'events/' + Date.now() + '_' + (this.file.name || 'img').replace(/\W+/g, '_');

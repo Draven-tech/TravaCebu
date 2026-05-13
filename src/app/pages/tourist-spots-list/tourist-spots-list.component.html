@@ -31,7 +31,7 @@
           <div class="row">
             <button type="button" class="small secondary" (click)="openDetail(s)">Detail</button>
             <button type="button" class="small" (click)="editSpot(s)">Edit</button>
-            <button type="button" class="small danger" (click)="deleteSpot(s)">Delete</button>
+            <button type="button" class="small danger" (click)="openDeleteConfirm(s)">Delete</button>
           </div>
         </div>
       }
@@ -55,8 +55,28 @@
       <div class="map-box sm" id="mmap"></div>
       <div class="row">
         <button type="button" (click)="editSpot(detailSpot)">Edit</button>
-        <button type="button" class="danger" (click)="deleteSpot(detailSpot); closeModal()">Delete</button>
+        <button type="button" class="danger" (click)="openDeleteConfirm(detailSpot)">Delete</button>
         <button type="button" class="secondary" (click)="closeModal()">Close</button>
+      </div>
+    </div>
+  }
+</div>
+
+<div
+  class="modal-back confirm-layer"
+  [class.on]="pendingDelete"
+  (click)="closeDeleteConfirm()"
+>
+  @if (pendingDelete) {
+    <div class="modal modal-confirm" (click)="$event.stopPropagation()">
+      <h2 style="margin-top: 0">Delete this spot?</h2>
+      <p style="margin-bottom: 1.25rem">
+        <strong>{{ pendingDelete.name || 'This spot' }}</strong> will be removed from the database. If it has a stored
+        image, that file will be deleted too. This cannot be undone.
+      </p>
+      <div class="row" style="justify-content: flex-end; gap: 0.5rem">
+        <button type="button" class="secondary" (click)="closeDeleteConfirm()">Cancel</button>
+        <button type="button" class="danger" (click)="executePendingDelete()">Delete</button>
       </div>
     </div>
   }

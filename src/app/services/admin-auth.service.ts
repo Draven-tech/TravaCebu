@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { environment } from '../../environments/environment';
+import { AdminUiService } from './admin-ui.service';
 
 export const ADMIN_ACCESS_DENIED = 'ADMIN_ACCESS_DENIED';
 
@@ -25,6 +26,7 @@ export const ADMIN_ACCESS_DENIED = 'ADMIN_ACCESS_DENIED';
 export class AdminAuthService {
   private readonly app: FirebaseApp;
   private readonly router = inject(Router);
+  private readonly ui = inject(AdminUiService);
 
   constructor() {
     this.app = initializeApp(environment.firebase);
@@ -70,7 +72,7 @@ export class AdminAuthService {
       const snap = await getDoc(doc(this.db, 'admins', u.uid));
       if (!snap.exists()) {
         await firebaseSignOut(this.auth);
-        alert('This account is not authorized for administrative access.');
+        await this.ui.alert('This account is not authorized for administrative access.', 'Access denied');
         return false;
       }
       return true;

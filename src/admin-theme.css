@@ -422,8 +422,11 @@ button.small,
   display: flex;
 }
 
+/* Opaque panel — without this, the modal is transparent over the dimmed backdrop. */
 .modal {
-  background: #fff;
+  background: #ffffff;
+  color: var(--tc-text);
+  color-scheme: light;
   border-radius: var(--tc-radius);
   max-width: 640px;
   width: 100%;
@@ -432,6 +435,48 @@ button.small,
   padding: 1.25rem;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
 }
+
+.modal-back.confirm-layer {
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.78);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.modal-back.confirm-layer .modal {
+  background: #ffffff;
+  color: #0f172a;
+  color-scheme: light;
+  border: 2px solid #94a3b8;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 28px 70px rgba(0, 0, 0, 0.35);
+}
+
+.modal-back.confirm-layer .modal h2 {
+  color: #020617;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.modal-back.confirm-layer .modal p {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.modal-back.confirm-layer .modal p strong {
+  color: #020617;
+  font-weight: 800;
+}
+
+.modal.modal-confirm {
+  max-width: min(92vw, 460px);
+  padding: 1.5rem 1.65rem;
+}
+
 
 .seg button.on {
   border: 2px solid var(--tc-primary) !important;

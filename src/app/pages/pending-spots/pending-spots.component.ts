@@ -14,6 +14,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { AdminAuthService } from '../../services/admin-auth.service';
+import { AdminUiService } from '../../services/admin-ui.service';
 import { exposureFromGooglePlaceTypes } from '../../lib/tc-utils';
 import type { DocumentData, UpdateData } from 'firebase/firestore';
 
@@ -25,6 +26,7 @@ import type { DocumentData, UpdateData } from 'firebase/firestore';
 })
 export class PendingSpotsComponent implements OnInit {
   private readonly authSvc = inject(AdminAuthService);
+  private readonly ui = inject(AdminUiService);
 
   status: 'pending' | 'approved' | 'rejected' = 'pending';
   rows: { id: string; data: DocumentData }[] = [];
@@ -62,11 +64,19 @@ export class PendingSpotsComponent implements OnInit {
   }
 
   async approve(row: { id: string; data: DocumentData }): Promise<void> {
-    const notes = prompt('Optional notes') || '';
+    const notesRaw = await this.ui.prompt({
+      title: 'Approve submission',
+      message: 'Optional notes (stored on the pending document).',
+      defaultValue: '',
+    });
+    const notes = notesRaw === null ? '' : notesRaw;
     const docRef = doc(this.authSvc.db, 'pending_tourist_spots', row.id);
     const p = (await getDoc(docRef)).data();
     if (!p) return;
-    if ((p['status'] || '') !== 'pending') return alert('Not pending');
+    if ((p['status'] || '') !== 'pending') {
+      await this.ui.alert('This submission is no longer pending.', 'Cannot approve');
+      return;
+    }
     const submittedAt = (p['submittedAt'] as Timestamp) || Timestamp.now();
     const now = Timestamp.now();
     const newSpot: Record<string, unknown> = {
@@ -102,8 +112,14 @@ export class PendingSpotsComponent implements OnInit {
   }
 
   async reject(row: { id: string; data: DocumentData }): Promise<void> {
-    const notes = prompt('Rejection notes (required)') || '';
-    if (!notes.trim()) return alert('Notes required');
+    const notes = await this.ui.prompt({
+      title: 'Reject submission',
+      message: 'Rejection notes (required).',
+      placeholder: 'Reason…',
+      required: true,
+      multiline: true,
+    });
+    if (notes === null) return;
     await updateDoc(doc(this.authSvc.db, 'pending_tourist_spots', row.id), {
       status: 'rejected',
       reviewedAt: Timestamp.now(),
@@ -114,7 +130,15 @@ export class PendingSpotsComponent implements OnInit {
   }
 
   async removeRow(row: { id: string }): Promise<void> {
-    if (!confirm('Delete doc?')) return;
+    if (
+      !(await this.ui.confirm('Delete this pending document permanently?', {
+        title: 'Delete document',
+        danger: true,
+        okLabel: 'Delete',
+      }))
+    ) {
+      return;
+    }
     await deleteDoc(doc(this.authSvc.db, 'pending_tourist_spots', row.id));
     await this.load();
   }

@@ -12,6 +12,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { AdminAuthService } from '../../services/admin-auth.service';
+import { AdminUiService } from '../../services/admin-ui.service';
 import type { DocumentData, UpdateData } from 'firebase/firestore';
 
 @Component({
@@ -22,6 +23,7 @@ import type { DocumentData, UpdateData } from 'firebase/firestore';
 })
 export class PendingTipsComponent implements OnInit {
   private readonly authSvc = inject(AdminAuthService);
+  private readonly ui = inject(AdminUiService);
 
   status: 'pending' | 'approved' | 'rejected' = 'pending';
   rows: { id: string; data: DocumentData }[] = [];
@@ -53,10 +55,21 @@ export class PendingTipsComponent implements OnInit {
     const docRef = doc(this.authSvc.db, 'pending_local_tips', row.id);
     const p = (await getDoc(docRef)).data();
     if (!p) return;
-    if ((p['status'] || '') !== 'pending') return alert('Not pending');
+    if ((p['status'] || '') !== 'pending') {
+      await this.ui.alert('This tip is no longer pending.', 'Cannot approve');
+      return;
+    }
     const spotId = (p['spotId'] as string) || '';
-    if (!spotId) return alert('Missing spotId');
-    const notes = prompt('Optional notes') || '';
+    if (!spotId) {
+      await this.ui.alert('This tip has no linked spot (spotId).', 'Cannot approve');
+      return;
+    }
+    const notesRaw = await this.ui.prompt({
+      title: 'Approve tip',
+      message: 'Optional notes.',
+      defaultValue: '',
+    });
+    const notes = notesRaw === null ? '' : notesRaw;
     const now = Timestamp.now();
     const subAt = (p['submittedAt'] as Timestamp) || now;
     const subBy = (p['submittedBy'] as string) || '';
@@ -75,8 +88,14 @@ export class PendingTipsComponent implements OnInit {
   }
 
   async reject(row: { id: string }): Promise<void> {
-    const notes = prompt('Reason (required)') || '';
-    if (!notes.trim()) return alert('Notes required');
+    const notes = await this.ui.prompt({
+      title: 'Reject tip',
+      message: 'Reason (required).',
+      placeholder: 'Reason…',
+      required: true,
+      multiline: true,
+    });
+    if (notes === null) return;
     await updateDoc(doc(this.authSvc.db, 'pending_local_tips', row.id), {
       status: 'rejected',
       reviewNotes: notes.trim(),

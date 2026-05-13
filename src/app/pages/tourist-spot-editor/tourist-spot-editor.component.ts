@@ -13,6 +13,7 @@ import {
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import * as L from 'leaflet';
 import { AdminAuthService } from '../../services/admin-auth.service';
+import { AdminUiService } from '../../services/admin-ui.service';
 import { PlacesService } from '../../services/places.service';
 import {
   categoryFromGoogleTypes,
@@ -27,6 +28,7 @@ import {
 })
 export class TouristSpotEditorComponent implements OnInit {
   private readonly authSvc = inject(AdminAuthService);
+  private readonly ui = inject(AdminUiService);
   private readonly places = inject(PlacesService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -148,11 +150,15 @@ export class TouristSpotEditorComponent implements OnInit {
   }
 
   async searchPlaces(): Promise<void> {
-    const q = prompt('Place name');
-    if (!q) return;
-    const ts = await this.places.textSearch(q);
+    const q = await this.ui.prompt({
+      title: 'Google Places',
+      message: 'Search for a place by name.',
+      placeholder: 'e.g. Kawasan Falls',
+    });
+    if (q === null || !q.trim()) return;
+    const ts = await this.places.textSearch(q.trim());
     if (ts.status !== 'OK' || !ts.results?.length) {
-      alert('No results');
+      await this.ui.alert('No results found. Try a different name.', 'Places search');
       return;
     }
     const results = ts.results as {
@@ -160,17 +166,20 @@ export class TouristSpotEditorComponent implements OnInit {
       formatted_address?: string;
       place_id?: string;
     }[];
-    let msg = 'Pick 1-' + results.length + ':\n';
-    results.forEach((x, i) => {
-      msg += i + 1 + '. ' + x.name + ' — ' + (x.formatted_address || '') + '\n';
+    const pick = await this.ui.pickNumber({
+      title: 'Pick a result',
+      message: `Enter a number from 1 to ${results.length}.`,
+      detail: results.map((x, i) => `${i + 1}. ${x.name || ''} — ${x.formatted_address || ''}`).join('\n'),
+      min: 1,
+      max: results.length,
+      defaultValue: 1,
     });
-    const pick = parseInt(prompt(msg, '1') || '0', 10);
-    if (pick < 1 || pick > results.length) return;
+    if (pick == null) return;
     const sel = results[pick - 1];
     if (!sel.place_id) return;
     const det = await this.places.details(sel.place_id);
     if (det.status !== 'OK' || !det.result) {
-      alert('Details failed');
+      await this.ui.alert('Could not load place details.', 'Places');
       return;
     }
     const res = det.result;
@@ -193,8 +202,14 @@ export class TouristSpotEditorComponent implements OnInit {
 
   async save(): Promise<void> {
     const name = this.name.trim();
-    if (!name) return alert('Name required');
-    if (!this.marker) return alert('Pick map location');
+    if (!name) {
+      await this.ui.alert('Name is required.', 'Save spot');
+      return;
+    }
+    if (!this.marker) {
+      await this.ui.alert('Pick a location on the map (click to place the pin).', 'Save spot');
+      return;
+    }
     const ll = this.marker.getLatLng();
     let img = this.googlePlacesImageUrl;
     if (this.file) {

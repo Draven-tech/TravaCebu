@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import * as L from 'leaflet';
 import { AdminAuthService } from '../../services/admin-auth.service';
+import { AdminUiService } from '../../services/admin-ui.service';
 import { PlacesService } from '../../services/places.service';
 import {
   addressLooksLikeCebu,
@@ -50,12 +51,15 @@ export class TouristSpotsListComponent implements OnInit, OnDestroy {
   private readonly authSvc = inject(AdminAuthService);
   private readonly places = inject(PlacesService);
   private readonly router = inject(Router);
+  private readonly ui = inject(AdminUiService);
 
   spots: TouristSpot[] = [];
   search = '';
   bulkRunning = false;
   listError = '';
   detailSpot: TouristSpot | null = null;
+  /** Shown in a stacked modal instead of `window.confirm` (avoids “localhost says”). */
+  pendingDelete: TouristSpot | null = null;
 
   private spotsUnsub: (() => void) | null = null;
   private miniMap: L.Map | null = null;
@@ -179,12 +183,31 @@ export class TouristSpotsListComponent implements OnInit, OnDestroy {
     });
   }
 
-  async deleteSpot(s: TouristSpot): Promise<void> {
-    if (!confirm('Delete?')) return;
-    const snap = await getDoc(doc(this.authSvc.db, 'tourist_spots', s.id));
-    const img = snap.get('img') as string | undefined;
-    if (img) await this.authSvc.deleteFileByURL(img);
-    await deleteDoc(doc(this.authSvc.db, 'tourist_spots', s.id));
+  openDeleteConfirm(s: TouristSpot): void {
+    this.pendingDelete = s;
+  }
+
+  closeDeleteConfirm(): void {
+    this.pendingDelete = null;
+  }
+
+  async executePendingDelete(): Promise<void> {
+    const s = this.pendingDelete;
+    if (!s) return;
+    this.pendingDelete = null;
+    try {
+      const snap = await getDoc(doc(this.authSvc.db, 'tourist_spots', s.id));
+      const img = snap.get('img') as string | undefined;
+      if (img) await this.authSvc.deleteFileByURL(img);
+      await deleteDoc(doc(this.authSvc.db, 'tourist_spots', s.id));
+      if (this.detailSpot?.id === s.id) {
+        this.closeModal();
+      }
+    } catch (e) {
+      console.error(e);
+      this.listError =
+        'Could not delete spot. ' + ((e as { code?: string }).code || (e as Error).message);
+    }
   }
 
   async refresh(): Promise<void> {
@@ -343,8 +366,9 @@ export class TouristSpotsListComponent implements OnInit, OnDestroy {
       await this.sleep(400);
     }
     this.bulkRunning = false;
-    alert(
+    await this.ui.alert(
       `Updated ${updated}, skipped synced ${skippedSynced}, invalid ${skippedInvalid}, no payload ${noPayload}, failed ${failed}`,
+      'Bulk sync',
     );
   }
 }

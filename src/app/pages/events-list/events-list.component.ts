@@ -3,6 +3,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { collection, deleteDoc, doc, getDocs } from 'firebase/firestore';
 import { AdminAuthService } from '../../services/admin-auth.service';
+import { AdminUiService } from '../../services/admin-ui.service';
 
 export interface Ev {
   id: string;
@@ -24,6 +25,7 @@ export interface Ev {
 })
 export class EventsListComponent implements OnInit {
   private readonly authSvc = inject(AdminAuthService);
+  private readonly ui = inject(AdminUiService);
 
   events: Ev[] = [];
   search = '';
@@ -101,7 +103,15 @@ export class EventsListComponent implements OnInit {
   }
 
   async del(e: Ev): Promise<void> {
-    if (!confirm('Delete?')) return;
+    if (
+      !(await this.ui.confirm('Delete this event? This cannot be undone.', {
+        title: 'Delete event',
+        danger: true,
+        okLabel: 'Delete',
+      }))
+    ) {
+      return;
+    }
     const img = e['imageUrl'] as string | undefined;
     if (img) await this.authSvc.deleteFileByURL(img);
     await deleteDoc(doc(this.authSvc.db, 'events', e.id));
@@ -149,7 +159,7 @@ export class EventsListComponent implements OnInit {
     return cells;
   }
 
-  openCalDay(iso: string): void {
+  async openCalDay(iso: string): Promise<void> {
     const by: Record<string, Ev[]> = {};
     this.events.forEach((e) => {
       const d = e['date'] as string;
@@ -160,8 +170,15 @@ export class EventsListComponent implements OnInit {
     const list = by[iso] || [];
     if (list.length === 1) this.openM(list[0]);
     else if (list.length > 1) {
-      const n = parseInt(prompt('1-' + list.length, '1') || '0', 10);
-      if (n >= 1 && n <= list.length) this.openM(list[n - 1]);
+      const n = await this.ui.pickNumber({
+        title: 'Which event?',
+        message: 'Enter the number for the event you want (see list below).',
+        detail: list.map((ev, i) => `${i + 1}. ${ev.name || '(no name)'} — ${ev.location || ''}`).join('\n'),
+        min: 1,
+        max: list.length,
+        defaultValue: 1,
+      });
+      if (n != null && n >= 1 && n <= list.length) this.openM(list[n - 1]);
     }
   }
 

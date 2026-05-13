@@ -17,7 +17,7 @@
   <div class="bucket-intro" *ngIf="!isLoading && spots.length > 0">
     <div class="bucket-intro-text">
       <p class="bucket-count">{{ spots.length }} saved {{ spots.length === 1 ? 'place' : 'places' }}</p>
-      <p class="bucket-subtitle">Swipe a card left to remove, or tap to open details.</p>
+      <p class="bucket-subtitle">Swipe left to remove, or tap to open details.</p>
     </div>
     <ion-button class="clear-all-btn" fill="clear" size="small" (click)="confirmClear()">
       <ion-icon name="trash-outline" slot="start"></ion-icon>

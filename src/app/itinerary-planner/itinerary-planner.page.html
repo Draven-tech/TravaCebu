@@ -17,7 +17,7 @@
   <div class="planner-intro" *ngIf="!isLoading && spots.length > 0">
     <div class="planner-intro-text">
       <p class="planner-count">{{ spots.length }} in planner {{ spots.length === 1 ? 'spot' : 'spots' }}</p>
-      <p class="planner-subtitle">Swipe left on a card to remove, or tap to view details.</p>
+      <p class="planner-subtitle">Swipe left to remove, or tap to open details.</p>
     </div>
     <ion-button class="clear-all-btn" fill="clear" size="small" (click)="confirmClearPlanner()">
       <ion-icon name="trash-outline" slot="start"></ion-icon>

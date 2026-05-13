@@ -23,7 +23,6 @@ import { ApiTrackerService } from '../services/api-tracker.service';
 import { ItineraryService, ItineraryDay } from '../services/itinerary.service';
 import { CalendarService, CalendarEvent, GlobalEvent } from '../services/calendar.service';
 import { EventDetailModalComponent } from '../modals/event-detail-modal/event-detail-modal.component';
-import { BudgetService } from '../services/budget.service';
 
 import { MapManagementService } from '../services/map-management.service';
 import { RoutePlanningService, RouteInfo } from '../services/route-planning.service';
@@ -35,30 +34,23 @@ import { ItinerarySessionService, ItinerarySession } from '../services/itinerary
 import { ModalCommunicationService } from '../services/modal-communication.service';
 import { LocalTipsService } from '../services/local-tips.service';
 import { EmergencyMapFocusPayload, MapFocusIntentService } from '../services/map-focus-intent.service';
-
-interface ExpensePlan {
-  transportation?: number;
-  food?: number;
-  accommodation?: number;
-  estimates?: {
-    transportation: number;
-    food: number;
-    accommodation: number;
-  };
-}
+import { SegmentCoordinateService } from '../services/segment-coordinate.service';
+import { RouteSegmentMapRendererService } from '../services/route-segment-map-renderer.service';
+import { ItineraryMapSnapshotService } from '../services/itinerary-map-snapshot.service';
+import { ItineraryExpenseSyncService, ItineraryExpensePlanInput } from '../services/itinerary-expense-sync.service';
+import { ItineraryRouteLabelService } from '../services/itinerary-route-label.service';
+import { UserMapResumeService, ResumableSessionMeta } from '../services/user-map-resume.service';
+import { VisitStageCalendarService } from '../services/visit-stage-calendar.service';
+import { JeepneyRoutesRepositoryService } from '../services/jeepney-routes-repository.service';
+import { TouristSpotsStreamService } from '../services/tourist-spots-stream.service';
+import { WalkGuidanceService, WalkGuidanceUiState } from '../services/walk-guidance.service';
+import { EmergencyMapDirectionsService } from '../services/emergency-map-directions.service';
 
 interface StopItineraryOptions {
   persistExpenses?: boolean;
   showToast?: boolean;
-  expensePlan?: ExpensePlan;
+  expensePlan?: ItineraryExpensePlanInput;
 }
-
-interface ResumableSessionMeta {
-  title: string;
-  dayLabel: string;
-  stageLabel: string;
-}
-
 
 @Component({
   selector: 'app-user-map',
@@ -128,20 +120,16 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   private spotsSubscription?: Subscription;
   private geofenceVisitsSubscription?: Subscription;
   private hasInitializedItinerarySelectionSubscription: boolean = false;
-  private savedExpensePlan: ExpensePlan | null = null;
+  private savedExpensePlan: ItineraryExpensePlanInput | null = null;
   private savedExpensePlanItineraryIndex: number = -1;
-  private readonly itineraryProgressSnapshotKey = 'itinerary_progress_snapshot';
-  private readonly itineraryRouteSnapshotKey = 'itinerary_route_snapshot';
   private hasShownResumePromptThisLaunch: boolean = false;
 
   /** Admin event overlapping today's visit time for the current visit_stop segment (map FAB). */
   visitStageAdminEvent: GlobalEvent | null = null;
 
-  /** Lakaw (walk) mode: faster GPS, follow pan, distance along walk polyline, optional auto-next. */
-  lakawMode = false;
+  /** Walk-segment guidance: distance along polyline, follow-pan, optional auto-next (no user toggle). */
   lakawWalkRemainingM: number | null = null;
   lakawAutoAdvanceEnabled = false;
-  private readonly lakawAutoAdvanceStorageKey = 'lakaw_auto_advance_enabled';
   private lastFollowPanMs = 0;
   private lastLakawRemainUiMs = 0;
   private lastLakawRemainMUi: number | null = null;
@@ -149,12 +137,34 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   private lakawAutoAdvancedForSegmentIndex: number | null = null;
   /** Last walk segment we reset Lakaw polyline UI for (avoid resetting on repeated paints). */
   private lakawWalkPolylineSyncSegmentIndex: number | null = null;
+  private readonly longWalkThresholdMeters = 1000;
+  private warnedLongWalkSegments = new Set<number>();
 
   /** Marker + popup when opening the map from Emergency Information. */
   private emergencyFocusMarker?: L.Marker;
 
   /** When true, route panel shows a one-off trip to an emergency POI (not a calendar itinerary). */
   emergencyDirectionsMode = false;
+
+  private walkGuidanceUi(): WalkGuidanceUiState {
+    return {
+      lakawWalkRemainingM: this.lakawWalkRemainingM,
+      lastLakawRemainUiMs: this.lastLakawRemainUiMs,
+      lastLakawRemainMUi: this.lastLakawRemainMUi,
+      lastFollowPanMs: this.lastFollowPanMs,
+      lakawAutoAdvancedForSegmentIndex: this.lakawAutoAdvancedForSegmentIndex,
+      lakawWalkPolylineSyncSegmentIndex: this.lakawWalkPolylineSyncSegmentIndex,
+    };
+  }
+
+  private applyWalkGuidanceUi(s: WalkGuidanceUiState): void {
+    this.lakawWalkRemainingM = s.lakawWalkRemainingM;
+    this.lastLakawRemainUiMs = s.lastLakawRemainUiMs;
+    this.lastLakawRemainMUi = s.lastLakawRemainMUi;
+    this.lastFollowPanMs = s.lastFollowPanMs;
+    this.lakawAutoAdvancedForSegmentIndex = s.lakawAutoAdvancedForSegmentIndex;
+    this.lakawWalkPolylineSyncSegmentIndex = s.lakawWalkPolylineSyncSegmentIndex;
+  }
 
   constructor(
     private navCtrl: NavController,
@@ -179,7 +189,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private apiTracker: ApiTrackerService,
     private itineraryService: ItineraryService,
     private calendarService: CalendarService,
-    private budgetService: BudgetService,
     private mapManagement: MapManagementService,
     private routePlanning: RoutePlanningService,
     private jeepneyRouting: JeepneyRoutingService,
@@ -189,7 +198,18 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     private itinerarySession: ItinerarySessionService,
     private modalCommunication: ModalCommunicationService,
     private localTipsService: LocalTipsService,
-    private mapFocusIntent: MapFocusIntentService
+    private mapFocusIntent: MapFocusIntentService,
+    private segmentCoordinate: SegmentCoordinateService,
+    private routeSegmentRenderer: RouteSegmentMapRendererService,
+    private itineraryMapSnapshot: ItineraryMapSnapshotService,
+    private itineraryExpenseSync: ItineraryExpenseSyncService,
+    private routeLabels: ItineraryRouteLabelService,
+    private userMapResume: UserMapResumeService,
+    private visitStageCalendar: VisitStageCalendarService,
+    private jeepneyRoutesRepo: JeepneyRoutesRepositoryService,
+    private touristSpotsStream: TouristSpotsStreamService,
+    private walkGuidance: WalkGuidanceService,
+    private emergencyMapDirections: EmergencyMapDirectionsService
   ) {
     this.bucketService = bucketService;
   }
@@ -219,7 +239,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   async loadAvailableItineraries(): Promise<void> {
     try {
-      const events = await this.calendarService.loadItineraryEvents();
+      // Force-refresh from Firestore so newly created itineraries appear immediately.
+      let events = await this.calendarService.forceRefreshFromFirestore();
+      if (!events || events.length === 0) {
+        events = await this.calendarService.loadItineraryEvents();
+      }
       
       if (events && events.length > 0) {
         const itineraries = this.mapUtils.groupEventsIntoItineraries(events);
@@ -241,14 +265,9 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   async loadJeepneyRoutes(): Promise<void> {
     this.isLoadingJeepneyRoutes = true;
-    
+
     try {
-      const routesSnapshot = await this.firestore.collection('jeepney_routes').get().toPromise();
-      this.jeepneyRoutes = routesSnapshot?.docs.map(doc => ({
-        id: doc.id,
-        ...(doc.data() as any)
-      })) || [];
-      
+      this.jeepneyRoutes = await this.jeepneyRoutesRepo.fetchAllRoutes(this.firestore);
     } catch (error) {
       // Silently handle error
     } finally {
@@ -270,6 +289,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       // Clear any existing route data when no itinerary is selected
       this.emergencyDirectionsMode = false;
       this.currentRouteInfo = null;
+      this.warnedLongWalkSegments.clear();
       this.mapManagement.clearAllRouteLines();
       this.mapManagement.clearAllMarkers();
       // Update map to show all tourist spots
@@ -323,36 +343,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
   }
 
-  formatItineraryTitle(itinerary: any): string {
-    if (!itinerary) return 'Unknown Itinerary';
-    
-    // Try to get a meaningful name from the itinerary
-    const dayCount = itinerary.days?.length || 0;
-    const spotCount = itinerary.days?.[0]?.spots?.length || 0;
-    
-    if (itinerary.name && itinerary.name !== `Itinerary for Unknown Date`) {
-      return `${itinerary.name} (${dayCount} day${dayCount > 1 ? 's' : ''}, ${spotCount} spots)`;
-    }
-    
-    return `Itinerary for Unknown Date (${dayCount} day${dayCount > 1 ? 's' : ''}, ${spotCount} spots)`;
-  }
-
-  /** Short heading for completion modal: user itinerary name only, no date / day counts. */
-  private getItineraryCompletionHeading(itinerary: any): string {
-    if (!itinerary) {
-      return 'Your trip';
-    }
-    const fromProp = (itinerary.itineraryName || '').trim();
-    if (fromProp) {
-      return fromProp;
-    }
-    const rawName = (itinerary.name || '').trim();
-    if (rawName && !rawName.startsWith('Itinerary for ')) {
-      return rawName;
-    }
-    return 'Your trip';
-  }
-
   async showDirectionsAndRoutes(): Promise<void> {
     if (this.availableItineraries.length === 0) {
       await this.loadAvailableItineraries();
@@ -394,6 +384,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
    */
   ionViewDidEnter(): void {
     setTimeout(() => {
+      void this.loadAvailableItineraries();
       void this.updateMapDisplay();
       this.applyPendingEmergencyMapFocus();
     }, 550);
@@ -493,7 +484,10 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       await this.loadJeepneyRoutes();
     }
 
-    const currentSession = this.getValidResumableSession();
+    const currentSession = this.userMapResume.getValidResumableSession(
+      this.itinerarySession.getCurrentSession(),
+      this.availableItineraries
+    );
     if (!currentSession) {
       this.clearInvalidSessionForResume();
       await this.showToast('Saved trip no longer available.');
@@ -537,72 +531,19 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   private refreshResumableSessionState(): void {
-    const validSession = this.getValidResumableSession();
     const currentSession = this.itinerarySession.getCurrentSession();
+    const { shouldEndStaleSession, hasResumableSession, meta } = this.userMapResume.computeResumeBannerState(
+      currentSession,
+      this.availableItineraries,
+      this.selectedItineraryIndex
+    );
 
-    if (!validSession && currentSession?.isActive) {
+    if (shouldEndStaleSession) {
       this.itinerarySession.endSession();
     }
 
-    this.hasResumableSession = !!validSession && this.selectedItineraryIndex < 0;
-
-    if (validSession) {
-      const itineraryAtIndex = this.availableItineraries[validSession.selectedItineraryIndex] || validSession.selectedItinerary;
-      this.resumableSessionMeta = this.buildResumableSessionMeta(validSession, itineraryAtIndex);
-    } else {
-      this.resumableSessionMeta = {
-        title: '',
-        dayLabel: '',
-        stageLabel: ''
-      };
-    }
-  }
-
-  private buildResumableSessionMeta(session: ItinerarySession, itinerary: any): ResumableSessionMeta {
-    const fallbackTitle = this.formatItineraryTitle(session.selectedItinerary);
-    const title = itinerary ? this.formatItineraryTitle(itinerary) : fallbackTitle;
-    const dayLabel = itinerary?.date ? `Day ${itinerary.date}` : '';
-    const stageLabel = `Stage ${(session.currentSegmentIndex || 0) + 1}`;
-
-    return {
-      title,
-      dayLabel,
-      stageLabel
-    };
-  }
-
-  private getValidResumableSession(): ItinerarySession | null {
-    const session = this.itinerarySession.getCurrentSession();
-    if (!session?.isActive) {
-      return null;
-    }
-
-    if (session.selectedItineraryIndex < 0 || session.selectedItineraryIndex >= this.availableItineraries.length) {
-      return null;
-    }
-
-    const itineraryAtIndex = this.availableItineraries[session.selectedItineraryIndex];
-    if (!itineraryAtIndex || !this.isSameItinerary(session.selectedItinerary, itineraryAtIndex)) {
-      return null;
-    }
-
-    return session;
-  }
-
-  private isSameItinerary(savedItinerary: any, availableItinerary: any): boolean {
-    if (!savedItinerary || !availableItinerary) {
-      return false;
-    }
-
-    if (savedItinerary.id && availableItinerary.id) {
-      return savedItinerary.id === availableItinerary.id;
-    }
-
-    const savedName = savedItinerary.name || savedItinerary.itineraryName;
-    const availableName = availableItinerary.name || availableItinerary.itineraryName;
-    const sameName = !!savedName && savedName === availableName;
-    const sameDate = !!savedItinerary.date && savedItinerary.date === availableItinerary.date;
-    return sameName || sameDate;
+    this.hasResumableSession = hasResumableSession;
+    this.resumableSessionMeta = meta;
   }
 
   private clearInvalidSessionForResume(): void {
@@ -630,90 +571,28 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   private persistSessionSnapshot(reason: string = 'lifecycle_pause'): void {
     if (this.selectedItineraryIndex >= 0 && this.currentRouteInfo) {
       this.itinerarySession.updateCurrentSegment(this.currentSegmentIndex);
-      this.writeProgressSnapshot(reason);
+      this.itineraryMapSnapshot.saveProgressAndRoute({
+        reason,
+        selectedItineraryIndex: this.selectedItineraryIndex,
+        currentSegmentIndex: this.currentSegmentIndex,
+        userLocation: this.locationTracking.getUserLocation(),
+        routeInfo: this.currentRouteInfo,
+      });
       this.refreshResumableSessionState();
     }
   }
 
-  private writeProgressSnapshot(reason: string): void {
-    try {
-      const userLocation = this.locationTracking.getUserLocation();
-      const snapshot = {
-        savedAt: new Date().toISOString(),
-        reason,
-        selectedItineraryIndex: this.selectedItineraryIndex,
-        currentSegmentIndex: this.currentSegmentIndex,
-        userPosition: userLocation
-          ? {
-              lat: userLocation.lat,
-              lng: userLocation.lng,
-              accuracy: userLocation.accuracy ?? null
-            }
-          : null
-      };
-      localStorage.setItem(this.itineraryProgressSnapshotKey, JSON.stringify(snapshot));
-      this.writeRouteSnapshot(reason);
-    } catch (error) {
-      console.warn('Failed to save itinerary progress snapshot:', error);
-    }
-  }
-
-  private writeRouteSnapshot(reason: string): void {
-    if (!this.currentRouteInfo || !this.currentRouteInfo.segments?.length) {
-      return;
-    }
-
-    try {
-      const snapshot = {
-        savedAt: new Date().toISOString(),
-        reason,
-        selectedItineraryIndex: this.selectedItineraryIndex,
-        currentSegmentIndex: this.currentSegmentIndex,
-        routeInfo: this.currentRouteInfo
-      };
-      localStorage.setItem(this.itineraryRouteSnapshotKey, JSON.stringify(snapshot));
-    } catch (error) {
-      console.warn('Failed to save itinerary route snapshot:', error);
-    }
-  }
-
   private restoreRouteSnapshotForSession(session: ItinerarySession): boolean {
-    try {
-      const raw = localStorage.getItem(this.itineraryRouteSnapshotKey);
-      if (!raw) {
-        return false;
-      }
-
-      const snapshot = JSON.parse(raw);
-      if (
-        !snapshot ||
-        !snapshot.routeInfo?.segments?.length ||
-        snapshot.selectedItineraryIndex !== session.selectedItineraryIndex
-      ) {
-        return false;
-      }
-
-      const sessionUpdatedAt = new Date(session.lastUpdated).getTime();
-      const snapshotSavedAt = new Date(snapshot.savedAt).getTime();
-      if (Number.isFinite(sessionUpdatedAt) && Number.isFinite(snapshotSavedAt) && snapshotSavedAt < sessionUpdatedAt) {
-        return false;
-      }
-
-      this.currentRouteInfo = snapshot.routeInfo;
-      return true;
-    } catch (error) {
-      console.warn('Failed to restore itinerary route snapshot:', error);
+    const routeInfo = this.itineraryMapSnapshot.tryRestoreRouteSnapshot(session);
+    if (!routeInfo) {
       return false;
     }
+    this.currentRouteInfo = routeInfo;
+    return true;
   }
 
   private clearResumeSnapshots(): void {
-    try {
-      localStorage.removeItem(this.itineraryProgressSnapshotKey);
-      localStorage.removeItem(this.itineraryRouteSnapshotKey);
-    } catch (error) {
-      console.warn('Failed to clear itinerary snapshots:', error);
-    }
+    this.itineraryMapSnapshot.clear();
   }
 
   private handleAppPause(): void {
@@ -739,12 +618,10 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   /////////////////////////////////////////////TEMPLATE METHODS ///////////////////////////////////
 
   async showItineraryControlsModal(): Promise<void> {
-    // Load itineraries if not already loaded
-    if (this.availableItineraries.length === 0) {
-      console.log('Loading itineraries...');
-      await this.loadAvailableItineraries();
-      await this.loadJeepneyRoutes();
-    }
+    // Always refresh before opening modal so list includes newly created itineraries.
+    console.log('Refreshing itineraries...');
+    await this.loadAvailableItineraries();
+    await this.loadJeepneyRoutes();
     
     console.log('Available itineraries:', this.availableItineraries.length);
     
@@ -798,11 +675,16 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
               : null;
 
           if (activeItinerary && this.savedExpensePlan) {
-            void this.persistItineraryExpenses(activeItinerary, this.savedExpensePlan)
+            void this.itineraryExpenseSync
+              .persistItineraryExpenses(
+                activeItinerary,
+                this.savedExpensePlan,
+                this.currentRouteInfo?.segments
+              )
               .then(() => this.showToast('Expense plan saved'))
-              .catch((error) => {
+              .catch((error: unknown) => {
                 console.error('Error saving expense plan:', error);
-                this.showToast('Expense plan draft saved (sync failed)');
+                void this.showToast('Expense plan draft saved (sync failed)');
               });
           } else {
             this.showToast('Expense plan saved');
@@ -839,28 +721,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   }
 
   getSegmentTitle(segment: any): string {
-    if (segment.type === 'jeepney' || segment.type === 'bus') {
-      return `${segment.jeepneyCode || 'Transit'} (${segment.fromName || segment.from} → ${segment.toName || segment.to})`;
-    } else if (segment.type === 'visit_stop') {
-      return segment.description || `Enjoy your visit at ${segment.toName || 'this destination'}`;
-    } else if (segment.type === 'walk') {
-      return `Walk (${segment.fromName || segment.from} → ${segment.toName || segment.to})`;
-    } else {
-      return `${segment.fromName || segment.from} → ${segment.toName || segment.to}`;
-    }
+    return this.routeLabels.getSegmentTitle(segment);
   }
 
   getCurrentStageDescription(): string {
-    if (!this.currentRouteInfo || !this.currentRouteInfo.segments || this.currentSegmentIndex < 0) {
-      return 'No stage selected';
-    }
-    
-    const segment = this.currentRouteInfo.segments[this.currentSegmentIndex];
-    if (!segment) {
-      return 'Invalid stage';
-    }
-    
-    return this.getSegmentTitle(segment);
+    return this.routeLabels.getCurrentStageDescription(this.currentRouteInfo, this.currentSegmentIndex);
   }
 
   isCurrentSegmentVisitStop(): boolean {
@@ -897,131 +762,59 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return `calc(${headerPx}px + ${safe} + ${lakawReservePx}px)`;
   }
 
-  toggleLakawMode(): void {
-    if (!this.lakawMode && !this.isCurrentWalkSegment()) {
-      void this.showToast('Turn on Lakaw while viewing a walking stage.');
-      return;
-    }
-    this.lakawMode = !this.lakawMode;
-    this.locationTracking.setLakawMode(this.lakawMode);
-    if (!this.lakawMode) {
-      this.lakawWalkRemainingM = null;
-    }
-    void this.showToast(
-      this.lakawMode ? 'Lakaw mode on: live walking updates' : 'Lakaw mode off'
-    );
-    const u = this.locationTracking.getUserLocation();
-    if (u) {
-      this.updateUserMarker(u);
-    }
-  }
-
   onLakawAutoAdvanceChange(): void {
-    try {
-      localStorage.setItem(
-        this.lakawAutoAdvanceStorageKey,
-        JSON.stringify(!!this.lakawAutoAdvanceEnabled)
-      );
-    } catch {
-      // ignore
-    }
+    this.walkGuidance.saveAutoAdvanceToStorage(!!this.lakawAutoAdvanceEnabled);
   }
 
   private loadLakawAutoAdvanceSetting(): void {
-    try {
-      const raw = localStorage.getItem(this.lakawAutoAdvanceStorageKey);
-      if (raw != null) {
-        this.lakawAutoAdvanceEnabled = JSON.parse(raw) === true;
-      }
-    } catch {
-      this.lakawAutoAdvanceEnabled = false;
-    }
+    this.lakawAutoAdvanceEnabled = this.walkGuidance.loadAutoAdvanceFromStorage();
   }
 
   /**
-   * Keeps Lakaw enabled across segment changes; only walk-specific UI resets off the walking polyline.
+   * Resets walk-segment UI when leaving a walking polyline; keeps segment index guards in sync.
    */
   private syncLakawWithSegment(): void {
-    if (this.isCurrentWalkSegment()) {
-      if (this.lakawMode) {
-        this.locationTracking.setLakawMode(true);
-      }
-      const idx = this.currentSegmentIndex;
-      if (this.lakawWalkPolylineSyncSegmentIndex !== idx) {
-        this.lakawWalkPolylineSyncSegmentIndex = idx;
-        this.lakawAutoAdvancedForSegmentIndex = null;
-        this.lastLakawRemainMUi = null;
-        this.lastLakawRemainUiMs = 0;
-      }
-      return;
-    }
-    this.lakawWalkRemainingM = null;
-    this.lakawAutoAdvancedForSegmentIndex = null;
+    this.applyWalkGuidanceUi(
+      this.walkGuidance.syncAfterSegmentPaint(
+        this.isCurrentWalkSegment(),
+        this.currentSegmentIndex,
+        this.walkGuidanceUi()
+      )
+    );
   }
 
   private clearLakawState(): void {
-    this.lakawMode = false;
     this.lakawWalkRemainingM = null;
     this.lakawAutoAdvancedForSegmentIndex = null;
     this.lakawWalkPolylineSyncSegmentIndex = null;
     this.lastLakawRemainMUi = null;
     this.lastLakawRemainUiMs = 0;
-    this.locationTracking.setLakawMode(false);
   }
 
   private handleLakawLocationUpdate(location: UserLocation): void {
-    if (!this.lakawMode) {
-      return;
-    }
-    if (!this.isCurrentWalkSegment()) {
-      this.lakawWalkRemainingM = null;
-      return;
-    }
-    const seg = this.currentRouteInfo?.segments?.[this.currentSegmentIndex];
-    if (!seg || seg.type !== 'walk') {
-      return;
-    }
-
-    const points = this.mapUtils.getWalkPolylineLatLng(seg);
-    if (!points.length) {
-      this.lakawWalkRemainingM = null;
-      return;
-    }
-
-    const remaining = this.mapUtils.remainingWalkAlongPolyline(
-      points,
-      location.lat,
-      location.lng
+    const effect = this.walkGuidance.processWalkLocationUpdate(
+      location,
+      this.currentRouteInfo,
+      this.currentSegmentIndex,
+      this.lakawAutoAdvanceEnabled,
+      this.walkGuidanceUi()
     );
-    if (remaining == null) {
-      return;
+    this.applyWalkGuidanceUi(effect.ui);
+
+    if (effect.panTo) {
+      const map = this.mapManagement.getMap();
+      if (map) {
+        map.panTo([effect.panTo.lat, effect.panTo.lng], {
+          animate: effect.panTo.animate,
+          duration: effect.panTo.duration,
+        });
+      }
     }
 
-    const now = Date.now();
-    if (
-      this.lastLakawRemainMUi == null ||
-      now - this.lastLakawRemainUiMs > 2000 ||
-      Math.abs(remaining - (this.lastLakawRemainMUi ?? 0)) > 8
-    ) {
-      this.lastLakawRemainUiMs = now;
-      this.lastLakawRemainMUi = remaining;
-      this.lakawWalkRemainingM = Math.max(0, Math.round(remaining));
-    }
-
-    const map = this.mapManagement.getMap();
-    if (map && now - this.lastFollowPanMs > 850) {
-      this.lastFollowPanMs = now;
-      map.panTo([location.lat, location.lng], { animate: true, duration: 0.22 });
-    }
-
-    if (
-      this.lakawAutoAdvanceEnabled &&
-      remaining < 35 &&
-      (location.accuracy ?? 999) < 40 &&
-      this.lakawAutoAdvancedForSegmentIndex !== this.currentSegmentIndex
-    ) {
-      this.lakawAutoAdvancedForSegmentIndex = this.currentSegmentIndex;
+    if (effect.toastAlmostThere) {
       void this.showToast('Almost there — opening next stage.');
+    }
+    if (effect.shouldAutoNextSegment) {
       this.nextSegment(true);
     }
   }
@@ -1057,7 +850,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     const modal = await this.modalCtrl.create({
       component: ItineraryCompletionModalComponent,
       componentProps: {
-        itineraryTitle: this.getItineraryCompletionHeading(activeItinerary),
+        itineraryTitle: this.routeLabels.getItineraryCompletionHeading(activeItinerary),
         routeInfo: routeSnapshot
       },
       cssClass: 'itinerary-completion-modal',
@@ -1089,7 +882,11 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
     if (persistExpenses && activeItinerary) {
       try {
-        await this.persistItineraryExpenses(activeItinerary, expensePlan);
+        await this.itineraryExpenseSync.persistItineraryExpenses(
+          activeItinerary,
+          expensePlan,
+          this.currentRouteInfo?.segments
+        );
       } catch (error) {
         console.error('Error persisting itinerary expenses:', error);
       }
@@ -1102,6 +899,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // Reset route state
     this.emergencyDirectionsMode = false;
     this.currentRouteInfo = null;
+    this.warnedLongWalkSegments.clear();
     this.visitStageAdminEvent = null;
     this.selectedItineraryIndex = -1;
     this.currentSegmentIndex = 0;
@@ -1130,160 +928,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     console.log('Itinerary stopped successfully');
   }
 
-  private async persistItineraryExpenses(itinerary: any, expensePlan?: ExpensePlan): Promise<void> {
-    if (!itinerary) {
-      return;
-    }
-
-    const resolvedPlan = this.resolveExpensePlan(itinerary, expensePlan);
-    const itineraryId = itinerary.id || `itinerary_${itinerary.date || Date.now()}`;
-    const itineraryDate = itinerary.date || this.extractDateFromStart(itinerary.start) || this.getLocalDateString(new Date());
-    const allExpenses = await this.budgetService.getExpenses();
-
-    await this.upsertExpenseCategory(
-      allExpenses,
-      'transportation',
-      resolvedPlan.transportation,
-      itineraryId,
-      itineraryDate,
-      `Transportation for ${itinerary.name || itineraryDate}`
-    );
-
-    await this.upsertExpenseCategory(
-      allExpenses,
-      'food',
-      resolvedPlan.food,
-      itineraryId,
-      itineraryDate,
-      `Food for ${itinerary.name || itineraryDate}`
-    );
-
-    await this.upsertExpenseCategory(
-      allExpenses,
-      'accommodation',
-      resolvedPlan.accommodation,
-      itineraryId,
-      itineraryDate,
-      `Accommodation for ${itinerary.name || itineraryDate}`
-    );
-  }
-
-  private async upsertExpenseCategory(
-    allExpenses: any[],
-    category: 'transportation' | 'food' | 'accommodation',
-    amount: number,
-    itineraryId: string,
-    itineraryDate: string,
-    description: string
-  ): Promise<void> {
-    if (!amount || amount <= 0) {
-      return;
-    }
-
-    const existing = allExpenses.find((expense: any) =>
-      expense.category === category &&
-      (expense.itineraryId === itineraryId || this.getLocalDateString(expense.date) === itineraryDate)
-    );
-
-    if (existing?.id) {
-      await this.budgetService.updateExpense(existing.id, {
-        amount,
-        description,
-        date: new Date(`${itineraryDate}T12:00:00`),
-        itineraryId,
-        dayNumber: 1
-      });
-      return;
-    }
-
-    if (category === 'transportation') {
-      await this.budgetService.addTransportationExpense(amount, description, undefined, itineraryId, 1);
-      return;
-    }
-
-    if (category === 'food') {
-      await this.budgetService.addFoodExpense(amount, 'Itinerary Meals', 'Food', itineraryId, 1);
-      return;
-    }
-
-    await this.budgetService.addAccommodationExpense(amount, 'Itinerary Stay', 1, itineraryId, 1);
-  }
-
-  private resolveExpensePlan(itinerary: any, expensePlan?: ExpensePlan): { transportation: number; food: number; accommodation: number } {
-    const defaults = this.computeDefaultExpensePlan(itinerary);
-
-    const transportation =
-      expensePlan?.transportation === null || expensePlan?.transportation === undefined || isNaN(Number(expensePlan?.transportation))
-        ? defaults.transportation
-        : Math.max(0, Number(expensePlan.transportation));
-
-    const food =
-      expensePlan?.food === null || expensePlan?.food === undefined || isNaN(Number(expensePlan?.food))
-        ? defaults.food
-        : Math.max(0, Number(expensePlan.food));
-
-    const accommodation =
-      expensePlan?.accommodation === null || expensePlan?.accommodation === undefined || isNaN(Number(expensePlan?.accommodation))
-        ? defaults.accommodation
-        : Math.max(0, Number(expensePlan.accommodation));
-
-    return { transportation, food, accommodation };
-  }
-
-  private computeDefaultExpensePlan(itinerary: any): { transportation: number; food: number; accommodation: number } {
-    const transportation = this.currentRouteInfo?.segments
-      ? Math.max(0, Math.round(this.budgetService.getEstimatedJeepneyFare(this.currentRouteInfo.segments).average || 0))
-      : 0;
-
-    const hasMeals = (itinerary?.days || []).some((day: any) =>
-      (day?.spots || []).some((spot: any) => !!spot?.mealType)
-    );
-
-    const nights = (itinerary?.days || []).filter((day: any) =>
-      (day?.spots || []).some((spot: any) => spot?.eventType === 'hotel' || !!spot?.hotel)
-    ).length;
-
-    const limits = this.budgetService.getCurrentBudgetLimits();
-    const dayCount = Math.max(1, itinerary?.days?.length || 1);
-
-    return {
-      transportation,
-      food: hasMeals ? Math.max(0, Math.round((limits?.dailyFood || 0) * dayCount)) : 0,
-      accommodation: nights > 0 ? Math.max(0, Math.round((limits?.dailyAccommodation || 0) * nights)) : 0
-    };
-  }
-
-  private getLocalDateString(value: any): string {
-    if (!value) {
-      return '';
-    }
-
-    if (typeof value === 'string') {
-      const datePart = value.split('T')[0];
-      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
-        return datePart;
-      }
-    }
-
-    const date = value instanceof Date ? value : new Date(value);
-    if (isNaN(date.getTime())) {
-      return '';
-    }
-
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  private extractDateFromStart(start?: string): string {
-    if (!start) {
-      return '';
-    }
-    const datePart = start.split('T')[0];
-    return /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : '';
-  }
-
   cancelRouteGeneration(): void {
     console.log('Cancelling route generation...');
 
@@ -1296,6 +940,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     // Reset route state
     this.emergencyDirectionsMode = false;
     this.currentRouteInfo = null;
+    this.warnedLongWalkSegments.clear();
     this.visitStageAdminEvent = null;
     this.selectedItineraryIndex = -1;
     this.currentSegmentIndex = 0;
@@ -1357,118 +1002,30 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     }
 
     const segment = this.currentRouteInfo.segments[segmentIndex];
-    if (!segment) return;
-
-    // Try multiple ways to get segment coordinates
-    let lat, lng;
-    
-    // Special handling for meal and accommodation segments
-    if (segment.type === 'meal' || segment.type === 'accommodation') {
-      const placeName = segment.from || segment.to || segment.placeName;
-      
-      if (placeName && typeof placeName === 'string') {
-        const cleanName = placeName.replace(/🍽️|🏨|🛏️/g, '').trim();
-        
-        // Search in tourist spots
-        const foundSpot = this.touristSpots.find(spot => 
-          spot.name.toLowerCase().includes(cleanName.toLowerCase()) ||
-          cleanName.toLowerCase().includes(spot.name.toLowerCase())
-        );
-        
-        if (foundSpot && foundSpot.location) {
-          lat = foundSpot.location.lat;
-          lng = foundSpot.location.lng;
-        }
-        
-        // If not found in tourist spots, try itinerary data
-        if (!lat && this.availableItineraries && this.selectedItineraryIndex >= 0) {
-          const currentItinerary = this.availableItineraries[this.selectedItineraryIndex];
-          if (currentItinerary && currentItinerary.days) {
-            currentItinerary.days.forEach((day: any) => {
-              day.spots?.forEach((spot: any) => {
-                if (spot.name.toLowerCase().includes(cleanName.toLowerCase()) ||
-                    (spot.chosenRestaurant && spot.chosenRestaurant.name.toLowerCase().includes(cleanName.toLowerCase())) ||
-                    (spot.chosenHotel && spot.chosenHotel.name.toLowerCase().includes(cleanName.toLowerCase()))) {
-                  lat = spot.location?.lat;
-                  lng = spot.location?.lng;
-                }
-              });
-            });
-          }
-        }
-      }
-    }
-    
-    // Regular coordinate extraction for transportation segments
-    if (!lat || !lng) {
-      // Method 1: from.lat/lng
-      if (segment.from && segment.from.lat && segment.from.lng) {
-        lat = segment.from.lat;
-        lng = segment.from.lng;
-      }
-      // Method 2: from.location.lat/lng
-      else if (segment.from && segment.from.location && segment.from.location.lat && segment.from.location.lng) {
-        lat = segment.from.location.lat;
-        lng = segment.from.location.lng;
-      }
-      // Method 3: fromLocation
-      else if (segment.fromLocation && segment.fromLocation.lat && segment.fromLocation.lng) {
-        lat = segment.fromLocation.lat;
-        lng = segment.fromLocation.lng;
-      }
-      // Method 4: to.lat/lng (use destination if from is missing)
-      else if (segment.to && segment.to.lat && segment.to.lng) {
-        lat = segment.to.lat;
-        lng = segment.to.lng;
-      }
-      // Method 5: to.location.lat/lng
-      else if (segment.to && segment.to.location && segment.to.location.lat && segment.to.location.lng) {
-        lat = segment.to.location.lat;
-        lng = segment.to.location.lng;
-      }
-      // Method 6: toLocation
-      else if (segment.toLocation && segment.toLocation.lat && segment.toLocation.lng) {
-        lat = segment.toLocation.lat;
-        lng = segment.toLocation.lng;
-      }
-      // Method 7: Try to find coordinates from polyline
-      else if (segment.polyline) {
-        try {
-          let decodedPoints: any[] = [];
-          
-          if (typeof segment.polyline === 'string') {
-            decodedPoints = this.mapUtils.decodePolyline(segment.polyline);
-          } else if (segment.polyline.points) {
-            decodedPoints = this.mapUtils.decodePolyline(segment.polyline.points);
-          } else if (Array.isArray(segment.polyline) && segment.polyline.length > 0) {
-            // Already decoded array from OSRM
-            lat = segment.polyline[0].lat;
-            lng = segment.polyline[0].lng;
-          }
-          
-          if (!lat && decodedPoints.length > 0) {
-            lat = decodedPoints[0][0];
-            lng = decodedPoints[0][1];
-          }
-        } catch (error) {
-          // Silently handle polyline decode errors
-        }
-      }
+    if (!segment) {
+      return;
     }
 
-    if (lat && lng && lat !== 0 && lng !== 0) {
-      // Pan to the segment location with zoom
+    const selectedItinerary =
+      this.selectedItineraryIndex >= 0 && this.selectedItineraryIndex < this.availableItineraries.length
+        ? this.availableItineraries[this.selectedItineraryIndex]
+        : null;
+
+    const coords = this.segmentCoordinate.resolveSegmentLatLng(segment, {
+      touristSpots: this.touristSpots,
+      selectedItinerary,
+    });
+
+    if (coords) {
       const map = this.mapManagement.getMap();
       if (map) {
-        map.setView([lat, lng], 16, {
+        map.setView([coords.lat, coords.lng], 16, {
           animate: true,
-          duration: 1
+          duration: 1,
         });
       }
-
-      // Stage info is shown in the persistent yellow banner
     } else {
-      this.showToast(`Could not find coordinates for Segment ${segmentIndex + 1}`);
+      void this.showToast(`Could not find coordinates for Segment ${segmentIndex + 1}`);
     }
   }
 
@@ -1610,114 +1167,56 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
         return;
       }
       
-      // Draw only the current segment based on type
-      if ((segment.type === 'jeepney' || segment.type === 'bus') && segment.jeepneyCode) {
-        this.drawJeepneySegment(segment);
-      } else if (segment.type === 'walk') {
-        this.drawWalkingSegment(segment);
-      } else if (segment.type === 'visit_stop') {
-        this.drawVisitStopSegment(segment);
-      }
+      this.routeSegmentRenderer.renderSegment(segment);
       
       // Center map on the segment
       this.navigateToSegment(this.currentSegmentIndex);
 
       void this.refreshOverlapEventForVisitStage();
       this.syncLakawWithSegment();
+      void this.warnIfWalkTooLong(segment, this.currentSegmentIndex);
     } catch (error) {
       // Silently handle display errors
     }
   }
 
-  private getTodayYmd(): string {
-    const t = new Date();
-    const y = t.getFullYear();
-    const m = String(t.getMonth() + 1).padStart(2, '0');
-    const d = String(t.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
+  private async warnIfWalkTooLong(segment: any, segmentIndex: number): Promise<void> {
+    if (!segment || segment.type !== 'walk') {
+      return;
+    }
 
-  private findSpotByIdInItinerary(itinerary: any, spotId: string): any | null {
-    const days = itinerary?.days;
-    if (!Array.isArray(days)) {
-      return null;
+    const distanceMeters = Number(segment.distance) || 0;
+    if (distanceMeters <= this.longWalkThresholdMeters) {
+      return;
     }
-    for (const day of days) {
-      const spots = day?.spots;
-      if (!Array.isArray(spots)) {
-        continue;
-      }
-      const found = spots.find(
-        (s: any) => s?.id === spotId || s?.spotId === spotId || s?.touristSpotId === spotId
-      );
-      if (found) {
-        return found;
-      }
-    }
-    return null;
-  }
 
-  private extractPrimaryTimeHm(slot: unknown): string | null {
-    if (slot == null) {
-      return null;
+    if (this.warnedLongWalkSegments.has(segmentIndex)) {
+      return;
     }
-    const m = String(slot).match(/(\d{1,2}):(\d{2})/);
-    if (!m) {
-      return null;
-    }
-    const h = Number(m[1]);
-    const min = m[2];
-    if (Number.isNaN(h)) {
-      return null;
-    }
-    return `${String(h).padStart(2, '0')}:${min}`;
+    this.warnedLongWalkSegments.add(segmentIndex);
+
+    const distanceKm = (distanceMeters / 1000).toFixed(2);
+    const alert = await this.alertCtrl.create({
+      header: 'Long walk ahead',
+      message: `This walk is about ${distanceKm} km. Consider taking a bus or taxi instead.`,
+      buttons: ['OK']
+    });
+
+    await alert.present();
   }
 
   private async refreshOverlapEventForVisitStage(): Promise<void> {
     this.visitStageAdminEvent = null;
     const segment = this.currentRouteInfo?.segments?.[this.currentSegmentIndex];
-    if (!segment || segment.type !== 'visit_stop' || !segment.spotId) {
-      return;
-    }
-
-    const session = this.itinerarySession.getCurrentSession();
-    if (!session?.isActive) {
-      return;
-    }
-
-    if (this.selectedItineraryIndex < 0 || this.selectedItineraryIndex >= this.availableItineraries.length) {
-      return;
-    }
-
-    const it = this.availableItineraries[this.selectedItineraryIndex];
-    if (!it?.date) {
-      return;
-    }
-
-    if (it.date !== this.getTodayYmd()) {
-      return;
-    }
-
-    const spot = this.findSpotByIdInItinerary(it, segment.spotId);
-    const visitHm = this.extractPrimaryTimeHm(spot?.timeSlot);
-    if (!visitHm) {
-      return;
-    }
-
-    try {
-      const ev = await this.calendarService.findAdminEventOverlappingVisit({
-        spotId: segment.spotId,
-        date: it.date,
-        visitTimeHm: visitHm,
-      });
-      this.ngZone.run(() => {
-        this.visitStageAdminEvent = ev;
-      });
-    } catch {
-      this.ngZone.run(() => {
-        this.visitStageAdminEvent = null;
-      });
-    }
+    const ev = await this.visitStageCalendar.fetchAdminOverlapForVisitStop({
+      segment,
+      selectedItineraryIndex: this.selectedItineraryIndex,
+      availableItineraries: this.availableItineraries,
+      session: this.itinerarySession.getCurrentSession(),
+    });
+    this.ngZone.run(() => {
+      this.visitStageAdminEvent = ev;
+    });
   }
 
   async openVisitStageEventModal(): Promise<void> {
@@ -1818,6 +1317,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     
     try {
       this.lakawWalkPolylineSyncSegmentIndex = null;
+      this.warnedLongWalkSegments.clear();
       // Reset to first segment when displaying a new route
       this.currentSegmentIndex = 0;
       this.persistSessionSnapshot('route_display_reset');
@@ -1829,250 +1329,52 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       // Silently handle display errors
     }
   }
-  
-  private drawJeepneySegment(segment: any): void {
-    if (!segment.from || !segment.to) return;
-    
-    const fromLat = segment.from.lat || segment.from.location?.lat;
-    const fromLng = segment.from.lng || segment.from.location?.lng;
-    const toLat = segment.to.lat || segment.to.location?.lat;
-    const toLng = segment.to.lng || segment.to.location?.lng;
-    
-    if (!fromLat || !fromLng || !toLat || !toLng) return;
-    
-    // Check if we have polyline data from Google Maps
-    let polylinePoints: [number, number][] = [];
-    
-    if (segment.polyline) {
-      try {
-        // Handle different polyline formats
-        if (typeof segment.polyline === 'string') {
-          // Encoded polyline string from Google Maps
-          polylinePoints = this.mapUtils.decodePolyline(segment.polyline);
-        } else if (segment.polyline.points) {
-          // Polyline object with points property
-          polylinePoints = this.mapUtils.decodePolyline(segment.polyline.points);
-        } else if (Array.isArray(segment.polyline)) {
-          // Already decoded array of {lat, lng} from OSRM
-          polylinePoints = segment.polyline.map((p: any) => [p.lat, p.lng]);
-        }
-      } catch (error) {
-        polylinePoints = [[fromLat, fromLng], [toLat, toLng]];
-      }
-    } else {
-      polylinePoints = [[fromLat, fromLng], [toLat, toLng]];
-    }
-    
-    // Draw jeepney route line
-    const jeepneyLine = L.polyline(polylinePoints, {
-      color: '#FF5722',
-      weight: 6,
-      opacity: 0.8,
-      dashArray: '0'
-    });
-    
-    this.mapManagement.addRouteLine(jeepneyLine);
-
-    this.addStartStopTagsOnPolyline(polylinePoints, 'jeepney');
-    
-    // Add jeepney code marker at midpoint
-    const midIndex = Math.floor(polylinePoints.length / 2);
-    const midPoint = polylinePoints[midIndex];
-    
-    const jeepneyMarker = L.marker([midPoint[0], midPoint[1]], {
-      icon: L.divIcon({
-        html: `<div style="
-          background: #FF5722;
-          color: white;
-          border: 2px solid white;
-          border-radius: 8px;
-          padding: 4px 8px;
-          font-size: 14px;
-          font-weight: bold;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-          text-align: center;
-        ">${segment.jeepneyCode || '🚌'}</div>`,
-        iconSize: [50, 30],
-        iconAnchor: [25, 15]
-      })
-    });
-    
-    jeepneyMarker.bindPopup(`
-      <div style="text-align: center;">
-        <strong>Jeepney ${segment.jeepneyCode}</strong><br>
-        <small>${segment.description || 'Jeepney Route'}</small><br>
-        <small>Distance: ${this.mapUtils.formatDistance(segment.distance || 0)}</small><br>
-        <small>Duration: ${this.mapUtils.formatDuration(segment.duration || 0)}</small>
-      </div>
-    `);
-    
-    this.mapManagement.addRouteMarker(jeepneyMarker);
-  }
-  
-  private drawWalkingSegment(segment: any): void {
-    if (!segment.from || !segment.to) return;
-    
-    const fromLat = segment.from.lat || segment.from.location?.lat;
-    const fromLng = segment.from.lng || segment.from.location?.lng;
-    const toLat = segment.to.lat || segment.to.location?.lat;
-    const toLng = segment.to.lng || segment.to.location?.lng;
-    
-    if (!fromLat || !fromLng || !toLat || !toLng) return;
-    
-    // Check if we have polyline data
-    let polylinePoints: [number, number][] = [];
-    
-    if (segment.polyline) {
-      try {
-        // Handle different polyline formats
-        if (typeof segment.polyline === 'string') {
-          // Encoded polyline string from Google Maps
-          polylinePoints = this.mapUtils.decodePolyline(segment.polyline);
-        } else if (segment.polyline.points) {
-          // Polyline object with points property
-          polylinePoints = this.mapUtils.decodePolyline(segment.polyline.points);
-        } else if (Array.isArray(segment.polyline)) {
-          // Already decoded array of {lat, lng} from OSRM
-          polylinePoints = segment.polyline.map((p: any) => [p.lat, p.lng]);
-        }
-      } catch (error) {
-        polylinePoints = [[fromLat, fromLng], [toLat, toLng]];
-      }
-    } else {
-      // No polyline - draw straight line
-      polylinePoints = [[fromLat, fromLng], [toLat, toLng]];
-    }
-    
-    // Draw walking route line
-    const walkLine = L.polyline(polylinePoints, {
-      color: '#4CAF50',
-      weight: 5,
-      opacity: 0.8,
-      dashArray: '15, 10'
-    });
-    
-    this.mapManagement.addRouteLine(walkLine);
-
-    this.addStartStopTagsOnPolyline(polylinePoints, 'walk');
-    
-    // Add walking marker at midpoint (only if we have multiple points)
-    if (polylinePoints.length > 1) {
-      const midIndex = Math.floor(polylinePoints.length / 2);
-      const midPoint = polylinePoints[midIndex];
-      
-      const walkMarker = L.marker([midPoint[0], midPoint[1]], {
-        icon: L.divIcon({
-          html: `<div style="
-            background: #4CAF50;
-            color: white;
-            border: 1px solid white;
-            border-radius: 4px;
-            padding: 2px 4px;
-            font-size: 8px;
-            font-weight: bold;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            text-align: center;
-          ">🚶</div>`,
-          iconSize: [35, 15],
-          iconAnchor: [17, 7]
-        })
-      });
-      
-      walkMarker.bindPopup(`
-        <div style="text-align: center;">
-          <strong>Walking</strong><br>
-          <small>${segment.description || 'Walk to destination'}</small><br>
-          <small>Distance: ${this.mapUtils.formatDistance(segment.distance || 0)}</small><br>
-          <small>Duration: ${this.mapUtils.formatDuration(segment.duration || 0)}</small>
-        </div>
-      `);
-      
-      this.mapManagement.addRouteMarker(walkMarker);
-    }
-  }
-
-  private drawVisitStopSegment(segment: any): void {
-    const lat = segment?.to?.lat || segment?.from?.lat;
-    const lng = segment?.to?.lng || segment?.from?.lng;
-    if (!lat || !lng) return;
-
-    const visitMarker = L.marker([lat, lng], {
-      icon: L.divIcon({
-        html: `<div style="
-          background: #FFC107;
-          color: #111;
-          border: 2px solid #fff;
-          border-radius: 999px;
-          padding: 4px 10px;
-          font-size: 12px;
-          font-weight: 700;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-          text-align: center;
-          white-space: nowrap;
-        ">STOP — Visit</div>`,
-        iconSize: [110, 28],
-        iconAnchor: [55, 14]
-      })
-    });
-
-    visitMarker.bindPopup(`
-      <div style="text-align: center;">
-        <strong>Visit Stop</strong><br>
-        <small>${segment.description || 'Enjoy your visit here'}</small>
-      </div>
-    `);
-
-    this.mapManagement.addRouteMarker(visitMarker);
-  }
 
   async loadTouristSpots(): Promise<void> {
     try {
-      const cached = localStorage.getItem('tourist_spots_cache');
-      if (cached && !this.touristSpots.length) {
-        this.touristSpots = JSON.parse(cached);
+      const fromCache = this.touristSpotsStream.readCachedSpotsWhenEmpty(this.touristSpots.length);
+      if (fromCache) {
+        this.touristSpots = fromCache;
       }
 
       if (this.spotsSubscription) {
         this.spotsSubscription.unsubscribe();
       }
 
-      this.spotsSubscription = this.firestore
-        .collection('tourist_spots')
-        .valueChanges({ idField: 'id' })
-        .subscribe({
-          next: (spots) => {
-            this.ngZone.run(() => {
-              this.touristSpots = (spots || []) as any[];
-              localStorage.setItem('tourist_spots_cache', JSON.stringify(this.touristSpots));
+      this.spotsSubscription = this.touristSpotsStream.watchSpots(this.firestore).subscribe({
+        next: (spots) => {
+          this.ngZone.run(() => {
+            this.touristSpots = (spots || []) as any[];
+            this.touristSpotsStream.persistCache(this.touristSpots);
 
-              if (this.selectedItineraryIndex < 0) {
-                this.updateMapDisplay();
-              } else if (
-                this.selectedItineraryIndex >= 0 &&
-                this.availableItineraries[this.selectedItineraryIndex]
-              ) {
-                this.mapManagement.showItinerarySpots(
-                  this.availableItineraries[this.selectedItineraryIndex],
-                  this.mapUI
-                );
-              }
-            });
-          },
-          error: async () => {
-            const saved = localStorage.getItem('tourist_spots_cache');
-            if (saved) {
-              this.touristSpots = JSON.parse(saved);
-              if (this.selectedItineraryIndex < 0) {
-                this.updateMapDisplay();
-              }
+            if (this.selectedItineraryIndex < 0) {
+              this.updateMapDisplay();
+            } else if (
+              this.selectedItineraryIndex >= 0 &&
+              this.availableItineraries[this.selectedItineraryIndex]
+            ) {
+              this.mapManagement.showItinerarySpots(
+                this.availableItineraries[this.selectedItineraryIndex],
+                this.mapUI
+              );
             }
-            await this.showToast('Error syncing spots; showing cached data');
-          },
-        });
+          });
+        },
+        error: async () => {
+          const savedList = this.touristSpotsStream.readCachedSpotsOrEmpty();
+          if (savedList.length) {
+            this.touristSpots = savedList;
+            if (this.selectedItineraryIndex < 0) {
+              this.updateMapDisplay();
+            }
+          }
+          await this.showToast('Error syncing spots; showing cached data');
+        },
+      });
     } catch (error) {
-      const cached = localStorage.getItem('tourist_spots_cache');
-      if (cached) {
-        this.touristSpots = JSON.parse(cached);
+      const fallback = this.touristSpotsStream.readCachedSpotsOrEmpty();
+      if (fallback.length) {
+        this.touristSpots = fallback;
         if (this.selectedItineraryIndex < 0) {
           this.updateMapDisplay();
         }
@@ -2202,50 +1504,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     await this.loadingModal.present();
   }
 
-  /** START / STOP labels at the ends of the current path polyline. */
-  private addStartStopTagsOnPolyline(
-    polylinePoints: [number, number][],
-    variant: 'walk' | 'jeepney'
-  ): void {
-    if (!polylinePoints.length) {
-      return;
-    }
-    const startHue = variant === 'walk' ? '#1B5E20' : '#0D47A1';
-    const mk = (label: string, lat: number, lng: number, bg: string) =>
-      L.marker([lat, lng], {
-        icon: L.divIcon({
-          className: '',
-          html: `<div style="
-            background: ${bg};
-            color: #fff;
-            border: 2px solid #fff;
-            border-radius: 6px;
-            padding: 3px 8px;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.04em;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-            text-align: center;
-            white-space: nowrap;
-          ">${label}</div>`,
-          iconSize: [56, 22],
-          iconAnchor: [28, 11]
-        })
-      });
-
-    const a = polylinePoints[0];
-    const b = polylinePoints[polylinePoints.length - 1];
-    const startM = mk('START', a[0], a[1], startHue);
-    startM.bindPopup('<strong>Start</strong><br>Begin this leg here.');
-    this.mapManagement.addRouteMarker(startM);
-
-    if (polylinePoints.length > 1 && (a[0] !== b[0] || a[1] !== b[1])) {
-      const stopM = mk('STOP', b[0], b[1], '#B71C1C');
-      stopM.bindPopup('<strong>Stop</strong><br>End of this leg.');
-      this.mapManagement.addRouteMarker(stopM);
-    }
-  }
-
   /**
    * Dismiss loading modal
    */
@@ -2288,7 +1546,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
   private async refreshTouristSpots(): Promise<void> {
     try {
-      localStorage.removeItem('tourist_spots_cache');
+      this.touristSpotsStream.clearDiskCache();
       await this.loadTouristSpots();
     } catch (error) {
       // Silently handle error
@@ -2315,7 +1573,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       location.isReal,
       {
         headingDeg: location.headingDeg,
-        useWalkOrientation: this.lakawMode && this.isCurrentWalkSegment()
+        useWalkOrientation: this.isCurrentWalkSegment()
       }
     );
 
@@ -2363,38 +1621,19 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       duration: 0.75,
     } as L.ZoomPanOptions);
 
-    const icon = L.divIcon({
-      className: 'emergency-focus-marker-wrap',
-      html: '<div class="emergency-focus-pin" aria-hidden="true"></div>',
-      iconSize: [32, 36],
-      iconAnchor: [16, 34],
-      popupAnchor: [0, -30],
+    this.emergencyFocusMarker = this.emergencyMapDirections.createEmergencyFocusMarker(map, {
+      lat,
+      lng,
+      name,
+      address,
     });
-
-    const marker = L.marker([lat, lng], { icon });
-    const safeName = this.escapeHtmlForMapPopup(name);
-    const safeAddr = address ? this.escapeHtmlForMapPopup(address) : '';
-    marker.bindPopup(
-      `<div class="emergency-focus-popup"><strong>${safeName}</strong>${
-        safeAddr ? `<br><span>${safeAddr}</span>` : ''
-      }</div>`,
-      { maxWidth: 280 }
-    );
-    marker.addTo(map);
-    this.emergencyFocusMarker = marker;
-    marker.openPopup();
 
     void this.showToast(`Showing ${name} on the map`);
   }
 
   private async loadEmergencyDirectionsFromIntent(payload: EmergencyMapFocusPayload): Promise<void> {
-    for (let i = 0; i < 20; i++) {
-      if (this.mapManagement.getMap()) {
-        break;
-      }
-      await new Promise((r) => setTimeout(r, 80));
-    }
-    if (!this.mapManagement.getMap()) {
+    const ready = await this.emergencyMapDirections.waitForMapReady(() => this.mapManagement.getMap());
+    if (!ready) {
       await this.showToast('Map is not ready. Open the Map tab and try again.');
       return;
     }
@@ -2404,34 +1643,21 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
 
     try {
       await this.showRouteLoadingModal();
-      const userLocation = await this.locationTracking.getLocationWithFallback();
-      const routeInfo = await this.routePlanning.generateRouteInfoForEmergencyDestination(
-        userLocation,
-        {
-          name: payload.name,
-          lat: payload.lat,
-          lng: payload.lng,
-          placeId: payload.placeId,
-        }
-      );
-
+      const result = await this.emergencyMapDirections.loadEmergencyRouteInfo(payload);
       await this.dismissLoadingModal();
 
-      if (!routeInfo?.segments?.length) {
+      if ('error' in result) {
         this.emergencyDirectionsMode = false;
-        await this.showToast('No directions found. Try again or move closer to Cebu.');
+        await this.showToast(
+          result.error === 'no_segments'
+            ? 'No directions found. Try again or move closer to Cebu.'
+            : 'Could not load directions. Please try again.'
+        );
         return;
       }
 
-      routeInfo.segments.forEach((segment: any, index: number) => {
-        segment.stage = index + 1;
-        if (!segment.estimatedTime && segment.duration != null) {
-          segment.estimatedTime = this.mapUtils.formatDuration(segment.duration);
-        }
-      });
-
-      this.currentRouteInfo = routeInfo;
-      this.displayRouteOnMap(routeInfo);
+      this.currentRouteInfo = result.routeInfo;
+      this.displayRouteOnMap(result.routeInfo);
       await this.showToast(`Directions to ${payload.name}`);
     } catch {
       await this.dismissLoadingModal();
@@ -2443,19 +1669,12 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
   async clearEmergencyDirectionsPanel(): Promise<void> {
     this.emergencyDirectionsMode = false;
     this.currentRouteInfo = null;
+    this.warnedLongWalkSegments.clear();
     this.mapManagement.clearAllRouteLines();
     this.mapManagement.clearRouteMarkers();
     this.clearEmergencyFocusMarker();
     this.clearLakawState();
     await this.updateMapDisplay();
-  }
-
-  private escapeHtmlForMapPopup(value: string): string {
-    return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 
   private clearEmergencyFocusMarker(): void {

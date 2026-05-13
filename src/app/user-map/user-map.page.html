@@ -20,8 +20,7 @@
 <!-- Lakaw bar: fixed top (below header / safe area); stage banner stacks under it -->
 <div
   *ngIf="currentRouteInfo?.segments?.length"
-  class="lakaw-bar lakaw-bar--overlay"
-  [class.lakaw-bar--active]="lakawMode"
+  class="lakaw-bar lakaw-bar--overlay lakaw-bar--active"
   [class.lakaw-bar--walk]="isCurrentWalkSegment()"
   [class.lakaw-bar--transit]="!isCurrentWalkSegment()"
   [ngStyle]="{
@@ -40,11 +39,11 @@
   </div>
 
   <div class="lakaw-bar__right">
-    <ion-chip *ngIf="lakawMode && lakawWalkRemainingM != null" class="lakaw-distance-chip" color="light">
+    <ion-chip *ngIf="isCurrentWalkSegment() && lakawWalkRemainingM != null" class="lakaw-distance-chip" color="light">
       <ion-icon name="navigate-outline"></ion-icon>
       <ion-label>~{{ lakawWalkRemainingM }} m left</ion-label>
     </ion-chip>
-    <ion-item *ngIf="lakawMode" lines="none" class="lakaw-auto-item">
+    <ion-item *ngIf="isCurrentWalkSegment()" lines="none" class="lakaw-auto-item">
       <ion-label>Auto-next near end</ion-label>
       <ion-toggle slot="end" [(ngModel)]="lakawAutoAdvanceEnabled" (ionChange)="onLakawAutoAdvanceChange()"></ion-toggle>
     </ion-item>
@@ -252,15 +251,6 @@
          [ngStyle]="{ bottom: isFullscreen ? '20px' : '100px' }"
          (click)="previousSegment()">
       <ion-icon name="arrow-back" class="map-fab__icon"></ion-icon>
-    </div>
-
-    <div class="map-fab"
-         [ngClass]="lakawMode ? 'map-fab--lakaw-on' : 'map-fab--lakaw-off'"
-         [ngStyle]="{ bottom: isFullscreen ? '160px' : '240px' }"
-         (click)="toggleLakawMode()"
-         [title]="lakawMode ? 'Turn off Lakaw mode' : 'Turn on Lakaw mode'"
-         aria-label="Toggle Lakaw mode">
-      <ion-icon [name]="lakawMode ? 'walk' : 'walk-outline'" class="map-fab__icon"></ion-icon>
     </div>
 
     <div class="map-fab map-fab--primary"

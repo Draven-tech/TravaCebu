@@ -14,9 +14,14 @@
   }
 }
 
+:host {
+  --bucket-bottom-nav-space: clamp(82px, 11vh, 106px);
+}
+
 .bucket-content {
   --background: var(--ion-background-color);
-  --padding-bottom: 140px;
+  --bucket-footer-height: 68px;
+  --padding-bottom: calc(var(--bucket-footer-height) + var(--bucket-bottom-nav-space) + 24px + env(safe-area-inset-bottom));
   position: relative;
 }
 
@@ -217,20 +222,32 @@
 }
 
 .footer-fixed {
-  padding-bottom: 85px;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100% - 32px), 420px);
+  bottom: calc(var(--bucket-bottom-nav-space) + env(safe-area-inset-bottom));
+  z-index: 9000;
+  padding: 8px 0 10px;
   --background: transparent;
   border-top: none;
   box-shadow: none;
+  background: var(--ion-item-background, #ffffff);
+  border: 1px solid var(--ion-color-step-200, #d8e6f2);
+  border-radius: 16px;
+  backdrop-filter: saturate(120%) blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
 
   ion-button {
-    margin: 8px 16px;
-    --border-radius: 12px;
+    margin: 4px 10px;
+    --border-radius: 11px;
     font-weight: 600;
+    min-height: 42px;
   }
 
   .my-itineraries-btn {
     --background: var(--ion-color-primary, #4c8dbb);
     --color: #ffffff;
-    --box-shadow: 0 6px 18px rgba(76, 141, 187, 0.35);
+    --box-shadow: 0 6px 16px rgba(76, 141, 187, 0.32);
   }
 }

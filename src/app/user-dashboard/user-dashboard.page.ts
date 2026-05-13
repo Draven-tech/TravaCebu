@@ -37,7 +37,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
 
 
   searchQuery = '';
-  tags = ['All', 'Hidden Gems', 'Attraction', 'Mall', 'Beach', 'Landmark', 'Museum', 'Park'];
+  tags = ['All', 'Hidden Gems', 'Attraction', 'Mall', 'Museum'];
   selectedTag = 'All';
 
   currentPage = 1;

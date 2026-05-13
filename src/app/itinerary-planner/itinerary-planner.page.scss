@@ -5,6 +5,10 @@ $planner-border: var(--ion-color-step-150, #d8e6f2);
 $planner-text: var(--ion-text-color);
 $planner-muted: var(--ion-color-medium);
 
+:host {
+  --planner-bottom-nav-space: clamp(82px, 11vh, 106px);
+}
+
 .planner-toolbar {
   --background: #{$planner-primary};
   --color: #ffffff;
@@ -23,7 +27,8 @@ $planner-muted: var(--ion-color-medium);
 
 .planner-content {
   --background: #{$planner-page-bg};
-  --padding-bottom: 160px;
+  --planner-footer-height: 132px;
+  --padding-bottom: calc(var(--planner-footer-height) + var(--planner-bottom-nav-space) + 28px + env(safe-area-inset-bottom));
   position: relative;
 }
 
@@ -323,29 +328,40 @@ $planner-muted: var(--ion-color-medium);
 }
 
 .footer-fixed {
-  padding-bottom: 85px;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100% - 32px), 420px);
+  bottom: calc(var(--planner-bottom-nav-space) + env(safe-area-inset-bottom));
+  z-index: 9000;
+  padding: 8px 0 10px;
   --background: transparent;
   border-top: none;
   box-shadow: none;
+  background: var(--ion-item-background, #ffffff);
+  border: 1px solid var(--ion-color-step-200, #d8e6f2);
+  border-radius: 16px;
+  backdrop-filter: saturate(120%) blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
 
   .footer-btn {
-    margin: 6px 16px;
-    --border-radius: 12px;
+    margin: 4px 10px;
+    --border-radius: 11px;
     font-weight: 600;
+    min-height: 42px;
   }
 
   .footer-btn--secondary {
-    --background: var(--ion-item-background);
+    --background: var(--ion-color-step-50, #f8fafc);
     --color: #{$planner-primary};
-    --border-width: 1px;
-    --border-color: #{$planner-primary};
-    --box-shadow: 0 2px 8px rgba(44, 93, 129, 0.08);
+    --border-width: 0;
+    --box-shadow: none;
   }
 
   .footer-btn--primary {
     --background: #{$planner-primary};
     --color: #ffffff;
-    --box-shadow: 0 6px 18px rgba(76, 141, 187, 0.35);
+    --box-shadow: 0 6px 16px rgba(76, 141, 187, 0.32);
   }
 }
 

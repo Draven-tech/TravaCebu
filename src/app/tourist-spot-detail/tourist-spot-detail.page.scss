@@ -343,13 +343,28 @@ ion-toolbar .spinning {
   --border-width: 2px;
   --border-color: #{$detail-primary-dark};
   --color: #{$detail-primary-dark};
-  --background: var(--ion-color-primary-tint, #dceaf5);
+  --background: #eaf3fb;
+  --background-hover: #dceaf5;
+  --background-activated: #cfe1f0;
+  --background-focused: #dceaf5;
+  --ripple-color: #{$detail-primary};
+
+  ion-icon {
+    color: #{$detail-primary-dark};
+  }
 }
 
 .detail-btn--danger-outline {
   --border-color: #dc2626;
   --color: #b91c1c;
-  --background: var(--ion-color-danger-tint, #fef2f2);
+  --background: #fef2f2;
+  --background-hover: #fde3e3;
+  --background-activated: #fbd1d1;
+  --background-focused: #fde3e3;
+
+  ion-icon {
+    color: #b91c1c;
+  }
 }
 
 .reviews-container {

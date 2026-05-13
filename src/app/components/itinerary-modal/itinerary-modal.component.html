@@ -125,13 +125,11 @@
                   <span class="meal-time">{{ spot.mealType }} time</span>
                 </div>
                 <div class="booking-links">
-                  <ion-button size="small" fill="solid" class="booking-action-btn" (click)="viewRestaurantMap(spot.chosenRestaurant)">
-                    <ion-icon name="map" slot="start"></ion-icon>
-                    View on map
+                  <ion-button size="small" fill="outline" color="primary" (click)="viewRestaurantMap(spot.chosenRestaurant)">
+                    <ion-icon name="map"></ion-icon> View on Map
                   </ion-button>
-                  <a [href]="getGoogleReviewsUrl(spot.chosenRestaurant)" target="_blank" rel="noopener noreferrer" class="booking-link">
-                    <ion-icon name="star" aria-hidden="true"></ion-icon>
-                    Reviews
+                  <a [href]="getGoogleReviewsUrl(spot.chosenRestaurant)" target="_blank" class="booking-link">
+                    <ion-icon name="star"></ion-icon> Reviews
                   </a>
                 </div>
               </div>
@@ -190,8 +188,7 @@
           <div *ngIf="day.chosenHotel" class="selected-card hotel-card">
             <div class="card-header">
               <ion-icon name="bed" class="card-header-icon card-header-icon--hotel"></ion-icon>
-              <span class="card-title">Selected hotel (end of day)</span>
-              <ion-button size="small" fill="clear" color="danger" (click)="clearHotelChoice(day)">
+              <span class="card-title">Selected hotel (end of day)</span>              <ion-button size="small" fill="clear" color="danger" (click)="clearHotelChoice(day)">
                 <ion-icon name="close"></ion-icon>
               </ion-button>
             </div>
@@ -203,17 +200,14 @@
                 <span class="check-in-time">Check-in: Evening</span>
               </div>
               <div class="booking-links">
-                <a [href]="getBookingUrl(day.chosenHotel)" target="_blank" rel="noopener noreferrer" class="booking-link">
-                  <ion-icon name="card" aria-hidden="true"></ion-icon>
-                  Booking.com
+                <a [href]="getBookingUrl(day.chosenHotel)" target="_blank" class="booking-link">
+                  <ion-icon name="card"></ion-icon> Booking.com
                 </a>
-                <a [href]="getAgodaUrl(day.chosenHotel)" target="_blank" rel="noopener noreferrer" class="booking-link">
-                  <ion-icon name="bed" aria-hidden="true"></ion-icon>
-                  Agoda
+                <a [href]="getAgodaUrl(day.chosenHotel)" target="_blank" class="booking-link">
+                  <ion-icon name="bed"></ion-icon> Agoda
                 </a>
-                <ion-button size="small" fill="solid" class="booking-action-btn" (click)="viewHotelMap(day.chosenHotel)">
-                  <ion-icon name="map" slot="start"></ion-icon>
-                  View on map
+                <ion-button size="small" fill="outline" (click)="viewHotelMap(day.chosenHotel)">
+                  <ion-icon name="map"></ion-icon> View on Map
                 </ion-button>
               </div>
             </div>

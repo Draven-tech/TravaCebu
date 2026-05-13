@@ -23,12 +23,11 @@ export class LocationTrackingService {
   private isLocationTracking: boolean = false;
   private locationUpdateInterval: number = 10000; // Update every 10 seconds
   private userLocation: UserLocation | null = null;
-  /** When true, prefer raw GPS, throttle OSRM snap, use foot profile when snapping. */
-  private lakawMode = false;
   private lastEmittedLat: number | null = null;
   private lastEmittedLng: number | null = null;
   private lastSnapTimeMs = 0;
-  private readonly lakawSnapThrottleMs = 12000;
+  /** Throttle OSRM foot-profile snaps when GPS accuracy is poor (single map pipeline). */
+  private readonly roadSnapThrottleMs = 12000;
   
   // Observable to emit location updates
   private locationUpdate$ = new Subject<UserLocation>();
@@ -44,18 +43,6 @@ export class LocationTrackingService {
    */
   getUserLocation(): UserLocation | null {
     return this.userLocation;
-  }
-
-  /** Lakaw (walk) mode: faster fixes, less aggressive road snapping. */
-  setLakawMode(active: boolean): void {
-    this.lakawMode = active;
-    if (!active) {
-      this.lastSnapTimeMs = 0;
-    }
-  }
-
-  isLakawMode(): boolean {
-    return this.lakawMode;
   }
 
   /**
@@ -198,21 +185,15 @@ export class LocationTrackingService {
     let latOut = latitude;
     let lngOut = longitude;
 
-    if (this.lakawMode) {
-      const acc = accuracy ?? 999;
-      const now = Date.now();
-      const shouldSnapPoorAccuracy =
-        acc > 35 && now - this.lastSnapTimeMs >= this.lakawSnapThrottleMs;
-      if (shouldSnapPoorAccuracy) {
-        const snapped = await this.snapLocationToRoad(latitude, longitude, 'foot');
-        latOut = snapped.lat;
-        lngOut = snapped.lng;
-        this.lastSnapTimeMs = now;
-      }
-    } else {
-      const snappedLocation = await this.snapLocationToRoad(latitude, longitude, 'driving');
-      latOut = snappedLocation.lat;
-      lngOut = snappedLocation.lng;
+    const acc = accuracy ?? 999;
+    const now = Date.now();
+    const shouldSnapPoorAccuracy =
+      acc > 35 && now - this.lastSnapTimeMs >= this.roadSnapThrottleMs;
+    if (shouldSnapPoorAccuracy) {
+      const snapped = await this.snapLocationToRoad(latitude, longitude, 'foot');
+      latOut = snapped.lat;
+      lngOut = snapped.lng;
+      this.lastSnapTimeMs = now;
     }
 
     const headingDeg = this.resolveHeadingDeg(

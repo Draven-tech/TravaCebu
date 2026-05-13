@@ -17,36 +17,49 @@
   </ion-toolbar>
 </ion-header>
 
-<!-- Lakaw bar: fixed top (below header / safe area); stage banner stacks under it -->
+<!-- Route header stack: stage banner + Lakaw row (flow layout — no overlap with variable stage height) -->
 <div
-  *ngIf="currentRouteInfo?.segments?.length"
-  class="lakaw-bar lakaw-bar--overlay lakaw-bar--active"
-  [class.lakaw-bar--walk]="isCurrentWalkSegment()"
-  [class.lakaw-bar--transit]="!isCurrentWalkSegment()"
+  *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0"
+  class="route-top-stack"
   [ngStyle]="{
     top: isFullscreen
-      ? 'calc(env(safe-area-inset-top, 0px) + 52px)'
+      ? 'env(safe-area-inset-top, 0px)'
       : (selectedItineraryIndex < 0
-          ? 'calc(112px + env(safe-area-inset-top, 0px) + 52px)'
-          : 'calc(56px + env(safe-area-inset-top, 0px) + 52px)')
+          ? 'calc(112px + env(safe-area-inset-top, 0px))'
+          : 'calc(56px + env(safe-area-inset-top, 0px))')
   }"
 >
-  <div class="lakaw-bar__left">
-    <ion-chip class="lakaw-segment-chip" [color]="isCurrentWalkSegment() ? 'success' : 'primary'">
-      <ion-icon name="walk-outline"></ion-icon>
-      <ion-label>{{ isCurrentWalkSegment() ? 'Walking segment' : 'Transit segment' }}</ion-label>
-    </ion-chip>
+  <div *ngIf="showStageNotification" class="stage-notification">
+    <div class="stage-content">
+      <ion-icon name="navigate" class="stage-icon"></ion-icon>
+      <div class="stage-text">
+        <span class="stage-title">Stage {{ currentSegmentIndex + 1 }}/{{ currentRouteInfo.segments.length }}</span>
+        <span class="stage-description">{{ getCurrentStageDescription() }}</span>
+      </div>
+    </div>
   </div>
 
-  <div class="lakaw-bar__right">
-    <ion-chip *ngIf="isCurrentWalkSegment() && lakawWalkRemainingM != null" class="lakaw-distance-chip" color="light">
-      <ion-icon name="navigate-outline"></ion-icon>
-      <ion-label>~{{ lakawWalkRemainingM }} m left</ion-label>
-    </ion-chip>
-    <ion-item *ngIf="isCurrentWalkSegment()" lines="none" class="lakaw-auto-item">
-      <ion-label>Auto-next near end</ion-label>
-      <ion-toggle slot="end" [(ngModel)]="lakawAutoAdvanceEnabled" (ionChange)="onLakawAutoAdvanceChange()"></ion-toggle>
-    </ion-item>
+  <div class="lakaw-bar-wrap">
+    <div class="lakaw-bar__zoom-gap" aria-hidden="true"></div>
+    <div
+      class="lakaw-bar lakaw-bar--active"
+      [class.lakaw-bar--walk]="isCurrentWalkSegment()"
+      [class.lakaw-bar--transit]="!isCurrentWalkSegment()"
+    >
+      <div class="lakaw-bar__left">
+        <ion-chip class="lakaw-segment-chip">
+          <ion-icon [name]="isCurrentWalkSegment() ? 'walk-outline' : 'bus-outline'"></ion-icon>
+          <ion-label>{{ isCurrentWalkSegment() ? 'Walking segment' : 'Transit segment' }}</ion-label>
+        </ion-chip>
+      </div>
+
+      <div class="lakaw-bar__right">
+        <ion-item *ngIf="isCurrentWalkSegment()" lines="none" class="lakaw-auto-item">
+          <ion-label>Auto-next near end</ion-label>
+          <ion-toggle slot="end" [(ngModel)]="lakawAutoAdvanceEnabled" (ionChange)="onLakawAutoAdvanceChange()"></ion-toggle>
+        </ion-item>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -75,25 +88,6 @@
       </ion-label>
     </ion-item>
   </ion-list>
-</div>
-
-<!-- /////////////////////////////////////////////// stage notification //////////////////////////////////////////////////-->
-<div *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0 && showStageNotification" 
-     class="stage-notification"
-     [ngStyle]="{
-      top: isFullscreen
-        ? 'env(safe-area-inset-top, 0px)'
-        : (selectedItineraryIndex < 0
-            ? 'calc(112px + env(safe-area-inset-top, 0px))'
-            : 'calc(56px + env(safe-area-inset-top, 0px))')
-     }">
-  <div class="stage-content">
-    <ion-icon name="navigate" class="stage-icon"></ion-icon>
-    <div class="stage-text">
-      <span class="stage-title">Stage {{ currentSegmentIndex + 1 }}/{{ currentRouteInfo.segments.length }}</span>
-      <span class="stage-description">{{ getCurrentStageDescription() }}</span>
-    </div>
-  </div>
 </div>
 
 <!-- /////////////////////////////////////////////// map ////////////////////////////////////////////////////////////////////// -->
@@ -219,44 +213,55 @@
     </ion-card>
   </div>
 
-  <!-- /////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
-  
+  <app-bottom-nav *ngIf="!isFullscreen"></app-bottom-nav>
+</ion-content>
+
+<!-- Outside ion-content: fixed controls track the viewport (Ionic scroll can break fixed inside content) -->
+<div class="map-float-layer">
   <!-- Navigation Buttons (Left Side) -->
   <div *ngIf="currentRouteInfo && currentRouteInfo.segments && currentRouteInfo.segments.length > 0"
        class="map-fab-stack map-fab-stack--left">
 
     <div *ngIf="isCurrentSegmentVisitStop() && visitStageAdminEvent"
          class="map-fab map-fab--surface map-fab--surface-accent"
-         [ngStyle]="{ bottom: isFullscreen ? '370px' : '450px' }"
+         [ngStyle]="{ bottom: isFullscreen ? '300px' : '380px' }"
          (click)="openVisitStageEventModal()"
          title="Official event at this stop">
       <ion-icon name="calendar" class="map-fab__icon map-fab__icon--accent"></ion-icon>
     </div>
 
+    <!-- Left column: same 70px steps as right-side FABs (top → bottom on screen) -->
+    <div class="map-fab map-fab--success"
+         [ngStyle]="{ bottom: isFullscreen ? '230px' : '310px' }"
+         (click)="openItineraryCompletionModal()"
+         title="Complete itinerary">
+      <ion-icon name="checkmark" class="map-fab__icon"></ion-icon>
+    </div>
+
+    <div class="map-fab map-fab--primary"
+         [ngStyle]="{ bottom: isFullscreen ? '160px' : '240px' }"
+         (click)="nextSegment()"
+         title="Next segment">
+      <ion-icon name="arrow-forward" class="map-fab__icon"></ion-icon>
+    </div>
+
     <div *ngIf="isCurrentSegmentVisitStop()"
          class="map-fab map-fab--surface map-fab--surface-primary"
-         [ngStyle]="{ bottom: isFullscreen ? '300px' : '380px' }"
+         [ngStyle]="{ bottom: isFullscreen ? '90px' : '170px' }"
          (click)="openLocalTipsModal()"
          title="Local tips for this visit">
       <ion-icon name="bulb-outline" class="map-fab__icon map-fab__icon--primary"></ion-icon>
     </div>
 
-    <div class="map-fab map-fab--success"
-         [ngStyle]="{ bottom: isFullscreen ? '230px' : '310px' }"
-         (click)="openItineraryCompletionModal()">
-      <ion-icon name="checkmark" class="map-fab__icon"></ion-icon>
-    </div>
-
     <div class="map-fab map-fab--primary"
-         [ngStyle]="{ bottom: isFullscreen ? '20px' : '100px' }"
-         (click)="previousSegment()">
+         [ngStyle]="{
+           bottom: isFullscreen
+             ? (isCurrentSegmentVisitStop() ? '20px' : '90px')
+             : (isCurrentSegmentVisitStop() ? '100px' : '170px')
+         }"
+         (click)="previousSegment()"
+         title="Previous segment">
       <ion-icon name="arrow-back" class="map-fab__icon"></ion-icon>
-    </div>
-
-    <div class="map-fab map-fab--primary"
-         [ngStyle]="{ bottom: isFullscreen ? '90px' : '170px' }"
-         (click)="nextSegment()">
-      <ion-icon name="arrow-forward" class="map-fab__icon"></ion-icon>
     </div>
   </div>
 
@@ -295,6 +300,4 @@
        (click)="toggleFullscreen()">
     <ion-icon [name]="isFullscreen ? 'contract' : 'expand'" class="map-fab__icon"></ion-icon>
   </div>
-  
-  <app-bottom-nav *ngIf="!isFullscreen"></app-bottom-nav>
-</ion-content>
+</div>

@@ -574,39 +574,86 @@ ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button[color="danger"] {
   border-bottom: none;
 }
 
-/* Lakaw bar: fixed under header / safe area; above stage banner (z-index) */
-.lakaw-bar {
+/* Stage + Lakaw: one fixed column under the map toolbar (stage height varies — stack avoids overlap) */
+.route-top-stack {
   position: fixed;
-  left: 8px;
-  right: 8px;
+  left: 0;
+  right: 0;
   z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  pointer-events: none;
+
+  > .stage-notification,
+  > .lakaw-bar-wrap {
+    pointer-events: auto;
+  }
+}
+
+/* Override global fixed .stage-notification when it lives in this stack */
+.route-top-stack > .stage-notification {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  animation: none;
+  flex-shrink: 0;
+}
+
+/* Lakaw: row under stage; transparent left column leaves Leaflet zoom uncovered */
+.lakaw-bar-wrap {
+  --lakaw-zoom-gap: 72px;
+
+  position: relative;
+  left: auto;
+  right: auto;
+  z-index: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  pointer-events: none;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.lakaw-bar__zoom-gap {
+  flex: 0 0 calc(var(--lakaw-zoom-gap) + env(safe-area-inset-left, 0px));
+  min-width: calc(var(--lakaw-zoom-gap) + env(safe-area-inset-left, 0px));
+  pointer-events: none;
+}
+
+.lakaw-bar {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+  left: auto;
+  right: auto;
+  z-index: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 9px 10px;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid #d8e6f2;
-  border-radius: 14px;
-  box-shadow: 0 4px 14px rgba(47, 90, 133, 0.12);
-  backdrop-filter: blur(8px);
+  padding: 8px 12px;
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+  pointer-events: auto;
+  /* Same hue as bottom of global .stage-notification gradient (#3a6d9a) */
+  background: #3a6d9a;
+  border: none;
+  border-radius: 0;
+  border-bottom: 2px solid rgba(26, 32, 44, 0.12);
+  box-shadow: none;
 }
 
-.lakaw-bar--overlay {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  backdrop-filter: none;
-  padding: 6px 0;
-  /* Keep Leaflet zoom controls (top-left) unobstructed. */
-  left: 64px;
-  right: 8px;
+.lakaw-bar--walk,
+.lakaw-bar--transit {
+  background: #3a6d9a;
+  border-bottom-color: rgba(26, 32, 44, 0.12);
 }
 
 .lakaw-bar--active {
-  border-color: rgba(76, 141, 187, 0.45);
-  box-shadow: 0 6px 16px rgba(47, 90, 133, 0.18);
+  box-shadow: none;
 }
 
 .lakaw-bar__left,
@@ -626,7 +673,7 @@ ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button[color="danger"] {
   margin-left: auto;
   justify-content: flex-end;
   flex: 1 1 auto;
-  min-width: 180px;
+  min-width: 0;
 }
 
 .lakaw-badge {
@@ -655,28 +702,31 @@ ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button[color="danger"] {
   margin: 0;
 }
 
-.lakaw-segment-chip,
-.lakaw-distance-chip {
+.lakaw-segment-chip {
+  --background: rgba(255, 255, 255, 0.2);
+  --color: #ffffff;
   --min-height: 30px;
-  --padding-start: 8px;
-  --padding-end: 8px;
+  --padding-start: 10px;
+  --padding-end: 10px;
   border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  margin: 0;
 }
 
-.lakaw-distance-chip ion-icon {
-  font-size: 14px;
-  margin-right: 2px;
+.lakaw-segment-chip ion-icon {
+  color: #ffffff;
+  opacity: 0.95;
 }
 
 .lakaw-auto-item {
   --min-height: 34px;
-  --background: rgba(16, 185, 129, 0.14);
+  --background: rgba(255, 255, 255, 0.16);
   --padding-start: 10px;
   --padding-end: 8px;
   --inner-padding-end: 4px;
   margin: 0;
   border-radius: 999px;
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.38);
   font-size: 12px;
   width: auto;
   min-width: 172px;
@@ -685,7 +735,7 @@ ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button[color="danger"] {
 
 .lakaw-auto-item ion-label {
   font-size: 12px;
-  color: #064e3b;
+  color: #ffffff;
   font-weight: 600;
   margin-right: 6px;
   white-space: normal;
@@ -695,8 +745,8 @@ ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button[color="danger"] {
 .lakaw-auto-item ion-toggle {
   --handle-width: 17px;
   --handle-height: 17px;
-  --track-background: rgba(6, 95, 70, 0.25);
-  --track-background-checked: #10b981;
+  --track-background: rgba(255, 255, 255, 0.28);
+  --track-background-checked: #34d399;
   transform: scale(0.95);
 }
 
@@ -707,22 +757,19 @@ ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button[color="danger"] {
 }
 
 @media (max-width: 768px) {
+  .lakaw-bar-wrap {
+    --lakaw-zoom-gap: 66px;
+  }
+
   .lakaw-bar {
-    left: 6px;
-    right: 6px;
-    padding: 6px 0;
+    padding: 6px 10px;
+    padding-right: max(10px, env(safe-area-inset-right, 0px));
     gap: 8px;
-    border-radius: 12px;
   }
 
   .lakaw-badge {
     padding: 4px 8px;
     font-size: 11px;
-  }
-
-  .lakaw-bar--overlay {
-    left: 58px;
-    right: 6px;
   }
 }
 
@@ -750,6 +797,20 @@ ion-fab[vertical="bottom"][horizontal="center"] ion-fab-button[color="danger"] {
 
 .emergency-clear-route-btn {
   margin-top: 10px;
+}
+
+/* Viewport overlay for map FABs: outside ion-content so position:fixed is viewport-stable */
+.map-float-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10002;
+  pointer-events: none;
+  overflow: hidden;
+
+  .map-fab,
+  .map-continue-chip {
+    pointer-events: auto;
+  }
 }
 
 /* Map FABs & resume chip — align with app primary (#4c8dbb) */

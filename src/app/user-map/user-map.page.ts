@@ -738,30 +738,6 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     return segment?.type === 'walk';
   }
 
-  /**
-   * Lakaw strip sits at the top of the route UI: under the status bar in fullscreen,
-   * or directly under the map header toolbars (56px or 112px when search is shown).
-   */
-  getLakawBarTop(): string {
-    const safe = 'env(safe-area-inset-top, 0px)';
-    if (this.isFullscreen) {
-      return safe;
-    }
-    const headerPx = this.selectedItineraryIndex < 0 ? 112 : 56;
-    return `calc(${headerPx}px + ${safe})`;
-  }
-
-  /** Stage banner always stacks below the Lakaw bar when both are visible. */
-  getStageNotificationTop(): string {
-    const safe = 'env(safe-area-inset-top, 0px)';
-    const lakawReservePx = 64;
-    if (this.isFullscreen) {
-      return `calc(${safe} + ${lakawReservePx}px)`;
-    }
-    const headerPx = this.selectedItineraryIndex < 0 ? 112 : 56;
-    return `calc(${headerPx}px + ${safe} + ${lakawReservePx}px)`;
-  }
-
   onLakawAutoAdvanceChange(): void {
     this.walkGuidance.saveAutoAdvanceToStorage(!!this.lakawAutoAdvanceEnabled);
   }

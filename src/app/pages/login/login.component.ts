@@ -30,10 +30,10 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {
     this.stripCredentialsFromUrl();
-    if (!environment.firebase.apiKey || environment.firebase.apiKey === 'YOUR_API_KEY') {
+    if (!environment.firebase.apiKey || environment.firebase.apiKey === 'YOUR_FIREBASE_API_KEY') {
       this.configOk = false;
       this.errorMsg =
-        'Missing Firebase config. Edit src/environments/environment.ts with your Firebase Web app keys.';
+        'Missing Firebase config. Copy src/environments/environment.example.ts to environment.ts and add your keys.';
       return;
     }
     void this.redirectIfAlreadyAdmin();

@@ -2,6 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <script>
+    (function () {
+      try {
+        var k = 'travacebu-admin-theme';
+        var t = localStorage.getItem(k);
+        if (t !== 'light' && t !== 'dark' && t !== 'system') t = 'system';
+        document.documentElement.setAttribute('data-tc-theme', t);
+        var dark =
+          t === 'dark' ||
+          (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+      } catch (e) {}
+    })();
+  </script>
   <title>TravaCebu Admin</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">

@@ -15,16 +15,16 @@
     --padding-bottom: 16px;
   }
   
-  // Calendar Content
-  ion-header {
-    ion-toolbar {
-      --background: #FFE066;
-      --color: #2D3748;
-      
-      ion-title {
-        font-weight: bold;
-      }
-    }
+  // Calendar Content — match user-dashboard header
+  .header-toolbar {
+    --background: #4c8dbb;
+    --color: #ffffff;
+    box-shadow: none;
+  }
+
+  .header-toolbar ion-title {
+    color: #ffffff;
+    font-weight: bold;
   }
   
   ion-content {

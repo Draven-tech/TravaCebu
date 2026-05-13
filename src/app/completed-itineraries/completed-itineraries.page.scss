@@ -1,3 +1,18 @@
+.header-toolbar {
+  --background: #4c8dbb;
+  --color: #ffffff;
+  box-shadow: none;
+}
+
+.header-toolbar ion-title {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.header-toolbar ion-back-button {
+  --color: #ffffff;
+}
+
 ion-content {
   --background: #f8f9fa;
 }

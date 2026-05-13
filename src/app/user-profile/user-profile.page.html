@@ -121,7 +121,7 @@
           
           <!-- Tourist Spot Location -->
           <div *ngIf="post.touristSpotName" class="post-location">
-            <ion-icon name="location" color="warning"></ion-icon>
+            <ion-icon name="location" class="post-location-icon"></ion-icon>
             <span>{{ post.touristSpotName }}</span>
           </div>
 
@@ -130,7 +130,7 @@
             <ion-card>
               <ion-card-header>
                 <ion-card-title>
-                  <ion-icon name="calendar-outline" color="primary"></ion-icon>
+                  <ion-icon name="calendar-outline"></ion-icon>
                   {{ post.sharedItinerary.itineraryName }}
                 </ion-card-title>
                 <ion-card-subtitle>{{ formatDate(post.sharedItinerary.itineraryDate) }}</ion-card-subtitle>
@@ -226,7 +226,7 @@
           
           <!-- Tourist Spot Location -->
           <div *ngIf="post.touristSpotName" class="post-location">
-            <ion-icon name="location" color="warning"></ion-icon>
+            <ion-icon name="location" class="post-location-icon"></ion-icon>
             <span>{{ post.touristSpotName }}</span>
           </div>
 
@@ -235,7 +235,7 @@
             <ion-card>
               <ion-card-header>
                 <ion-card-title>
-                  <ion-icon name="calendar-outline" color="primary"></ion-icon>
+                  <ion-icon name="calendar-outline"></ion-icon>
                   {{ post.sharedItinerary.itineraryName }}
                 </ion-card-title>
                 <ion-card-subtitle>{{ formatDate(post.sharedItinerary.itineraryDate) }}</ion-card-subtitle>

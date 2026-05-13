@@ -7,9 +7,11 @@ $detail-text: var(--ion-text-color);
 $detail-muted: var(--ion-color-medium);
 
 .detail-toolbar {
-  --background: #{$detail-primary};
+  /* Match user-dashboard app bar (#4c8dbb), not default Ionic primary */
+  --background: #4c8dbb;
   --color: #ffffff;
   --border-width: 0;
+  box-shadow: none;
 
   ion-title {
     color: #ffffff;

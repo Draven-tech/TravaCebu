@@ -8,8 +8,8 @@
 }
 
 .custom-modal-header {
-  background: #FFD144;
-  color: #222;
+  background: #4c8dbb;
+  color: #ffffff;
   display: flex;
   align-items: center;
   padding: 16px 20px;
@@ -18,7 +18,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  box-shadow: 0 2px 8px rgba(47, 90, 133, 0.25);
 }
 
 .custom-modal-header .back-btn {
@@ -26,7 +26,7 @@
   border: none;
   margin-right: 12px;
   font-size: 1.5rem;
-  color: #222;
+  color: #ffffff;
 }
 
 .edit-profile-container {
@@ -76,22 +76,27 @@
 .save-btn {
   width: 100%;
   max-width: 400px;
-  background: #FFD144;
-  color: #222;
+  background: #4c8dbb;
+  color: #ffffff;
   font-weight: bold;
   border-radius: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+  box-shadow: 0 4px 12px rgba(76, 141, 187, 0.35);
   font-size: 1.1rem;
   border: none;
   padding: 16px 0;
   letter-spacing: 2px;
   text-transform: uppercase;
-  transition: background 0.2s;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.save-btn:hover {
+  background: #5a9bc9;
+  box-shadow: 0 6px 16px rgba(76, 141, 187, 0.45);
 }
 
 .save-btn:active,
 .save-btn:focus {
-  background: #FFD144;
+  background: #3a6d9a;
   outline: none;
 }
 

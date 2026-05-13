@@ -7,19 +7,19 @@ ion-content.combined-detail-content {
   background-color: var(--ion-card-background, var(--ion-color-step-50, var(--ion-background-color, #f4f5f8)));
 }
 
-ion-header {
-  ion-toolbar {
-    --background: var(--ion-color-warning);
-    --color: var(--ion-color-warning-contrast);
+.header-toolbar {
+  --background: #4c8dbb;
+  --color: #ffffff;
+  box-shadow: none;
+}
 
-    ion-title {
-      font-weight: 600;
-    }
+.header-toolbar ion-title {
+  color: #ffffff;
+  font-weight: 600;
+}
 
-    ion-button {
-      --color: var(--ion-color-warning-contrast);
-    }
-  }
+.header-toolbar ion-button {
+  --color: #ffffff;
 }
 
 .tab-box {

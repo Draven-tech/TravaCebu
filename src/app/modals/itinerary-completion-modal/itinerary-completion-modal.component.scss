@@ -8,15 +8,16 @@
   --brand-text-muted: #64748b;
 }
 
-.brand-toolbar {
+.header-toolbar {
   --background: #4c8dbb;
   --color: #ffffff;
   --border-color: transparent;
+  box-shadow: none;
+}
 
-  ion-title {
-    color: #ffffff;
-    font-weight: 600;
-  }
+.header-toolbar ion-title {
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .completion-content {

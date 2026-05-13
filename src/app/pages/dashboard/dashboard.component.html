@@ -2,7 +2,13 @@
   <nav class="tc-topbar">
     <strong>TravaCebu Admin Menu</strong>
     <span style="flex: 1; min-width: 0.5rem"></span>
-    <span class="tc-avatar" title="Admin" aria-hidden="true">A</span>
+    <span class="tc-avatar" [attr.title]="avatarTitle" aria-hidden="true">
+      @if (avatarPhotoUrl) {
+        <img [src]="avatarPhotoUrl" alt="" width="40" height="40" />
+      } @else {
+        {{ avatarInitial }}
+      }
+    </span>
     <button type="button" class="secondary" (click)="logout()">Logout</button>
   </nav>
 

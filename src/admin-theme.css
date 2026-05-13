@@ -96,6 +96,18 @@ body.tc-admin-login {
   font-weight: 800;
   margin-right: 0.25rem;
   flex-shrink: 0;
+  /* Top bar sets color: #fff on descendants; avatar is light so label must be dark */
+  color: var(--tc-text);
+  text-shadow: none;
+  overflow: hidden;
+}
+
+.tc-topbar .tc-avatar img,
+.nav .tc-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .tc-topbar button,

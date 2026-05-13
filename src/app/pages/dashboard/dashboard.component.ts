@@ -12,6 +12,9 @@ import { AdminAuthService } from '../../services/admin-auth.service';
 export class DashboardComponent implements OnInit {
   private readonly authSvc = inject(AdminAuthService);
 
+  avatarPhotoUrl: string | null = null;
+  avatarInitial = 'A';
+  avatarTitle = 'Admin';
   whoLabel = '';
   apiLoading = true;
   apiError = '';
@@ -23,6 +26,10 @@ export class DashboardComponent implements OnInit {
     const u = this.authSvc.auth.currentUser;
     if (u) {
       this.whoLabel = 'Signed in as ' + (u.email || u.uid) + '.';
+      this.avatarPhotoUrl = u.photoURL || null;
+      const label = (u.displayName || u.email || u.uid || 'A').trim();
+      this.avatarInitial = label[0]!.toUpperCase();
+      this.avatarTitle = u.displayName?.trim() || u.email || 'Admin';
     }
     await this.loadApiUsage();
   }

@@ -1,17 +1,20 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { ThemeToggleComponent } from './components/theme-toggle/theme-toggle.component';
+import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  template: '<router-outlet />',
+  imports: [RouterOutlet, ThemeToggleComponent],
+  template: '<router-outlet /><app-theme-toggle />',
   styleUrl: './app.component.css',
 })
 export class AppComponent {
   private readonly router = inject(Router);
 
   constructor() {
+    inject(ThemeService);
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((e) => {

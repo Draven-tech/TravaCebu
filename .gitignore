@@ -42,3 +42,5 @@ src/environments/environment.ts
 
 .DS_Store
 Thumbs.db
+
+/package-lock.json

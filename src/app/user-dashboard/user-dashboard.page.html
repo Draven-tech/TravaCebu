@@ -33,19 +33,21 @@
     <div class="searchbar-spacer"></div>
 
     <div class="recommendations-header" *ngIf="personalizedSuggestions.length > 0">
-      <h2 class="title">Suggested for You</h2>
-      <p *ngIf="effectiveSuggestionCategories.length > 0">
-        Based on your visited spots and preferred categories:
-        {{ effectiveSuggestionCategories.join(', ') }}
-      </p>
+      <h2 class="title">Tourist Spots Near You</h2>
+
     </div>
 
     <div *ngIf="personalizedSuggestions.length > 0" class="suggestion-showcase">
       <article *ngFor="let spot of personalizedSuggestions | slice:0:5" class="suggestion-card"
         (click)="openSpotDetail(spot.id)">
+
         <div class="suggestion-image-wrap">
           <img [src]="spot.img || 'assets/img/default.png'" [alt]="spot.name" />
           <span class="suggestion-category">{{ spot.category || 'Attraction' }}</span>
+                  <div class="visited-overlay" *ngIf="hasVisited(spot.id)">
+          <ion-icon name="checkmark-circle"></ion-icon>
+          <span>Visit Again</span>
+        </div>
         </div>
 
         <div class="suggestion-content">
@@ -147,7 +149,7 @@
       </ion-card-content>
     </ion-card>
   </div>
-  
+
   <div class="recently-visited-header">
     <h2 class="title">Recently Visited</h2>
     <ion-button class="see-all-link" fill="clear" size="small" (click)="openVisitedSpotsModal()">

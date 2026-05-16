@@ -12,6 +12,7 @@ import { SearchModalComponent } from '../modals/search-modal/search-modal.compon
 import { VisitedSpotsModalComponent } from '../modals/visited-spots-modal/visited-spots-modal.component';
 import { ItineraryPlannerService } from '../services/itinerary-planner.service';
 import { PersonalizedSpotSuggestionsService } from '../services/personalized-spot-suggestions.service';
+import { LocationTrackingService, UserLocation } from '../services/location-tracking.service';
 import { isExistingOrNearbyDuplicatePlace } from '../utils/place-duplicate.util';
 
 @Component({
@@ -34,10 +35,11 @@ export class UserDashboardPage implements OnInit, OnDestroy {
   personalizedSuggestions: any[] = [];
   effectiveSuggestionCategories: string[] = [];
   hiddenGems: any[] = [];
+  userLocation: UserLocation | null = null;
 
 
   searchQuery = '';
-  tags = ['All', 'Hidden Gems', 'Attraction', 'Mall', 'Museum'];
+  tags = ['All', 'Hidden Gems', 'Attraction', 'Mall', 'Museum', 'Park', 'Beach', 'Church', 'Restaurant', 'Nature', 'Nightlife', 'Hotel', 'Sports'];
   selectedTag = 'All';
 
   currentPage = 1;
@@ -61,7 +63,8 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     private pendingSpotService: PendingTouristSpotService,
     private geofencingService: GeofencingService,
     private itineraryPlannerService: ItineraryPlannerService,
-    private personalizedSuggestionsService: PersonalizedSpotSuggestionsService
+    private personalizedSuggestionsService: PersonalizedSpotSuggestionsService,
+    private locationTrackingService: LocationTrackingService
   ) { }
 
   async ngOnInit() {
@@ -77,12 +80,22 @@ export class UserDashboardPage implements OnInit, OnDestroy {
     this.loadVisitedSpots();
     this.loadBucketStatus();
     this.loadPlannerStatus();
+    this.loadUserLocation();
   }
 
   ngOnDestroy() {
     if (this.spotsSubscription) this.spotsSubscription.unsubscribe();
     window.removeEventListener('offline', this.showOfflineAlert);
     window.removeEventListener('online', this.showOnlineToast);
+  }
+
+  async loadUserLocation() {
+    try {
+      this.userLocation = await this.locationTrackingService.getLocationWithFallback();
+      this.updatePersonalizedSuggestions();
+    } catch {
+      // location unavailable — suggestions still work without it
+    }
   }
 
   loadUserProfile() {
@@ -105,6 +118,7 @@ export class UserDashboardPage implements OnInit, OnDestroy {
           this.allSpots = this.sortByPopularity(spots);
           this.hiddenGems = this.placesService.getHiddenGems(this.allSpots, this.allSpots.length);
           this.applyFilters();
+          this.updatePersonalizedSuggestions();
           this.isLoading = false;
         },
         error: (err) => {
@@ -545,7 +559,8 @@ export class UserDashboardPage implements OnInit, OnDestroy {
       this.allSpots,
       this.visitedSpots,
       this.userData,
-      this.itemsPerPage
+      this.itemsPerPage,
+      this.userLocation ?? undefined
     );
     this.effectiveSuggestionCategories =
       this.personalizedSuggestionsService.getEffectiveSuggestionCategories(this.visitedSpots, this.userData);

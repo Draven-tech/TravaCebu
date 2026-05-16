@@ -38,7 +38,6 @@ ion-content {
   margin-top: 12px;
   transform: translateX(-50%);
   z-index: 20;
-  backdrop-filter: blur(6px);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 
   &:focus-within {
@@ -115,7 +114,20 @@ ion-content {
       object-fit: cover;
       display: block;
     }
-
+    .visited-overlay {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(46, 204, 113, 0.9);
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
     .suggestion-category {
       position: absolute;
       left: 10px;

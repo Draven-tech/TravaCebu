@@ -75,16 +75,20 @@ export class ItineraryService {
     
     for (let day = 0; day < days.length; day++) {
       const daySpots = days[day];
-      if (daySpots.length === 0) continue;
-      
+
       const dayPlan: ItineraryDay = { day: day + 1, spots: [], routes: [] };
-      
+
       if (startDate) {
         const dayDate = new Date(startDate);
         dayDate.setDate(dayDate.getDate() + day);
         dayPlan.date = dayDate.toISOString().split('T')[0];
       }
-      
+
+      if (daySpots.length === 0) {
+        itinerary.push(dayPlan);
+        continue;
+      }
+
       const totalSpots = daySpots.length;
       const start = this.parseTime(startTime, startDate);
       const end = this.parseTime(endTime, startDate);

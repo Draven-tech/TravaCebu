@@ -146,7 +146,8 @@
 
         <div class="setup-section">
           <h3 class="setup-section-title">How many days?</h3>
-          <ion-range class="planner-range" min="1" max="14" step="1" [(ngModel)]="setup.days" color="primary">
+          <ion-range class="planner-range" min="1" max="14" step="1" [value]="setup.days"
+            (ionInput)="onDaysChange($event)" (ionChange)="onDaysChange($event)" color="primary">
           </ion-range>
           <div class="selected-days">{{ setup.days }} {{ setup.days > 1 ? 'days' : 'day' }}</div>
         </div>

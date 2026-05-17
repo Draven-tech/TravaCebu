@@ -85,9 +85,11 @@ export class MyItinerariesPage implements OnInit {
     const itineraries: any[] = [];
     const groupedEvents = new Map<string, CalendarEvent[]>();
 
-    // Group by explicit itinerary group when available; fallback to date.
+    // Group by itineraryGroupId → itineraryDocId (Firestore doc) → date as last resort.
     events.forEach(event => {
-      const groupKey = event.extendedProps?.itineraryGroupId || event.start.split('T')[0];
+      const groupKey = event.extendedProps?.itineraryGroupId
+        || event.extendedProps?.itineraryDocId
+        || event.start.split('T')[0];
       if (!groupedEvents.has(groupKey)) {
         groupedEvents.set(groupKey, []);
       }
@@ -102,11 +104,14 @@ export class MyItinerariesPage implements OnInit {
         const firstEvent = dayEvents[0];
         const lastEvent = dayEvents[dayEvents.length - 1];
         const date = firstEvent.start.split('T')[0];
-        const itineraryId = firstEvent.extendedProps?.itineraryGroupId || `itinerary_${date}`;
+        const itineraryId = firstEvent.extendedProps?.itineraryGroupId
+          || firstEvent.extendedProps?.itineraryDocId
+          || `itinerary_${date}`;
 
         let startTime = firstEvent.start;
         let endTime = lastEvent.end;
 
+        const uniqueDates = new Set(dayEvents.map(e => e.start.split('T')[0]));
         const itinerary = {
           id: itineraryId,
           title: firstEvent.extendedProps?.itineraryName || `Itinerary for ${this.getDateDisplay(date)}`,
@@ -117,7 +122,7 @@ export class MyItinerariesPage implements OnInit {
           spotsCount: dayEvents.filter(
             (e) => e.extendedProps?.type === 'tourist_spot' && !this.isAdminItineraryCalendarRow(e)
           ).length,
-          days: 1,
+          days: uniqueDates.size,
           events: dayEvents,
           createdAt: firstEvent.createdAt
         };
@@ -362,81 +367,91 @@ export class MyItinerariesPage implements OnInit {
   }
 
   private convertToItineraryDays(itinerary: any, originalSpots: any[] = []): any[] {
-    const dayEvents = itinerary.events || [];
-    const spots = dayEvents.filter(
-      (event: any) =>
-        event?.extendedProps?.type === 'tourist_spot' && !this.isAdminItineraryCalendarRow(event)
-    );
+    const allEvents: any[] = itinerary.events || [];
 
-    const restaurants = dayEvents.filter(
-      (event: any) => event?.extendedProps?.type === 'restaurant' && !this.isAdminItineraryCalendarRow(event)
-    );
-    const hotels = dayEvents.filter(
-      (event: any) => event?.extendedProps?.type === 'hotel' && !this.isAdminItineraryCalendarRow(event)
-    );
+    const eventsByDate = new Map<string, any[]>();
+    allEvents.forEach(event => {
+      const date = event.start?.split('T')[0];
+      if (!date) return;
+      if (!eventsByDate.has(date)) eventsByDate.set(date, []);
+      eventsByDate.get(date)!.push(event);
+    });
 
-    const chosenHotel = hotels.find((hotel: any) => hotel?.extendedProps?.isChosen) || null;
+    const sortedDates = Array.from(eventsByDate.keys()).sort();
 
-    return [{
-      day: 1,
-      date: itinerary.date,
-      spots: spots.map((event: any) => {
+    return sortedDates.map((date, index) => {
+      const dayEvents = eventsByDate.get(date)!;
 
-        const originalSpot = originalSpots.find(spot => spot.name === event.title);
+      const spots = dayEvents.filter(
+        (event: any) => event?.extendedProps?.type === 'tourist_spot' && !this.isAdminItineraryCalendarRow(event)
+      );
+      const restaurants = dayEvents.filter(
+        (event: any) => event?.extendedProps?.type === 'restaurant' && !this.isAdminItineraryCalendarRow(event)
+      );
+      const hotels = dayEvents.filter(
+        (event: any) => event?.extendedProps?.type === 'hotel' && !this.isAdminItineraryCalendarRow(event)
+      );
+      const chosenHotel = hotels.find((hotel: any) => hotel?.extendedProps?.isChosen) || null;
 
-        return {
-          id: event.extendedProps?.spotId || event.id || '',
-          name: event.title || 'Unknown Spot',
-          description: event.extendedProps?.description || originalSpot?.description || '',
-          category: event.extendedProps?.category || originalSpot?.category || 'GENERAL',
-          timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
-          estimatedDuration: event.extendedProps?.duration || '2 hours',
-          durationMinutes: event.extendedProps?.durationMinutes || 120,
-          location: event.extendedProps?.location || originalSpot?.location || { lat: 0, lng: 0 },
-          img: originalSpot?.img || event.extendedProps?.img || 'assets/img/default.png',
+      return {
+        day: index + 1,
+        date,
+        spots: spots.map((event: any) => {
+          const originalSpot = originalSpots.find(spot => spot.name === event.title);
+          return {
+            id: event.extendedProps?.spotId || event.id || '',
+            name: event.title || 'Unknown Spot',
+            description: event.extendedProps?.description || originalSpot?.description || '',
+            category: event.extendedProps?.category || originalSpot?.category || 'GENERAL',
+            timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '09:00',
+            estimatedDuration: event.extendedProps?.duration || '2 hours',
+            durationMinutes: event.extendedProps?.durationMinutes || 120,
+            location: event.extendedProps?.location || originalSpot?.location || { lat: 0, lng: 0 },
+            img: originalSpot?.img || event.extendedProps?.img || 'assets/img/default.png',
+            mealType: event.extendedProps?.mealType || null,
+            chosenRestaurant: event.extendedProps?.restaurant ? {
+              name: event.extendedProps.restaurant,
+              rating: event.extendedProps.restaurantRating,
+              vicinity: event.extendedProps.restaurantVicinity
+            } : null
+          };
+        }),
+        routes: [],
+        restaurants: restaurants.map((event: any) => ({
+          id: event.id || '',
+          name: event.title || 'Unknown Restaurant',
+          description: event.extendedProps?.description || '',
+          category: event.extendedProps?.category || 'RESTAURANT',
+          timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '12:00',
+          estimatedDuration: event.extendedProps?.duration || '1 hour',
+          location: event.extendedProps?.location || { lat: 0, lng: 0 },
           mealType: event.extendedProps?.mealType || null,
-          chosenRestaurant: event.extendedProps?.restaurant ? {
-            name: event.extendedProps.restaurant,
-            rating: event.extendedProps.restaurantRating,
-            vicinity: event.extendedProps.restaurantVicinity
-          } : null
-        };
-      }),
-      routes: [], // Add empty routes array to prevent filter errors
-      restaurants: restaurants.map((event: any) => ({
-        id: event.id || '',
-        name: event.title || 'Unknown Restaurant',
-        description: event.extendedProps?.description || '',
-        category: event.extendedProps?.category || 'RESTAURANT',
-        timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '12:00',
-        estimatedDuration: event.extendedProps?.duration || '1 hour',
-        location: event.extendedProps?.location || { lat: 0, lng: 0 },
-        mealType: event.extendedProps?.mealType || null,
-        isChosen: event.extendedProps?.isChosen || false
-      })),
-      hotels: hotels.map((event: any) => ({
-        id: event.id || '',
-        name: event.title || 'Unknown Hotel',
-        description: event.extendedProps?.description || '',
-        category: event.extendedProps?.category || 'HOTEL',
-        timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '15:00',
-        estimatedDuration: event.extendedProps?.duration || '1 night',
-        location: event.extendedProps?.location || { lat: 0, lng: 0 },
-        isChosen: event.extendedProps?.isChosen || false
-      })),
-      chosenHotel: chosenHotel ? {
-        id: chosenHotel.id || '',
-        name: chosenHotel.title || 'Unknown Hotel',
-        description: chosenHotel.extendedProps?.description || '',
-        category: chosenHotel.extendedProps?.category || 'HOTEL',
-        timeSlot: chosenHotel.start?.split('T')[1]?.substring(0, 5) || '15:00',
-        estimatedDuration: chosenHotel.extendedProps?.duration || '1 night',
-        location: chosenHotel.extendedProps?.location || { lat: 0, lng: 0 },
-        rating: chosenHotel.extendedProps?.rating,
-        vicinity: chosenHotel.extendedProps?.vicinity,
-        isChosen: true
-      } : null
-    }];
+          isChosen: event.extendedProps?.isChosen || false
+        })),
+        hotels: hotels.map((event: any) => ({
+          id: event.id || '',
+          name: event.title || 'Unknown Hotel',
+          description: event.extendedProps?.description || '',
+          category: event.extendedProps?.category || 'HOTEL',
+          timeSlot: event.start?.split('T')[1]?.substring(0, 5) || '15:00',
+          estimatedDuration: event.extendedProps?.duration || '1 night',
+          location: event.extendedProps?.location || { lat: 0, lng: 0 },
+          isChosen: event.extendedProps?.isChosen || false
+        })),
+        chosenHotel: chosenHotel ? {
+          id: chosenHotel.id || '',
+          name: chosenHotel.title || 'Unknown Hotel',
+          description: chosenHotel.extendedProps?.description || '',
+          category: chosenHotel.extendedProps?.category || 'HOTEL',
+          timeSlot: chosenHotel.start?.split('T')[1]?.substring(0, 5) || '15:00',
+          estimatedDuration: chosenHotel.extendedProps?.duration || '1 night',
+          location: chosenHotel.extendedProps?.location || { lat: 0, lng: 0 },
+          rating: chosenHotel.extendedProps?.rating,
+          vicinity: chosenHotel.extendedProps?.vicinity,
+          isChosen: true
+        } : null
+      };
+    });
   }
 
   goToBucketList() {

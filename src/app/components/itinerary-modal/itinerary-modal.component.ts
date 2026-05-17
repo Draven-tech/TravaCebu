@@ -278,11 +278,53 @@ export class ItineraryModalComponent implements OnInit {
     return (place as PlaceSuggestion)?.vicinity || null;
   }
 
+  private async checkForDateConflicts(newDates: string[]): Promise<string[]> {
+    if (newDates.length === 0) return [];
+    try {
+      const existingEvents = await this.calendarService.forceRefreshFromFirestore();
+      const occupiedDates = new Set(
+        existingEvents
+          .filter(e => !this.originalDates.includes(e.start.split('T')[0]))
+          .map(e => e.start.split('T')[0])
+      );
+      return newDates.filter(date => occupiedDates.has(date));
+    } catch {
+      return [];
+    }
+  }
+
+  private confirmOverwrite(dateList: string): Promise<boolean> {
+    return new Promise(async resolve => {
+      const alert = await this.alertCtrl.create({
+        header: 'Date Conflict',
+        message: `You already have an itinerary on ${dateList}. Saving will overwrite those entries. Do you want to continue?`,
+        buttons: [
+          { text: 'Cancel', role: 'cancel', handler: () => resolve(false) },
+          { text: 'Proceed', cssClass: 'alert-button-danger', handler: () => resolve(true) }
+        ]
+      });
+      await alert.present();
+      alert.onDidDismiss().then(({ role }) => {
+        if (role === 'cancel' || role === 'backdrop') resolve(false);
+      });
+    });
+  }
+
   async saveItinerary() {
     const validation = this.validateItineraryChoices();
     if (!validation.isValid) {
       this.showAlert('Incomplete Itinerary', validation.message);
       return;
+    }
+
+    const newDates = this.itinerary.map(day => day.date).filter((d): d is string => !!d);
+    const conflictingDates = await this.checkForDateConflicts(newDates);
+    if (conflictingDates.length > 0) {
+      const dateList = conflictingDates
+        .map(d => new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
+        .join(', ');
+      const confirmed = await this.confirmOverwrite(dateList);
+      if (!confirmed) return;
     }
 
     this.saving = true;

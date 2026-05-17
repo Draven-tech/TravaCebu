@@ -184,11 +184,18 @@ export class ItineraryPlannerPage implements OnInit {
     this.showSetupModal = true;
   }
 
+  onDaysChange(event: any) {
+    const raw = event?.detail?.value ?? event;
+    const val = typeof raw === 'object' && raw !== null ? (raw.value ?? raw.lower ?? 1) : raw;
+    this.setup.days = Math.max(1, Math.min(14, +val || 1));
+  }
+
   async confirmItinerarySetup() {
     this.showSetupModal = false;
 
+    const days = Math.max(1, Math.min(14, Number(this.setup.days) || 1));
     await this.generateItinerary(
-      this.setup.days,
+      days,
       this.setup.startTime,
       this.setup.endTime,
       this.setup.startDate

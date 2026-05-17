@@ -253,24 +253,39 @@ ion-toolbar .spinning {
   --padding-end: 12px;
 }
 
-.rating-slider {
-  width: 100%;
+.star-rating-container {
+  padding: 12px;
+  margin-bottom: 12px;
+  background: $detail-page;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
 
-  ion-label {
+  .star-rating-label {
+    margin: 0 0 10px;
     font-weight: 700;
     font-size: 0.9rem;
-    color: $detail-text !important;
-    margin-bottom: 8px;
+    color: $detail-text;
   }
 
-  ion-range {
-    width: 100%;
-    padding-top: 8px;
+  .star-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
   }
 
-  ion-icon {
-    font-size: 1.35rem;
-    color: #{$detail-primary};
+  .star-icon {
+    font-size: 2.2rem;
+    color: #d1d5db;
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.1s ease;
+
+    &.star-filled {
+      color: #ca8a04;
+    }
+
+    &:active {
+      transform: scale(1.2);
+    }
   }
 }
 

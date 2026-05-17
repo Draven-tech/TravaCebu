@@ -117,22 +117,19 @@
       <h2>Add your review</h2>
     </div>
 
-    <ion-item lines="none" class="rating-slider detail-form-item">
-      <ion-label position="stacked">Rating: {{ rating }}</ion-label>
-      <ion-range
-        min="1"
-        max="5"
-        step="1"
-        snaps="true"
-        pin="true"
-        [(ngModel)]="rating"
-        color="primary"
-        class="detail-rating-range"
-      >
-        <ion-icon slot="start" name="sad-outline" aria-hidden="true"></ion-icon>
-        <ion-icon slot="end" name="happy-outline" aria-hidden="true"></ion-icon>
-      </ion-range>
-    </ion-item>
+    <div class="star-rating-container">
+      <p class="star-rating-label">Rating: {{ rating }} / 5</p>
+      <div class="star-row">
+        <ion-icon
+          *ngFor="let star of [1,2,3,4,5]"
+          [name]="star <= rating ? 'star' : 'star-outline'"
+          [class.star-filled]="star <= rating"
+          class="star-icon"
+          (click)="rating = star"
+          aria-hidden="true"
+        ></ion-icon>
+      </div>
+    </div>
 
     <ion-item lines="none" class="detail-form-item">
       <ion-label>Post as anonymous</ion-label>

@@ -149,7 +149,7 @@
       <input type="file" (change)="onFileSelected($event)" accept="image/*" class="detail-file-input" />
     </ion-item>
 
-    <ion-img *ngIf="selectedFilePreview" [src]="selectedFilePreview" class="preview-img"></ion-img>
+    <img *ngIf="selectedFilePreview" [src]="selectedFilePreview" class="preview-img" alt="Preview" />
 
     <ion-button expand="block" class="detail-btn detail-btn--primary" (click)="addReview()" [disabled]="uploading">
       {{ uploading ? 'Uploading…' : 'Submit review' }}

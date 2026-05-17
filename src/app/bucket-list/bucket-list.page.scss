@@ -1,5 +1,5 @@
 .bucket-toolbar {
-  --background: var(--ion-color-primary, #4c8dbb);
+  --background: #4c8dbb;
   --color: #ffffff;
   --border-width: 0;
   box-shadow: none;
@@ -118,7 +118,7 @@
 
   .empty-cta {
     max-width: 280px;
-    --background: var(--ion-color-primary, #4c8dbb);
+    --background: #4c8dbb;
     --color: #ffffff;
     --border-radius: 12px;
     font-weight: 600;
@@ -199,7 +199,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--ion-color-primary, #4c8dbb);
+  color: #4c8dbb;
   background: rgba(76, 141, 187, 0.12);
   padding: 4px 10px;
   border-radius: 999px;
@@ -246,7 +246,7 @@
   }
 
   .my-itineraries-btn {
-    --background: var(--ion-color-primary, #4c8dbb);
+    --background: #4c8dbb;
     --color: #ffffff;
     --box-shadow: 0 6px 16px rgba(76, 141, 187, 0.32);
   }

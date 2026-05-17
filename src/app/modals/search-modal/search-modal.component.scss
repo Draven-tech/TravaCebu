@@ -1,3 +1,20 @@
+$search-primary: #4c8dbb;
+
+.search-toolbar {
+  --background: #{$search-primary};
+  --color: #ffffff;
+  --border-width: 0;
+
+  ion-title {
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  ion-button {
+    --color: #ffffff;
+  }
+}
+
 ion-content {
        --background: var(--ion-background-color);
        background: var(--ion-background-color);
@@ -42,6 +59,7 @@ ion-content {
      }
 
      .loading-container ion-spinner {
+       color: $search-primary;
        margin-bottom: 16px;
      }
 

@@ -42,11 +42,7 @@
 }
 
 .bottom-nav__item--active {
-  background: linear-gradient(
-    180deg,
-    var(--ion-color-primary, #4c8dbb) 0%,
-    var(--ion-color-primary-shade, #3a6d9a) 100%
-  );
+  background: #4c8dbb;
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(76, 141, 187, 0.35);
 }

@@ -1,7 +1,7 @@
 // Header styling
 ion-header {
   ion-toolbar {
-    --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --background: #4c8dbb;
     --color: white;
     
     ion-title {
@@ -68,48 +68,61 @@ ion-content {
 }
 
 ion-segment {
-  margin: 16px 12px;
-  border-radius: 16px;
+  margin: 12px;
+  width: calc(100% - 24px);
+  border-radius: 12px;
   background: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid #e9ecef;
   --background: white;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  
 
   ion-segment-button {
     --color: #2d3748;
     --color-checked: white;
+    --background: transparent;
+    --background-checked: #4c8dbb;
     --indicator-color: transparent;
+    --indicator-height: 0;
+    --padding-start: 4px;
+    --padding-end: 4px;
+    --min-height: 38px;
     font-weight: 600;
-    border-radius: 12px;
-    margin: 2px;
+    border-radius: 10px;
+    margin: 3px;
+    flex: 1;
+    text-align: center;
     transition: all 0.3s ease;
-
-    &.segment-button-checked {
-      --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --color: white;
-      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-    }
 
     ion-label {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      gap: 2px;
+      justify-content: center;
+      gap: 4px;
       font-size: 0.8rem;
       font-weight: 600;
       color: #2d3748;
-      padding: 4px 2px;
+      margin: 0;
+      padding: 0;
+      line-height: 1;
 
       ion-icon {
         font-size: 14px;
         color: #2d3748;
+        flex-shrink: 0;
       }
     }
 
     &.segment-button-checked {
+      box-shadow: 0 2px 8px rgba(76, 141, 187, 0.3);
+
       ion-label {
         color: white;
-        
+
         ion-icon {
           color: white;
         }
@@ -213,6 +226,7 @@ ion-segment {
         margin-bottom: 8px;
         font-size: 0.9rem;
         color: #555;
+        padding-bottom: 20px;
 
         ion-icon {
           font-size: 16px;
@@ -250,7 +264,7 @@ ion-segment {
         font-weight: 600;
         --padding-start: 20px;
         --padding-end: 20px;
-        --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --background: #4c8dbb;
         --color: white;
         --border-color: transparent;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
@@ -273,6 +287,7 @@ ion-segment {
 @media (max-width: 768px) {
   ion-segment {
     margin: 12px 8px;
+    width: calc(100% - 16px);
   }
   
   .submission-card {
@@ -295,6 +310,7 @@ ion-segment {
 @media (max-width: 480px) {
   ion-segment {
     margin: 8px 6px;
+    width: calc(100% - 12px);
     
     ion-segment-button {
       margin: 1px;
@@ -329,4 +345,73 @@ ion-segment {
     opacity: 1;
     transform: translateY(0);
   }
-} 
+}
+
+@media (prefers-color-scheme: dark) {
+  ion-content {
+    --background: #121212;
+  }
+
+  .loading-container {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .empty-state {
+    color: rgba(255, 255, 255, 0.6);
+
+    h3 { color: #f5f5f5; }
+  }
+
+  ion-segment {
+    background: #1e1e1e;
+    --background: #1e1e1e;
+    border-color: rgba(255, 255, 255, 0.08);
+
+    ion-segment-button {
+      --color: rgba(255, 255, 255, 0.75);
+
+      ion-label {
+        color: rgba(255, 255, 255, 0.75);
+        ion-icon { color: rgba(255, 255, 255, 0.75); }
+      }
+
+      &.segment-button-checked ion-label {
+        color: white;
+        ion-icon { color: white; }
+      }
+    }
+  }
+
+  .submission-card {
+    background: #1e1e1e;
+    border-color: rgba(255, 255, 255, 0.08);
+
+    &.pending {
+      background: linear-gradient(135deg, #2a2410 0%, #1e1e1e 100%);
+    }
+
+    &.approved {
+      background: linear-gradient(135deg, #0f2a12 0%, #1e1e1e 100%);
+    }
+
+    &.rejected {
+      background: linear-gradient(135deg, #2a0f0f 0%, #1e1e1e 100%);
+    }
+
+    ion-card-header {
+      background: #252525;
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+
+      .spot-info {
+        ion-card-title { color: #f5f5f5; }
+        ion-card-subtitle { color: rgba(255, 255, 255, 0.6); }
+      }
+    }
+
+    ion-card-content {
+      .spot-details .detail-item {
+        color: rgba(255, 255, 255, 0.7);
+      }
+    }
+  }
+}

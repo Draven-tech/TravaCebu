@@ -125,11 +125,11 @@
                   <span class="meal-time">{{ spot.mealType }} time</span>
                 </div>
                 <div class="booking-links">
-                  <ion-button size="small" fill="outline" color="primary" (click)="viewRestaurantMap(spot.chosenRestaurant)">
-                    <ion-icon name="map"></ion-icon> View on Map
+                  <ion-button size="small" class="booking-action-btn" (click)="viewRestaurantMap(spot.chosenRestaurant)">
+                    <ion-icon name="map-outline" slot="start"></ion-icon> View on Map
                   </ion-button>
                   <a [href]="getGoogleReviewsUrl(spot.chosenRestaurant)" target="_blank" class="booking-link">
-                    <ion-icon name="star"></ion-icon> Reviews
+                    <ion-icon name="star-outline"></ion-icon> Reviews
                   </a>
                 </div>
               </div>
@@ -201,13 +201,13 @@
               </div>
               <div class="booking-links">
                 <a [href]="getBookingUrl(day.chosenHotel)" target="_blank" class="booking-link">
-                  <ion-icon name="card"></ion-icon> Booking.com
+                  <ion-icon name="card-outline"></ion-icon> Booking.com
                 </a>
                 <a [href]="getAgodaUrl(day.chosenHotel)" target="_blank" class="booking-link">
-                  <ion-icon name="bed"></ion-icon> Agoda
+                  <ion-icon name="bed-outline"></ion-icon> Agoda
                 </a>
-                <ion-button size="small" fill="outline" (click)="viewHotelMap(day.chosenHotel)">
-                  <ion-icon name="map"></ion-icon> View on Map
+                <ion-button size="small" class="booking-action-btn" (click)="viewHotelMap(day.chosenHotel)">
+                  <ion-icon name="map-outline" slot="start"></ion-icon> View on Map
                 </ion-button>
               </div>
             </div>

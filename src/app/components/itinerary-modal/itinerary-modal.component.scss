@@ -215,12 +215,15 @@ ion-content.itinerary-modal-content {
 }
 
 .booking-links .booking-action-btn {
-  --background: linear-gradient(180deg, #{$im-primary} 0%, #{$im-primary-dark} 100%);
-  --background-hover: #{$im-primary-dark};
-  --color: #ffffff;
-  --border-width: 0;
+  --background: #ffffff;
+  --background-hover: #{$im-btn-tint};
+  --background-activated: #{$im-btn-tint-strong};
+  --color: #{$im-primary-deep};
+  --border-width: 1.5px;
+  --border-style: solid;
+  --border-color: #{$im-primary};
   --border-radius: 10px;
-  --box-shadow: 0 4px 12px rgba(47, 90, 133, 0.3);
+  --box-shadow: 0 1px 4px rgba(47, 90, 133, 0.08);
   font-weight: 700;
   margin: 0;
   text-transform: none;
@@ -229,7 +232,7 @@ ion-content.itinerary-modal-content {
 }
 
 .booking-links .booking-action-btn ion-icon {
-  color: #ffffff;
+  color: #{$im-primary};
 }
 
 .booking-link {

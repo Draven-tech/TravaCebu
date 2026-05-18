@@ -1,5 +1,5 @@
 ﻿import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
-import { AlertController, NavController, IonContent } from '@ionic/angular';
+import { AlertController, NavController, IonContent, LoadingController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
 import { AuthUiMessages, AuthErrorCodes } from '../constants/auth-ui-messages';
@@ -22,6 +22,7 @@ export class LoginPage implements OnInit {
   email: string = '';
   password: string = '';
   showPassword = false;
+  isLoading = false;
 
   private headerTapCount = 0;
   private tapTimeout: any;
@@ -29,6 +30,7 @@ export class LoginPage implements OnInit {
   constructor(
     private authService: AuthService,
     private alertCtrl: AlertController,
+    private loadingCtrl: LoadingController,
     private navCtrl: NavController,
     private router: Router
   ) {}
@@ -43,16 +45,29 @@ export class LoginPage implements OnInit {
       return;
     }
 
+    if (this.isLoading) return;
+
+    this.isLoading = true;
+    const loading = await this.loadingCtrl.create({
+      message: 'Logging in…',
+      spinner: 'crescent',
+      cssClass: 'tc-loading-overlay',
+      backdropDismiss: false,
+    });
+    await loading.present();
+
     try {
       await this.authService.loginUser(this.email, this.password);
-      const uid = await this.authService.getCurrentUid(); 
+      const uid = await this.authService.getCurrentUid();
 
       if (uid) {
+        await loading.dismiss();
         this.navCtrl.navigateRoot(`/user-dashboard/${uid}`);
       } else {
         throw new Error(AuthErrorCodes.uidResolutionFailed);
       }
     } catch (error: unknown) {
+      await loading.dismiss();
       console.error('Login error:', error);
 
       let errorMessage: string = AuthUiMessages.traveller.generic;
@@ -80,6 +95,8 @@ export class LoginPage implements OnInit {
       }
 
       await this.showError(errorMessage);
+    } finally {
+      this.isLoading = false;
     }
   }
 

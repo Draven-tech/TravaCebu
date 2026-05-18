@@ -436,4 +436,36 @@ ion-modal {
   box-sizing: border-box;
 }
 
+/* ── Login loading overlay ── */
+.tc-loading-overlay {
+  --background: rgba(17, 23, 32, 0.82);
+  --spinner-color: #4c8dbb;
+
+  .loading-wrapper {
+    background: #111720;
+    border-radius: 16px;
+    padding: 24px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    min-width: 160px;
+
+    ion-spinner {
+      width: 36px;
+      height: 36px;
+      color: #4c8dbb;
+    }
+
+    .loading-content {
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+  }
+}
+
+
 

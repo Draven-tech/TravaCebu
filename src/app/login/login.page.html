@@ -46,8 +46,13 @@
     </form>
 
     <div class="btn-container">
-      <button type="button" class="btn-road" (click)="loginUser()">
-        <span class="btn-label">LOGIN</span>
+      <button
+        type="button"
+        class="btn-road"
+        [class.btn-road--loading]="isLoading"
+        [disabled]="isLoading"
+        (click)="loginUser()">
+        <span class="btn-label">{{ isLoading ? 'LOGGING IN…' : 'LOGIN' }}</span>
       </button>
 
       <div class="signup-text">

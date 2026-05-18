@@ -232,23 +232,37 @@ export class WeatherService {
     let headline: string;
     if (precipBad && heatBad) {
       headline =
-        'This attraction is mostly outdoors. For your planned visit time, the forecast shows strong rain or storm risk and high heat — staying outside may be uncomfortable.';
+        'This attraction is mostly outdoors. For your planned visit time, the forecast shows strong rain or storm risk and high heat, staying outside may be uncomfortable.';
     } else if (precipBad) {
       headline =
         'This attraction is mostly outdoors. For your planned visit time, the forecast shows enough rain or storm risk that staying outside may be uncomfortable.';
     } else if (heatBad) {
       headline =
-        'This attraction is mostly outdoors. For your planned visit time, the forecast shows high heat — extended time outside may be uncomfortable.';
+        'This attraction is mostly outdoors. For your planned visit time, the forecast shows high heat, extended time outside may be uncomfortable.';
     } else {
       headline =
         'This attraction is mostly outdoors. Check conditions below or try another weather source before you go.';
     }
 
+    let footer: string;
+    if (precipBad && heatBad) {
+      footer =
+        'Rain and heat are both concerns at your visit time, an indoor spot would be the best swap. Tap Replace Spot below. Your visit time stays the same.';
+    } else if (precipBad) {
+      footer =
+        'It looks like rain during your visit, consider swapping to an indoor or covered spot below. Tap Replace Spot to swap it in. Your visit time stays the same.';
+    } else if (heatBad) {
+      footer =
+        "It's going to be very hot during your visit, consider swapping to a shaded or indoor spot below. Tap Replace Spot to swap it in. Your visit time stays the same.";
+    } else {
+      footer =
+        'Pick a nearby indoor or mixed indoor/outdoor place below and tap Replace Spot to swap it in. Your visit time stays the same.';
+    }
+
     return {
       headline,
       bullets,
-      footer:
-        'Pick a nearby indoor or mixed indoor/outdoor place below and tap Replace Spot to swap it in. Your visit time stays the same.',
+      footer,
     };
   }
 

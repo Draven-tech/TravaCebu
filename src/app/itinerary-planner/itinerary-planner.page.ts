@@ -36,6 +36,7 @@ export class ItineraryPlannerPage implements OnInit {
   currentItineraryId: string | null = null;
 
   isLoading = true;
+  proceeding = false;
 
   constructor(
     private itineraryplannerService: ItineraryPlannerService,
@@ -191,15 +192,30 @@ export class ItineraryPlannerPage implements OnInit {
   }
 
   async confirmItinerarySetup() {
+    if (this.proceeding) return;
+    this.proceeding = true;
     this.showSetupModal = false;
 
-    const days = Math.max(1, Math.min(14, Number(this.setup.days) || 1));
-    await this.generateItinerary(
-      days,
-      this.setup.startTime,
-      this.setup.endTime,
-      this.setup.startDate
-    );
+    const loading = await this.loadingCtrl.create({
+      message: 'Building your itinerary…',
+      spinner: 'crescent',
+      cssClass: 'tc-loading-overlay',
+      backdropDismiss: false,
+    });
+    await loading.present();
+
+    try {
+      const days = Math.max(1, Math.min(14, Number(this.setup.days) || 1));
+      await this.generateItinerary(
+        days,
+        this.setup.startTime,
+        this.setup.endTime,
+        this.setup.startDate
+      );
+    } finally {
+      await loading.dismiss();
+      this.proceeding = false;
+    }
   }
 
   async generateItinerary(days: number, startTime: string, endTime: string, startDate: string) {

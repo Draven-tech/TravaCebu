@@ -54,7 +54,6 @@
                   <span>Weather &amp; alternative stops</span>
                 </div>
                 <div *ngIf="weatherSummaryBlocks[getSpotKey(dayIndex, i)] as block" class="weather-summary-block">
-                  <p class="weather-summary-lead">{{ block.headline }}</p>
                   <ul class="weather-summary-bullets" *ngIf="block.bullets.length">
                     <li *ngFor="let line of block.bullets">{{ line }}</li>
                   </ul>

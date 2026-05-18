@@ -171,9 +171,18 @@ export class WeatherSpotSuggestionsService {
       })
       .map((s) => ({
         ...s,
-        _distanceKm: this.haversineKm(origin, s.location)
+        _distanceKm: this.haversineKm(origin, s.location),
+        _exposure: this.inferExposure(s),
       }))
-      .sort((a, b) => a._distanceKm - b._distanceKm)
+      .sort((a, b) => {
+        // Indoor spots rank above mixed ones of similar distance.
+        // A mixed spot is penalised by MIXED_PENALTY_KM so a closer indoor
+        // spot will always appear first even if it is slightly farther away.
+        const MIXED_PENALTY_KM = 5;
+        const scoreA = a._distanceKm + (a._exposure === 'mixed' ? MIXED_PENALTY_KM : 0);
+        const scoreB = b._distanceKm + (b._exposure === 'mixed' ? MIXED_PENALTY_KM : 0);
+        return scoreA - scoreB;
+      })
       .slice(0, limit);
 
     const block = this.weatherService.buildOutdoorConcernBlock(hour);

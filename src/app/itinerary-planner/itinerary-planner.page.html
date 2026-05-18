@@ -172,10 +172,11 @@
       </div>
 
       <div class="setup-actions">
-        <ion-button expand="block" class="setup-proceed-btn" (click)="confirmItinerarySetup()">
-          Proceed
+        <ion-button expand="block" class="setup-proceed-btn" (click)="confirmItinerarySetup()" [disabled]="proceeding">
+          <ion-spinner *ngIf="proceeding" name="crescent" slot="start" style="width:18px;height:18px;margin-right:8px;"></ion-spinner>
+          {{ proceeding ? 'Building…' : 'Proceed' }}
         </ion-button>
-        <ion-button expand="block" fill="clear" class="setup-cancel-btn" (click)="showSetupModal = false">
+        <ion-button expand="block" fill="clear" class="setup-cancel-btn" [disabled]="proceeding" (click)="showSetupModal = false">
           Cancel
         </ion-button>
       </div>

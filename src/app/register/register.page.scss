@@ -54,6 +54,27 @@ p {
   position: relative;
 }
 
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  padding: 0 4px;
+  color: #e53935;
+  font-size: 0.78rem;
+  font-weight: 500;
+
+  ion-icon {
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+}
+
+.floating-label.input-error {
+  border: 1.5px solid #e53935;
+  box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.15);
+}
+
 .floating-label {
   display: block;
   position: relative;

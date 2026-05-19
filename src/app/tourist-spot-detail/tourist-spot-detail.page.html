@@ -53,15 +53,32 @@
         <ion-spinner name="crescent" color="primary"></ion-spinner>
       </div>
       <ng-container *ngIf="!spotEventsLoading">
-        <ion-list *ngIf="upcomingSpotEvents.length > 0; else noUpcomingEvents" lines="none" class="detail-list">
-          <ion-item *ngFor="let ev of upcomingSpotEvents" lines="full" class="detail-list-item">
-            <ion-icon name="calendar-outline" class="detail-list-icon" slot="start" aria-hidden="true"></ion-icon>
-            <ion-label>
-              <h3>{{ ev.name }}</h3>
-              <p>{{ formatSpotEventWhen(ev) }}</p>
-            </ion-label>
-          </ion-item>
-        </ion-list>
+        <div *ngIf="upcomingSpotEvents.length > 0; else noUpcomingEvents" class="events-list">
+          <div *ngFor="let ev of upcomingSpotEvents; let i = index" class="event-card">
+            <div class="event-row" (click)="toggleEventExpand(i)">
+              <ion-icon name="calendar-outline" class="event-icon" aria-hidden="true"></ion-icon>
+              <div class="event-summary">
+                <span class="event-name">{{ ev.name }}</span>
+                <span class="event-when">{{ formatSpotEventWhen(ev) }}</span>
+              </div>
+              <ion-icon
+                [name]="isEventExpanded(i) ? 'chevron-up-outline' : 'chevron-down-outline'"
+                class="event-chevron">
+              </ion-icon>
+            </div>
+            <div class="event-details" *ngIf="isEventExpanded(i)">
+              <img *ngIf="ev.imageUrl" [src]="ev.imageUrl" class="event-detail-img" alt="{{ ev.name }}" />
+              <p *ngIf="ev.description" class="event-detail-line">
+                <ion-icon name="information-circle-outline"></ion-icon>
+                {{ ev.description }}
+              </p>
+              <p *ngIf="ev.location" class="event-detail-line">
+                <ion-icon name="location-outline"></ion-icon>
+                {{ ev.location }}
+              </p>
+            </div>
+          </div>
+        </div>
         <ng-template #noUpcomingEvents>
           <p class="detail-muted">None scheduled.</p>
         </ng-template>
@@ -158,8 +175,8 @@
       <h2>Share a local tip</h2>
     </div>
 
+    <p class="tip-field-label">Tip (20–300 characters)</p>
     <ion-item lines="none" class="detail-form-item">
-      <ion-label position="stacked">Tip (20–300 characters)</ion-label>
       <ion-textarea
         [(ngModel)]="localTipText"
         placeholder="Example: Visit before 9 AM to avoid long lines."

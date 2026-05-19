@@ -265,6 +265,7 @@ ion-menu.light-menu ion-list {
   font-size: 1.3rem;
   font-weight: bold;
   padding: 20px 24px 16px 24px;
+  padding-top: calc(20px + env(safe-area-inset-top));
   flex-shrink: 0;
   text-align: left;
   letter-spacing: 1px;

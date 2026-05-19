@@ -29,6 +29,7 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
   rating: number = 5;
   comment: string = '';
   selectedFile?: File;
+  selectedFileBuffer: { buffer: ArrayBuffer; contentType: string } | null = null;
   selectedFilePreview?: string;
   uploading = false;
   uploadProgress: number = 0;
@@ -51,6 +52,19 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
   upcomingSpotEvents: GlobalEvent[] = [];
   spotEventsLoading = true;
   private spotEventsSub?: Subscription;
+  expandedEventIndices = new Set<number>();
+
+  toggleEventExpand(index: number): void {
+    if (this.expandedEventIndices.has(index)) {
+      this.expandedEventIndices.delete(index);
+    } else {
+      this.expandedEventIndices.add(index);
+    }
+  }
+
+  isEventExpanded(index: number): boolean {
+    return this.expandedEventIndices.has(index);
+  }
 
   constructor(
     private route: ActivatedRoute,
@@ -218,9 +232,13 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
     let photoUrl = '';
 
     try {
-      if (this.selectedFile) {
+      if (this.selectedFile && this.selectedFileBuffer) {
         const filePath = `reviews/${Date.now()}_${this.selectedFile.name}`;
-        photoUrl = await this.storageService.uploadFile(filePath, this.selectedFile);
+        photoUrl = await this.storageService.uploadBuffer(
+          filePath,
+          this.selectedFileBuffer.buffer,
+          this.selectedFileBuffer.contentType
+        );
       }
 
       const user = await this.afAuth.currentUser;
@@ -246,6 +264,7 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
       this.comment = '';
       this.rating = 5;
       this.selectedFile = undefined;
+      this.selectedFileBuffer = null;
       this.selectedFilePreview = undefined;
 
       this.loadReviews();
@@ -263,26 +282,42 @@ export class TouristSpotDetailPage implements OnInit, OnDestroy {
     const file = event.target.files[0];
     if (file) {
       this.selectedFile = file;
+
       const reader = new FileReader();
       reader.onload = () => this.selectedFilePreview = reader.result as string;
       reader.readAsDataURL(file);
+
+      // Read ArrayBuffer immediately — Android revokes content:// permission shortly after selection.
+      const bufferReader = new FileReader();
+      bufferReader.onload = (e: any) => {
+        this.selectedFileBuffer = {
+          buffer: e.target.result as ArrayBuffer,
+          contentType: file.type
+        };
+      };
+      bufferReader.readAsArrayBuffer(file);
     }
   }
 
   removeImage() {
     this.selectedFile = undefined;
+    this.selectedFileBuffer = null;
     this.selectedFilePreview = '';
   }
 
   private async uploadImage(): Promise<string> {
-    if (!this.selectedFile) return '';
+    if (!this.selectedFile || !this.selectedFileBuffer) return '';
 
     this.uploading = true;
     this.uploadProgress = 0;
     const filePath = `reviews/${Date.now()}_${this.selectedFile.name}`;
 
     try {
-      const url = await this.storageService.uploadFile(filePath, this.selectedFile);
+      const url = await this.storageService.uploadBuffer(
+        filePath,
+        this.selectedFileBuffer.buffer,
+        this.selectedFileBuffer.contentType
+      );
       return url;
     } catch (error) {
       console.error('Image upload failed:', error);

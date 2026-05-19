@@ -416,6 +416,7 @@ export class ItineraryModalComponent implements OnInit {
             spotId: canonicalSpotId,
             touristSpotId: canonicalSpotId,
             itineraryGroupId,
+            location: spot.location ?? null,
 
             originalStartTime: this.originalStartTime,
             originalEndTime: this.originalEndTime

@@ -23,6 +23,7 @@ export class CreatePostModalComponent {
 
   postContent: string = '';
   selectedImage: File | null = null;
+  selectedImageBuffer: { buffer: ArrayBuffer; contentType: string } | null = null;
   imagePreview: string | null = null;
   uploading: boolean = false;
   selectedSpotId: string = '';
@@ -127,20 +128,32 @@ export class CreatePostModalComponent {
     const file: File = event.target.files[0];
     if (file) {
       this.selectedImage = file;
-      
-      // Create preview
+
+      // Read immediately — Android revokes file permission after a short time.
       const reader = new FileReader();
       reader.onload = (e: any) => {
-        this.imagePreview = e.target.result;
+        this.imagePreview = e.target.result as string;
       };
       reader.readAsDataURL(file);
+
+      // Also read as ArrayBuffer right away so upload never hits a permission error.
+      const bufferReader = new FileReader();
+      bufferReader.onload = (e: any) => {
+        this.selectedImageBuffer = {
+          buffer: e.target.result as ArrayBuffer,
+          contentType: file.type
+        };
+      };
+      bufferReader.readAsArrayBuffer(file);
     }
   }
 
   removeImage() {
     this.selectedImage = null;
+    this.selectedImageBuffer = null;
     this.imagePreview = null;
   }
+
 
   async createPost() {
     if (!this.postContent.trim() && !this.selectedImage && !this.imagePreview) {
@@ -179,11 +192,15 @@ export class CreatePostModalComponent {
 
       let imageUrl = this.imagePreview; // Use existing image if editing
 
-      // Upload new image if selected
-      if (this.selectedImage) {
+      // Upload new image if selected — use pre-read buffer to avoid Android permission expiry.
+      if (this.selectedImage && this.selectedImageBuffer) {
         const filePath = `posts/${currentUser.uid}_${Date.now()}_${this.selectedImage.name}`;
-        imageUrl = await this.storageService.uploadFile(filePath, this.selectedImage);
-      } 
+        imageUrl = await this.storageService.uploadBuffer(
+          filePath,
+          this.selectedImageBuffer.buffer,
+          this.selectedImageBuffer.contentType
+        );
+      }
 
       const selectedSpot = this.getSelectedSpot();
       const selectedItinerary = this.getSelectedItinerary();

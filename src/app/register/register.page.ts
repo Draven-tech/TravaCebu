@@ -25,6 +25,15 @@ export class RegisterPage implements OnInit {
   agreed: boolean = false;
   showPassword = false;
   showConfirmPassword = false;
+  emailTouched = false;
+
+  get isEmailValid(): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email);
+  }
+
+  get showEmailError(): boolean {
+    return this.emailTouched && this.email.length > 0 && !this.isEmailValid;
+  }
 
   constructor(
     private afAuth: AngularFireAuth,
@@ -145,6 +154,10 @@ export class RegisterPage implements OnInit {
 
       await this.showAlert(AuthUiMessages.registration.titleError, message);
     }
+  }
+
+  onEmailInput() {
+    this.emailTouched = true;
   }
 
   onInputFocus(event: any) {

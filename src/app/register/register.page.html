@@ -52,18 +52,23 @@
       </div>
 
       <div class="form-group">
-        <label class="floating-label" [class.filled]="email">
+        <label class="floating-label" [class.filled]="email" [class.input-error]="showEmailError">
           <span>Email</span>
-          <input 
-            type="email" 
-            [(ngModel)]="email" 
-            name="email" 
-            required 
+          <input
+            type="email"
+            [(ngModel)]="email"
+            name="email"
+            required
+            (input)="onEmailInput()"
             (focus)="onInputFocus($event)"
             (blur)="onInputBlur($event)"
             inputmode="email"
             autocomplete="email" />
         </label>
+        <div class="field-error" *ngIf="showEmailError">
+          <ion-icon name="alert-circle"></ion-icon>
+          <span>Please enter a valid email address</span>
+        </div>
       </div>
 
       <div class="form-group">

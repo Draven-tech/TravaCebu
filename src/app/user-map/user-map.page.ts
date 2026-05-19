@@ -478,6 +478,7 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.maybePromptForResumableTrip();
   }
 
+  //////////////////////////////////////// contnue seesoipb when app is quited 
   async continueSavedItinerary(): Promise<void> {
     if (this.availableItineraries.length === 0) {
       await this.loadAvailableItineraries();
@@ -499,14 +500,21 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
     this.selectedItineraryIndex = currentSession.selectedItineraryIndex;
     this.currentSegmentIndex = targetSegmentIndex;
 
+    // /////////////////////// for continuing a session when app is quited
     const restoredFromSnapshot = this.restoreRouteSnapshotForSession(currentSession);
     const hasLoadedRouteForCurrentItinerary =
       wasSameItinerarySelected &&
       !!this.currentRouteInfo?.segments?.length;
 
-    // Load route only when missing and no valid snapshot is available.
     if (!restoredFromSnapshot && !hasLoadedRouteForCurrentItinerary) {
       await this.loadItineraryRoutes({ preserveSessionProgress: true });
+    } else {
+      // loadItineraryRoutes was skipped — restore map markers to itinerary-only view manually.
+      const itinerary = this.availableItineraries[this.selectedItineraryIndex];
+      if (itinerary) {
+        this.mapManagement.clearAllMarkers();
+        this.mapManagement.showItinerarySpots(itinerary, this.mapUI);
+      }
     }
 
     const selectedItinerary = this.availableItineraries[this.selectedItineraryIndex];
@@ -1089,8 +1097,12 @@ export class UserMapPage implements AfterViewInit, OnDestroy {
       this.lakawAutoAdvancedForSegmentIndex = null;
     }
 
-    // Move to next segment (loop back to first when reaching the end)
-    this.currentSegmentIndex = (this.currentSegmentIndex + 1) % this.currentRouteInfo.segments.length;
+    // Stop at the last segment instead of wrapping back to Stage 1.
+    if (this.currentSegmentIndex >= this.currentRouteInfo.segments.length - 1) {
+      void this.openItineraryCompletionModal();
+      return;
+    }
+    this.currentSegmentIndex = this.currentSegmentIndex + 1;
 
     // Persist session with new current segment.
     this.persistSessionSnapshot('segment_advanced');

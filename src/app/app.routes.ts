@@ -8,28 +8,25 @@ import { EventsListComponent } from './pages/events-list/events-list.component';
 import { EventEditorComponent } from './pages/event-editor/event-editor.component';
 import { PendingSpotsComponent } from './pages/pending-spots/pending-spots.component';
 import { PendingTipsComponent } from './pages/pending-tips/pending-tips.component';
+import { AdminShellComponent } from './components/admin-shell/admin-shell.component';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'admin/login' },
   { path: 'admin/login', component: LoginComponent },
-  { path: 'admin/dashboard', component: DashboardComponent, canActivate: [adminGuard] },
-  { path: 'admin/tourist-spots', component: TouristSpotsListComponent, canActivate: [adminGuard] },
   {
-    path: 'admin/tourist-spots/editor',
-    component: TouristSpotEditorComponent,
+    path: 'admin',
+    component: AdminShellComponent,
     canActivate: [adminGuard],
-  },
-  { path: 'admin/events', component: EventsListComponent, canActivate: [adminGuard] },
-  { path: 'admin/events/editor', component: EventEditorComponent, canActivate: [adminGuard] },
-  {
-    path: 'admin/moderation/pending-spots',
-    component: PendingSpotsComponent,
-    canActivate: [adminGuard],
-  },
-  {
-    path: 'admin/moderation/pending-tips',
-    component: PendingTipsComponent,
-    canActivate: [adminGuard],
+    children: [
+      { path: 'dashboard', component: DashboardComponent },
+      { path: 'tourist-spots/editor', component: TouristSpotEditorComponent },
+      { path: 'tourist-spots', component: TouristSpotsListComponent },
+      { path: 'events/editor', component: EventEditorComponent },
+      { path: 'events', component: EventsListComponent },
+      { path: 'moderation/pending-spots', component: PendingSpotsComponent },
+      { path: 'moderation/pending-tips', component: PendingTipsComponent },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+    ],
   },
   { path: '**', redirectTo: 'admin/login' },
 ];

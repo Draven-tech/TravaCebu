@@ -1,19 +1,4 @@
 <div class="wrap">
-  <nav class="tc-topbar">
-    <strong>TravaCebu Admin Menu</strong>
-    <span style="flex: 1; min-width: 0.5rem"></span>
-    <span class="tc-avatar" [attr.title]="avatarTitle" aria-hidden="true">
-      @if (avatarPhotoUrl) {
-        <img [src]="avatarPhotoUrl" alt="" width="40" height="40" />
-      } @else {
-        {{ avatarInitial }}
-      }
-    </span>
-    <button type="button" class="secondary" (click)="logout()">Logout</button>
-  </nav>
-
-  <p class="muted" style="margin: 0.25rem 0 0">{{ whoLabel }}</p>
-
   <h2 class="tc-section-title">Tourist spots</h2>
   <div class="grid-dash">
     <a class="tc-nav-card" routerLink="/admin/tourist-spots/editor">
@@ -50,7 +35,7 @@
     <div class="tc-api-card-header">API usage tracker</div>
     <div class="tc-api-card-body">
       @if (apiLoading) {
-        <p class="muted" id="api-st">Loading…</p>
+        <p class="muted">Loading…</p>
       } @else if (apiError) {
         <p class="muted">{{ apiError }}</p>
       } @else {

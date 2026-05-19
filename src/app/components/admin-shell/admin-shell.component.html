@@ -1,0 +1,88 @@
+<div class="tc-shell">
+  <!-- ── Sidebar ── -->
+  <aside class="tc-sidebar">
+    <div class="tc-sidebar-brand">
+      <span class="tc-brand-mark">TC</span>
+      <div class="tc-brand-text">
+        <span class="tc-brand-name">TravaCebu</span>
+        <span class="tc-brand-sub">Admin Panel</span>
+      </div>
+    </div>
+
+    <nav class="tc-sidebar-nav" aria-label="Admin navigation">
+      <div class="tc-nav-group">
+        <span class="tc-nav-group-label">Overview</span>
+        <a class="tc-nav-link" routerLink="/admin/dashboard"
+           routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+          <span class="tc-nav-icon" aria-hidden="true">&#8962;</span>
+          Dashboard
+        </a>
+      </div>
+
+      <div class="tc-nav-group">
+        <span class="tc-nav-group-label">Content</span>
+        <a class="tc-nav-link" routerLink="/admin/tourist-spots"
+           routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+          <span class="tc-nav-icon" aria-hidden="true">&#9711;</span>
+          Tourist Spots
+        </a>
+        <a class="tc-nav-link tc-nav-link--sub" routerLink="/admin/tourist-spots/editor"
+           routerLinkActive="active">
+          + Add New Spot
+        </a>
+        <a class="tc-nav-link" routerLink="/admin/events"
+           routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+          <span class="tc-nav-icon" aria-hidden="true">&#9635;</span>
+          Events
+        </a>
+        <a class="tc-nav-link tc-nav-link--sub" routerLink="/admin/events/editor"
+           routerLinkActive="active">
+          + Add New Event
+        </a>
+      </div>
+
+      <div class="tc-nav-group">
+        <span class="tc-nav-group-label">Moderation</span>
+        <a class="tc-nav-link" routerLink="/admin/moderation/pending-spots"
+           routerLinkActive="active">
+          <span class="tc-nav-icon" aria-hidden="true">&#9745;</span>
+          Pending Spots
+          @if (pendingSpotCount > 0) {
+            <span class="tc-badge" [attr.aria-label]="pendingSpotCount + ' pending'">{{ pendingSpotCount }}</span>
+          }
+        </a>
+        <a class="tc-nav-link" routerLink="/admin/moderation/pending-tips"
+           routerLinkActive="active">
+          <span class="tc-nav-icon" aria-hidden="true">&#9993;</span>
+          Pending Tips
+          @if (pendingTipCount > 0) {
+            <span class="tc-badge" [attr.aria-label]="pendingTipCount + ' pending'">{{ pendingTipCount }}</span>
+          }
+        </a>
+      </div>
+    </nav>
+
+    <!-- Footer: user info + controls -->
+    <div class="tc-sidebar-footer">
+      <div class="tc-sidebar-user">
+        <span class="tc-avatar-sm" aria-hidden="true">
+          @if (avatarPhotoUrl) {
+            <img [src]="avatarPhotoUrl" alt="" />
+          } @else {
+            {{ avatarInitial }}
+          }
+        </span>
+        <span class="tc-sidebar-email" [title]="userEmail">{{ userEmail }}</span>
+      </div>
+      <div class="tc-sidebar-actions">
+        <app-theme-toggle />
+        <button type="button" class="tc-logout-btn" (click)="logout()">Sign out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Content area ── -->
+  <main class="tc-main">
+    <router-outlet />
+  </main>
+</div>

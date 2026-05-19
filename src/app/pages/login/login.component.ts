@@ -27,6 +27,8 @@ export class LoginComponent implements OnInit {
   submitting = false;
   configOk = true;
   pwType: 'password' | 'text' = 'password';
+  /** True while we're checking Firebase auth state — hides the form to prevent a flash. */
+  checking = true;
 
   ngOnInit(): void {
     this.stripCredentialsFromUrl();
@@ -34,6 +36,7 @@ export class LoginComponent implements OnInit {
       this.configOk = false;
       this.errorMsg =
         'Missing Firebase config. Copy src/environments/environment.example.ts to environment.ts and add your keys.';
+      this.checking = false;
       return;
     }
     void this.redirectIfAlreadyAdmin();
@@ -52,11 +55,26 @@ export class LoginComponent implements OnInit {
   }
 
   private async redirectIfAlreadyAdmin(): Promise<void> {
-    await this.authSvc.auth.authStateReady();
-    const u = this.authSvc.auth.currentUser;
-    if (!u) return;
-    const snap = await getDoc(doc(this.authSvc.db, 'admins', u.uid));
-    if (snap.exists()) void this.followReturn();
+    try {
+      await this.authSvc.auth.authStateReady();
+      const u = this.authSvc.auth.currentUser;
+      if (!u) {
+        // No session — show the form
+        this.checking = false;
+        return;
+      }
+      const snap = await getDoc(doc(this.authSvc.db, 'admins', u.uid));
+      if (snap.exists()) {
+        // Valid admin session — redirect (keep spinner visible during navigation)
+        void this.followReturn();
+      } else {
+        // Signed in but not an admin — show the form
+        this.checking = false;
+      }
+    } catch {
+      // Any error — fall through and show the form
+      this.checking = false;
+    }
   }
 
   togglePw(): void {
